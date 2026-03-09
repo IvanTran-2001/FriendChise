@@ -12,3 +12,101 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum OrgRole {
+  OWNER
+  MANAGER
+  WORKER
+}
+
+enum TaskFrequency {
+  DAILY
+  WEEKLY
+}
+
+enum TaskStatus {
+  TODO
+  COMPLETED
+  MISSED
+}
+
+model User {
+  id          String         @id @default(cuid())
+  email       String         @unique
+  name        String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  memberships Membership[]
+  assigned    TaskInstance[] @relation("AssignedTasks")
+  completed   TaskInstance[] @relation("CompletedBy")
+}
+
+model Organization {
+  id            String        @id @default(cuid())
+  name          String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  memberships   Membership[]
+  taskTemplates TaskTemplate[]
+  taskInstances TaskInstance[]
+}
+
+model Membership {
+  id        String       @id @default(cuid())
+  orgId     String
+  userId    String
+  role      OrgRole      @default(WORKER)
+  createdAt DateTime     @default(now())
+
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId])
+  @@index([userId])
+  @@index([orgId])
+}
+
+model TaskTemplate {
+  id            String        @id @default(cuid())
+  orgId         String
+  title         String
+  instructions  String?
+  frequency     TaskFrequency
+  allowedRoles  OrgRole[]     @default([WORKER, MANAGER, OWNER])
+  active        Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  org           Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  instances     TaskInstance[]
+
+  @@index([orgId])
+}
+
+model TaskInstance {
+  id              String       @id @default(cuid())
+  orgId           String
+  taskTemplateId  String
+  date            DateTime
+  assignedToId    String?
+  status          TaskStatus   
+
+  completedAt     DateTime?
+  completionNote  String?
+  completedById   String?
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  template        TaskTemplate @relation(fields: [taskTemplateId], references: [id], onDelete: Cascade)
+
+  assignedTo      User?        @relation("AssignedTasks", fields: [assignedToId], references: [id])
+  completedBy     User?        @relation("CompletedBy", fields: [completedById], references: [id])
+
+  @@index([orgId, date])
+  @@index([assignedToId, date])
+  @@index([taskTemplateId, date])
+}
