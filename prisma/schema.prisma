@@ -5,108 +5,229 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider = "prisma-client-js"
 }
-
 datasource db {
   provider = "postgresql"
+  
 }
 
-enum OrgRole {
-  OWNER
-  MANAGER
-  WORKER
-}
-
-enum TaskFrequency {
-  DAILY
-  WEEKLY
-}
-
-enum TaskStatus {
+// Enums
+enum TaskInstanceStatus {
   TODO
-  COMPLETED
-  MISSED
+  IN_PROGRESS
+  DONE
+  SKIPPED
+}
+
+enum OrgPermission {
+  ORG_MANAGE
+  ROLE_MANAGE
+  TASK_CREATE
+  TASK_UPDATE
+  TASK_DELETE
+  TASK_ASSIGN
+  TASKINSTANCE_COMPLETE
+}
+
+// Core
+model Organization {
+  id           String   @id @default(cuid())
+  title        String   @unique
+  ownerUserId  String?  // optional until you implement auth
+  openTimeMin  Int?     // minutes from midnight (0-1439)
+  closeTimeMin Int?
+
+  memberships  Membership[]
+  roles        Role[]
+  tasks        Task[]
+  cycles       TaskCycle[]
+  taskInstances TaskInstance[]
+
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model User {
-  id          String         @id @default(cuid())
-  email       String         @unique
+  id          String       @id @default(cuid())
   name        String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  email       String       @unique
 
   memberships Membership[]
-  assigned    TaskInstance[] @relation("AssignedTasks")
-  completed   TaskInstance[] @relation("CompletedBy")
-}
 
-model Organization {
-  id            String        @id @default(cuid())
-  name          String
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  memberships   Membership[]
-  taskTemplates TaskTemplate[]
-  taskInstances TaskInstance[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Membership {
-  id        String       @id @default(cuid())
+  id        String   @id @default(cuid())
   orgId     String
   userId    String
-  role      OrgRole      @default(WORKER)
-  createdAt DateTime     @default(now())
+  roleId    String?
 
   org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role?        @relation(fields: [roleId], references: [id], onDelete: SetNull)
+
+  // For later "fairness":
+  // capacityMinPerDay Int?
+
+  taskAssignments TaskInstanceAssignee[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([orgId, userId])
+  @@index([orgId])
   @@index([userId])
+}
+
+model Role {
+  id      String @id @default(cuid())
+  orgId   String
+  title   String
+
+  org     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  // Permissions (RBAC)
+  permissions RolePermission[]
+
+  // Qualification matrix (can do which tasks)
+  eligibleFor TaskEligibility[]
+
+  memberships Membership[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orgId, title])
   @@index([orgId])
 }
 
-model TaskTemplate {
-  id            String        @id @default(cuid())
+model RolePermission {
+  id         String       @id @default(cuid())
+  roleId     String
+  permission OrgPermission
+
+  role       Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([roleId, permission])
+  @@index([roleId])
+}
+
+model Task {
+  id            String  @id @default(cuid())
   orgId         String
   title         String
-  instructions  String?
-  frequency     TaskFrequency
-  allowedRoles  OrgRole[]     @default([WORKER, MANAGER, OWNER])
-  active        Boolean       @default(true)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  description   String?
+  durationMin   Int
 
-  org           Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  instances     TaskInstance[]
+  // preferred start time of day
+  preferredStartTimeMin Int? // 0..1439
+
+  // number of people required per occurrence
+  peopleRequired Int @default(1)
+
+  // recurrence constraints
+  minWaitDays Int?
+  maxWaitDays Int? // "must be done within X days"
+
+  org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  // if you want "qualified members", connect task to roles (or directly to memberships later)
+  eligibility  TaskEligibility[]
+
+  instances    TaskInstance[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orgId, title])
+  @@index([orgId])
+}
+
+model TaskEligibility {
+  id     String @id @default(cuid())
+  orgId  String
+  taskId String
+  roleId String
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+
+  @@unique([taskId, roleId])
+  @@index([orgId])
+  @@index([taskId])
+  @@index([roleId])
+}
+
+model TaskCycle {
+  id      String  @id @default(cuid())
+  orgId   String
+  // planning horizon in days (weekly/monthly/custom). allow null if "system chooses"
+  cycleDays Int?
+
+  // later: versioning fields like effectiveFrom/effectiveTo
+  org     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  instances TaskInstance[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([orgId])
 }
 
 model TaskInstance {
-  id              String       @id @default(cuid())
-  orgId           String
-  taskTemplateId  String
-  date            DateTime
-  assignedToId    String?
-  status          TaskStatus   
+  id        String   @id @default(cuid())
+  orgId     String
+  taskId    String
+  cycleId   String?
 
-  completedAt     DateTime?
-  completionNote  String?
-  completedById   String?
+  status    TaskInstanceStatus @default(TODO)
 
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  // scheduling for this instance
+  scheduledStartAt DateTime?
+  scheduledEndAt   DateTime?
 
-  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  template        TaskTemplate @relation(fields: [taskTemplateId], references: [id], onDelete: Cascade)
+  startedAt   DateTime?
+  completedAt DateTime?
 
-  assignedTo      User?        @relation("AssignedTasks", fields: [assignedToId], references: [id])
-  completedBy     User?        @relation("CompletedBy", fields: [completedById], references: [id])
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  task      Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  cycle     TaskCycle?   @relation(fields: [cycleId], references: [id], onDelete: SetNull)
 
-  @@index([orgId, date])
-  @@index([assignedToId, date])
-  @@index([taskTemplateId, date])
+  assignees TaskInstanceAssignee[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orgId])
+  @@index([taskId])
+  @@index([cycleId])
+  @@index([status])
+}
+
+model TaskInstanceAssignee {
+  id             String @id @default(cuid())
+  taskInstanceId String
+  membershipId   String
+
+  taskInstance   TaskInstance @relation(fields: [taskInstanceId], references: [id], onDelete: Cascade)
+  membership     Membership   @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+
+  @@unique([taskInstanceId, membershipId])
+  @@index([membershipId])
 }
