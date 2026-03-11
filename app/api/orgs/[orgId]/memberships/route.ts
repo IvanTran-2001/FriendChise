@@ -71,7 +71,7 @@ export async function POST(
         return NextResponse.json({ error: "Membership already exists" }, { status: 409 });
       }
       if (e.code === "P2003") {
-        return NextResponse.json({ error: "Invalid roleId" }, { status: 400 });
+        return NextResponse.json({ error: "Invalid foreign key reference" }, { status: 400 });
       }
     }
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -87,7 +87,12 @@ export async function GET(
   const memberships = await prisma.membership.findMany({
     where: { orgId },
     include: {
-      user: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
       role: true,
     },
     orderBy: { createdAt: "desc" },
