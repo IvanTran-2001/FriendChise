@@ -1,13 +1,8 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { Prisma, OrgPermission } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireOrgPermission } from "@/lib/authz";
-
-const membershipSchema = z.object({
-  userId: z.string(),
-  roleId: z.string(), // must be a real Role.id
-});
+import { createMembershipSchema, deleteMembershipSchema } from "@/lib/validators/membership";
 
 export async function POST(
   req: Request,
@@ -25,7 +20,7 @@ export async function POST(
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const parsed = membershipSchema.safeParse(json);
+  const parsed = createMembershipSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Validation failed", issues: parsed.error.issues },
@@ -101,7 +96,7 @@ export async function DELETE(
   if (!authz.ok) return authz.response;
 
   const json = await req.json().catch(() => null);
-  const parsed = membershipSchema.safeParse(json);
+  const parsed = deleteMembershipSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Validation failed", issues: parsed.error.issues },
@@ -127,22 +122,16 @@ export async function DELETE(
   }
 
   // Ensure scoped to org (prevents cross-org deletes)
-  const link = await prisma.membership.findFirst({
-    where: {
-      userId,
-      orgId,
-    },
-    select: { id: true },
+  const { count } = await prisma.membership.deleteMany({
+    where: { userId, orgId },
   });
 
-  if (!link) {
+  if (count === 0) {
     return NextResponse.json(
       { error: "Membership not found" },
       { status: 404 },
     );
   }
-
-  await prisma.membership.delete({ where: { id: link.id } });
   return NextResponse.json({ ok: true });
 }
 

@@ -1,13 +1,9 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
-import { Prisma } from "@prisma/client";
+import { OrgPermission, Prisma, TaskInstanceStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { updateTaskInstanceStatusSchema } from "@/lib/validators/task";
-import { requireOrgMember } from "@/lib/authz";
-
-const createTaskInstanceSchema = z.object({
-  taskId: z.string(),
-});
+import { requireOrgMember, requireOrgPermission } from "@/lib/authz";
+import { createTaskInstanceSchema } from "@/lib/validators/task-instance";
 
 export async function POST(
   req: Request,
@@ -15,7 +11,7 @@ export async function POST(
 ) {
   const { orgId } = await params;
 
-  const authz = await requireOrgMember(orgId);
+  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_CREATE);
   if (!authz.ok) return authz.response;
 
   let json: unknown;
@@ -83,7 +79,7 @@ export async function GET(
   const completedParam = url.searchParams.get("completed"); // "true" | "false" | null
 
   // Build filter
-  const where: Record<string, unknown> = { orgId };
+  const where: Prisma.TaskInstanceWhereInput = { orgId };
 
   if (statusParam && completedParam !== null) {
     return NextResponse.json(
@@ -104,9 +100,9 @@ export async function GET(
     }
     where.status = parsed.data.status;
   } else if (completedParam === "false") {
-    where.status = { notIn: ["DONE", "SKIPPED"] };
+    where.status = { notIn: [TaskInstanceStatus.DONE, TaskInstanceStatus.SKIPPED] };
   } else if (completedParam === "true") {
-    where.status = { in: ["DONE", "SKIPPED"] };
+    where.status = { in: [TaskInstanceStatus.DONE, TaskInstanceStatus.SKIPPED] };
   } else if (completedParam !== null) {
     return NextResponse.json(
       { error: "'completed' must be 'true' or 'false'" },

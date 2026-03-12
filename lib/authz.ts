@@ -63,7 +63,7 @@ export async function requireOrgPermission(
   }
 
   const rolePermission = await prisma.rolePermission.findFirst({
-    where: { roleId: membership.roleId, permission },
+    where: { roleId: membership.roleId, permission, role: { is: { orgId } } },
     select: { id: true },
   });
 

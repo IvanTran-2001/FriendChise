@@ -4,6 +4,7 @@ import {
   TaskInstanceStatus,
 } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { ROLE_KEYS } from "@/lib/rbac";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -64,7 +65,7 @@ async function main() {
     data: {
       orgId: org.id,
       title: "Worker",
-      key: "worker",
+      key: ROLE_KEYS.DEFAULT_MEMBER,
     },
   });
 
@@ -85,7 +86,10 @@ async function main() {
   // Worker permissions (can complete tasks assigned to them)
   await prisma.rolePermission.createMany({
     data: [
-      { roleId: workerRole.id, permission: OrgPermission.TASKINSTANCE_COMPLETE },
+      {
+        roleId: workerRole.id,
+        permission: OrgPermission.TASKINSTANCE_COMPLETE,
+      },
     ],
     skipDuplicates: true,
   });
@@ -202,7 +206,9 @@ async function main() {
       cycleId: cycle.id,
       status: TaskInstanceStatus.TODO,
       scheduledStartAt: new Date(now.getTime() + 11 * 60 * 60 * 1000), // ~5pm
-      scheduledEndAt: new Date(now.getTime() + 11 * 60 * 60 * 1000 + 40 * 60 * 1000),
+      scheduledEndAt: new Date(
+        now.getTime() + 11 * 60 * 60 * 1000 + 40 * 60 * 1000,
+      ),
       assignees: {
         create: [{ membershipId: workerMembership.id }],
       },

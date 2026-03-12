@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { Prisma, OrgPermission } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember, requireOrgPermission } from "@/lib/authz";
-
-const assigneeSchema = z.object({
-  membershipId: z.string(),
-});
+import { CreateAssigneeSchema, DeleteAssigneeSchema } from "@/lib/validators/assignee";
 
 export async function POST(
   req: Request,
@@ -24,7 +20,7 @@ export async function POST(
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const parsed = assigneeSchema.safeParse(json);
+  const parsed = CreateAssigneeSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Validation failed", issues: parsed.error.issues },
@@ -122,7 +118,7 @@ export async function DELETE(
   if (!authz.ok) return authz.response;
 
   const json = await req.json().catch(() => null);
-  const parsed = assigneeSchema.safeParse(json);
+  const parsed = DeleteAssigneeSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Validation failed", issues: parsed.error.issues },

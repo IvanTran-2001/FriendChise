@@ -82,6 +82,7 @@ Two helper functions in `lib/authz.ts` protect all org-scoped routes:
 
 | Helper                                    | Requirement                                                      |
 | ----------------------------------------- | ---------------------------------------------------------------- |
+| `requireUser()`                           | User must be signed in (any authenticated user)                  |
 | `requireOrgMember(orgId)`                 | User must be signed in and have a `Membership` in the org        |
 | `requireOrgPermission(orgId, permission)` | User must be a member whose `Role` has the given `OrgPermission` |
 
@@ -93,10 +94,9 @@ All routes are prefixed with `/api`. Each route notes the minimum permission req
 
 ### Orgs — `/api/orgs`
 
-| Method | Path        | Auth | Description                |
-| ------ | ----------- | ---- | -------------------------- |
-| `GET`  | `/api/orgs` | None | List all organizations.    |
-| `POST` | `/api/orgs` | None | Create a new organization. |
+| Method | Path        | Auth   | Description                                                                               |
+| ------ | ----------- | ------ | ----------------------------------------------------------------------------------------- |
+| `POST` | `/api/orgs` | Signed in | Create a new org. Auto-creates Owner and Member roles with permissions and adds the creator as Owner. |
 
 ### Memberships — `/api/orgs/[orgId]/memberships`
 
@@ -116,11 +116,11 @@ All routes are prefixed with `/api`. Each route notes the minimum permission req
 
 ### Task Instances — `/api/orgs/[orgId]/task-instances`
 
-| Method | Path                                                | Auth   | Description                                                                                        |
-| ------ | --------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------- |
-| `GET`  | `/api/orgs/[orgId]/task-instances`                  | Member | List task instances for an org. Supports either `?status=` or `?completed=true\|false` (not both). |
-| `POST` | `/api/orgs/[orgId]/task-instances`                  | Member | Create a new task instance from a task template.                                                   |
-| `GET`  | `/api/orgs/[orgId]/task-instances/[taskInstanceId]` | Member | Get a single task instance by ID.                                                                  |
+| Method | Path                                                | Auth          | Description                                                                                        |
+| ------ | --------------------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------- |
+| `GET`  | `/api/orgs/[orgId]/task-instances`                  | Member        | List task instances for an org. Supports either `?status=` or `?completed=true\|false` (not both). |
+| `POST` | `/api/orgs/[orgId]/task-instances`                  | `TASK_CREATE` | Create a new task instance from a task template.                                                   |
+| `GET`  | `/api/orgs/[orgId]/task-instances/[taskInstanceId]` | Member        | Get a single task instance by ID.                                                                  |
 
 ### Task Instance Assignees — `/api/orgs/[orgId]/task-instances/[taskInstanceId]/assignees`
 

@@ -1,15 +1,9 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/authz";
 import { OrgPermission } from "@prisma/client";
 import { ROLE_KEYS } from "@/lib/rbac";
-
-const createOrgSchema = z.object({
-  title: z.string().min(1).max(200),
-  openTimeMin: z.number().int().min(0).max(1439).optional(),
-  closeTimeMin: z.number().int().min(0).max(1439).optional(),
-});
+import { createOrgSchema } from "@/lib/validators/org";
 
 export async function POST(req: Request) {
   const authz = await requireUser();
@@ -68,8 +62,12 @@ export async function POST(req: Request) {
     });
 
     const [ownerRole, memberRole] = await Promise.all([
-      tx.role.create({ data: { orgId: org.id, title: "Owner", key: ROLE_KEYS.OWNER } }),
-      tx.role.create({ data: { orgId: org.id, title: "Member", key: ROLE_KEYS.DEFAULT_MEMBER } }),
+      tx.role.create({
+        data: { orgId: org.id, title: "Owner", key: ROLE_KEYS.OWNER },
+      }),
+      tx.role.create({
+        data: { orgId: org.id, title: "Member", key: ROLE_KEYS.DEFAULT_MEMBER },
+      }),
     ]);
 
     await tx.rolePermission.createMany({

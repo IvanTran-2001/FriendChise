@@ -21,13 +21,12 @@ DROP INDEX "Role_orgId_title_key";
 DROP INDEX "TaskEligibility_orgId_idx";
 
 -- AlterTable
+ALTER TABLE "Role" ADD COLUMN "key" TEXT;
+-- Backfill "Role"."key", and clean up any legacy NULL
+-- "Membership"."roleId"/"Organization"."ownerUserId" rows here.
+ALTER TABLE "Role" ALTER COLUMN "key" SET NOT NULL;
 ALTER TABLE "Membership" ALTER COLUMN "roleId" SET NOT NULL;
-
--- AlterTable
 ALTER TABLE "Organization" ALTER COLUMN "ownerUserId" SET NOT NULL;
-
--- AlterTable
-ALTER TABLE "Role" ADD COLUMN     "key" TEXT NOT NULL;
 
 -- AlterTable
 ALTER TABLE "TaskEligibility" DROP COLUMN "orgId";

@@ -21,7 +21,7 @@ export const createTaskSchema = z
     // Your rule: must set at least one of minWaitDays/maxWaitDays
     if (data.minWaitDays == null && data.maxWaitDays == null) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["minWaitDays"],
         message: "Provide minWaitDays and/or maxWaitDays",
       });
@@ -34,7 +34,7 @@ export const createTaskSchema = z
       data.minWaitDays > data.maxWaitDays
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["minWaitDays"],
         message: "minWaitDays cannot be greater than maxWaitDays",
       });
