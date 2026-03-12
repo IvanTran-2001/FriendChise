@@ -77,7 +77,7 @@ All routes are prefixed with `/api`.
 
 | Method | Path                                              | Description                                                                               |
 | ------ | ------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `GET`  | `/api/orgs/[orgId]/task-instances`                | List task instances for an org. Supports `?status=` and `?completed=true\|false` filters. |
+| `GET`  | `/api/orgs/[orgId]/task-instances`                | List task instances for an org. Supports either `?status=` or `?completed=true\|false` (not both). |
 | `POST` | `/api/orgs/[orgId]/task-instances`                | Create a new task instance from a task template.                                          |
 | `GET`  | `/api/orgs/[orgId]/task-instances/[taskInstanceId]` | Get a single task instance by ID.                                                        |
 
