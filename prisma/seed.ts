@@ -23,8 +23,8 @@ async function main() {
   await prisma.taskCycle.deleteMany();
   await prisma.task.deleteMany();
   await prisma.role.deleteMany();
+  await prisma.organization.deleteMany(); // must precede user (ownerUserId FK)
   await prisma.user.deleteMany();
-  await prisma.organization.deleteMany();
 
   // Users
   const ownerUser = await prisma.user.create({
@@ -56,6 +56,7 @@ async function main() {
     data: {
       orgId: org.id,
       title: "Owner",
+      key: "owner",
     },
   });
 
@@ -63,10 +64,11 @@ async function main() {
     data: {
       orgId: org.id,
       title: "Worker",
+      key: "worker",
     },
   });
 
-  // Owner permissions (adjust however you want)
+  // Owner permissions (full access)
   await prisma.rolePermission.createMany({
     data: [
       { roleId: ownerRole.id, permission: OrgPermission.ORG_MANAGE },
@@ -76,6 +78,14 @@ async function main() {
       { roleId: ownerRole.id, permission: OrgPermission.TASK_DELETE },
       { roleId: ownerRole.id, permission: OrgPermission.TASK_ASSIGN },
       { roleId: ownerRole.id, permission: OrgPermission.TASKINSTANCE_COMPLETE },
+    ],
+    skipDuplicates: true,
+  });
+
+  // Worker permissions (can complete tasks assigned to them)
+  await prisma.rolePermission.createMany({
+    data: [
+      { roleId: workerRole.id, permission: OrgPermission.TASKINSTANCE_COMPLETE },
     ],
     skipDuplicates: true,
   });
@@ -137,10 +147,9 @@ async function main() {
     }),
   ]);
 
-  // Eligibility: let Worker do all tasks (example)
+  // Eligibility: let Worker do all tasks
   await prisma.taskEligibility.createMany({
     data: tasks.map((t) => ({
-      orgId: org.id,
       taskId: t.id,
       roleId: workerRole.id,
     })),
@@ -186,6 +195,20 @@ async function main() {
     },
   });
 
+  const instance3 = await prisma.taskInstance.create({
+    data: {
+      orgId: org.id,
+      taskId: tasks[2].id,
+      cycleId: cycle.id,
+      status: TaskInstanceStatus.TODO,
+      scheduledStartAt: new Date(now.getTime() + 11 * 60 * 60 * 1000), // ~5pm
+      scheduledEndAt: new Date(now.getTime() + 11 * 60 * 60 * 1000 + 40 * 60 * 1000),
+      assignees: {
+        create: [{ membershipId: workerMembership.id }],
+      },
+    },
+  });
+
   console.log("Seeded successfully:");
   console.log({
     orgId: org.id,
@@ -196,7 +219,7 @@ async function main() {
     roleIds: { ownerRoleId: ownerRole.id, workerRoleId: workerRole.id },
     taskIds: tasks.map((t) => t.id),
     cycleId: cycle.id,
-    instanceIds: [instance1.id, instance2.id],
+    instanceIds: [instance1.id, instance2.id, instance3.id],
   });
 }
 
