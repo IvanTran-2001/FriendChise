@@ -70,11 +70,7 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 ```
 
-Configure your Google OAuth app at [console.cloud.google.com](https://console.cloud.google.com) and set the redirect URI to:
-
-```
-http://localhost:3000/api/auth/callback/google
-```
+Configure your Google OAuth app at [console.cloud.google.com](https://console.cloud.google.com) and set the redirect URI to `http://localhost:3000/api/auth/callback/google`.
 
 ### Authorization model
 
@@ -94,8 +90,8 @@ All routes are prefixed with `/api`. Each route notes the minimum permission req
 
 ### Orgs — `/api/orgs`
 
-| Method | Path        | Auth   | Description                                                                               |
-| ------ | ----------- | ------ | ----------------------------------------------------------------------------------------- |
+| Method | Path        | Auth      | Description                                                                                           |
+| ------ | ----------- | --------- | ----------------------------------------------------------------------------------------------------- |
 | `POST` | `/api/orgs` | Signed in | Create a new org. Auto-creates Owner and Member roles with permissions and adds the creator as Owner. |
 
 ### Memberships — `/api/orgs/[orgId]/memberships`
@@ -103,7 +99,7 @@ All routes are prefixed with `/api`. Each route notes the minimum permission req
 | Method   | Path                            | Auth         | Description                                          |
 | -------- | ------------------------------- | ------------ | ---------------------------------------------------- |
 | `GET`    | `/api/orgs/[orgId]/memberships` | `ORG_MANAGE` | List all members of an org (includes user and role). |
-| `POST`   | `/api/orgs/[orgId]/memberships` | `ORG_MANAGE` | Add a user to an org with an optional role.          |
+| `POST`   | `/api/orgs/[orgId]/memberships` | `ORG_MANAGE` | Add a user to an org with a role.          |
 | `DELETE` | `/api/orgs/[orgId]/memberships` | `ORG_MANAGE` | Remove a user from an org.                           |
 
 ### Tasks — `/api/orgs/[orgId]/tasks`

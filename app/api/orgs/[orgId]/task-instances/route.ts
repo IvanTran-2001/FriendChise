@@ -100,9 +100,13 @@ export async function GET(
     }
     where.status = parsed.data.status;
   } else if (completedParam === "false") {
-    where.status = { notIn: [TaskInstanceStatus.DONE, TaskInstanceStatus.SKIPPED] };
+    where.status = {
+      notIn: [TaskInstanceStatus.DONE, TaskInstanceStatus.SKIPPED],
+    };
   } else if (completedParam === "true") {
-    where.status = { in: [TaskInstanceStatus.DONE, TaskInstanceStatus.SKIPPED] };
+    where.status = {
+      in: [TaskInstanceStatus.DONE, TaskInstanceStatus.SKIPPED],
+    };
   } else if (completedParam !== null) {
     return NextResponse.json(
       { error: "'completed' must be 'true' or 'false'" },

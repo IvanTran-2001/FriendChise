@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { Prisma, OrgPermission } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember, requireOrgPermission } from "@/lib/authz";
-import { CreateAssigneeSchema, DeleteAssigneeSchema } from "@/lib/validators/assignee";
+import {
+  CreateAssigneeSchema,
+  DeleteAssigneeSchema,
+} from "@/lib/validators/assignee";
 
 export async function POST(
   req: Request,

@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { Prisma, OrgPermission } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireOrgPermission } from "@/lib/authz";
-import { createMembershipSchema, deleteMembershipSchema } from "@/lib/validators/membership";
+import {
+  createMembershipSchema,
+  deleteMembershipSchema,
+} from "@/lib/validators/membership";
 
 export async function POST(
   req: Request,
