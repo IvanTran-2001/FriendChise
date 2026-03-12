@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
+import { OrgPermission } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { statusSchema } from "@/lib/validators/task";
+import { updateTaskInstanceStatusSchema } from "@/lib/validators/task";
+import { requireOrgPermission } from "@/lib/authz";
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ orgId: string; taskInstanceId: string }> },
 ) {
   const { orgId, taskInstanceId } = await params;
+
+  const authz = await requireOrgPermission(
+    orgId,
+    OrgPermission.TASKINSTANCE_COMPLETE,
+  );
+  if (!authz.ok) return authz.response;
 
   let json: unknown;
   try {
@@ -15,7 +23,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const parsed = statusSchema.safeParse(json);
+  const parsed = updateTaskInstanceStatusSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Validation failed", issues: parsed.error.issues },

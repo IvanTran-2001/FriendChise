@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
+import { Prisma, OrgPermission } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { requireOrgPermission } from "@/lib/authz";
 
-const createMembershipSchema = z.object({
+const membershipSchema = z.object({
   userId: z.string(),
-  roleId: z.string().optional(), // must be a real Role.id
+  roleId: z.string(), // must be a real Role.id
 });
 
 export async function POST(
@@ -14,6 +15,9 @@ export async function POST(
 ) {
   const { orgId } = await params;
 
+  const authz = await requireOrgPermission(orgId, OrgPermission.ORG_MANAGE);
+  if (!authz.ok) return authz.response;
+
   let json: unknown;
   try {
     json = await req.json();
@@ -21,7 +25,7 @@ export async function POST(
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const parsed = createMembershipSchema.safeParse(json);
+  const parsed = membershipSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Validation failed", issues: parsed.error.issues },
@@ -60,7 +64,7 @@ export async function POST(
       data: {
         orgId,
         userId: data.userId,
-        roleId: data.roleId ?? null,
+        roleId: data.roleId,
       },
     });
 
@@ -68,14 +72,78 @@ export async function POST(
   } catch (e: unknown) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
       if (e.code === "P2002") {
-        return NextResponse.json({ error: "Membership already exists" }, { status: 409 });
+        return NextResponse.json(
+          { error: "Membership already exists" },
+          { status: 409 },
+        );
       }
       if (e.code === "P2003") {
-        return NextResponse.json({ error: "Invalid foreign key reference" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid foreign key reference" },
+          { status: 400 },
+        );
       }
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
+}
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ orgId: string }> },
+) {
+  const { orgId } = await params;
+
+  const authz = await requireOrgPermission(orgId, OrgPermission.ORG_MANAGE);
+  if (!authz.ok) return authz.response;
+
+  const json = await req.json().catch(() => null);
+  const parsed = membershipSchema.safeParse(json);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", issues: parsed.error.issues },
+      { status: 400 },
+    );
+  }
+
+  const { userId } = parsed.data;
+
+  // Ensure the user being deleted is not the org owner (which would orphan the org)
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { ownerUserId: true },
+  });
+  if (!org)
+    return NextResponse.json({ error: "Org not found" }, { status: 404 });
+
+  if (userId === org.ownerUserId) {
+    return NextResponse.json(
+      { error: "Cannot remove the organization owner" },
+      { status: 400 },
+    );
+  }
+
+  // Ensure scoped to org (prevents cross-org deletes)
+  const link = await prisma.membership.findFirst({
+    where: {
+      userId,
+      orgId,
+    },
+    select: { id: true },
+  });
+
+  if (!link) {
+    return NextResponse.json(
+      { error: "Membership not found" },
+      { status: 404 },
+    );
+  }
+
+  await prisma.membership.delete({ where: { id: link.id } });
+  return NextResponse.json({ ok: true });
 }
 
 export async function GET(
@@ -83,6 +151,9 @@ export async function GET(
   { params }: { params: Promise<{ orgId: string }> },
 ) {
   const { orgId } = await params;
+
+  const authz = await requireOrgPermission(orgId, OrgPermission.ORG_MANAGE);
+  if (!authz.ok) return authz.response;
 
   const memberships = await prisma.membership.findMany({
     where: { orgId },

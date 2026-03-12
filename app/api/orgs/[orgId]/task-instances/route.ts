@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { statusSchema } from "@/lib/validators/task";
+import { updateTaskInstanceStatusSchema } from "@/lib/validators/task";
+import { requireOrgMember } from "@/lib/authz";
 
 const createTaskInstanceSchema = z.object({
   taskId: z.string(),
@@ -13,6 +14,9 @@ export async function POST(
   { params }: { params: Promise<{ orgId: string }> },
 ) {
   const { orgId } = await params;
+
+  const authz = await requireOrgMember(orgId);
+  if (!authz.ok) return authz.response;
 
   let json: unknown;
   try {
@@ -49,10 +53,19 @@ export async function POST(
     });
     return NextResponse.json(taskInstance, { status: 201 });
   } catch (e: unknown) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-      return NextResponse.json({ error: "Task instance already exists" }, { status: 409 });
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === "P2002"
+    ) {
+      return NextResponse.json(
+        { error: "Task instance already exists" },
+        { status: 409 },
+      );
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -61,6 +74,9 @@ export async function GET(
   { params }: { params: Promise<{ orgId: string }> },
 ) {
   const { orgId } = await params;
+
+  const authz = await requireOrgMember(orgId);
+  if (!authz.ok) return authz.response;
 
   const url = new URL(req.url);
   const statusParam = url.searchParams.get("status");
@@ -77,7 +93,9 @@ export async function GET(
   }
 
   if (statusParam) {
-    const parsed = statusSchema.safeParse({ status: statusParam });
+    const parsed = updateTaskInstanceStatusSchema.safeParse({
+      status: statusParam,
+    });
     if (!parsed.success) {
       return NextResponse.json(
         { error: "Validation failed", issues: parsed.error.issues },
