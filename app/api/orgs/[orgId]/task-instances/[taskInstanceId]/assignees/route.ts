@@ -81,8 +81,12 @@ export async function GET(
     include: {
       membership: {
         include: {
-          user: true,
-          role: true,
+          user: {
+            select: { id: true, name: true },
+          },
+          role: {
+            select: { id: true, title: true },
+          },
         },
       },
     },
