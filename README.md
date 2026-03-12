@@ -73,14 +73,15 @@ All routes are prefixed with `/api`.
 | `GET`  | `/api/orgs/[orgId]/tasks` | List all task templates for an org. |
 | `POST` | `/api/orgs/[orgId]/tasks` | Create a new task template.         |
 
-### Task Instances — `/api/orgs/[orgId]/task-instance`
+### Task Instances — `/api/orgs/[orgId]/task-instances`
 
-| Method | Path                              | Description                                                                         |
-| ------ | --------------------------------- | ----------------------------------------------------------------------------------- |
-| `GET`  | `/api/orgs/[orgId]/task-instance` | List task instances for an org. Supports `?status=` and `?completed=false` filters. |
-| `POST` | `/api/orgs/[orgId]/task-instance` | Create a new task instance from a task template.                                    |
+| Method | Path                                              | Description                                                                               |
+| ------ | ------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `GET`  | `/api/orgs/[orgId]/task-instances`                | List task instances for an org. Supports `?status=` and `?completed=true\|false` filters. |
+| `POST` | `/api/orgs/[orgId]/task-instances`                | Create a new task instance from a task template.                                          |
+| `GET`  | `/api/orgs/[orgId]/task-instances/[taskInstanceId]` | Get a single task instance by ID.                                                        |
 
-### Task Instance Assignees — `/api/orgs/[orgId]/task-instance/[taskInstanceId]/assignees`
+### Task Instance Assignees — `/api/orgs/[orgId]/task-instances/[taskInstanceId]/assignees`
 
 | Method   | Path            | Description                                                               |
 | -------- | --------------- | ------------------------------------------------------------------------- |
@@ -88,7 +89,7 @@ All routes are prefixed with `/api`.
 | `POST`   | `.../assignees` | Assign a member to a task instance.                                       |
 | `DELETE` | `.../assignees` | Remove a member from a task instance.                                     |
 
-### Task Instance Status — `/api/orgs/[orgId]/task-instance/[taskInstanceId]/status`
+### Task Instance Status — `/api/orgs/[orgId]/task-instances/[taskInstanceId]/status`
 
 | Method  | Path         | Description                                                                      |
 | ------- | ------------ | -------------------------------------------------------------------------------- |
