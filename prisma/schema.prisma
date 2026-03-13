@@ -93,10 +93,11 @@ model VerificationToken {
 }
 
 model User {
-  id          String  @id @default(cuid())
-  name        String?
-  email       String  @unique
-  image       String?  // <-- add this (Google provides a profile image URL)
+  id             String    @id @default(cuid())
+  name           String?
+  email          String    @unique
+  emailVerified  DateTime?
+  image          String?
 
   memberships Membership[]
 
