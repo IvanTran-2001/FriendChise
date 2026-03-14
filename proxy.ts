@@ -1,18 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { authConfig } from "@/auth.config";
+import NextAuth from "next-auth";
 
-export function proxy(req: NextRequest) {
-  const sessionToken =
-    req.cookies.get("authjs.session-token") ??
-    req.cookies.get("__Secure-authjs.session-token");
+const { auth: proxy } = NextAuth(authConfig);
 
-  if (!sessionToken) {
-    const signInUrl = new URL("/signin", req.url);
-    signInUrl.searchParams.set("callbackUrl", req.url);
-    return NextResponse.redirect(signInUrl);
-  }
-
-  return NextResponse.next();
-}
+export { proxy };
 
 // Only run on these routes
 export const config = {

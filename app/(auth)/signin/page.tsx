@@ -1,9 +1,18 @@
-import { redirect } from "next/navigation"
-import { auth, signIn } from "@/auth"
+import { redirect } from "next/navigation";
+import { auth, signIn } from "@/auth";
 
-export default async function SignInPage() {
-  const session = await auth()
-  if (session?.user) redirect("/")
+type SignInPageProps = {
+  searchParams?: Promise<{ callbackUrl?: string }>;
+};
+
+export default async function SignInPage({ searchParams }: SignInPageProps) {
+  const session = await auth();
+  if (session?.user) redirect("/");
+  const params = (await searchParams) ?? {};
+  const callbackUrl =
+    params.callbackUrl?.startsWith("/") && !params.callbackUrl.startsWith("//")
+      ? params.callbackUrl
+      : "/";
 
   return (
     <main className="min-h-screen flex items-center justify-center px-6">
@@ -16,8 +25,8 @@ export default async function SignInPage() {
         <form
           className="mt-6"
           action={async () => {
-            "use server"
-            await signIn("google", { redirectTo: "/" })
+            "use server";
+            await signIn("google", { redirectTo: callbackUrl });
           }}
         >
           <button
@@ -29,5 +38,5 @@ export default async function SignInPage() {
         </form>
       </div>
     </main>
-  )
+  );
 }
