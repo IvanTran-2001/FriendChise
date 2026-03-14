@@ -99,7 +99,7 @@ All routes are prefixed with `/api`. Each route notes the minimum permission req
 | Method   | Path                            | Auth         | Description                                          |
 | -------- | ------------------------------- | ------------ | ---------------------------------------------------- |
 | `GET`    | `/api/orgs/[orgId]/memberships` | `ORG_MANAGE` | List all members of an org (includes user and role). |
-| `POST`   | `/api/orgs/[orgId]/memberships` | `ORG_MANAGE` | Add a user to an org with a role.          |
+| `POST`   | `/api/orgs/[orgId]/memberships` | `ORG_MANAGE` | Add a user to an org with a role.                    |
 | `DELETE` | `/api/orgs/[orgId]/memberships` | `ORG_MANAGE` | Remove a user from an org.                           |
 
 ### Tasks — `/api/orgs/[orgId]/tasks`
