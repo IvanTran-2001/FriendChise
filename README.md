@@ -12,9 +12,32 @@ A role-based chore/practice management system to rotate recurring tasks fairly a
 
 ## Tech Stack
 
-- Next.js (TypeScript)
-- pnpm
-- Postgres (Supabase) + Prisma
+- **Next.js 16** (App Router, TypeScript)
+- **pnpm** (package manager)
+- **PostgreSQL** (Supabase) + **Prisma ORM**
+- **Auth.js v5 (NextAuth)** — Google OAuth, JWT sessions
+- **Tailwind CSS v4** + **shadcn/ui**
+
+## Getting Started
+
+```bash
+# Install dependencies
+pnpm install
+
+# Copy env and fill in values
+cp .env.example .env
+
+# Push schema to database (no migration history, dev only)
+pnpm prisma db push
+
+# Seed with sample data
+pnpm seed
+
+# Start dev server
+pnpm dev
+```
+
+> For production use `pnpm prisma migrate deploy` instead of `db push`.
 
 ## Database
 
@@ -53,8 +76,10 @@ pnpm seed
 Authentication is handled by **Auth.js v5 (NextAuth)** with **Google OAuth** as the provider.
 
 - Route: `GET|POST /api/auth/[...nextauth]` (handled automatically by Auth.js)
-- Session strategy: database (sessions stored in Postgres via Prisma adapter)
-- The signed-in user's database `id` is attached to the session so API routes can look up `Membership` records for authorization
+- Session strategy: **JWT** (tokens signed with `AUTH_SECRET`, stored in a cookie — no DB reads on every request)
+- The Prisma adapter still stores `User` and `Account` records in Postgres for OAuth account linking
+- The signed-in user's database `id` is mapped from `token.sub` into `session.user.id` so API routes can look up `Membership` records for authorization
+- Auth is split across two files to support the Next.js Edge runtime in middleware (see [Auth config split](#auth-config-split))
 
 ### Setup
 
@@ -65,9 +90,11 @@ pnpm add next-auth@beta @auth/prisma-adapter
 Required environment variables:
 
 ```env
-AUTH_SECRET=        # generate with: npx auth secret
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
+AUTH_SECRET=           # generate with: npx auth secret
+AUTH_GOOGLE_ID=        # Google OAuth client ID
+AUTH_GOOGLE_SECRET=    # Google OAuth client secret
+AUTH_URL=              # e.g. http://localhost:3000
+DATABASE_URL=          # PostgreSQL connection string
 ```
 
 Configure your Google OAuth app at [console.cloud.google.com](https://console.cloud.google.com) and set the redirect URI to `http://localhost:3000/api/auth/callback/google`.
@@ -83,6 +110,21 @@ Two helper functions in `lib/authz.ts` protect all org-scoped routes:
 | `requireOrgPermission(orgId, permission)` | User must be a member whose `Role` has the given `OrgPermission` |
 
 Both return `{ ok: false, response }` on failure (401 Unauthorized or 403 Forbidden) so routes can early-return with `if (!authz.ok) return authz.response`.
+
+### Auth config split
+
+Auth.js config is intentionally split into two files:
+
+| File | Purpose |
+|---|---|
+| `auth.config.ts` | Edge-compatible config (no Prisma). Used by middleware for fast auth checks. |
+| `auth.ts` | Full config with Prisma adapter and JWT session callback. Used by API routes and server components. |
+
+This is required because Next.js middleware runs on the **Edge runtime**, which cannot import Node.js modules like `@prisma/client`.
+
+### Middleware
+
+`proxy.ts` contains the auth middleware. It uses the edge-compatible `authConfig` to protect matched routes without hitting the database.
 
 ## API Routes
 
@@ -131,6 +173,26 @@ All routes are prefixed with `/api`. Each route notes the minimum permission req
 | Method  | Path         | Auth                    | Description                                                                      |
 | ------- | ------------ | ----------------------- | -------------------------------------------------------------------------------- |
 | `PATCH` | `.../status` | `TASKINSTANCE_COMPLETE` | Update the status of a task instance (`TODO`, `IN_PROGRESS`, `DONE`, `SKIPPED`). |
+
+## Project Structure
+
+```
+app/
+  (app)/          # Authenticated app shell (navbar + sidebar layout)
+  (auth)/         # Unauthenticated pages (sign in)
+  api/            # REST API route handlers
+components/
+  layout/         # App shell components (navbar, sidebar, org-switcher)
+  ui/             # shadcn/ui primitives
+lib/
+  authz.ts        # Server-side auth guard helpers
+  rbac.ts         # Predefined role key constants
+  prisma.ts       # Prisma client singleton
+  validators/     # Zod schemas for request body validation
+prisma/
+  schema.prisma   # Database schema
+  seed.ts         # Dev seed data
+```
 
 ## Status
 

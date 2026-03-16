@@ -3,6 +3,19 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { OrgPermission } from "@prisma/client";
 
+/**
+ * Auth guard helpers for API route handlers.
+ *
+ * Each function returns a discriminated union:
+ *   { ok: true, userId, membership? }  — proceed
+ *   { ok: false, response }            — return this NextResponse immediately
+ *
+ * Usage:
+ *   const authz = await requireOrgPermission(orgId, OrgPermission.TASK_CREATE);
+ *   if (!authz.ok) return authz.response;
+ */
+
+/** Requires the caller to be signed in and a member of the given org. */
 export async function requireOrgMember(orgId: string) {
   const session = await auth();
 
@@ -29,6 +42,7 @@ export async function requireOrgMember(orgId: string) {
   return { ok: true as const, userId, membership };
 }
 
+/** Requires the caller to be signed in (any authenticated user). */
 export async function requireUser() {
   const session = await auth();
 
@@ -43,6 +57,10 @@ export async function requireUser() {
   return { ok: true as const, userId };
 }
 
+/**
+ * Requires the caller to be a member of the org whose role has the given permission.
+ * Checks RolePermission records — the permission must be explicitly granted to the role.
+ */
 export async function requireOrgPermission(
   orgId: string,
   permission: OrgPermission,
