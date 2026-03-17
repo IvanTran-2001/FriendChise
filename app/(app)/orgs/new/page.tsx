@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { createOrg } from "@/app/actions/orgs";
 
 function timeToMinutes(time: string) {
   const [h, m] = time.split(":").map(Number);
@@ -28,21 +29,14 @@ export default function NewOrgPage() {
     if (closeTime) body.closeTimeMin = timeToMinutes(closeTime);
 
     try {
-      const res = await fetch("/api/orgs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = (await res.json().catch(() => null)) as {
-        error?: string;
-      } | null;
+      const result = await createOrg(body);
 
-      if (!res.ok) {
-        setError(data?.error ?? "Something went wrong");
+      if (!result.ok) {
+        setError(result.error);
         return;
       }
 
-      router.push("/");
+      router.push(`/orgs/${result.orgId}`);
     } catch {
       setError("Something went wrong");
     } finally {

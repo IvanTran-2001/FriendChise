@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { requireOrgMember } from "@/lib/authz";
+import { getTaskInstance } from "@/lib/services/task-instances";
 
 export async function GET(
   _req: Request,
@@ -11,16 +11,9 @@ export async function GET(
   const authz = await requireOrgMember(orgId);
   if (!authz.ok) return authz.response;
 
-  const item = await prisma.taskInstance.findFirst({
-    where: { orgId, id: taskInstanceId },
-  });
-
-  if (!item) {
-    return NextResponse.json(
-      { error: "Task instance not found in this org" },
-      { status: 404 },
-    );
+  const result = await getTaskInstance(orgId, taskInstanceId);
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 404 });
   }
-
-  return NextResponse.json(item, { status: 200 });
+  return NextResponse.json(result.data, { status: 200 });
 }

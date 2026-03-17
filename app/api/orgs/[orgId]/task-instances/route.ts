@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
-import { OrgPermission, Prisma, TaskInstanceStatus } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { OrgPermission } from "@prisma/client";
 import { updateTaskInstanceStatusSchema } from "@/lib/validators/task";
 import { requireOrgMember, requireOrgPermission } from "@/lib/authz";
 import { createTaskInstanceSchema } from "@/lib/validators/task-instance";
+import {
+  createTaskInstance,
+  getTaskInstances,
+  type GetTaskInstancesOptions,
+} from "@/lib/services/task-instances";
 
 export async function POST(
   req: Request,
@@ -29,40 +33,12 @@ export async function POST(
     );
   }
 
-  const { taskId } = parsed.data;
-
-  const task = await prisma.task.findFirst({
-    where: { id: taskId, orgId },
-    select: { id: true },
-  });
-
-  if (!task) {
-    return NextResponse.json(
-      { error: "Invalid taskId: not found or does not belong to this org" },
-      { status: 400 },
-    );
+  const result = await createTaskInstance(orgId, parsed.data.taskId);
+  if (!result.ok) {
+    const status = result.code === "CONFLICT" ? 409 : 400;
+    return NextResponse.json({ error: result.error }, { status });
   }
-
-  try {
-    const taskInstance = await prisma.taskInstance.create({
-      data: { orgId, taskId },
-    });
-    return NextResponse.json(taskInstance, { status: 201 });
-  } catch (e: unknown) {
-    if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === "P2002"
-    ) {
-      return NextResponse.json(
-        { error: "Task instance already exists" },
-        { status: 409 },
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
-  }
+  return NextResponse.json(result.data, { status: 201 });
 }
 
 export async function GET(
@@ -76,10 +52,7 @@ export async function GET(
 
   const url = new URL(req.url);
   const statusParam = url.searchParams.get("status");
-  const completedParam = url.searchParams.get("completed"); // "true" | "false" | null
-
-  // Build filter
-  const where: Prisma.TaskInstanceWhereInput = { orgId };
+  const completedParam = url.searchParams.get("completed");
 
   if (statusParam && completedParam !== null) {
     return NextResponse.json(
@@ -88,25 +61,21 @@ export async function GET(
     );
   }
 
+  const options: GetTaskInstancesOptions = {};
+
   if (statusParam) {
-    const parsed = updateTaskInstanceStatusSchema.safeParse({
-      status: statusParam,
-    });
-    if (!parsed.success) {
+    const parsedStatus = updateTaskInstanceStatusSchema.safeParse({ status: statusParam });
+    if (!parsedStatus.success) {
       return NextResponse.json(
-        { error: "Validation failed", issues: parsed.error.issues },
+        { error: "Validation failed", issues: parsedStatus.error.issues },
         { status: 400 },
       );
     }
-    where.status = parsed.data.status;
+    options.status = parsedStatus.data.status;
   } else if (completedParam === "false") {
-    where.status = {
-      notIn: [TaskInstanceStatus.DONE, TaskInstanceStatus.SKIPPED],
-    };
+    options.completed = false;
   } else if (completedParam === "true") {
-    where.status = {
-      in: [TaskInstanceStatus.DONE, TaskInstanceStatus.SKIPPED],
-    };
+    options.completed = true;
   } else if (completedParam !== null) {
     return NextResponse.json(
       { error: "'completed' must be 'true' or 'false'" },
@@ -114,10 +83,6 @@ export async function GET(
     );
   }
 
-  const items = await prisma.taskInstance.findMany({
-    where: where,
-    orderBy: { createdAt: "desc" },
-  });
-
+  const items = await getTaskInstances(orgId, options);
   return NextResponse.json(items, { status: 200 });
 }

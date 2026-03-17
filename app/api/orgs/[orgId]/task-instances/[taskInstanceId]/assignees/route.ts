@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { Prisma, OrgPermission } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { OrgPermission } from "@prisma/client";
 import { requireOrgMember, requireOrgPermission } from "@/lib/authz";
 import {
   CreateAssigneeSchema,
   DeleteAssigneeSchema,
 } from "@/lib/validators/assignee";
+import { createAssignee, deleteAssignee, getAssignees } from "@/lib/services/assignees";
 
 export async function POST(
   req: Request,
@@ -31,52 +31,12 @@ export async function POST(
     );
   }
 
-  const { membershipId } = parsed.data;
-
-  // task instance must exist in this org
-  const taskInstance = await prisma.taskInstance.findFirst({
-    where: { id: taskInstanceId, orgId },
-    select: { id: true },
-  });
-  if (!taskInstance) {
-    return NextResponse.json(
-      { error: "Task instance not found in this org" },
-      { status: 404 },
-    );
+  const result = await createAssignee(orgId, taskInstanceId, parsed.data.membershipId);
+  if (!result.ok) {
+    const status = result.code === "CONFLICT" ? 409 : 404;
+    return NextResponse.json({ error: result.error }, { status });
   }
-
-  // membership must exist in this org
-  const membership = await prisma.membership.findFirst({
-    where: { id: membershipId, orgId },
-    select: { id: true },
-  });
-  if (!membership) {
-    return NextResponse.json(
-      { error: "Membership not found in this org" },
-      { status: 404 },
-    );
-  }
-
-  try {
-    const assignee = await prisma.taskInstanceAssignee.create({
-      data: { taskInstanceId, membershipId },
-    });
-    return NextResponse.json(assignee, { status: 201 });
-  } catch (e: unknown) {
-    if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === "P2002"
-    ) {
-      return NextResponse.json(
-        { error: "Assignee already exists" },
-        { status: 409 },
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
-  }
+  return NextResponse.json(result.data, { status: 201 });
 }
 
 export async function GET(
@@ -88,26 +48,7 @@ export async function GET(
   const authz = await requireOrgMember(orgId);
   if (!authz.ok) return authz.response;
 
-  const assignees = await prisma.taskInstanceAssignee.findMany({
-    where: {
-      taskInstanceId,
-      taskInstance: { is: { orgId } },
-    },
-    include: {
-      membership: {
-        include: {
-          user: {
-            select: { id: true, name: true },
-          },
-          role: {
-            select: { id: true, title: true },
-          },
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
+  const assignees = await getAssignees(orgId, taskInstanceId);
   return NextResponse.json(assignees);
 }
 
@@ -129,23 +70,9 @@ export async function DELETE(
     );
   }
 
-  const { membershipId } = parsed.data;
-
-  // Ensure scoped to org (prevents cross-org deletes)
-  const link = await prisma.taskInstanceAssignee.findFirst({
-    where: {
-      taskInstanceId,
-      membershipId,
-      taskInstance: { is: { orgId } },
-      membership: { is: { orgId } },
-    },
-    select: { id: true },
-  });
-
-  if (!link) {
-    return NextResponse.json({ error: "Assignee not found" }, { status: 404 });
+  const result = await deleteAssignee(orgId, taskInstanceId, parsed.data.membershipId);
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 404 });
   }
-
-  await prisma.taskInstanceAssignee.delete({ where: { id: link.id } });
   return NextResponse.json({ ok: true });
 }

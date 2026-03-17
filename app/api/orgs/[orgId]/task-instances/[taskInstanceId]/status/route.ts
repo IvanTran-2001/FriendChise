@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { OrgPermission } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
 import { updateTaskInstanceStatusSchema } from "@/lib/validators/task";
 import { requireOrgPermission } from "@/lib/authz";
+import { updateTaskInstanceStatus } from "@/lib/services/task-instances";
 
 export async function PATCH(
   req: Request,
@@ -31,24 +31,9 @@ export async function PATCH(
     );
   }
 
-  const { status } = parsed.data;
-
-  const updated = await prisma.taskInstance.updateMany({
-    where: { id: taskInstanceId, orgId },
-    data: { status },
-  });
-
-  if (updated.count === 0) {
-    return NextResponse.json(
-      { error: "Task instance not found in this org" },
-      { status: 404 },
-    );
+  const result = await updateTaskInstanceStatus(orgId, taskInstanceId, parsed.data.status);
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 404 });
   }
-
-  // If you want to return the updated row, fetch it:
-  const taskInstance = await prisma.taskInstance.findUnique({
-    where: { id: taskInstanceId },
-  });
-
-  return NextResponse.json(taskInstance, { status: 200 });
+  return NextResponse.json(result.data, { status: 200 });
 }

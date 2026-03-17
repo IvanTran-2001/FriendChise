@@ -48,4 +48,5 @@ export const updateTaskInstanceStatusSchema = z.object({
 export type UpdateTaskStatusInput = z.infer<
   typeof updateTaskInstanceStatusSchema
 >;
+
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
