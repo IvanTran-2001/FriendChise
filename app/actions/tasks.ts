@@ -1,6 +1,13 @@
 "use server";
 
-import { requireOrgMember } from "@/lib/authz";
+/**
+ * Server Actions for task management.
+ * Used by the create task form — parses FormData, delegates to the task service,
+ * then revalidates the tasks list and redirects back to it.
+ */
+
+import { OrgPermission } from "@prisma/client";
+import { requireOrgPermission } from "@/lib/authz";
 import { createTask } from "@/lib/services/tasks";
 import { createTaskSchema } from "@/lib/validators/task";
 import { revalidatePath } from "next/cache";
@@ -16,9 +23,11 @@ export async function createTaskAction(
   _prev: CreateTaskFormState,
   formData: FormData,
 ): Promise<CreateTaskFormState> {
-  const authz = await requireOrgMember(orgId);
+  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_CREATE);
   if (!authz.ok) return { ok: false, errors: { _: ["Unauthorized"] } };
 
+  // FormData values are always strings; convert numeric fields to numbers
+  // before passing to the Zod schema which expects `number`.
   const num = (key: string) => {
     const v = formData.get(key);
     if (v === null || v === "") return undefined;
@@ -48,4 +57,3 @@ export async function createTaskAction(
   revalidatePath(`/orgs/${orgId}/tasks`);
   redirect(`/orgs/${orgId}/tasks`);
 }
-

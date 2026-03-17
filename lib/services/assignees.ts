@@ -2,17 +2,28 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import type { ServiceResult } from "./types";
 
+/**
+ * Assigns a member to a task instance. Validates that both the task instance
+ * and the membership belong to the same org before creating the link,
+ * preventing cross-org assignment via crafted IDs.
+ */
 export async function createAssignee(
   orgId: string,
   taskInstanceId: string,
   membershipId: string,
-): Promise<ServiceResult<Prisma.TaskInstanceAssigneeGetPayload<Record<string, never>>>> {
+): Promise<
+  ServiceResult<Prisma.TaskInstanceAssigneeGetPayload<Record<string, never>>>
+> {
   const taskInstance = await prisma.taskInstance.findFirst({
     where: { id: taskInstanceId, orgId },
     select: { id: true },
   });
   if (!taskInstance) {
-    return { ok: false, error: "Task instance not found in this org", code: "NOT_FOUND" };
+    return {
+      ok: false,
+      error: "Task instance not found in this org",
+      code: "NOT_FOUND",
+    };
   }
 
   const membership = await prisma.membership.findFirst({
@@ -20,7 +31,11 @@ export async function createAssignee(
     select: { id: true },
   });
   if (!membership) {
-    return { ok: false, error: "Membership not found in this org", code: "NOT_FOUND" };
+    return {
+      ok: false,
+      error: "Membership not found in this org",
+      code: "NOT_FOUND",
+    };
   }
 
   try {
@@ -29,7 +44,10 @@ export async function createAssignee(
     });
     return { ok: true, data: assignee };
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === "P2002"
+    ) {
       return { ok: false, error: "Assignee already exists", code: "CONFLICT" };
     }
     throw e;
@@ -51,7 +69,8 @@ export async function deleteAssignee(
     select: { id: true },
   });
 
-  if (!link) return { ok: false, error: "Assignee not found", code: "NOT_FOUND" };
+  if (!link)
+    return { ok: false, error: "Assignee not found", code: "NOT_FOUND" };
 
   await prisma.taskInstanceAssignee.delete({ where: { id: link.id } });
   return { ok: true, data: null };

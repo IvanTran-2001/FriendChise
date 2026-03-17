@@ -7,12 +7,21 @@ export async function createMembership(
   orgId: string,
   data: CreateMembershipInput,
 ): Promise<ServiceResult<Prisma.MembershipGetPayload<Record<string, never>>>> {
-  const role = await prisma.role.findFirst({ where: { id: data.roleId, orgId } });
+  const role = await prisma.role.findFirst({
+    where: { id: data.roleId, orgId },
+  });
   if (!role) {
-    return { ok: false, error: "Invalid roleId: not found or does not belong to this org", code: "INVALID" };
+    return {
+      ok: false,
+      error: "Invalid roleId: not found or does not belong to this org",
+      code: "INVALID",
+    };
   }
 
-  const user = await prisma.user.findFirst({ where: { id: data.userId }, select: { id: true } });
+  const user = await prisma.user.findFirst({
+    where: { id: data.userId },
+    select: { id: true },
+  });
   if (!user) {
     return { ok: false, error: "Invalid userId: not found", code: "INVALID" };
   }
@@ -24,13 +33,27 @@ export async function createMembership(
     return { ok: true, data: membership };
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
-      if (e.code === "P2002") return { ok: false, error: "Membership already exists", code: "CONFLICT" };
-      if (e.code === "P2003") return { ok: false, error: "Invalid foreign key reference", code: "INVALID" };
+      if (e.code === "P2002")
+        return {
+          ok: false,
+          error: "Membership already exists",
+          code: "CONFLICT",
+        };
+      if (e.code === "P2003")
+        return {
+          ok: false,
+          error: "Invalid foreign key reference",
+          code: "INVALID",
+        };
     }
     throw e;
   }
 }
 
+/**
+ * Removes a user from an org. Guards against removing the org owner,
+ * which would leave the org with no owner and break invariants.
+ */
 export async function deleteMembership(
   orgId: string,
   userId: string,
@@ -42,11 +65,18 @@ export async function deleteMembership(
   if (!org) return { ok: false, error: "Org not found", code: "NOT_FOUND" };
 
   if (userId === org.ownerUserId) {
-    return { ok: false, error: "Cannot remove the organization owner", code: "INVALID" };
+    return {
+      ok: false,
+      error: "Cannot remove the organization owner",
+      code: "INVALID",
+    };
   }
 
-  const { count } = await prisma.membership.deleteMany({ where: { userId, orgId } });
-  if (count === 0) return { ok: false, error: "Membership not found", code: "NOT_FOUND" };
+  const { count } = await prisma.membership.deleteMany({
+    where: { userId, orgId },
+  });
+  if (count === 0)
+    return { ok: false, error: "Membership not found", code: "NOT_FOUND" };
 
   return { ok: true, data: null };
 }

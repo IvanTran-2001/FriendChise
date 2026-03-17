@@ -2,7 +2,11 @@ import { getTasks } from "@/lib/services/tasks";
 import { requireOrgMember } from "@/lib/authz";
 import { redirect } from "next/navigation";
 
-const TasksPage = async ({ params }: { params: Promise<{ orgId: string }> }) => {
+const TasksPage = async ({
+  params,
+}: {
+  params: Promise<{ orgId: string }>;
+}) => {
   const { orgId } = await params;
 
   const authz = await requireOrgMember(orgId);
@@ -18,16 +22,25 @@ const TasksPage = async ({ params }: { params: Promise<{ orgId: string }> }) => 
       ) : (
         <ul className="flex flex-col gap-3">
           {tasks.map((task) => (
-            <li key={task.id} className="border rounded-lg p-4 flex flex-col gap-1">
+            <li
+              key={task.id}
+              className="border rounded-lg p-4 flex flex-col gap-1"
+            >
               <span className="font-medium">{task.title}</span>
               {task.description && (
-                <span className="text-sm text-muted-foreground">{task.description}</span>
+                <span className="text-sm text-muted-foreground">
+                  {task.description}
+                </span>
               )}
               <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
                 <span>Duration: {task.durationMin} min</span>
                 <span>People required: {task.peopleRequired}</span>
-                {task.minWaitDays != null && <span>Min wait: {task.minWaitDays}d</span>}
-                {task.maxWaitDays != null && <span>Max wait: {task.maxWaitDays}d</span>}
+                {task.minWaitDays != null && (
+                  <span>Min wait: {task.minWaitDays}d</span>
+                )}
+                {task.maxWaitDays != null && (
+                  <span>Max wait: {task.maxWaitDays}d</span>
+                )}
               </div>
             </li>
           ))}

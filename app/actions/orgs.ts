@@ -1,5 +1,11 @@
 "use server";
 
+/**
+ * Server Actions for org management.
+ * Used by the web UI — validates input, calls the org service,
+ * then revalidates the layout so the sidebar org list updates immediately.
+ */
+
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { createOrgSchema } from "@/lib/validators/org";

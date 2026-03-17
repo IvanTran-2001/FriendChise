@@ -31,7 +31,11 @@ export async function PATCH(
     );
   }
 
-  const result = await updateTaskInstanceStatus(orgId, taskInstanceId, parsed.data.status);
+  const result = await updateTaskInstanceStatus(
+    orgId,
+    taskInstanceId,
+    parsed.data.status,
+  );
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 404 });
   }

@@ -5,7 +5,11 @@ import {
   CreateAssigneeSchema,
   DeleteAssigneeSchema,
 } from "@/lib/validators/assignee";
-import { createAssignee, deleteAssignee, getAssignees } from "@/lib/services/assignees";
+import {
+  createAssignee,
+  deleteAssignee,
+  getAssignees,
+} from "@/lib/services/assignees";
 
 export async function POST(
   req: Request,
@@ -31,7 +35,11 @@ export async function POST(
     );
   }
 
-  const result = await createAssignee(orgId, taskInstanceId, parsed.data.membershipId);
+  const result = await createAssignee(
+    orgId,
+    taskInstanceId,
+    parsed.data.membershipId,
+  );
   if (!result.ok) {
     const status = result.code === "CONFLICT" ? 409 : 404;
     return NextResponse.json({ error: result.error }, { status });
@@ -70,7 +78,11 @@ export async function DELETE(
     );
   }
 
-  const result = await deleteAssignee(orgId, taskInstanceId, parsed.data.membershipId);
+  const result = await deleteAssignee(
+    orgId,
+    taskInstanceId,
+    parsed.data.membershipId,
+  );
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 404 });
   }

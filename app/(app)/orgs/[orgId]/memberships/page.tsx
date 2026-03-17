@@ -2,7 +2,11 @@ import { getMemberships } from "@/lib/services/memberships";
 import { requireOrgMember } from "@/lib/authz";
 import { redirect } from "next/navigation";
 
-const MembersPage = async ({ params }: { params: Promise<{ orgId: string }> }) => {
+const MembersPage = async ({
+  params,
+}: {
+  params: Promise<{ orgId: string }>;
+}) => {
   const { orgId } = await params;
 
   const authz = await requireOrgMember(orgId);
@@ -18,10 +22,17 @@ const MembersPage = async ({ params }: { params: Promise<{ orgId: string }> }) =
       ) : (
         <ul className="flex flex-col gap-3">
           {memberships.map((m) => (
-            <li key={m.userId} className="border rounded-lg p-4 flex items-center justify-between">
+            <li
+              key={m.userId}
+              className="border rounded-lg p-4 flex items-center justify-between"
+            >
               <div className="flex flex-col gap-0.5">
-                <span className="font-medium">{m.user.name ?? "Unnamed user"}</span>
-                <span className="text-xs text-muted-foreground">{m.role.title}</span>
+                <span className="font-medium">
+                  {m.user.name ?? "Unnamed user"}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {m.role.title}
+                </span>
               </div>
             </li>
           ))}

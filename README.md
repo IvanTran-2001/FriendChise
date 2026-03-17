@@ -179,12 +179,35 @@ All routes are prefixed with `/api`. Each route notes the minimum permission req
 ```text
 app/
   (app)/          # Authenticated app shell (navbar + sidebar layout)
+    orgs/
+      new/        # Create org page
+      [orgId]/
+        page.tsx         # Org overview
+        tasks/           # Task list + create task form
+        memberships/     # Members list
   (auth)/         # Unauthenticated pages (sign in)
-  api/            # REST API route handlers
+  actions/        # Server Actions (web UI mutations)
+    orgs.ts       # createOrg action
+    tasks.ts      # createTaskAction
+  api/            # REST API route handlers (external/mobile clients)
 components/
-  layout/         # App shell components (navbar, sidebar, org-switcher)
+  layout/
+    navbar.tsx              # Top bar (server component)
+    navbar-context-actions.tsx  # Route-aware action buttons (client boundary)
+    actions/                # Per-page action button components
+      tasks-actions.tsx
+      members-actions.tsx
+    sidebar.tsx             # Dynamic sidebar nav (client component)
+    org-switcher.tsx        # Org selector dropdown
   ui/             # shadcn/ui primitives
 lib/
+  services/       # Business logic layer — called by both API routes and Server Actions
+    types.ts      # ServiceResult<T> discriminated union
+    orgs.ts
+    memberships.ts
+    tasks.ts
+    task-instances.ts
+    assignees.ts
   authz.ts        # Server-side auth guard helpers
   rbac.ts         # Predefined role key constants
   prisma.ts       # Prisma client singleton
@@ -194,6 +217,33 @@ prisma/
   seed.ts         # Dev seed data
 ```
 
+## Server Actions vs API Routes
+
+The app uses two mutation paths depending on the caller:
+
+| Path               | Used by                                | Location       |
+| ------------------ | -------------------------------------- | -------------- |
+| **Server Actions** | Web UI forms                           | `app/actions/` |
+| **API Routes**     | External clients (mobile, third-party) | `app/api/`     |
+
+Both are thin wrappers — they handle auth, validate input, then delegate to `lib/services/`. The service layer holds all database logic and is shared between both paths.
+
+Server Actions use `revalidatePath` to invalidate the Next.js cache so server-rendered pages reflect the latest data without a full page reload.
+
+## Pages
+
+| Route                       | Description                    |
+| --------------------------- | ------------------------------ |
+| `/`                         | Home — authenticated app shell |
+| `/signin`                   | Google OAuth sign-in           |
+| `/orgs/new`                 | Create a new organization      |
+| `/orgs/[orgId]`             | Org overview                   |
+| `/orgs/[orgId]/tasks`       | Task list for the org          |
+| `/orgs/[orgId]/tasks/new`   | Create a new task template     |
+| `/orgs/[orgId]/memberships` | Member list for the org        |
+
+All `/orgs/[orgId]/*` pages are guarded by `requireOrgMember` — users not in the org are redirected to `/`.
+
 ## Status
 
-Work in progress — initial scaffolding and planning.
+Work in progress — service layer, task management, and member views implemented.

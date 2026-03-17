@@ -63,7 +63,10 @@ export async function DELETE(
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 404 });
   }
-  return NextResponse.json({ message: "Task deleted successfully" }, { status: 200 });
+  return NextResponse.json(
+    { message: "Task deleted successfully" },
+    { status: 200 },
+  );
 }
 
 export async function GET(

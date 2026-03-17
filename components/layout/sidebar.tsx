@@ -37,7 +37,9 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="offcanvas">
       <SidebarHeader className="px-4 py-3">
-        <Link href="/" className="font-semibold text-sm">Management App</Link>
+        <Link href="/" className="font-semibold text-sm">
+          Management App
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

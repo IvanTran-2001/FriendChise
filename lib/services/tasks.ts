@@ -17,11 +17,12 @@ export async function createTask(orgId: string, data: CreateTaskInput) {
   });
 }
 
-export async function deleteTask(orgId: string, id: string): Promise<ServiceResult<null>> {
-  const task = await prisma.task.findFirst({ where: { id, orgId }, select: { id: true } });
-  if (!task) return { ok: false, error: "Task not found", code: "NOT_FOUND" };
-
-  await prisma.task.delete({ where: { id: task.id } });
+export async function deleteTask(
+  orgId: string,
+  id: string,
+): Promise<ServiceResult<null>> {
+  const { count } = await prisma.task.deleteMany({ where: { id, orgId } });
+  if (count === 0) return { ok: false, error: "Task not found", code: "NOT_FOUND" };
   return { ok: true, data: null };
 }
 

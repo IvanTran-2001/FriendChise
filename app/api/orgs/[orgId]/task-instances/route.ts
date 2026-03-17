@@ -64,7 +64,9 @@ export async function GET(
   const options: GetTaskInstancesOptions = {};
 
   if (statusParam) {
-    const parsedStatus = updateTaskInstanceStatusSchema.safeParse({ status: statusParam });
+    const parsedStatus = updateTaskInstanceStatusSchema.safeParse({
+      status: statusParam,
+    });
     if (!parsedStatus.success) {
       return NextResponse.json(
         { error: "Validation failed", issues: parsedStatus.error.issues },
