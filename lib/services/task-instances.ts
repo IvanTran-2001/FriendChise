@@ -31,15 +31,23 @@ export async function createTaskInstance(
     });
     return { ok: true, data: taskInstance };
   } catch (e) {
-    if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === "P2002"
-    ) {
-      return {
-        ok: false,
-        error: "Task instance already exists",
-        code: "CONFLICT",
-      };
+    if (e instanceof Prisma.PrismaClientKnownRequestError) {
+      // Task removed (or relation invalid) between pre-check and create
+      if (e.code === "P2003") {
+        return {
+          ok: false,
+          error: "Invalid taskId: not found or does not belong to this org",
+          code: "INVALID",
+        };
+      }
+      // Keep this only if a corresponding unique constraint is added in schema.
+      if (e.code === "P2002") {
+        return {
+          ok: false,
+          error: "Task instance already exists",
+          code: "CONFLICT",
+        };
+      }
     }
     throw e;
   }
