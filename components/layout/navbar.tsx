@@ -24,7 +24,9 @@ export const NavBar = async () => {
           where: { userId: user.id },
           select: { org: { select: { id: true, title: true } } },
         })
-        .then((ms) => ms.map((m) => m.org))
+        .then((ms) =>
+          ms.map((m) => m.org).sort((a, b) => a.title.localeCompare(b.title)),
+        )
     : [];
 
   return (
