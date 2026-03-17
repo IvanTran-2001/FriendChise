@@ -31,6 +31,7 @@ export const CreateTaskForm = ({ orgId }: { orgId: string }) => {
           id="title"
           name="title"
           type="text"
+          required
           placeholder="e.g. Deep clean kitchen"
           aria-describedby={err("title") ? "title-error" : undefined}
         />
@@ -50,7 +51,9 @@ export const CreateTaskForm = ({ orgId }: { orgId: string }) => {
           name="description"
           rows={3}
           placeholder="Optional details..."
-          aria-describedby={err("description") ? "description-error" : undefined}
+          aria-describedby={
+            err("description") ? "description-error" : undefined
+          }
           className="border rounded-md px-3 py-2 text-sm bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
         />
         {err("description") && (
@@ -68,10 +71,13 @@ export const CreateTaskForm = ({ orgId }: { orgId: string }) => {
           id="durationMin"
           name="durationMin"
           type="number"
+          required
           min={1}
           max={1440}
           placeholder="e.g. 60"
-          aria-describedby={err("durationMin") ? "durationMin-error" : undefined}
+          aria-describedby={
+            err("durationMin") ? "durationMin-error" : undefined
+          }
         />
         {err("durationMin") && (
           <p id="durationMin-error" className="text-xs text-destructive">
@@ -98,7 +104,10 @@ export const CreateTaskForm = ({ orgId }: { orgId: string }) => {
           }
         />
         {err("preferredStartTimeMin") && (
-          <p id="preferredStartTimeMin-error" className="text-xs text-destructive">
+          <p
+            id="preferredStartTimeMin-error"
+            className="text-xs text-destructive"
+          >
             {err("preferredStartTimeMin")}
           </p>
         )}
@@ -138,7 +147,9 @@ export const CreateTaskForm = ({ orgId }: { orgId: string }) => {
             min={0}
             max={3650}
             placeholder="e.g. 7"
-            aria-describedby={err("minWaitDays") ? "minWaitDays-error" : undefined}
+            aria-describedby={
+              err("minWaitDays") ? "minWaitDays-error" : undefined
+            }
           />
           {err("minWaitDays") && (
             <p id="minWaitDays-error" className="text-xs text-destructive">
@@ -157,7 +168,9 @@ export const CreateTaskForm = ({ orgId }: { orgId: string }) => {
             min={1}
             max={3650}
             placeholder="e.g. 14"
-            aria-describedby={err("maxWaitDays") ? "maxWaitDays-error" : undefined}
+            aria-describedby={
+              err("maxWaitDays") ? "maxWaitDays-error" : undefined
+            }
           />
           {err("maxWaitDays") && (
             <p id="maxWaitDays-error" className="text-xs text-destructive">

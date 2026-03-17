@@ -22,7 +22,8 @@ export async function deleteTask(
   id: string,
 ): Promise<ServiceResult<null>> {
   const { count } = await prisma.task.deleteMany({ where: { id, orgId } });
-  if (count === 0) return { ok: false, error: "Task not found", code: "NOT_FOUND" };
+  if (count === 0)
+    return { ok: false, error: "Task not found", code: "NOT_FOUND" };
   return { ok: true, data: null };
 }
 

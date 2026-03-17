@@ -98,7 +98,9 @@ export async function updateTaskInstanceStatus(
   orgId: string,
   taskInstanceId: string,
   status: TaskInstanceStatus,
-): Promise<ServiceResult<Prisma.TaskInstanceGetPayload<Record<string, never>>>> {
+): Promise<
+  ServiceResult<Prisma.TaskInstanceGetPayload<Record<string, never>>>
+> {
   try {
     const taskInstance = await prisma.$transaction(async (tx) => {
       const updated = await tx.taskInstance.updateMany({
@@ -107,12 +109,18 @@ export async function updateTaskInstanceStatus(
       });
 
       if (updated.count === 0) {
-        throw Object.assign(new Error("Task instance not found in this org"), { code: "NOT_FOUND" });
+        throw Object.assign(new Error("Task instance not found in this org"), {
+          code: "NOT_FOUND",
+        });
       }
 
-      const instance = await tx.taskInstance.findUnique({ where: { id: taskInstanceId } });
+      const instance = await tx.taskInstance.findUnique({
+        where: { id: taskInstanceId },
+      });
       if (!instance) {
-        throw Object.assign(new Error("Task instance not found in this org"), { code: "NOT_FOUND" });
+        throw Object.assign(new Error("Task instance not found in this org"), {
+          code: "NOT_FOUND",
+        });
       }
 
       return instance;
