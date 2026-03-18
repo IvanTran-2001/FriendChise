@@ -246,7 +246,7 @@ Server Actions use `revalidatePath` to invalidate the Next.js cache so server-re
 | `/orgs/[orgId]/tasks/new`       | `requireOrgPermission TASK_CREATE` | Create a new task template     |
 | `/orgs/[orgId]/memberships`     | `requireOrgMember`                 | Member list                    |
 | `/orgs/[orgId]/memberships/new` | `requireOrgPermission ORG_MANAGE`  | Invite a new member by email   |
-| `/orgs/[orgId]/timetable`       | —                                  | Timetable view (placeholder)   |
+| `/orgs/[orgId]/timetable`       | `requireOrgMember`                 | Timetable view (placeholder)   |
 
 All `/orgs/[orgId]/*` pages are guarded by at least `requireOrgMember` — users not in the org are redirected to `/`.
 
