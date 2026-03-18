@@ -236,17 +236,17 @@ Server Actions use `revalidatePath` to invalidate the Next.js cache so server-re
 
 ## Pages
 
-| Route                              | Guard                          | Description                           |
-| ---------------------------------- | ------------------------------ | ------------------------------------- |
-| `/`                                | Signed in                      | Home — authenticated app shell        |
-| `/signin`                          | —                              | Google OAuth sign-in                  |
-| `/orgs/new`                        | Signed in                      | Create a new organization             |
-| `/orgs/[orgId]`                    | `requireOrgMember`             | Org overview (placeholder)            |
-| `/orgs/[orgId]/tasks`              | `requireOrgMember`             | Task template list                    |
-| `/orgs/[orgId]/tasks/new`          | `requireOrgPermission TASK_CREATE` | Create a new task template        |
-| `/orgs/[orgId]/memberships`        | `requireOrgMember`             | Member list                           |
-| `/orgs/[orgId]/memberships/new`    | `requireOrgPermission ORG_MANAGE` | Invite a new member by email       |
-| `/orgs/[orgId]/timetable`          | —                              | Timetable view (placeholder)          |
+| Route                           | Guard                              | Description                    |
+| ------------------------------- | ---------------------------------- | ------------------------------ |
+| `/`                             | Signed in                          | Home — authenticated app shell |
+| `/signin`                       | —                                  | Google OAuth sign-in           |
+| `/orgs/new`                     | Signed in                          | Create a new organization      |
+| `/orgs/[orgId]`                 | `requireOrgMember`                 | Org overview (placeholder)     |
+| `/orgs/[orgId]/tasks`           | `requireOrgMember`                 | Task template list             |
+| `/orgs/[orgId]/tasks/new`       | `requireOrgPermission TASK_CREATE` | Create a new task template     |
+| `/orgs/[orgId]/memberships`     | `requireOrgMember`                 | Member list                    |
+| `/orgs/[orgId]/memberships/new` | `requireOrgPermission ORG_MANAGE`  | Invite a new member by email   |
+| `/orgs/[orgId]/timetable`       | —                                  | Timetable view (placeholder)   |
 
 All `/orgs/[orgId]/*` pages are guarded by at least `requireOrgMember` — users not in the org are redirected to `/`.
 

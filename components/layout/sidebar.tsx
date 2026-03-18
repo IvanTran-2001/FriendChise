@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import {
@@ -10,6 +11,13 @@ import {
   Calendar,
   BarChart2,
   Settings,
+  PlusCircle,
+  Mail,
+  HelpCircle,
+  BookOpen,
+  Info,
+  Phone,
+  ChevronRight,
 } from "lucide-react";
 import {
   Sidebar,
@@ -21,17 +29,45 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
 /**
- * Nav items shown when the user is not inside a specific org (e.g. on the home page).
- * To add a global page, append an entry here.
+ * A collapsible nav section with a chevron toggle.
+ * Used in the global (no-org) sidebar for the Organizations and Help groups.
  */
-const baseNavItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Organizations", url: "/orgs", icon: Building2 },
-];
+function NavCollapsible({
+  icon: Icon,
+  label,
+  defaultOpen = false,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton onClick={() => setOpen((v) => !v)}>
+        <Icon />
+        <span>{label}</span>
+        <ChevronRight
+          className={cn(
+            "ml-auto transition-transform duration-200",
+            open && "rotate-90",
+          )}
+        />
+      </SidebarMenuButton>
+      {open && <SidebarMenuSub>{children}</SidebarMenuSub>}
+    </SidebarMenuItem>
+  );
+}
 
 /**
  * Nav items shown when the user is inside an org (any /orgs/[orgId]/... route).
@@ -63,7 +99,8 @@ function getOrgFooterItems(orgId: string) {
  * Collapsible sidebar rendered in the app layout.
  *
  * Behaviour:
- * - Outside an org: shows global nav (Dashboard, Organizations).
+ * - Outside an org: shows the global workspace nav with collapsible sections
+ *   (Organizations with Create + Invitations, and Help with sub-links).
  * - Inside an org: switches to org-scoped nav and shows footer items (e.g. Settings).
  * - Active page is highlighted via `isActive`, derived from the current pathname.
  */
@@ -73,7 +110,7 @@ export function AppSidebar() {
   // Used to determine which nav item should be marked active
   const pathname = usePathname();
 
-  const navItems = orgId ? getOrgNavItems(orgId) : baseNavItems;
+  const orgNavItems = orgId ? getOrgNavItems(orgId) : [];
   const footerItems = orgId ? getOrgFooterItems(orgId) : [];
 
   /**
@@ -99,16 +136,83 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActiveItem(item.url)}>
-                    <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {orgId ? (
+                // ── Org-scoped nav ──────────────────────────────────────
+                orgNavItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActiveItem(item.url)}
+                    >
+                      <Link href={item.url}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))
+              ) : (
+                // ── Global workspace nav ─────────────────────────────────
+                <>
+                  {/* Workspace */}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === "/"}>
+                      <Link href="/">
+                        <LayoutDashboard />
+                        <span>Workspace</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  {/* Organizations — collapsible, open by default */}
+                  <NavCollapsible
+                    icon={Building2}
+                    label="Organizations"
+                    defaultOpen
+                  >
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton
+                        asChild
+                        isActive={isActiveItem("/orgs/new")}
+                      >
+                        <Link href="/orgs/new">
+                          <PlusCircle />
+                          <span>Create</span>
+                        </Link>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                    <SidebarMenuSubItem>
+                      {/* Invitations — stub until feature is implemented */}
+                      <SidebarMenuSubButton title="Coming soon">
+                        <Mail />
+                        <span>Invitations</span>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  </NavCollapsible>
+
+                  {/* Help — collapsible, closed by default */}
+                  <NavCollapsible icon={HelpCircle} label="Help">
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton title="Coming soon">
+                        <BookOpen />
+                        <span>Instructions</span>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton title="Coming soon">
+                        <Info />
+                        <span>About</span>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton title="Coming soon">
+                        <Phone />
+                        <span>Contact</span>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  </NavCollapsible>
+                </>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
