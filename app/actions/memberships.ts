@@ -1,0 +1,52 @@
+"use server";
+
+import { OrgPermission } from "@prisma/client";
+import { requireOrgPermission } from "@/lib/authz";
+import { createMembership } from "@/lib/services/memberships";
+import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+
+export type CreateMembershipFormState =
+  | { ok: false; errors: Record<string, string[]> }
+  | { ok: true }
+  | null;
+
+export async function createMembershipAction(
+  orgId: string,
+  _prev: CreateMembershipFormState,
+  formData: FormData,
+): Promise<CreateMembershipFormState> {
+  const authz = await requireOrgPermission(orgId, OrgPermission.ORG_MANAGE);
+  if (!authz.ok) return { ok: false, errors: { _: ["Unauthorized"] } };
+
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
+  const roleId = String(formData.get("roleId") ?? "").trim();
+
+  if (!email) return { ok: false, errors: { email: ["Email is required"] } };
+  if (!roleId) return { ok: false, errors: { roleId: ["Role is required"] } };
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+
+  if (!user) {
+    return {
+      ok: false,
+      errors: { email: ["No user found with that email address"] },
+    };
+  }
+
+  const result = await createMembership(orgId, { userId: user.id, roleId });
+
+  if (!result.ok) {
+    const field = result.code === "CONFLICT" ? "email" : "_";
+    return { ok: false, errors: { [field]: [result.error] } };
+  }
+
+  revalidatePath(`/orgs/${orgId}/memberships`);
+  redirect(`/orgs/${orgId}/memberships`);
+}
