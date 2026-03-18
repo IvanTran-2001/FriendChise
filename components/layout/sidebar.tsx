@@ -52,9 +52,14 @@ function NavCollapsible({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const subMenuId = `sidebar-section-${label.toLowerCase().replace(/\s+/g, "-")}`;
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton onClick={() => setOpen((v) => !v)}>
+      <SidebarMenuButton
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls={subMenuId}
+      >
         <Icon />
         <span>{label}</span>
         <ChevronRight
@@ -64,7 +69,7 @@ function NavCollapsible({
           )}
         />
       </SidebarMenuButton>
-      {open && <SidebarMenuSub>{children}</SidebarMenuSub>}
+      {open && <SidebarMenuSub id={subMenuId}>{children}</SidebarMenuSub>}
     </SidebarMenuItem>
   );
 }
