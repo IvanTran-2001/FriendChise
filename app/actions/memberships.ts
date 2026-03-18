@@ -1,5 +1,11 @@
 "use server";
 
+/**
+ * Server Actions for membership management.
+ * Used by the create-membership form — resolves the email to a userId,
+ * delegates to the membership service, then revalidates and redirects.
+ */
+
 import { OrgPermission } from "@prisma/client";
 import { requireOrgPermission } from "@/lib/authz";
 import { createMembership } from "@/lib/services/memberships";
@@ -12,6 +18,17 @@ export type CreateMembershipFormState =
   | { ok: true }
   | null;
 
+/**
+ * Server Action wired to the create-membership form via `useActionState`.
+ *
+ * Resolves the submitted email to a User record, then delegates to
+ * `createMembership`. On success, revalidates the memberships page and
+ * redirects. On failure, returns field-level errors for the form to display.
+ *
+ * @param orgId   - The org the new member is being added to.
+ * @param _prev   - Previous form state (required by `useActionState` signature).
+ * @param formData - Raw form fields: `email`, `roleId`.
+ */
 export async function createMembershipAction(
   orgId: string,
   _prev: CreateMembershipFormState,

@@ -38,6 +38,10 @@ export const NavBar = async () => {
         .then((ms) =>
           ms.map((m) => m.org).sort((a, b) => a.title.localeCompare(b.title)),
         )
+        .catch((error) => {
+          console.error("Failed to load organizations for navbar", error);
+          return [];
+        })
     : [];
 
   return (
@@ -57,6 +61,7 @@ export const NavBar = async () => {
         <Button
           variant="ghost"
           size="icon"
+          aria-label="Notifications"
           className="relative h-9 w-9 rounded-full bg-yellow-400 hover:bg-yellow-500 text-yellow-900"
         >
           <Bell className="h-4 w-4" />
@@ -73,6 +78,7 @@ export const NavBar = async () => {
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label="Open user menu"
                 className="h-9 w-9 rounded-full bg-yellow-400 hover:bg-yellow-500 overflow-hidden p-0"
               >
                 {user.image ? (

@@ -1,10 +1,11 @@
+/**
+ * REST endpoint: /api/orgs/[orgId]/task-instances/[taskInstanceId]/assignees
+ *
+ * GET    — List all assignees for the task instance. Any org member may call this.
+ * POST   — Assign a member to the task instance. Requires TASK_ASSIGN permission.
+ * DELETE — Remove an assignee from the task instance. Requires TASK_ASSIGN permission.
+ */
 import { NextResponse } from "next/server";
-import { OrgPermission } from "@prisma/client";
-import { requireOrgMember, requireOrgPermission } from "@/lib/authz";
-import {
-  CreateAssigneeSchema,
-  DeleteAssigneeSchema,
-} from "@/lib/validators/assignee";
 import {
   createAssignee,
   deleteAssignee,

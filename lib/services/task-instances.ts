@@ -2,11 +2,17 @@ import { prisma } from "@/lib/prisma";
 import { Prisma, TaskInstanceStatus } from "@prisma/client";
 import type { ServiceResult } from "./types";
 
+/** Options for filtering the task instances returned by `getTaskInstances`. */
 export type GetTaskInstancesOptions = {
   status?: TaskInstanceStatus;
   completed?: boolean;
 };
 
+/**
+ * Creates a new task instance for the given org and task.
+ * Validates that the task belongs to the org before inserting so crafted
+ * `taskId` values from other orgs are rejected with a clear INVALID error.
+ */
 export async function createTaskInstance(
   orgId: string,
   taskId: string,
@@ -84,6 +90,10 @@ export async function getTaskInstances(
   });
 }
 
+/**
+ * Fetches a single task instance by id, scoped to `orgId`.
+ * Returns NOT_FOUND if the instance does not exist in this org.
+ */
 export async function getTaskInstance(
   orgId: string,
   taskInstanceId: string,
@@ -102,6 +112,11 @@ export async function getTaskInstance(
   return { ok: true, data: item };
 }
 
+/**
+ * Updates the status of a task instance inside a transaction.
+ * Uses `updateMany` (scoped by orgId) to detect missing records without an
+ * extra query, then re-fetches the updated row to return to the caller.
+ */
 export async function updateTaskInstanceStatus(
   orgId: string,
   taskInstanceId: string,

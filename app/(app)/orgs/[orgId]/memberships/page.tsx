@@ -3,6 +3,13 @@ import { requireOrgMember } from "@/lib/authz";
 import { redirect } from "next/navigation";
 import { Toolbar } from "@/components/layout/toolbar";
 
+/**
+ * Members list page — server component.
+ *
+ * Guards access with `requireOrgMember`; redirects to `/` if the caller is not
+ * a member. Fetches and renders all memberships for the org with a toolbar
+ * action to add a new member.
+ */
 const MembersPage = async ({
   params,
 }: {

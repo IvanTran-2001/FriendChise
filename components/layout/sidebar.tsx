@@ -76,6 +76,17 @@ export function AppSidebar() {
   const navItems = orgId ? getOrgNavItems(orgId) : baseNavItems;
   const footerItems = orgId ? getOrgFooterItems(orgId) : [];
 
+  /**
+   * Returns true when a nav item should be highlighted.
+   * - Org overview uses exact match so it doesn't light up on every org page.
+   * - All other items use prefix matching so nested pages (e.g. /tasks/new)
+   *   still highlight their parent section.
+   */
+  const isActiveItem = (url: string) => {
+    if (orgId && url === `/orgs/${orgId}`) return pathname === url;
+    return pathname === url || pathname.startsWith(`${url}/`);
+  };
+
   return (
     <Sidebar collapsible="offcanvas">
       <SidebarHeader className="px-4 py-3">
@@ -90,7 +101,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url}>
+                  <SidebarMenuButton asChild isActive={isActiveItem(item.url)}>
                     <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
@@ -111,7 +122,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {footerItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url}>
+                  <SidebarMenuButton asChild isActive={isActiveItem(item.url)}>
                     <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>

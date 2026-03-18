@@ -1,3 +1,8 @@
+/**
+ * Zod schemas and inferred types for organization create operations.
+ * Times are stored as minutes since midnight (0–1439) so they are
+ * timezone-agnostic and easy to compare arithmetically.
+ */
 import z from "zod";
 
 export const createOrgSchema = z

@@ -1,3 +1,13 @@
+/**
+ * REST endpoint: /api/orgs/[orgId]/task-instances
+ *
+ * GET  — List task instances. Any org member may call this.
+ *         Optional query params (mutually exclusive):
+ *           ?status=PENDING|IN_PROGRESS|DONE|SKIPPED  — exact status match
+ *           ?completed=true|false                      — completed vs active
+ * POST — Create a new task instance from an existing task.
+ *         Requires TASK_CREATE permission.
+ */
 import { NextResponse } from "next/server";
 import { OrgPermission } from "@prisma/client";
 import { updateTaskInstanceStatusSchema } from "@/lib/validators/task";

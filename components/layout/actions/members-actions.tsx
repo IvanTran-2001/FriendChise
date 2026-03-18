@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Navbar action button for the Members page.
+ * Renders a link-button that navigates to the add-member form for the given org.
+ */
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 

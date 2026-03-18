@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * Client form for adding a new member to an org.
+ *
+ * Binds `orgId` into the server action via `.bind`, then uses `useActionState`
+ * to drive the pending/error state. Field-level errors from the server action
+ * are displayed inline next to each input.
+ */
 import { useActionState } from "react";
 import { createMembershipAction } from "@/app/actions/memberships";
 import type { CreateMembershipFormState } from "@/app/actions/memberships";

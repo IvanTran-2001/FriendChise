@@ -3,6 +3,12 @@ import { Prisma } from "@prisma/client";
 import type { CreateMembershipInput } from "@/lib/validators/membership";
 import type { ServiceResult } from "./types";
 
+/**
+ * Creates a membership linking a user to an org with the specified role.
+ * Validates that the roleId belongs to the org and the userId exists before
+ * inserting, so callers receive a clear service-layer error rather than a
+ * raw database constraint violation.
+ */
 export async function createMembership(
   orgId: string,
   data: CreateMembershipInput,
@@ -81,6 +87,10 @@ export async function deleteMembership(
   return { ok: true, data: null };
 }
 
+/**
+ * Returns all memberships for an org, including the linked user (id + name)
+ * and role, sorted newest-first.
+ */
 export async function getMemberships(orgId: string) {
   return prisma.membership.findMany({
     where: { orgId },

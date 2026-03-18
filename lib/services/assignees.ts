@@ -54,6 +54,11 @@ export async function createAssignee(
   }
 }
 
+/**
+ * Removes a member from a task instance. Verifies org ownership of both the
+ * task instance and the membership before deleting to prevent cross-org
+ * manipulation via crafted IDs.
+ */
 export async function deleteAssignee(
   orgId: string,
   taskInstanceId: string,
@@ -76,6 +81,10 @@ export async function deleteAssignee(
   return { ok: true, data: null };
 }
 
+/**
+ * Returns all assignees for a task instance, scoped to `orgId`.
+ * Each assignee includes the linked membership with user name and role title.
+ */
 export async function getAssignees(orgId: string, taskInstanceId: string) {
   return prisma.taskInstanceAssignee.findMany({
     where: {

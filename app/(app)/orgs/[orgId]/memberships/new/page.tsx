@@ -4,6 +4,13 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { CreateMembershipForm } from "./create-membership-form";
 
+/**
+ * Add-member page — server component.
+ *
+ * Guards access with `requireOrgPermission(ORG_MANAGE)`; redirects to `/`
+ * if the caller lacks the permission. Fetches the org's roles and passes them
+ * to the client form so the user can select a role when inviting a member.
+ */
 const NewMemberPage = async ({
   params,
 }: {

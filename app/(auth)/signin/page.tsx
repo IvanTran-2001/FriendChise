@@ -5,6 +5,14 @@ type SignInPageProps = {
   searchParams?: Promise<{ callbackUrl?: string }>;
 };
 
+/**
+ * Sign-in page — server component.
+ *
+ * Redirects already-authenticated users to `/` immediately.
+ * Validates `callbackUrl` to only allow same-origin relative paths, preventing
+ * open-redirect attacks from crafted query strings.
+ * Renders a Google OAuth sign-in button.
+ */
 export default async function SignInPage({ searchParams }: SignInPageProps) {
   const session = await auth();
   if (session?.user) redirect("/");

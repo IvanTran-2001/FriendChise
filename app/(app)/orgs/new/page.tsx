@@ -1,11 +1,23 @@
 "use client";
 
+/**
+ * Create-organization page — client component.
+ *
+ * Controlled form that calls the `createOrg` server action. On success it
+ * navigates to the new org's overview page. Open/close times are collected
+ * as `<input type="time">` strings and converted to minutes-since-midnight
+ * before submission.
+ */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createOrg } from "@/app/actions/orgs";
 
+/**
+ * Converts an HH:MM string (from a time input) to minutes since midnight.
+ * e.g. "08:30" → 510
+ */
 function timeToMinutes(time: string) {
   const [h, m] = time.split(":").map(Number);
   return h * 60 + m;

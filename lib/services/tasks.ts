@@ -2,6 +2,10 @@ import { prisma } from "@/lib/prisma";
 import type { ServiceResult } from "./types";
 import type { CreateTaskInput } from "@/lib/validators/task";
 
+/**
+ * Creates a new task for the given org using validated input.
+ * Optional fields are null-coalesced so callers never need to handle `undefined`.
+ */
 export async function createTask(orgId: string, data: CreateTaskInput) {
   return prisma.task.create({
     data: {
@@ -17,6 +21,10 @@ export async function createTask(orgId: string, data: CreateTaskInput) {
   });
 }
 
+/**
+ * Deletes a task by id, scoped to `orgId` to prevent cross-org deletion.
+ * Returns a NOT_FOUND error if no matching record exists.
+ */
 export async function deleteTask(
   orgId: string,
   id: string,
@@ -27,6 +35,9 @@ export async function deleteTask(
   return { ok: true, data: null };
 }
 
+/**
+ * Returns all tasks for the given org, sorted newest-first.
+ */
 export async function getTasks(orgId: string) {
   return prisma.task.findMany({
     where: { orgId },
