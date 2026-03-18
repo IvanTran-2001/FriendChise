@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * Dropdown that lets the user switch between their organizations.
+ *
+ * Derives the currently active org from the URL (e.g. `/orgs/[orgId]/...`)
+ * and navigates to the selected org's root page on selection.
+ */
 import { useRouter, usePathname } from "next/navigation";
 import { ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";

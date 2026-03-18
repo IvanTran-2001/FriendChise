@@ -1,3 +1,10 @@
+/**
+ * Singleton Prisma client for server-side database access.
+ *
+ * In development the client instance is attached to `globalThis` so it
+ * survives Next.js hot-module reloads without exhausting the connection pool.
+ * In production a fresh instance is created once per process.
+ */
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 

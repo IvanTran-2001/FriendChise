@@ -1,3 +1,9 @@
+/**
+ * REST endpoint: /api/orgs/[orgId]/task-instances/[taskInstanceId]
+ *
+ * GET — Fetch a single task instance by id.
+ *        Requires the caller to be a member of the org.
+ */
 import { NextResponse } from "next/server";
 import { requireOrgMember } from "@/lib/authz";
 import { getTaskInstance } from "@/lib/services/task-instances";

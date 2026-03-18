@@ -1,3 +1,10 @@
+/**
+ * REST endpoint: /api/orgs/[orgId]/tasks
+ *
+ * GET    — List all tasks for the org. Any org member may call this.
+ * POST   — Create a new task. Requires TASK_CREATE permission.
+ * DELETE — Delete a task by id. Requires TASK_DELETE permission.
+ */
 import { NextResponse } from "next/server";
 import { createTaskSchema } from "@/lib/validators/task";
 import { requireOrgMember, requireOrgPermission } from "@/lib/authz";

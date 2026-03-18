@@ -4,11 +4,15 @@ A role-based chore/practice management system to rotate recurring tasks fairly a
 
 ## MVP (in progress)
 
-- Organizations + roles (Owner/Manager/Worker)
-- Task templates (recurring)
-- Weekly schedule generation (fair rotation)
-- Worker “Today” checklist
-- Completion tracking + basic stats
+- [x] Organizations + roles (Owner / Member) with per-role permissions
+- [x] Task templates (title, duration, recurrence constraints, people required)
+- [x] Task instances — scheduled occurrences of a task template
+- [x] Member management — invite by email, assign roles
+- [x] Assignee tracking on task instances
+- [x] Task instance status updates (`TODO` → `IN_PROGRESS` → `DONE` / `SKIPPED`)
+- [ ] Weekly schedule generation (fair rotation)
+- [ ] Worker "Today" checklist
+- [ ] Completion tracking + basic stats
 
 ## Tech Stack
 
@@ -232,18 +236,25 @@ Server Actions use `revalidatePath` to invalidate the Next.js cache so server-re
 
 ## Pages
 
-| Route                       | Description                    |
-| --------------------------- | ------------------------------ |
-| `/`                         | Home — authenticated app shell |
-| `/signin`                   | Google OAuth sign-in           |
-| `/orgs/new`                 | Create a new organization      |
-| `/orgs/[orgId]`             | Org overview                   |
-| `/orgs/[orgId]/tasks`       | Task list for the org          |
-| `/orgs/[orgId]/tasks/new`   | Create a new task template     |
-| `/orgs/[orgId]/memberships` | Member list for the org        |
+| Route                              | Guard                          | Description                           |
+| ---------------------------------- | ------------------------------ | ------------------------------------- |
+| `/`                                | Signed in                      | Home — authenticated app shell        |
+| `/signin`                          | —                              | Google OAuth sign-in                  |
+| `/orgs/new`                        | Signed in                      | Create a new organization             |
+| `/orgs/[orgId]`                    | `requireOrgMember`             | Org overview (placeholder)            |
+| `/orgs/[orgId]/tasks`              | `requireOrgMember`             | Task template list                    |
+| `/orgs/[orgId]/tasks/new`          | `requireOrgPermission TASK_CREATE` | Create a new task template        |
+| `/orgs/[orgId]/memberships`        | `requireOrgMember`             | Member list                           |
+| `/orgs/[orgId]/memberships/new`    | `requireOrgPermission ORG_MANAGE` | Invite a new member by email       |
+| `/orgs/[orgId]/timetable`          | —                              | Timetable view (placeholder)          |
 
-All `/orgs/[orgId]/*` pages are guarded by `requireOrgMember` — users not in the org are redirected to `/`.
+All `/orgs/[orgId]/*` pages are guarded by at least `requireOrgMember` — users not in the org are redirected to `/`.
+
+## UI Notes
+
+- **Sidebar active state** — uses prefix matching so nested pages (e.g. `/tasks/new`) correctly highlight the parent nav item. The Org Overview item uses exact matching to avoid lighting up on every org page.
+- **Form validation** — server-action errors are rendered inline next to each field with `aria-invalid` / `aria-describedby` for accessibility, plus a Sonner toast summary.
 
 ## Status
 
-Work in progress — service layer, task management, and member views implemented.
+Work in progress — service layer, REST API, task management, member management, and auth fully implemented. Schedule generation and completion stats not yet started.

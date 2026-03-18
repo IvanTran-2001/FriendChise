@@ -1,10 +1,12 @@
+/**
+ * REST endpoint: /api/orgs/[orgId]/memberships
+ *
+ * GET    — List all memberships for the org. Requires ORG_MANAGE permission.
+ * POST   — Add a user to the org with a specified role. Requires ORG_MANAGE.
+ * DELETE — Remove a user from the org. Requires ORG_MANAGE.
+ *           The org owner cannot be removed.
+ */
 import { NextResponse } from "next/server";
-import { OrgPermission } from "@prisma/client";
-import { requireOrgPermission } from "@/lib/authz";
-import {
-  createMembershipSchema,
-  deleteMembershipSchema,
-} from "@/lib/validators/membership";
 import {
   createMembership,
   deleteMembership,

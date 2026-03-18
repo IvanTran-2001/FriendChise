@@ -1,5 +1,10 @@
+/**
+ * REST endpoint: /api/orgs
+ *
+ * POST — Create a new organization for the authenticated user.
+ *         Requires a valid session; the caller becomes the org owner.
+ */
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/authz";
 import { createOrgSchema } from "@/lib/validators/org";
 import { createOrg } from "@/lib/services/orgs";
 

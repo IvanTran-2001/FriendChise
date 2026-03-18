@@ -1,3 +1,4 @@
+/** Zod schemas and inferred types for membership create / delete operations. */
 import z from "zod";
 
 export const createMembershipSchema = z.object({

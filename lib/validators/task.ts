@@ -1,3 +1,9 @@
+/**
+ * Zod schemas and inferred types for task create / status-update operations.
+ * Times (preferredStartTimeMin) and durations (durationMin) are in minutes.
+ * Wait-day bounds are validated cross-field: at least one must be provided,
+ * and minWaitDays must not exceed maxWaitDays when both are set.
+ */
 import { z } from "zod";
 import { TaskInstanceStatus } from "@prisma/client";
 

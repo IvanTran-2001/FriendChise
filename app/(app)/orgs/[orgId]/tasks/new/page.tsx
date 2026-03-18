@@ -3,6 +3,13 @@ import { OrgPermission } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { CreateTaskForm } from "./create-task-form";
 
+/**
+ * Create-task page — server component.
+ *
+ * Guards access with `requireOrgPermission(TASK_CREATE)`; redirects to `/`
+ * if the caller lacks the permission. Renders the `CreateTaskForm` client
+ * component inside a constrained-width container.
+ */
 const NewTaskPage = async ({
   params,
 }: {
