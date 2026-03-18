@@ -43,7 +43,7 @@ export function PageHeader() {
   if (!orgId) {
     // Non-org pages — only add a crumb for known standalone routes
     if (pathname === "/orgs/new") {
-      breadcrumbs.push({ label: "New Organization" });
+      breadcrumbs.push({ label: "Create Organization" });
     }
   } else {
     const base = `/orgs/${orgId}`;
