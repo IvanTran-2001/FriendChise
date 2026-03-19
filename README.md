@@ -257,7 +257,7 @@ All `/orgs/[orgId]/*` pages are guarded by at least `requireOrgMember` — users
 
 - **Sidebar active state** — uses prefix matching so nested pages (e.g. `/tasks/new`) correctly highlight the parent nav item. The Org Overview item uses exact matching to avoid lighting up on every org page.
 - **Form validation** — server-action errors are rendered inline next to each field with `aria-invalid` / `aria-describedby` for accessibility, plus a Sonner toast summary.
-- **Timetable** — server component fetches the week's instances (scoped to `scheduledStartAt` in `[monday, monday+7)`); a client component handles the Calendar/Simple toggle and Prev/Next week navigation via `?week=` and `?mode=` search params. Calendar view uses absolute positioning to render task blocks by time; overlapping tasks are assigned side-by-side columns. Status colours: gray = TODO, amber = IN\_PROGRESS, green = DONE, red = SKIPPED.
+- **Timetable** — the server page fetches the week's instances (scoped to `scheduledStartAt` in `[monday, monday+7)`) and renders the Calendar/Simple mode links; the client component handles the interactive timetable UI plus Prev/Next week navigation via `?week=` and `?mode=` search params. Calendar view uses absolute positioning to render task blocks by time; overlapping tasks are assigned side-by-side columns. Status colours: gray = TODO, amber = IN\_PROGRESS, green = DONE, red = SKIPPED.
 
 ## Status
 

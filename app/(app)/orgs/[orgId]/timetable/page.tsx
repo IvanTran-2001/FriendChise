@@ -103,6 +103,7 @@ export default async function TimetablePage({
         <div className="flex rounded-md overflow-hidden border text-sm font-medium">
           <Link
             href={timetableHref("calendar")}
+            aria-current={mode === "calendar" ? "page" : undefined}
             className={`px-3 py-1 transition-colors ${
               mode === "calendar"
                 ? "bg-primary text-primary-foreground"
@@ -113,6 +114,7 @@ export default async function TimetablePage({
           </Link>
           <Link
             href={timetableHref("simple")}
+            aria-current={mode === "simple" ? "page" : undefined}
             className={`px-3 py-1 border-l transition-colors ${
               mode === "simple"
                 ? "bg-primary text-primary-foreground"
