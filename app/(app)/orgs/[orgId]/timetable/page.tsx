@@ -1,7 +1,11 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { requireOrgMember } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { getTaskInstancesForTimetable } from "@/lib/services/task-instances";
+import { Toolbar } from "@/components/layout/toolbar";
+import { Button } from "@/components/ui/button";
+import { ChevronDown } from "lucide-react";
 import {
   TimetableClient,
   type ClientTimetableInstance,
@@ -29,9 +33,15 @@ export default async function TimetablePage({
   const authz = await requireOrgMember(orgId);
   if (!authz.ok) redirect("/");
 
-  const weekStart = weekParam
-    ? getMondayDateStr(new Date(weekParam + "T00:00:00Z"))
-    : getMondayDateStr(new Date());
+  let weekStart: string;
+  if (weekParam && /^\d{4}-\d{2}-\d{2}$/.test(weekParam)) {
+    const parsed = new Date(weekParam + "T00:00:00Z");
+    weekStart = Number.isNaN(parsed.getTime())
+      ? getMondayDateStr(new Date())
+      : getMondayDateStr(parsed);
+  } else {
+    weekStart = getMondayDateStr(new Date());
+  }
 
   const from = new Date(weekStart + "T00:00:00Z");
   const to = new Date(from);
@@ -73,14 +83,54 @@ export default async function TimetablePage({
     })),
   }));
 
+  const timetableHref = (m: string) =>
+    `/orgs/${orgId}/timetable?week=${weekStart}&mode=${m}`;
+
   return (
-    <TimetableClient
-      orgId={orgId}
-      instances={instances}
-      weekStart={weekStart}
-      openTimeMin={org?.openTimeMin ?? 360}
-      closeTimeMin={org?.closeTimeMin ?? 1320}
-      mode={mode}
-    />
+    <>
+      <Toolbar actions={[{ label: "Templates", href: `/orgs/${orgId}/timetable/templates` }]}>
+        {/* Week-view type (placeholder) */}
+        <Button variant="outline" size="sm" className="gap-1.5" disabled>
+          Week <ChevronDown className="h-3.5 w-3.5" />
+        </Button>
+
+        {/* Filter (placeholder) */}
+        <Button variant="outline" size="sm" className="gap-1.5" disabled>
+          Filter <ChevronDown className="h-3.5 w-3.5" />
+        </Button>
+
+        {/* Calendar / Simple toggle */}
+        <div className="flex rounded-md overflow-hidden border text-sm font-medium">
+          <Link
+            href={timetableHref("calendar")}
+            className={`px-3 py-1 transition-colors ${
+              mode === "calendar"
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-muted text-muted-foreground"
+            }`}
+          >
+            Calendar
+          </Link>
+          <Link
+            href={timetableHref("simple")}
+            className={`px-3 py-1 border-l transition-colors ${
+              mode === "simple"
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-muted text-muted-foreground"
+            }`}
+          >
+            Simple
+          </Link>
+        </div>
+      </Toolbar>
+      <TimetableClient
+        orgId={orgId}
+        instances={instances}
+        weekStart={weekStart}
+        openTimeMin={org?.openTimeMin ?? 360}
+        closeTimeMin={org?.closeTimeMin ?? 1320}
+        mode={mode}
+      />
+    </>
   );
 }

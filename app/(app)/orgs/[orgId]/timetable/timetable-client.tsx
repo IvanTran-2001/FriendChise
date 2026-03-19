@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Toolbar } from "@/components/layout/toolbar";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -448,47 +447,6 @@ export function TimetableClient({
 
   return (
     <div className="flex flex-col gap-4">
-      <Toolbar actions={[{ label: "Templates", href: `/orgs/${orgId}/timetable/templates` }]}>
-        {/* Week-view type (placeholder) */}
-        <Button variant="outline" size="sm" className="gap-1.5" disabled>
-          Week <ChevronDown className="h-3.5 w-3.5" />
-        </Button>
-
-        {/* Templates (placeholder — cycle/template logic TBD) */}
-        <Button variant="outline" size="sm" className="gap-1.5" disabled>
-          Templates <ChevronDown className="h-3.5 w-3.5" />
-        </Button>
-
-        {/* Filter (placeholder) */}
-        <Button variant="outline" size="sm" className="gap-1.5" disabled>
-          Filter <ChevronDown className="h-3.5 w-3.5" />
-        </Button>
-
-        {/* Calendar / Simple toggle */}
-        <div className="flex rounded-md overflow-hidden border text-sm font-medium">
-          <Link
-            href={makeHref(weekStart, "calendar")}
-            className={`px-3 py-1 transition-colors ${
-              mode === "calendar"
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-muted text-muted-foreground"
-            }`}
-          >
-            Calendar
-          </Link>
-          <Link
-            href={makeHref(weekStart, "simple")}
-            className={`px-3 py-1 border-l transition-colors ${
-              mode === "simple"
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-muted text-muted-foreground"
-            }`}
-          >
-            Simple
-          </Link>
-        </div>
-      </Toolbar>
-
       {/* Week navigation */}
       <div className="flex items-center justify-between rounded-lg border px-4 py-1.5">
         <Link href={makeHref(prevWeek, mode)}>

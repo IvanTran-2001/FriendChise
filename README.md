@@ -10,6 +10,7 @@ A role-based chore/practice management system to rotate recurring tasks fairly a
 - [x] Member management — invite by email, assign roles
 - [x] Assignee tracking on task instances
 - [x] Task instance status updates (`TODO` → `IN_PROGRESS` → `DONE` / `SKIPPED`)
+- [x] Timetable view — weekly calendar and simple (list) modes with task instance blocks
 - [ ] Weekly schedule generation (fair rotation)
 - [ ] Worker "Today" checklist
 - [ ] Completion tracking + basic stats
@@ -189,6 +190,7 @@ app/
         page.tsx         # Org overview
         tasks/           # Task list + create task form
         memberships/     # Members list
+        timetable/       # Weekly timetable (calendar + simple modes)
   (auth)/         # Unauthenticated pages (sign in)
   actions/        # Server Actions (web UI mutations)
     orgs.ts       # createOrg action
@@ -246,7 +248,8 @@ Server Actions use `revalidatePath` to invalidate the Next.js cache so server-re
 | `/orgs/[orgId]/tasks/new`       | `requireOrgPermission TASK_CREATE` | Create a new task template     |
 | `/orgs/[orgId]/memberships`     | `requireOrgMember`                 | Member list                    |
 | `/orgs/[orgId]/memberships/new` | `requireOrgPermission ORG_MANAGE`  | Invite a new member by email   |
-| `/orgs/[orgId]/timetable`       | `requireOrgMember`                 | Timetable view (placeholder)   |
+| `/orgs/[orgId]/timetable`       | `requireOrgMember`                 | Timetable — calendar or simple mode, week navigation |
+| `/orgs/[orgId]/timetable/templates` | `requireOrgMember`             | Timetable templates (coming soon) |
 
 All `/orgs/[orgId]/*` pages are guarded by at least `requireOrgMember` — users not in the org are redirected to `/`.
 
@@ -254,7 +257,8 @@ All `/orgs/[orgId]/*` pages are guarded by at least `requireOrgMember` — users
 
 - **Sidebar active state** — uses prefix matching so nested pages (e.g. `/tasks/new`) correctly highlight the parent nav item. The Org Overview item uses exact matching to avoid lighting up on every org page.
 - **Form validation** — server-action errors are rendered inline next to each field with `aria-invalid` / `aria-describedby` for accessibility, plus a Sonner toast summary.
+- **Timetable** — server component fetches the week's instances (scoped to `scheduledStartAt` in `[monday, monday+7)`); a client component handles the Calendar/Simple toggle and Prev/Next week navigation via `?week=` and `?mode=` search params. Calendar view uses absolute positioning to render task blocks by time; overlapping tasks are assigned side-by-side columns. Status colours: gray = TODO, amber = IN\_PROGRESS, green = DONE, red = SKIPPED.
 
 ## Status
 
-Work in progress — service layer, REST API, task management, member management, and auth fully implemented. Schedule generation and completion stats not yet started.
+Work in progress — service layer, REST API, task management, member management, auth, and timetable view fully implemented. Schedule generation (automatic cycle-based rotation) and completion stats not yet started.
