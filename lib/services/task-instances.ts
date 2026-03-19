@@ -157,3 +157,48 @@ export async function updateTaskInstanceStatus(
     throw e;
   }
 }
+
+/** Full instance shape used by the timetable view. */
+export type TimetableInstance = Prisma.TaskInstanceGetPayload<{
+  include: {
+    task: true;
+    assignees: {
+      include: {
+        membership: {
+          include: { user: { select: { id: true; name: true } } };
+        };
+      };
+    };
+  };
+}>;
+
+/**
+ * Fetches task instances within a UTC date range for the timetable view.
+ * Only instances with a scheduledStartAt in [from, to) are returned.
+ * Includes task details and assignee/user data needed to render blocks.
+ */
+export async function getTaskInstancesForTimetable(
+  orgId: string,
+  from: Date,
+  to: Date,
+): Promise<TimetableInstance[]> {
+  return prisma.taskInstance.findMany({
+    where: {
+      orgId,
+      scheduledStartAt: { gte: from, lt: to },
+    },
+    include: {
+      task: true,
+      assignees: {
+        include: {
+          membership: {
+            include: {
+              user: { select: { id: true, name: true } },
+            },
+          },
+        },
+      },
+    },
+    orderBy: { scheduledStartAt: "asc" },
+  });
+}
