@@ -53,7 +53,10 @@ export async function addTemplateInstanceAction(
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   const [task, template] = await Promise.all([
-    prisma.task.findFirst({ where: { id: taskId, orgId }, select: { id: true } }),
+    prisma.task.findFirst({
+      where: { id: taskId, orgId },
+      select: { id: true },
+    }),
     prisma.timetableTemplate.findFirst({
       where: { id: templateId, orgId },
       select: { id: true, templateDays: true },
@@ -88,7 +91,7 @@ export async function removeTemplateInstanceAction(
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   const instance = await prisma.taskInstance.findFirst({
-    where: { id: instanceId, orgId },
+    where: { id: instanceId, orgId, templateId: { not: null } },
     select: { id: true },
   });
   if (!instance) return { ok: false, error: "Not found" };
@@ -103,20 +106,47 @@ export async function updateTemplateInstanceAction(
   instanceId: string,
   update: { dayOffset?: number; startTimeMin?: number },
 ): Promise<{ ok: boolean; error?: string }> {
-  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_CREATE);
+  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_UPDATE);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   const instance = await prisma.taskInstance.findFirst({
-    where: { id: instanceId, orgId },
-    select: { id: true },
+    where: { id: instanceId, orgId, templateId: { not: null } },
+    select: { id: true, templateId: true },
   });
   if (!instance) return { ok: false, error: "Not found" };
+
+  if (update.dayOffset !== undefined) {
+    const template = await prisma.timetableTemplate.findFirst({
+      where: { id: instance.templateId!, orgId },
+      select: { templateDays: true },
+    });
+    if (!template) return { ok: false, error: "Template not found" };
+    if (
+      !Number.isInteger(update.dayOffset) ||
+      update.dayOffset < 1 ||
+      update.dayOffset > template.templateDays
+    ) {
+      return {
+        ok: false,
+        error: `Day must be between 1 and ${template.templateDays}`,
+      };
+    }
+  }
+
+  if (
+    update.startTimeMin !== undefined &&
+    (update.startTimeMin < 0 || update.startTimeMin > 1439)
+  ) {
+    return { ok: false, error: "Invalid time" };
+  }
 
   await prisma.taskInstance.update({
     where: { id: instanceId },
     data: {
       ...(update.dayOffset !== undefined && { dayOffset: update.dayOffset }),
-      ...(update.startTimeMin !== undefined && { startTimeMin: update.startTimeMin }),
+      ...(update.startTimeMin !== undefined && {
+        startTimeMin: update.startTimeMin,
+      }),
     },
   });
 
@@ -129,11 +159,30 @@ export async function updateTemplateDaysAction(
   templateId: string,
   templateDays: number,
 ): Promise<{ ok: boolean; error?: string }> {
-  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_CREATE);
+  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_UPDATE);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  if (!Number.isInteger(templateDays) || templateDays < 1 || templateDays > 365) {
+  if (
+    !Number.isInteger(templateDays) ||
+    templateDays < 1 ||
+    templateDays > 365
+  ) {
     return { ok: false, error: "Invalid cycle length" };
+  }
+
+  // Block shrink if any instances have a dayOffset that would be out of range
+  const stranded = await prisma.taskInstance.count({
+    where: {
+      templateId,
+      orgId,
+      dayOffset: { gt: templateDays },
+    },
+  });
+  if (stranded > 0) {
+    return {
+      ok: false,
+      error: `Cannot shrink cycle: ${stranded} task${stranded === 1 ? "" : "s"} are on days beyond ${templateDays}. Move or remove them first.`,
+    };
   }
 
   await prisma.timetableTemplate.updateMany({
@@ -154,14 +203,22 @@ export async function addInstanceAssigneeAction(
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   const [instance, membership] = await Promise.all([
-    prisma.taskInstance.findFirst({ where: { id: instanceId, orgId }, select: { id: true } }),
-    prisma.membership.findFirst({ where: { id: membershipId, orgId }, select: { id: true } }),
+    prisma.taskInstance.findFirst({
+      where: { id: instanceId, orgId },
+      select: { id: true },
+    }),
+    prisma.membership.findFirst({
+      where: { id: membershipId, orgId },
+      select: { id: true },
+    }),
   ]);
   if (!instance) return { ok: false, error: "Instance not found" };
   if (!membership) return { ok: false, error: "Membership not found" };
 
   await prisma.taskInstanceAssignee.upsert({
-    where: { taskInstanceId_membershipId: { taskInstanceId: instanceId, membershipId } },
+    where: {
+      taskInstanceId_membershipId: { taskInstanceId: instanceId, membershipId },
+    },
     create: { taskInstanceId: instanceId, membershipId },
     update: {},
   });
@@ -179,7 +236,11 @@ export async function removeInstanceAssigneeAction(
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   const assignee = await prisma.taskInstanceAssignee.findFirst({
-    where: { taskInstanceId: instanceId, membershipId, taskInstance: { orgId } },
+    where: {
+      taskInstanceId: instanceId,
+      membershipId,
+      taskInstance: { orgId },
+    },
     select: { id: true },
   });
   if (!assignee) return { ok: false, error: "Not found" };

@@ -19,6 +19,9 @@ export async function getTimetableTemplate(orgId: string, templateId: string) {
         include: {
           task: { select: { id: true, title: true, durationMin: true } },
           assignees: {
+            where: {
+              membership: { orgId },
+            },
             include: {
               membership: {
                 include: { user: { select: { id: true, name: true } } },

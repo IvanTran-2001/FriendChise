@@ -68,7 +68,10 @@ export default async function TemplateEditorPage({
   const availableTasks: ClientTask[] = rawTasks;
   const memberships: ClientMembership[] = rawMemberships;
 
-  const statusLabel = template.effectiveFrom ? "Active" : "Draft";
+  const now = new Date();
+  const isActive = !!template.effectiveFrom && template.effectiveFrom <= now;
+  const isScheduled = !!template.effectiveFrom && template.effectiveFrom > now;
+  const statusLabel = isActive ? "Active" : isScheduled ? "Scheduled" : "Draft";
 
   return (
     <>
@@ -86,9 +89,11 @@ export default async function TemplateEditorPage({
           </span>
           <span
             className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-              template.effectiveFrom
+              isActive
                 ? "bg-green-100 text-green-700"
-                : "bg-slate-100 text-slate-500"
+                : isScheduled
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-slate-100 text-slate-500"
             }`}
           >
             {statusLabel}

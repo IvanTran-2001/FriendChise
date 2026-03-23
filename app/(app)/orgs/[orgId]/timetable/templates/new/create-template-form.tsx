@@ -72,11 +72,15 @@ export function CreateTemplateForm({ orgId }: { orgId: string }) {
           id="templateDays"
           name="templateDays"
           type="number"
+          required
+          step={1}
           min={1}
           max={365}
           defaultValue={7}
           aria-invalid={!!err("templateDays")}
-          aria-describedby={err("templateDays") ? "templateDays-error" : undefined}
+          aria-describedby={
+            err("templateDays") ? "templateDays-error" : undefined
+          }
         />
         <p className="text-xs text-muted-foreground">
           How many days the cycle repeats over (e.g. 7 for a weekly roster).
