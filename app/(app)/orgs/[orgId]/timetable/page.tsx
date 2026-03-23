@@ -64,10 +64,28 @@ function localMidnightUTC(dateStr: string, tz: string): number {
   return utcMs;
 }
 
+/**
+ * Counts the number of calendar days from date string `a` to `b` (b − a).
+ * Uses UTC noon arithmetic so the result is independent of DST in any timezone.
+ */
+function calendarDaysBetween(a: string, b: string): number {
+  const [ay, am, ad] = a.split("-").map(Number);
+  const [by, bm, bd] = b.split("-").map(Number);
+  return Math.round(
+    (Date.UTC(by, bm - 1, bd) - Date.UTC(ay, am - 1, ad)) / MS_PER_DAY,
+  );
+}
+
+/** Returns the YYYY-MM-DD that is `n` calendar days after `dateStr`. */
+function addCalendarDays(dateStr: string, n: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().split("T")[0];
+}
+
 /** Returns the YYYY-MM-DD of Monday of the week containing `dateStr`, computed in `tz`. */
 function getMondayDateStr(dateStr: string, tz: string): string {
   const [y, m, d] = dateStr.split("-").map(Number);
-  const probe = new Date(Date.UTC(y, m - 1, d, 12));
+  const probe = new Date(localMidnightUTC(dateStr, tz));
   const wd = new Intl.DateTimeFormat("en-US", {
     timeZone: tz,
     weekday: "short",
@@ -99,18 +117,15 @@ function projectTemplateToWeek(
   weekStart: string,
   orgTz: string,
 ): ClientTimetableInstance[] {
-  // Use org-local midnight so startTimeMin (local minutes) is added to the
-  // correct base, and the cycle offset isn't skewed by the UTC offset.
-  const weekStartMs = localMidnightUTC(weekStart, orgTz);
   const { templateDays, effectiveFrom, instances } = template;
 
-  // Anchor the cycle to local midnight of the effective date (or fixed Monday).
-  // Snapping effectiveFrom to local midnight avoids a skewed cycle offset when
-  // the stored timestamp isn't exactly midnight.
-  const anchorMs = effectiveFrom
-    ? localMidnightUTC(toLocalDateStr(effectiveFrom, orgTz), orgTz)
-    : localMidnightUTC("2000-01-03", orgTz);
-  const daysSince = Math.floor((weekStartMs - anchorMs) / MS_PER_DAY);
+  // Compute cycle offset from YYYY-MM-DD strings so DST hour shifts don't
+  // corrupt the day count (dividing a UTC-ms delta by 86_400_000 breaks on
+  // the DST transition week when anchor and weekStart are in different offsets).
+  const anchorDateStr = effectiveFrom
+    ? toLocalDateStr(effectiveFrom, orgTz)
+    : "2000-01-03";
+  const daysSince = calendarDaysBetween(anchorDateStr, weekStart);
   const cycleStartOffset =
     ((daysSince % templateDays) + templateDays) % templateDays;
 
@@ -128,8 +143,10 @@ function projectTemplateToWeek(
     // repeat if templateDays < 7 (short cycles fill whole week)
     let weekdayIndex = baseIndex;
     while (weekdayIndex < 7) {
-      // startTimeMin is minutes from local midnight → base on local midnight of that day
-      const dayMs = weekStartMs + weekdayIndex * MS_PER_DAY;
+      // Resolve each day's local midnight independently via localMidnightUTC so
+      // that startTimeMin (minutes from local midnight) lands at the right UTC
+      // instant even across a DST transition during the week.
+      const dayMs = localMidnightUTC(addCalendarDays(weekStart, weekdayIndex), orgTz);
       const startMs = dayMs + inst.startTimeMin * 60 * 1000;
       const endMs = startMs + inst.task.durationMin * 60 * 1000;
 
@@ -195,7 +212,9 @@ export default async function TimetablePage({
 
   const fromMs = localMidnightUTC(weekStart, orgTz);
   const from = new Date(fromMs);
-  const to = new Date(fromMs + 7 * MS_PER_DAY);
+  // Use localMidnightUTC for the end boundary so a DST change mid-week doesn't
+  // shrink or expand the [from, to) window by an hour.
+  const to = new Date(localMidnightUTC(addCalendarDays(weekStart, 7), orgTz));
 
   const mode = modeParam === "simple" ? "simple" : "calendar";
   const selectedTemplateId = templateParam ?? null;
