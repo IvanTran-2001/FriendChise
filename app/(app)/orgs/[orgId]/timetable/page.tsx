@@ -32,23 +32,36 @@ function toLocalDateStr(d: Date, tz: string): string {
  */
 function localMidnightUTC(dateStr: string, tz: string): number {
   const [y, m, d] = dateStr.split("-").map(Number);
-  const noonUTC = Date.UTC(y, m - 1, d, 12, 0, 0);
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: tz,
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    })
-      .formatToParts(new Date(noonUTC))
-      .map((p) => [p.type, p.value]),
-  );
-  const lH = parseInt(parts.hour ?? "0") % 24;
-  const lM = parseInt(parts.minute ?? "0");
-  const lS = parseInt(parts.second ?? "0");
-  // offset = how far local time is ahead of UTC at noonUTC
-  return noonUTC - ((lH * 3600 + lM * 60 + lS) * 1000 - 12 * 3_600_000);
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  });
+
+  let utcMs = Date.UTC(y, m - 1, d, 0, 0, 0);
+  for (let i = 0; i < 3; i += 1) {
+    const parts = Object.fromEntries(
+      formatter.formatToParts(new Date(utcMs)).map((p) => [p.type, p.value]),
+    );
+    const localAsUtc = Date.UTC(
+      Number(parts.year),
+      Number(parts.month) - 1,
+      Number(parts.day),
+      Number(parts.hour),
+      Number(parts.minute),
+      Number(parts.second),
+    );
+    const desiredAsUtc = Date.UTC(y, m - 1, d, 0, 0, 0);
+    const delta = localAsUtc - desiredAsUtc;
+    if (delta === 0) break;
+    utcMs -= delta;
+  }
+  return utcMs;
 }
 
 /** Returns the YYYY-MM-DD of Monday of the week containing `dateStr`, computed in `tz`. */
@@ -95,10 +108,7 @@ function projectTemplateToWeek(
   // Snapping effectiveFrom to local midnight avoids a skewed cycle offset when
   // the stored timestamp isn't exactly midnight.
   const anchorMs = effectiveFrom
-    ? localMidnightUTC(
-        getMondayDateStr(toLocalDateStr(effectiveFrom, orgTz), orgTz),
-        orgTz,
-      )
+    ? localMidnightUTC(toLocalDateStr(effectiveFrom, orgTz), orgTz)
     : localMidnightUTC("2000-01-03", orgTz);
   const daysSince = Math.floor((weekStartMs - anchorMs) / MS_PER_DAY);
   const cycleStartOffset =

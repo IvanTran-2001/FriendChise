@@ -51,9 +51,10 @@ function minToHHMM(min: number): string {
   return `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
 }
 
-function hhmmToMin(hhmm: string): number {
-  const [h, m] = hhmm.split(":").map(Number);
-  return h * 60 + m;
+function hhmmToMin(hhmm: string): number | null {
+  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(hhmm);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
 }
 
 function snapMin(raw: number): number {
@@ -139,7 +140,9 @@ function EditPopup({
     }
   }, [localAssignees, available, addMembershipId]);
 
-  const endMin = hhmmToMin(startTime) + instance.task.durationMin;
+  const parsedStartTime = hhmmToMin(startTime);
+  const endMin =
+    parsedStartTime == null ? null : parsedStartTime + instance.task.durationMin;
 
   function handleAddAssignee() {
     const membership = memberships.find((m) => m.id === addMembershipId);
@@ -207,7 +210,7 @@ function EditPopup({
             className="h-8 w-32 text-sm"
           />
           <p className="text-xs text-muted-foreground">
-            {startTime} → {minToHHMM(endMin)} · {instance.task.durationMin} min
+            {startTime} → {endMin == null ? "--:--" : minToHHMM(endMin)} · {instance.task.durationMin} min
           </p>
         </div>
 
@@ -266,7 +269,8 @@ function EditPopup({
         <div className="flex gap-2 pt-1 border-t">
           <Button
             size="sm"
-            onClick={() => onSave(hhmmToMin(startTime))}
+            onClick={() => parsedStartTime != null && onSave(parsedStartTime)}
+            disabled={parsedStartTime == null}
             className="flex-1 h-7"
           >
             Save
@@ -413,20 +417,20 @@ export function TemplateEditorClient({
       offsetMin,
     );
     startT(async () => {
-      if (data.type === "task") {
-        await addTemplateInstanceAction(
-          orgId,
-          templateId,
-          data.taskId,
-          day,
-          timeMin,
-        );
-      } else {
-        await updateTemplateInstanceAction(orgId, data.instanceId, {
-          dayOffset: day,
-          startTimeMin: timeMin,
-        });
-      }
+      const result =
+        data.type === "task"
+          ? await addTemplateInstanceAction(
+              orgId,
+              templateId,
+              data.taskId,
+              day,
+              timeMin,
+            )
+          : await updateTemplateInstanceAction(orgId, data.instanceId, {
+              dayOffset: day,
+              startTimeMin: timeMin,
+            });
+      if (!result.ok) return;
       router.refresh();
     });
   }
@@ -434,9 +438,10 @@ export function TemplateEditorClient({
   function handleEditSave(startTimeMin: number) {
     if (!editingInstance) return;
     startT(async () => {
-      await updateTemplateInstanceAction(orgId, editingInstance.id, {
+      const result = await updateTemplateInstanceAction(orgId, editingInstance.id, {
         startTimeMin,
       });
+      if (!result.ok) return;
       setEditingInstance(null);
       router.refresh();
     });
@@ -445,7 +450,8 @@ export function TemplateEditorClient({
   function handleEditRemove() {
     if (!editingInstance) return;
     startT(async () => {
-      await removeTemplateInstanceAction(orgId, editingInstance.id);
+      const result = await removeTemplateInstanceAction(orgId, editingInstance.id);
+      if (!result.ok) return;
       setEditingInstance(null);
       router.refresh();
     });
