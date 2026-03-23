@@ -19,6 +19,12 @@ ALTER TABLE "TaskInstance" RENAME COLUMN "cycleId" TO "templateId";
 -- Add template-relative position columns to TaskInstance
 ALTER TABLE "TaskInstance" ADD COLUMN "dayOffset" INTEGER;
 ALTER TABLE "TaskInstance" ADD COLUMN "startTimeMin" INTEGER;
+ALTER TABLE "TaskInstance"
+  ADD CONSTRAINT "TaskInstance_dayOffset_check"
+  CHECK ("dayOffset" IS NULL OR "dayOffset" >= 1);
+ALTER TABLE "TaskInstance"
+  ADD CONSTRAINT "TaskInstance_startTimeMin_check"
+  CHECK ("startTimeMin" IS NULL OR ("startTimeMin" >= 0 AND "startTimeMin" <= 1439));
 
 -- Add timezone to Organization
 ALTER TABLE "Organization" ADD COLUMN "timezone" TEXT NOT NULL DEFAULT 'Australia/Sydney';

@@ -12,7 +12,10 @@ interface TemplateSelectorProps {
   selectedId: string | null;
 }
 
-export function TemplateSelector({ templates, selectedId }: TemplateSelectorProps) {
+export function TemplateSelector({
+  templates,
+  selectedId,
+}: TemplateSelectorProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -46,10 +49,7 @@ export function TemplateSelector({ templates, selectedId }: TemplateSelectorProp
       {open && (
         <>
           {/* backdrop */}
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setOpen(false)}
-          />
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute top-full left-0 mt-1 z-50 bg-background border rounded-lg shadow-lg min-w-44 py-1">
             <button
               onClick={() => select(null)}
@@ -60,9 +60,7 @@ export function TemplateSelector({ templates, selectedId }: TemplateSelectorProp
                 Custom (no template)
               </span>
             </button>
-            {templates.length > 0 && (
-              <div className="border-t my-1" />
-            )}
+            {templates.length > 0 && <div className="border-t my-1" />}
             {templates.map((t) => (
               <button
                 key={t.id}
@@ -74,7 +72,11 @@ export function TemplateSelector({ templates, selectedId }: TemplateSelectorProp
                 ) : (
                   <span className="w-3.5" />
                 )}
-                <span className={t.id === selectedId ? "font-medium text-primary" : ""}>
+                <span
+                  className={
+                    t.id === selectedId ? "font-medium text-primary" : ""
+                  }
+                >
                   {t.title}
                 </span>
               </button>

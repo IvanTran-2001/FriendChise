@@ -53,15 +53,30 @@ export default async function TemplatesPage({
                   <span>·</span>
                   <span>{t._count.instances} slots</span>
                   <span>·</span>
-                  <span
-                    className={
-                      t.effectiveFrom
-                        ? "text-green-600 font-medium"
-                        : "text-slate-400"
-                    }
-                  >
-                    {t.effectiveFrom ? "Active" : "Draft"}
-                  </span>
+                  {(() => {
+                    const now = new Date();
+                    const isActive =
+                      !!t.effectiveFrom && t.effectiveFrom <= now;
+                    const isScheduled =
+                      !!t.effectiveFrom && t.effectiveFrom > now;
+                    return (
+                      <span
+                        className={
+                          isActive
+                            ? "text-green-600 font-medium"
+                            : isScheduled
+                              ? "text-amber-600 font-medium"
+                              : "text-slate-400"
+                        }
+                      >
+                        {isActive
+                          ? "Active"
+                          : isScheduled
+                            ? "Scheduled"
+                            : "Draft"}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
             </Link>

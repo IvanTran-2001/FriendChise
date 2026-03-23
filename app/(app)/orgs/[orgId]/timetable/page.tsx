@@ -2,8 +2,14 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { requireOrgMember } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
-import { getTaskInstancesForTimetable } from "@/lib/services/task-instances";
-import { getTimetableTemplates, getTimetableTemplate } from "@/lib/services/templates";
+import {
+  getTaskInstancesForTimetable,
+  type TimetableInstance,
+} from "@/lib/services/task-instances";
+import {
+  getTimetableTemplates,
+  getTimetableTemplate,
+} from "@/lib/services/templates";
 import { Toolbar } from "@/components/layout/toolbar";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
@@ -15,13 +21,55 @@ import { TemplateSelector } from "./template-selector";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-/** Returns the YYYY-MM-DD string for the Monday of the week containing `date` (UTC). */
-function getMondayDateStr(date: Date): string {
-  const d = new Date(date);
-  d.setUTCHours(0, 0, 0, 0);
-  const day = d.getUTCDay();
-  d.setUTCDate(d.getUTCDate() - (day === 0 ? 6 : day - 1));
-  return d.toISOString().split("T")[0];
+/** Returns the YYYY-MM-DD local date string for `d` in the given IANA timezone. */
+function toLocalDateStr(d: Date, tz: string): string {
+  return d.toLocaleDateString("en-CA", { timeZone: tz });
+}
+
+/**
+ * Returns the UTC ms timestamp for local midnight of `dateStr` (YYYY-MM-DD) in `tz`.
+ * Probes at noon UTC to derive the offset robustly across DST transitions.
+ */
+function localMidnightUTC(dateStr: string, tz: string): number {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const noonUTC = Date.UTC(y, m - 1, d, 12, 0, 0);
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    })
+      .formatToParts(new Date(noonUTC))
+      .map((p) => [p.type, p.value]),
+  );
+  const lH = parseInt(parts.hour ?? "0") % 24;
+  const lM = parseInt(parts.minute ?? "0");
+  const lS = parseInt(parts.second ?? "0");
+  // offset = how far local time is ahead of UTC at noonUTC
+  return noonUTC - ((lH * 3600 + lM * 60 + lS) * 1000 - 12 * 3_600_000);
+}
+
+/** Returns the YYYY-MM-DD of Monday of the week containing `dateStr`, computed in `tz`. */
+function getMondayDateStr(dateStr: string, tz: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const probe = new Date(Date.UTC(y, m - 1, d, 12));
+  const wd = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    weekday: "short",
+  }).format(probe);
+  const DOW_OFFSET: Record<string, number> = {
+    Sun: -6,
+    Mon: 0,
+    Tue: -1,
+    Wed: -2,
+    Thu: -3,
+    Fri: -4,
+    Sat: -5,
+  };
+  const offset = DOW_OFFSET[wd] ?? 0;
+  return new Date(Date.UTC(y, m - 1, d + offset)).toISOString().split("T")[0];
 }
 
 /**
@@ -36,18 +84,25 @@ function getMondayDateStr(date: Date): string {
 function projectTemplateToWeek(
   template: NonNullable<Awaited<ReturnType<typeof getTimetableTemplate>>>,
   weekStart: string,
+  orgTz: string,
 ): ClientTimetableInstance[] {
-  const weekStartDate = new Date(weekStart + "T00:00:00Z");
+  // Use org-local midnight so startTimeMin (local minutes) is added to the
+  // correct base, and the cycle offset isn't skewed by the UTC offset.
+  const weekStartMs = localMidnightUTC(weekStart, orgTz);
   const { templateDays, effectiveFrom, instances } = template;
 
-  // Anchor the cycle: use effectiveFrom if set, otherwise fall back to a
-  // fixed Monday (2000-01-03) so cycles with any templateDays length stay
-  // continuous and correct across all weeks without an explicit start date.
-  const anchor = effectiveFrom ?? new Date("2000-01-03T00:00:00Z");
-  const daysSince = Math.floor(
-    (weekStartDate.getTime() - anchor.getTime()) / MS_PER_DAY,
-  );
-  const cycleStartOffset = ((daysSince % templateDays) + templateDays) % templateDays;
+  // Anchor the cycle to local midnight of the effective date (or fixed Monday).
+  // Snapping effectiveFrom to local midnight avoids a skewed cycle offset when
+  // the stored timestamp isn't exactly midnight.
+  const anchorMs = effectiveFrom
+    ? localMidnightUTC(
+        getMondayDateStr(toLocalDateStr(effectiveFrom, orgTz), orgTz),
+        orgTz,
+      )
+    : localMidnightUTC("2000-01-03", orgTz);
+  const daysSince = Math.floor((weekStartMs - anchorMs) / MS_PER_DAY);
+  const cycleStartOffset =
+    ((daysSince % templateDays) + templateDays) % templateDays;
 
   const result: ClientTimetableInstance[] = [];
 
@@ -56,14 +111,16 @@ function projectTemplateToWeek(
 
     // base weekday index for this dayOffset (0 = Monday of this week)
     const baseIndex =
-      ((inst.dayOffset - 1 - cycleStartOffset) % templateDays + templateDays) %
+      (((inst.dayOffset - 1 - cycleStartOffset) % templateDays) +
+        templateDays) %
       templateDays;
 
     // repeat if templateDays < 7 (short cycles fill whole week)
     let weekdayIndex = baseIndex;
     while (weekdayIndex < 7) {
-      const dayDate = new Date(weekStartDate.getTime() + weekdayIndex * MS_PER_DAY);
-      const startMs = dayDate.getTime() + inst.startTimeMin * 60 * 1000;
+      // startTimeMin is minutes from local midnight → base on local midnight of that day
+      const dayMs = weekStartMs + weekdayIndex * MS_PER_DAY;
+      const startMs = dayMs + inst.startTimeMin * 60 * 1000;
       const endMs = startMs + inst.task.durationMin * 60 * 1000;
 
       result.push({
@@ -102,48 +159,52 @@ export default async function TimetablePage({
   searchParams: Promise<{ week?: string; mode?: string; template?: string }>;
 }) {
   const { orgId } = await params;
-  const { week: weekParam, mode: modeParam, template: templateParam } = await searchParams;
+  const {
+    week: weekParam,
+    mode: modeParam,
+    template: templateParam,
+  } = await searchParams;
 
   const authz = await requireOrgMember(orgId);
   if (!authz.ok) redirect("/");
 
+  // Fetch org data first so the week window and projection use org-local time.
+  const orgMeta = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { timezone: true, openTimeMin: true, closeTimeMin: true },
+  });
+  const orgTz = orgMeta?.timezone ?? "UTC";
+
   let weekStart: string;
   if (weekParam && /^\d{4}-\d{2}-\d{2}$/.test(weekParam)) {
-    const parsed = new Date(weekParam + "T00:00:00Z");
-    weekStart = Number.isNaN(parsed.getTime())
-      ? getMondayDateStr(new Date())
-      : getMondayDateStr(parsed);
+    weekStart = getMondayDateStr(weekParam, orgTz);
   } else {
-    weekStart = getMondayDateStr(new Date());
+    weekStart = getMondayDateStr(toLocalDateStr(new Date(), orgTz), orgTz);
   }
 
-  const from = new Date(weekStart + "T00:00:00Z");
-  const to = new Date(from);
-  to.setUTCDate(to.getUTCDate() + 7);
+  const fromMs = localMidnightUTC(weekStart, orgTz);
+  const from = new Date(fromMs);
+  const to = new Date(fromMs + 7 * MS_PER_DAY);
 
   const mode = modeParam === "simple" ? "simple" : "calendar";
   const selectedTemplateId = templateParam ?? null;
 
-  const [org, templates, selectedTemplate, rawInstances] = await Promise.all([
-    prisma.organization.findUnique({
-      where: { id: orgId },
-      select: { openTimeMin: true, closeTimeMin: true },
-    }),
+  const [templates, selectedTemplate, rawInstances] = await Promise.all([
     getTimetableTemplates(orgId),
     selectedTemplateId
       ? getTimetableTemplate(orgId, selectedTemplateId)
       : Promise.resolve(null),
     // Only fetch live scheduled instances when no template is selected
     selectedTemplateId
-      ? Promise.resolve([])
+      ? Promise.resolve([] as TimetableInstance[])
       : getTaskInstancesForTimetable(orgId, from, to),
   ]);
 
   let instances: ClientTimetableInstance[];
 
   if (selectedTemplate) {
-    // Project cycle template onto this week
-    instances = projectTemplateToWeek(selectedTemplate, weekStart);
+    // Project cycle template onto this week using org-local midnight as the base
+    instances = projectTemplateToWeek(selectedTemplate, weekStart, orgTz);
   } else if (selectedTemplateId) {
     // Template param set but not found — show empty
     instances = [];
@@ -176,7 +237,11 @@ export default async function TimetablePage({
 
   return (
     <>
-      <Toolbar actions={[{ label: "Templates", href: `/orgs/${orgId}/timetable/templates` }]}>
+      <Toolbar
+        actions={[
+          { label: "Templates", href: `/orgs/${orgId}/timetable/templates` },
+        ]}
+      >
         {/* Template dropdown */}
         <TemplateSelector
           templates={templates.map((t) => ({ id: t.id, title: t.title }))}
@@ -218,8 +283,8 @@ export default async function TimetablePage({
         orgId={orgId}
         instances={instances}
         weekStart={weekStart}
-        openTimeMin={org?.openTimeMin ?? 360}
-        closeTimeMin={org?.closeTimeMin ?? 1320}
+        openTimeMin={orgMeta?.openTimeMin ?? 360}
+        closeTimeMin={orgMeta?.closeTimeMin ?? 1320}
         mode={mode}
         selectedTemplateId={selectedTemplateId}
       />
