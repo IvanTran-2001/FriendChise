@@ -5,5 +5,8 @@
 
 */
 -- AlterTable
+UPDATE "TimetableTemplate"
+SET "templateDays" = 7
+WHERE "templateDays" IS NULL;
 ALTER TABLE "TimetableTemplate" ALTER COLUMN "templateDays" SET NOT NULL,
 ALTER COLUMN "title" DROP DEFAULT;

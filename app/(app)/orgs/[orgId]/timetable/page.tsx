@@ -126,6 +126,7 @@ function projectTemplateToWeek(
       result.push({
         id: `${inst.id}-d${weekdayIndex}`,
         taskId: inst.task.id,
+        isProjected: true,
         status: "TODO",
         scheduledStartAt: new Date(startMs).toISOString(),
         scheduledEndAt: new Date(endMs).toISOString(),

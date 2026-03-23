@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 export type ClientTimetableInstance = {
   id: string;
   taskId: string;
+  /** True for template-projected instances — id is synthetic, not a DB record. Do not use for mutations. */
+  isProjected?: boolean;
   status: "TODO" | "IN_PROGRESS" | "DONE" | "SKIPPED";
   scheduledStartAt: string | null;
   scheduledEndAt: string | null;

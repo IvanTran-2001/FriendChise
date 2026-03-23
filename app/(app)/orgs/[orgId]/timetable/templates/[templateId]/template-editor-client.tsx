@@ -135,10 +135,9 @@ function EditPopup({
       available.length > 0 &&
       !available.find((m) => m.id === addMembershipId)
     ) {
-      setAddMembershipId(available[0].id);
+     (async () => setAddMembershipId(available[0].id))();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [localAssignees]);
+  }, [localAssignees, available, addMembershipId]);
 
   const endMin = hhmmToMin(startTime) + instance.task.durationMin;
 

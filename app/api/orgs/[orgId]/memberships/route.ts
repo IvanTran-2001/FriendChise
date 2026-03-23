@@ -14,8 +14,7 @@ import {
 } from "@/lib/services/memberships";
 import { requireOrgPermission } from "@/lib/authz";
 import { OrgPermission } from "@prisma/client";
-import { deleteMembershipSchema } from "@/lib/validators/membership";
-import { createMembershipSchema } from "@/lib/validators/membership";
+import { deleteMembershipSchema, createMembershipSchema } from "@/lib/validators/membership";
 
 export async function POST(
   req: Request,
