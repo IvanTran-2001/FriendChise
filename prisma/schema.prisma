@@ -1,57 +1,46 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
+
 datasource db {
   provider = "postgresql"
-  
 }
 
-// Enums
-enum TaskInstanceStatus {
+// ─────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────
+
+enum MembershipStatus {
+  ACTIVE
+  RESTRICTED
+}
+
+enum PermissionAction {
+  MANAGE_MEMBERS
+  MANAGE_ROLES
+  MANAGE_TIMETABLE
+  MANAGE_TASKS
+  MANAGE_SETTINGS
+  MANAGE_FRANCHISE
+  VIEW_TIMETABLE
+}
+
+enum EntryStatus {
   TODO
   IN_PROGRESS
   DONE
   SKIPPED
+  CANCELLED
 }
 
-enum OrgPermission {
-  ORG_MANAGE
-  ROLE_MANAGE
-  TASK_CREATE
-  TASK_UPDATE
-  TASK_DELETE
-  TASK_ASSIGN
-  TASKINSTANCE_COMPLETE
+enum ViewType {
+  DAILY
+  WEEKLY
 }
 
-// Core
-model Organization {
-  id           String   @id @default(cuid())
-  title        String 
-  ownerUserId  String  
-  openTimeMin  Int?     // minutes from midnight (0-1439)
-  closeTimeMin Int?
-  timezone     String   @default("Australia/Sydney")
-
-  memberships  Membership[]
-  roles        Role[]
-  tasks        Task[]
-  timetableTemplates TimetableTemplate[]
-  taskInstances TaskInstance[]
-  user       User   @relation(fields: [ownerUserId], references: [id])
-
-
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@index([ownerUserId])
-}
+// ─────────────────────────────────────
+// AUTH (NextAuth)
+// ─────────────────────────────────────
 
 model Account {
   id                String  @id @default(cuid())
@@ -60,13 +49,13 @@ model Account {
   provider          String
   providerAccountId String
 
-  refresh_token      String?
-  access_token       String?
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?
-  session_state      String?
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -93,114 +82,194 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+// ─────────────────────────────────────
+// 1. USER
+// ─────────────────────────────────────
+
 model User {
-  id             String    @id @default(cuid())
-  name           String?
-  email          String    @unique
-  emailVerified  DateTime?
-  image          String?
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
 
-  memberships Membership[]
+  memberships   Membership[]
+  ownedOrgs     Organization[] @relation("OrgOwner")
 
-  // NextAuth relations:
-  accounts Account[]
-  sessions Session[]
-  organizations Organization[] 
+  accounts      Account[]
+  sessions      Session[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
+// ─────────────────────────────────────
+// 2. ORGANIZATION
+// ─────────────────────────────────────
+
+model Organization {
+  id            String   @id @default(cuid())
+  name          String
+  image         String?
+
+  ownerId       String
+  owner         User     @relation("OrgOwner", fields: [ownerId], references: [id])
+
+  // Franchise hierarchy
+  parentId      String?
+  parent        Organization?  @relation("OrgHierarchy", fields: [parentId], references: [id])
+  children      Organization[] @relation("OrgHierarchy")
+
+  // Location
+  address       String?
+
+  // Operating hours (minutes from midnight 0-1439)
+  openTimeMin   Int?
+  closeTimeMin  Int?
+  timezone      String   @default("Australia/Sydney")
+
+  memberships         Membership[]
+  roles               Role[]
+  tasks               Task[]
+  timetableEntries    TimetableEntry[]
+  timetableSettings   TimetableSettings?
+  templates           Template[]
+  franchiseTokens     FranchiseToken[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([parentId])
+}
+
+// ─────────────────────────────────────
+// 3. MEMBERSHIP
+// ─────────────────────────────────────
+
 model Membership {
-  id        String   @id @default(cuid())
-  orgId     String
-  userId    String
-  roleId    String
+  id            String   @id @default(cuid())
 
-  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      Role         @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // For later "fairness":
-  // capacityMinPerDay Int?
+  orgId         String
+  organization  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  taskAssignments TaskInstanceAssignee[]
+  workingDays   String[] // ["mon", "tue", "wed"]
+  status        MembershipStatus @default(ACTIVE)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  memberRoles         MemberRole[]
+  taskAssignments     TimetableEntryAssignee[]
+  templateAssignments TemplateEntryAssignee[]
 
-  @@unique([orgId, userId])
+  joinedAt      DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, orgId])
   @@index([orgId])
   @@index([userId])
 }
 
+// ─────────────────────────────────────
+// 4. ROLE
+// ─────────────────────────────────────
+
 model Role {
-  id      String @id @default(cuid())
-  orgId   String
-  title   String
-  key     String
+  id          String   @id @default(cuid())
+  name        String
+  color       String?
+  key         String   // "owner", "default", "cook"
 
-  org     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId       String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  // Permissions (RBAC)
-  permissions RolePermission[]
+  isDeletable Boolean  @default(true)
+  isDefault   Boolean  @default(false)
 
-  // Qualification matrix (can do which tasks)
+  permissions Permission[]
+  memberRoles MemberRole[]
   eligibleFor TaskEligibility[]
 
-  memberships Membership[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@unique([orgId, key])
   @@index([orgId])
 }
 
-model RolePermission {
-  id         String       @id @default(cuid())
-  roleId     String
-  permission OrgPermission
+// ─────────────────────────────────────
+// 5. PERMISSION
+// ─────────────────────────────────────
 
-  role       Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+model Permission {
+  id          String   @id @default(cuid())
+  action      PermissionAction
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  roleId      String
+  role        Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
-  @@unique([roleId, permission])
+  @@unique([action, roleId])
   @@index([roleId])
 }
 
+// ─────────────────────────────────────
+// 6. MEMBER ROLE
+// ─────────────────────────────────────
+
+model MemberRole {
+  id            String   @id @default(cuid())
+
+  membershipId  String
+  membership    Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  roleId        String
+  role          Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  assignedAt    DateTime @default(now())
+
+  @@unique([membershipId, roleId])
+  @@index([membershipId])
+  @@index([roleId])
+}
+
+// ─────────────────────────────────────
+// 7. TASK
+// ─────────────────────────────────────
+
 model Task {
-  id            String  @id @default(cuid())
-  orgId         String
-  title         String
-  description   String?
-  durationMin   Int
+  id                    String   @id @default(cuid())
+  name                  String
+  description           String?
+  color                 String?
 
-  // preferred start time of day
-  preferredStartTimeMin Int? // 0..1439
+  orgId                 String
+  organization          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  // number of people required per occurrence
-  peopleRequired Int @default(1)
+  durationMin           Int      @default(60)
+  minPeople             Int      @default(1)
+  maxPeople             Int?
+  priority              Int      @default(0)
+  preferredStartTimeMin Int?     // 0-1439
 
-  // recurrence constraints
-  minWaitDays Int?
-  maxWaitDays Int? // "must be done within X days"
+  // Recurrence constraints for optimizer
+  minWaitDays           Int?
+  maxWaitDays           Int?
 
-  org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  eligibility           TaskEligibility[]
+  timetableEntries      TimetableEntry[]
+  templateEntries       TemplateEntry[]
 
-  // if you want "qualified members", connect task to roles (or directly to memberships later)
-  eligibility  TaskEligibility[]
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
-  instances    TaskInstance[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([orgId, title])
+  @@unique([orgId, name])
   @@index([orgId])
 }
+
+// ─────────────────────────────────────
+// 8. TASK ELIGIBILITY
+// ─────────────────────────────────────
 
 model TaskEligibility {
   id     String @id @default(cuid())
@@ -210,81 +279,160 @@ model TaskEligibility {
   task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
   role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-
   @@unique([taskId, roleId])
   @@index([taskId])
   @@index([roleId])
 }
 
-model TimetableTemplate {
-  id      String  @id @default(cuid())
-  orgId   String
-  title   String
-  // planning horizon in days (weekly/monthly/custom)
-  templateDays Int  @default(7)
-  // when this template becomes active (null = draft)
-  effectiveFrom DateTime?
+// ─────────────────────────────────────
+// 9. TIMETABLE ENTRY
+// ─────────────────────────────────────
 
-  // later: versioning fields like effectiveFrom/effectiveTo
-  org     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+model TimetableEntry {
+  id            String   @id @default(cuid())
 
-  instances TaskInstance[]
+  orgId         String
+  organization  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  taskId        String
+  task          Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
-  @@index([orgId])
-}
+  // Snapshot from Task (frozen at creation time)
+  taskName        String
+  taskColor       String?
+  taskDescription String?
 
-model TaskInstance {
-  id        String   @id @default(cuid())
-  orgId     String
-  taskId    String
-  templateId String?
+  // Overridable per entry (defaults from Task, editable per day)
+  priority      Int      @default(0)
+  durationMin   Int
 
-  status    TaskInstanceStatus @default(TODO)
+  date          DateTime
+  startTimeMin  Int      // 0-1439
+  endTimeMin    Int      // 0-1439
 
-  // Template-relative position (set when templateId is set)
-  dayOffset    Int?   // which day in the cycle (1..templateDays)
-  startTimeMin Int?   // local minutes from midnight (0..1439)
+  status        EntryStatus @default(TODO)
 
-  // Real scheduled times (set when applied to a live week)
-  scheduledStartAt DateTime?
-  scheduledEndAt   DateTime?
+  assignees     TimetableEntryAssignee[]
 
-  startedAt   DateTime?
-  completedAt DateTime?
-
-  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  task      Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  template  TimetableTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-
-  assignees TaskInstanceAssignee[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([orgId])
   @@index([taskId])
-  @@index([templateId])
-  @@index([status])
+  @@index([orgId, date])
 }
 
-model TaskInstanceAssignee {
-  id             String @id @default(cuid())
-  taskInstanceId String
-  membershipId   String
+// ─────────────────────────────────────
+// 10. TIMETABLE ENTRY ASSIGNEE
+// ─────────────────────────────────────
 
-  taskInstance   TaskInstance @relation(fields: [taskInstanceId], references: [id], onDelete: Cascade)
-  membership     Membership   @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+model TimetableEntryAssignee {
+  id                String @id @default(cuid())
+  timetableEntryId  String
+  membershipId      String
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  timetableEntry    TimetableEntry @relation(fields: [timetableEntryId], references: [id], onDelete: Cascade)
+  membership        Membership     @relation(fields: [membershipId], references: [id], onDelete: Cascade)
 
+  createdAt         DateTime @default(now())
 
-  @@unique([taskInstanceId, membershipId])
+  @@unique([timetableEntryId, membershipId])
   @@index([membershipId])
+}
+
+// ─────────────────────────────────────
+// 11. TIMETABLE SETTINGS
+// ─────────────────────────────────────
+
+model TimetableSettings {
+  id              String   @id @default(cuid())
+
+  orgId           String   @unique
+  organization    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  viewType        ViewType @default(WEEKLY)
+  startDay        String   @default("mon")
+  slotDuration    Int      @default(30)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ─────────────────────────────────────
+// 12. TEMPLATE
+// ─────────────────────────────────────
+
+model Template {
+  id              String   @id @default(cuid())
+  name            String
+
+  orgId           String
+  organization    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  cycleLengthDays Int      @default(7)
+
+  entries         TemplateEntry[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([name, orgId])
+  @@index([orgId])
+}
+
+model TemplateEntry {
+  id            String   @id @default(cuid())
+
+  templateId    String
+  template      Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  taskId        String
+  task          Task     @relation(fields: [taskId], references: [id])
+
+  // Overridable per entry
+  priority      Int      @default(0)
+  durationMin   Int?     // null = use Task default
+
+  dayIndex      Int      // 0 to cycleLengthDays - 1
+  startTimeMin  Int      // 0-1439
+  endTimeMin    Int      // 0-1439
+
+  assignees     TemplateEntryAssignee[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model TemplateEntryAssignee {
+  id                String @id @default(cuid())
+  templateEntryId   String
+  membershipId      String
+
+  templateEntry     TemplateEntry @relation(fields: [templateEntryId], references: [id], onDelete: Cascade)
+  membership        Membership    @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  createdAt         DateTime @default(now())
+
+  @@unique([templateEntryId, membershipId])
+  @@index([membershipId])
+}
+
+// ─────────────────────────────────────
+// 13. FRANCHISE TOKEN
+// ─────────────────────────────────────
+
+model FranchiseToken {
+  id           String   @id @default(cuid())
+  token        String   @unique @default(cuid())
+
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  invitedEmail String
+  usedByOrgId  String?  @unique
+
+  expiresAt    DateTime
+  usedAt       DateTime?
+
+  createdAt    DateTime @default(now())
 }
