@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { OrgPermission } from "@prisma/client";
+import { PermissionAction } from "@prisma/client";
 import { updateTaskInstanceStatusSchema } from "@/lib/validators/task";
 import { requireOrgPermission } from "@/lib/authz";
 import { updateTaskInstanceStatus } from "@/lib/services/task-instances";
@@ -12,7 +12,7 @@ export async function PATCH(
 
   const authz = await requireOrgPermission(
     orgId,
-    OrgPermission.TASKINSTANCE_COMPLETE,
+    PermissionAction.MANAGE_TIMETABLE,
   );
   if (!authz.ok) return authz.response;
 

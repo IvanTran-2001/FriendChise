@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { requireOrgPermission } from "@/lib/authz";
-import { OrgPermission } from "@prisma/client";
+import { PermissionAction } from "@prisma/client";
 import { CreateTemplateForm } from "./create-template-form";
 
 export default async function NewTemplatePage({
@@ -11,7 +11,7 @@ export default async function NewTemplatePage({
   params: Promise<{ orgId: string }>;
 }) {
   const { orgId } = await params;
-  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_CREATE);
+  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TASKS);
   if (!authz.ok) redirect("/");
 
   return (

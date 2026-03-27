@@ -1,24 +1,20 @@
 import { prisma } from "@/lib/prisma";
-import { OrgPermission } from "@prisma/client";
+import { PermissionAction } from "@prisma/client";
 import { ROLE_KEYS } from "@/lib/rbac";
 import type { CreateOrgInput } from "@/lib/validators/org";
 
 // Permissions granted to the Owner role on every new org.
-// Owners have full control over the org, its members, roles, and tasks.
-const ownerPermissions: OrgPermission[] = [
-  OrgPermission.ORG_MANAGE,
-  OrgPermission.ROLE_MANAGE,
-  OrgPermission.TASK_CREATE,
-  OrgPermission.TASK_UPDATE,
-  OrgPermission.TASK_DELETE,
-  OrgPermission.TASK_ASSIGN,
-  OrgPermission.TASKINSTANCE_COMPLETE,
+const ownerPermissions: PermissionAction[] = [
+  PermissionAction.MANAGE_MEMBERS,
+  PermissionAction.MANAGE_ROLES,
+  PermissionAction.MANAGE_TIMETABLE,
+  PermissionAction.MANAGE_TASKS,
+  PermissionAction.MANAGE_SETTINGS,
 ];
 
-// Permissions granted to the default Member role — enough to complete tasks,
-// but not to manage the org, create tasks, or assign others.
-const workerPermissions: OrgPermission[] = [
-  OrgPermission.TASKINSTANCE_COMPLETE,
+// Permissions granted to the default Member role.
+const memberPermissions: PermissionAction[] = [
+  PermissionAction.VIEW_TIMETABLE,
 ];
 
 /**
@@ -33,8 +29,8 @@ export async function createOrg(userId: string, data: CreateOrgInput) {
   return prisma.$transaction(async (tx) => {
     const org = await tx.organization.create({
       data: {
-        title: data.title,
-        ownerUserId: userId,
+        name: data.title,
+        ownerId: userId,
         openTimeMin: data.openTimeMin ?? null,
         closeTimeMin: data.closeTimeMin ?? null,
       },
@@ -42,29 +38,42 @@ export async function createOrg(userId: string, data: CreateOrgInput) {
 
     const [ownerRole, memberRole] = await Promise.all([
       tx.role.create({
-        data: { orgId: org.id, title: "Owner", key: ROLE_KEYS.OWNER },
+        data: {
+          orgId: org.id,
+          name: "Owner",
+          key: ROLE_KEYS.OWNER,
+          isDeletable: false,
+          isDefault: false,
+        },
       }),
       tx.role.create({
-        data: { orgId: org.id, title: "Member", key: ROLE_KEYS.DEFAULT_MEMBER },
+        data: {
+          orgId: org.id,
+          name: "Member",
+          key: ROLE_KEYS.DEFAULT_MEMBER,
+          isDeletable: false,
+          isDefault: true,
+        },
       }),
     ]);
 
-    await tx.rolePermission.createMany({
+    await tx.permission.createMany({
       data: [
-        ...ownerPermissions.map((permission) => ({
-          roleId: ownerRole.id,
-          permission,
-        })),
-        ...workerPermissions.map((permission) => ({
+        ...ownerPermissions.map((action) => ({ roleId: ownerRole.id, action })),
+        ...memberPermissions.map((action) => ({
           roleId: memberRole.id,
-          permission,
+          action,
         })),
       ],
       skipDuplicates: true,
     });
 
     const membership = await tx.membership.create({
-      data: { orgId: org.id, userId, roleId: ownerRole.id },
+      data: { orgId: org.id, userId, workingDays: [] },
+    });
+
+    await tx.memberRole.create({
+      data: { membershipId: membership.id, roleId: ownerRole.id },
     });
 
     return { org, ownerRole, memberRole, membership };

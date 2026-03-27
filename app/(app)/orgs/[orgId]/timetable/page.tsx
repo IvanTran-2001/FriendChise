@@ -104,48 +104,36 @@ function getMondayDateStr(dateStr: string, tz: string): string {
 }
 
 /**
- * Projects template instances onto a calendar week.
- *
- * If the template has an `effectiveFrom` date, the cycle is aligned to it so
- * Day 1 always lands on the correct weekday. Otherwise Day 1 = Monday.
- *
- * For cycles shorter than 7 days (e.g. a 3-day cycle) the projection repeats
- * within the week so every day is covered.
+ * Projects template entries onto a calendar week.
+ * Day 0 is anchored to 2000-01-03 (Monday) so the cycle is consistent.
+ * For cycles shorter than 7 days the projection repeats within the week.
  */
 function projectTemplateToWeek(
   template: NonNullable<Awaited<ReturnType<typeof getTimetableTemplate>>>,
   weekStart: string,
   orgTz: string,
 ): ClientTimetableInstance[] {
-  const { templateDays, effectiveFrom, instances } = template;
+  const { cycleLengthDays, entries } = template;
 
-  // Compute cycle offset from YYYY-MM-DD strings so DST hour shifts don't
-  // corrupt the day count (dividing a UTC-ms delta by 86_400_000 breaks on
-  // the DST transition week when anchor and weekStart are in different offsets).
-  const anchorDateStr = effectiveFrom
-    ? toLocalDateStr(effectiveFrom, orgTz)
-    : "2000-01-03";
+  const anchorDateStr = "2000-01-03";
   const daysSince = calendarDaysBetween(anchorDateStr, weekStart);
   const cycleStartOffset =
-    ((daysSince % templateDays) + templateDays) % templateDays;
+    ((daysSince % cycleLengthDays) + cycleLengthDays) % cycleLengthDays;
 
   const result: ClientTimetableInstance[] = [];
 
-  for (const inst of instances) {
-    if (inst.dayOffset == null || inst.startTimeMin == null) continue;
+  for (const inst of entries) {
+    if (inst.startTimeMin == null) continue;
 
-    // base weekday index for this dayOffset (0 = Monday of this week)
+    // base weekday index for this dayIndex (0 = Monday of this week)
     const baseIndex =
-      (((inst.dayOffset - 1 - cycleStartOffset) % templateDays) +
-        templateDays) %
-      templateDays;
+      (((inst.dayIndex - cycleStartOffset) % cycleLengthDays) +
+        cycleLengthDays) %
+      cycleLengthDays;
 
-    // repeat if templateDays < 7 (short cycles fill whole week)
+    // repeat if cycleLengthDays < 7 (short cycles fill whole week)
     let weekdayIndex = baseIndex;
     while (weekdayIndex < 7) {
-      // Resolve each day's local midnight independently via localMidnightUTC so
-      // that startTimeMin (minutes from local midnight) lands at the right UTC
-      // instant even across a DST transition during the week.
       const dayMs = localMidnightUTC(
         addCalendarDays(weekStart, weekdayIndex),
         orgTz,
@@ -162,7 +150,7 @@ function projectTemplateToWeek(
         scheduledEndAt: new Date(endMs).toISOString(),
         task: {
           id: inst.task.id,
-          title: inst.task.title,
+          title: inst.task.name,
           durationMin: inst.task.durationMin,
           preferredStartTimeMin: null,
         },
@@ -175,7 +163,7 @@ function projectTemplateToWeek(
         })),
       });
 
-      weekdayIndex += templateDays;
+      weekdayIndex += cycleLengthDays;
     }
   }
 
@@ -248,26 +236,32 @@ export default async function TimetablePage({
     instances = [];
   } else {
     // No template selected — show live scheduled instances
-    instances = rawInstances.map((inst) => ({
-      id: inst.id,
-      taskId: inst.taskId,
-      status: inst.status,
-      scheduledStartAt: inst.scheduledStartAt?.toISOString() ?? null,
-      scheduledEndAt: inst.scheduledEndAt?.toISOString() ?? null,
-      task: {
-        id: inst.task.id,
-        title: inst.task.title,
-        durationMin: inst.task.durationMin,
-        preferredStartTimeMin: inst.task.preferredStartTimeMin,
-      },
-      assignees: inst.assignees.map((a) => ({
-        id: a.id,
-        membership: {
-          id: a.membership.id,
-          user: { id: a.membership.user.id, name: a.membership.user.name },
+    instances = rawInstances.map((inst) => {
+      const dateStr = inst.date.toISOString().split("T")[0];
+      const dayMs = localMidnightUTC(dateStr, orgTz);
+      const startMs = dayMs + inst.startTimeMin * 60 * 1000;
+      const endMs = dayMs + inst.endTimeMin * 60 * 1000;
+      return {
+        id: inst.id,
+        taskId: inst.taskId,
+        status: inst.status as ClientTimetableInstance["status"],
+        scheduledStartAt: new Date(startMs).toISOString(),
+        scheduledEndAt: new Date(endMs).toISOString(),
+        task: {
+          id: inst.task.id,
+          title: inst.task.name,
+          durationMin: inst.task.durationMin,
+          preferredStartTimeMin: inst.task.preferredStartTimeMin,
         },
-      })),
-    }));
+        assignees: inst.assignees.map((a) => ({
+          id: a.id,
+          membership: {
+            id: a.membership.id,
+            user: { id: a.membership.user.id, name: a.membership.user.name },
+          },
+        })),
+      };
+    });
   }
 
   const timetableHref = (m: string) =>
@@ -282,7 +276,7 @@ export default async function TimetablePage({
       >
         {/* Template dropdown */}
         <TemplateSelector
-          templates={templates.map((t) => ({ id: t.id, title: t.title }))}
+          templates={templates.map((t) => ({ id: t.id, title: t.name }))}
           selectedId={selectedTemplateId}
         />
 

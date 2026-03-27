@@ -6,7 +6,7 @@
  * then revalidates the tasks list and redirects back to it.
  */
 
-import { OrgPermission } from "@prisma/client";
+import { PermissionAction } from "@prisma/client";
 import { requireOrgPermission } from "@/lib/authz";
 import { createTask } from "@/lib/services/tasks";
 import { createTaskSchema } from "@/lib/validators/task";
@@ -23,7 +23,7 @@ export async function createTaskAction(
   _prev: CreateTaskFormState,
   formData: FormData,
 ): Promise<CreateTaskFormState> {
-  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_CREATE);
+  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TASKS);
   if (!authz.ok) return { ok: false, errors: { _: ["Unauthorized"] } };
 
   // FormData values are always strings; convert numeric fields to numbers

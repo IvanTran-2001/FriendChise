@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type Org = { id: string; title: string };
+type Org = { id: string; name: string };
 
 export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
   const router = useRouter();
@@ -30,7 +30,7 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2 max-w-48">
-          <span className="truncate">{activeOrg?.title ?? "Select Org"}</span>
+          <span className="truncate">{activeOrg?.name ?? "Select Org"}</span>
           <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
@@ -43,7 +43,7 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
               key={org.id}
               onSelect={() => router.push(`/orgs/${org.id}`)}
             >
-              {org.title}
+              {org.name}
             </DropdownMenuItem>
           ))
         )}

@@ -37,7 +37,7 @@ const TasksPage = async ({
                 key={task.id}
                 className="border rounded-lg p-4 flex flex-col gap-1"
               >
-                <span className="font-medium">{task.title}</span>
+                <span className="font-medium">{task.name}</span>
                 {task.description && (
                   <span className="text-sm text-muted-foreground">
                     {task.description}
@@ -45,7 +45,7 @@ const TasksPage = async ({
                 )}
                 <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
                   <span>Duration: {task.durationMin} min</span>
-                  <span>People required: {task.peopleRequired}</span>
+                  <span>People required: {task.minPeople}</span>
                   {task.minWaitDays != null && (
                     <span>Min wait: {task.minWaitDays}d</span>
                   )}

@@ -30,8 +30,8 @@ export default async function TemplateEditorPage({
     }),
     prisma.task.findMany({
       where: { orgId },
-      select: { id: true, title: true, durationMin: true },
-      orderBy: { title: "asc" },
+      select: { id: true, name: true, durationMin: true },
+      orderBy: { name: "asc" },
     }),
     prisma.membership.findMany({
       where: { orgId },
@@ -42,14 +42,14 @@ export default async function TemplateEditorPage({
 
   if (!template) notFound();
 
-  const instances: ClientTemplateInstance[] = template.instances.map(
+  const instances: ClientTemplateInstance[] = template.entries.map(
     (inst) => ({
       id: inst.id,
-      dayOffset: inst.dayOffset!,
+      dayIndex: inst.dayIndex,
       startTimeMin: inst.startTimeMin!,
       task: {
         id: inst.task.id,
-        title: inst.task.title,
+        name: inst.task.name,
         durationMin: inst.task.durationMin,
       },
       assignees: inst.assignees.map((a) => ({
@@ -68,11 +68,6 @@ export default async function TemplateEditorPage({
   const availableTasks: ClientTask[] = rawTasks;
   const memberships: ClientMembership[] = rawMemberships;
 
-  const now = new Date();
-  const isActive = !!template.effectiveFrom && template.effectiveFrom <= now;
-  const isScheduled = !!template.effectiveFrom && template.effectiveFrom > now;
-  const statusLabel = isActive ? "Active" : isScheduled ? "Scheduled" : "Draft";
-
   return (
     <>
       <Toolbar>
@@ -83,20 +78,12 @@ export default async function TemplateEditorPage({
           <ChevronLeft className="h-3.5 w-3.5" /> Templates
         </Link>
         <div className="flex items-center gap-2 ml-2">
-          <span className="font-semibold text-sm">{template.title}</span>
+          <span className="font-semibold text-sm">{template.name}</span>
           <span className="text-xs text-muted-foreground">
-            · {template.templateDays} day cycle
+            · {template.cycleLengthDays} day cycle
           </span>
-          <span
-            className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-              isActive
-                ? "bg-green-100 text-green-700"
-                : isScheduled
-                  ? "bg-amber-100 text-amber-700"
-                  : "bg-slate-100 text-slate-500"
-            }`}
-          >
-            {statusLabel}
+          <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-slate-100 text-slate-500">
+            Draft
           </span>
         </div>
       </Toolbar>
@@ -104,7 +91,7 @@ export default async function TemplateEditorPage({
       <TemplateEditorClient
         orgId={orgId}
         templateId={templateId}
-        templateDays={template.templateDays}
+        templateDays={template.cycleLengthDays}
         instances={instances}
         availableTasks={availableTasks}
         memberships={memberships}

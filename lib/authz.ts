@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { OrgPermission } from "@prisma/client";
+import { PermissionAction } from "@prisma/client";
 
 /**
  * Auth guard helpers for API route handlers.
@@ -11,7 +11,7 @@ import { OrgPermission } from "@prisma/client";
  *   { ok: false, response }            — return this NextResponse immediately
  *
  * Usage:
- *   const authz = await requireOrgPermission(orgId, OrgPermission.TASK_CREATE);
+ *   const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TASKS);
  *   if (!authz.ok) return authz.response;
  */
 
@@ -29,7 +29,7 @@ export async function requireOrgMember(orgId: string) {
 
   const membership = await prisma.membership.findFirst({
     where: { orgId, userId },
-    select: { id: true, orgId: true, userId: true, roleId: true },
+    select: { id: true, orgId: true, userId: true },
   });
 
   if (!membership) {
@@ -58,34 +58,31 @@ export async function requireUser() {
 }
 
 /**
- * Requires the caller to be a member of the org whose role has the given permission.
- * Checks RolePermission records — the permission must be explicitly granted to the role.
+ * Requires the caller to be a member of the org whose role(s) grant the given
+ * permission. Checks the Permission table via the MemberRole junction so a
+ * membership with multiple roles is handled correctly.
  */
 export async function requireOrgPermission(
   orgId: string,
-  permission: OrgPermission,
+  permission: PermissionAction,
 ) {
   const authz = await requireOrgMember(orgId);
   if (!authz.ok) return authz;
 
   const { membership } = authz;
 
-  if (!membership.roleId) {
-    return {
-      ok: false as const,
-      response: NextResponse.json(
-        { error: "Permission denied" },
-        { status: 403 },
-      ),
-    };
-  }
-
-  const rolePermission = await prisma.rolePermission.findFirst({
-    where: { roleId: membership.roleId, permission, role: { is: { orgId } } },
+  const hasPermission = await prisma.permission.findFirst({
+    where: {
+      action: permission,
+      role: {
+        orgId,
+        memberRoles: { some: { membershipId: membership.id } },
+      },
+    },
     select: { id: true },
   });
 
-  if (!rolePermission) {
+  if (!hasPermission) {
     return {
       ok: false as const,
       response: NextResponse.json(
@@ -95,5 +92,5 @@ export async function requireOrgPermission(
     };
   }
 
-  return { ok: true as const, userId: membership.userId, membership };
+  return { ok: true as const, userId: authz.userId, membership };
 }

@@ -1,5 +1,5 @@
 import { requireOrgPermission } from "@/lib/authz";
-import { OrgPermission } from "@prisma/client";
+import { PermissionAction } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { CreateMembershipForm } from "./create-membership-form";
@@ -18,13 +18,13 @@ const NewMemberPage = async ({
 }) => {
   const { orgId } = await params;
 
-  const authz = await requireOrgPermission(orgId, OrgPermission.ORG_MANAGE);
+  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_MEMBERS);
   if (!authz.ok) redirect("/");
 
   const roles = await prisma.role.findMany({
     where: { orgId },
-    select: { id: true, title: true },
-    orderBy: { title: "asc" },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
   });
 
   return (

@@ -1,5 +1,5 @@
 import { requireOrgPermission } from "@/lib/authz";
-import { OrgPermission } from "@prisma/client";
+import { PermissionAction } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { CreateTaskForm } from "./create-task-form";
 
@@ -17,7 +17,7 @@ const NewTaskPage = async ({
 }) => {
   const { orgId } = await params;
 
-  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_CREATE);
+  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TASKS);
   if (!authz.ok) redirect("/");
 
   return (

@@ -6,7 +6,7 @@
  * delegates to the membership service, then revalidates and redirects.
  */
 
-import { OrgPermission } from "@prisma/client";
+import { PermissionAction } from "@prisma/client";
 import { requireOrgPermission } from "@/lib/authz";
 import { createMembership } from "@/lib/services/memberships";
 import { prisma } from "@/lib/prisma";
@@ -34,7 +34,7 @@ export async function createMembershipAction(
   _prev: CreateMembershipFormState,
   formData: FormData,
 ): Promise<CreateMembershipFormState> {
-  const authz = await requireOrgPermission(orgId, OrgPermission.ORG_MANAGE);
+  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_MEMBERS);
   if (!authz.ok) return { ok: false, errors: { _: ["Unauthorized"] } };
 
   const email = String(formData.get("email") ?? "")

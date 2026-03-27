@@ -20,16 +20,16 @@ import {
 
 export type ClientTemplateInstance = {
   id: string;
-  dayOffset: number;
+  dayIndex: number;
   startTimeMin: number;
-  task: { id: string; title: string; durationMin: number };
+  task: { id: string; name: string; durationMin: number };
   assignees: Array<{
     id: string;
     membership: { id: string; user: { id: string; name: string | null } };
   }>;
 };
 
-export type ClientTask = { id: string; title: string; durationMin: number };
+export type ClientTask = { id: string; name: string; durationMin: number };
 export type ClientMembership = {
   id: string;
   user: { id: string; name: string | null };
@@ -191,7 +191,7 @@ function EditPopup({
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between">
-          <span className="font-semibold">{instance.task.title}</span>
+          <span className="font-semibold">{instance.task.name}</span>
           <button
             onClick={onClose}
             className="text-muted-foreground hover:text-foreground"
@@ -330,7 +330,7 @@ export function TemplateEditorClient({
   const pageEnd = Math.min(pageStart + DAYS_PER_PAGE, templateDays);
   const visibleDays = Array.from(
     { length: pageEnd - pageStart },
-    (_, i) => pageStart + i + 1,
+    (_, i) => pageStart + i,
   );
 
   // Grid dimensions
@@ -345,7 +345,7 @@ export function TemplateEditorClient({
   // Task search
   const [search, setSearch] = useState("");
   const filteredTasks = availableTasks.filter((t) =>
-    t.title.toLowerCase().includes(search.toLowerCase()),
+    t.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   // Drag
@@ -365,8 +365,8 @@ export function TemplateEditorClient({
   // Group by day
   const byDay = new Map<number, ClientTemplateInstance[]>();
   for (const inst of instances) {
-    if (!byDay.has(inst.dayOffset)) byDay.set(inst.dayOffset, []);
-    byDay.get(inst.dayOffset)!.push(inst);
+    if (!byDay.has(inst.dayIndex)) byDay.set(inst.dayIndex, []);
+    byDay.get(inst.dayIndex)!.push(inst);
   }
 
   function handleAddDay() {
@@ -430,7 +430,7 @@ export function TemplateEditorClient({
               timeMin,
             )
           : await updateTemplateInstanceAction(orgId, data.instanceId, {
-              dayOffset: day,
+              dayIndex: day,
               startTimeMin: timeMin,
             });
       if (!result.ok) return;
@@ -510,7 +510,7 @@ export function TemplateEditorClient({
                     Day
                   </div>
                   <div className="text-base font-bold leading-none mt-0.5">
-                    {day}
+                    {day + 1}
                   </div>
                 </div>
               ))}
@@ -623,7 +623,7 @@ export function TemplateEditorClient({
                             title="Drag to move · Double-click to edit"
                           >
                             <div className="font-semibold truncate">
-                              {inst.task.title}
+                              {inst.task.name}
                             </div>
                             {heightPx >= 32 && (
                               <div className="opacity-70 text-[10px]">
@@ -713,7 +713,7 @@ export function TemplateEditorClient({
                     }}
                     className="px-3 py-2.5 border-b last:border-b-0 cursor-grab active:cursor-grabbing hover:bg-muted/30 transition-colors select-none"
                   >
-                    <div className="text-sm font-medium">{task.title}</div>
+                    <div className="text-sm font-medium">{task.name}</div>
                     <div className="text-xs text-muted-foreground">
                       {task.durationMin} min
                     </div>

@@ -44,7 +44,7 @@ const MembersPage = async ({
                     {m.user.name ?? "Unnamed user"}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {m.role.title}
+                    {m.memberRoles[0]?.role.name ?? "—"}
                   </span>
                 </div>
               </li>

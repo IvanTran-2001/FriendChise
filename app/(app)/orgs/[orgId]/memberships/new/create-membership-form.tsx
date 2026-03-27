@@ -13,7 +13,7 @@ import type { CreateMembershipFormState } from "@/app/actions/memberships";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type Role = { id: string; title: string };
+type Role = { id: string; name: string };
 
 export const CreateMembershipForm = ({
   orgId,
@@ -77,7 +77,7 @@ export const CreateMembershipForm = ({
           </option>
           {roles.map((role) => (
             <option key={role.id} value={role.id}>
-              {role.title}
+              {role.name}
             </option>
           ))}
         </select>

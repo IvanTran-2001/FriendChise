@@ -9,7 +9,7 @@
  *         Requires TASK_CREATE permission.
  */
 import { NextResponse } from "next/server";
-import { OrgPermission } from "@prisma/client";
+import { PermissionAction } from "@prisma/client";
 import { updateTaskInstanceStatusSchema } from "@/lib/validators/task";
 import { requireOrgMember, requireOrgPermission } from "@/lib/authz";
 import { createTaskInstanceSchema } from "@/lib/validators/task-instance";
@@ -25,7 +25,7 @@ export async function POST(
 ) {
   const { orgId } = await params;
 
-  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_CREATE);
+  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TASKS);
   if (!authz.ok) return authz.response;
 
   let json: unknown;
@@ -43,7 +43,7 @@ export async function POST(
     );
   }
 
-  const result = await createTaskInstance(orgId, parsed.data.taskId);
+  const result = await createTaskInstance(orgId, parsed.data);
   if (!result.ok) {
     const status = result.code === "CONFLICT" ? 409 : 400;
     return NextResponse.json({ error: result.error }, { status });

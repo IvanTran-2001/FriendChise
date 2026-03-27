@@ -33,10 +33,10 @@ export const NavBar = async () => {
     ? await prisma.membership
         .findMany({
           where: { userId: user.id },
-          select: { org: { select: { id: true, title: true } } },
+          select: { organization: { select: { id: true, name: true } } },
         })
         .then((ms) =>
-          ms.map((m) => m.org).sort((a, b) => a.title.localeCompare(b.title)),
+          ms.map((m) => m.organization).sort((a, b) => a.name.localeCompare(b.name)),
         )
         .catch((error) => {
           console.error("Failed to load organizations for navbar", error);

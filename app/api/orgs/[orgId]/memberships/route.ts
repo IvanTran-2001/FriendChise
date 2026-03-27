@@ -13,7 +13,7 @@ import {
   getMemberships,
 } from "@/lib/services/memberships";
 import { requireOrgPermission } from "@/lib/authz";
-import { OrgPermission } from "@prisma/client";
+import { PermissionAction } from "@prisma/client";
 import {
   deleteMembershipSchema,
   createMembershipSchema,
@@ -25,7 +25,7 @@ export async function POST(
 ) {
   const { orgId } = await params;
 
-  const authz = await requireOrgPermission(orgId, OrgPermission.ORG_MANAGE);
+  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_MEMBERS);
   if (!authz.ok) return authz.response;
 
   let json: unknown;
@@ -57,7 +57,7 @@ export async function DELETE(
 ) {
   const { orgId } = await params;
 
-  const authz = await requireOrgPermission(orgId, OrgPermission.ORG_MANAGE);
+  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_MEMBERS);
   if (!authz.ok) return authz.response;
 
   const json = await req.json().catch(() => null);
@@ -83,7 +83,7 @@ export async function GET(
 ) {
   const { orgId } = await params;
 
-  const authz = await requireOrgPermission(orgId, OrgPermission.ORG_MANAGE);
+  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_MEMBERS);
   if (!authz.ok) return authz.response;
 
   const memberships = await getMemberships(orgId);

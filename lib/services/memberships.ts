@@ -4,10 +4,9 @@ import type { CreateMembershipInput } from "@/lib/validators/membership";
 import type { ServiceResult } from "./types";
 
 /**
- * Creates a membership linking a user to an org with the specified role.
- * Validates that the roleId belongs to the org and the userId exists before
- * inserting, so callers receive a clear service-layer error rather than a
- * raw database constraint violation.
+ * Creates a membership linking a user to an org, then assigns the specified
+ * role via the MemberRole junction. Both operations are wrapped in a single
+ * transaction so a partial write is never possible.
  */
 export async function createMembership(
   orgId: string,
@@ -33,8 +32,14 @@ export async function createMembership(
   }
 
   try {
-    const membership = await prisma.membership.create({
-      data: { orgId, userId: data.userId, roleId: data.roleId },
+    const membership = await prisma.$transaction(async (tx) => {
+      const m = await tx.membership.create({
+        data: { orgId, userId: data.userId, workingDays: [] },
+      });
+      await tx.memberRole.create({
+        data: { membershipId: m.id, roleId: data.roleId },
+      });
+      return m;
     });
     return { ok: true, data: membership };
   } catch (e) {
@@ -66,11 +71,11 @@ export async function deleteMembership(
 ): Promise<ServiceResult<null>> {
   const org = await prisma.organization.findUnique({
     where: { id: orgId },
-    select: { ownerUserId: true },
+    select: { ownerId: true },
   });
   if (!org) return { ok: false, error: "Org not found", code: "NOT_FOUND" };
 
-  if (userId === org.ownerUserId) {
+  if (userId === org.ownerId) {
     return {
       ok: false,
       error: "Cannot remove the organization owner",
@@ -96,8 +101,8 @@ export async function getMemberships(orgId: string) {
     where: { orgId },
     include: {
       user: { select: { id: true, name: true } },
-      role: true,
+      memberRoles: { include: { role: true } },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { joinedAt: "desc" },
   });
 }
