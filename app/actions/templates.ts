@@ -1,7 +1,7 @@
 "use server";
 
-import { OrgPermission } from "@prisma/client";
-import { requireOrgPermission } from "@/lib/authz";
+import { PermissionAction } from "@prisma/client";
+import { requireOrgPermissionAction } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -16,17 +16,20 @@ export async function createTemplateAction(
   _prev: CreateTemplateFormState,
   formData: FormData,
 ): Promise<CreateTemplateFormState> {
-  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_CREATE);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, errors: { _: ["Unauthorized"] } };
 
-  const title = String(formData.get("title") ?? "").trim();
-  const templateDaysRaw = Number(formData.get("templateDays") ?? 7);
+  const name = String(formData.get("title") ?? "").trim();
+  const cycleLengthDays = Number(formData.get("templateDays") ?? 7);
 
-  if (!title) return { ok: false, errors: { title: ["Title is required"] } };
+  if (!name) return { ok: false, errors: { title: ["Title is required"] } };
   if (
-    !Number.isInteger(templateDaysRaw) ||
-    templateDaysRaw < 1 ||
-    templateDaysRaw > 365
+    !Number.isInteger(cycleLengthDays) ||
+    cycleLengthDays < 1 ||
+    cycleLengthDays > 365
   ) {
     return {
       ok: false,
@@ -34,8 +37,8 @@ export async function createTemplateAction(
     };
   }
 
-  const template = await prisma.timetableTemplate.create({
-    data: { orgId, title, templateDays: templateDaysRaw },
+  const template = await prisma.template.create({
+    data: { orgId, name, cycleLengthDays },
   });
 
   revalidatePath(`/orgs/${orgId}/timetable/templates`);
@@ -46,10 +49,13 @@ export async function addTemplateInstanceAction(
   orgId: string,
   templateId: string,
   taskId: string,
-  dayOffset: number,
+  dayIndex: number,
   startTimeMin: number,
 ): Promise<{ ok: boolean; error?: string }> {
-  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_CREATE);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   const [task, template] = await Promise.all([
@@ -57,26 +63,27 @@ export async function addTemplateInstanceAction(
       where: { id: taskId, orgId },
       select: { id: true },
     }),
-    prisma.timetableTemplate.findFirst({
+    prisma.template.findFirst({
       where: { id: templateId, orgId },
-      select: { id: true, templateDays: true },
+      select: { id: true, cycleLengthDays: true },
     }),
   ]);
 
   if (!task) return { ok: false, error: "Task not found" };
   if (!template) return { ok: false, error: "Template not found" };
-  if (dayOffset < 1 || dayOffset > template.templateDays) {
+  if (dayIndex < 0 || dayIndex >= template.cycleLengthDays) {
     return {
       ok: false,
-      error: `Day must be between 1 and ${template.templateDays}`,
+      error: `Day must be between 0 and ${template.cycleLengthDays - 1}`,
     };
   }
   if (startTimeMin < 0 || startTimeMin > 1439) {
     return { ok: false, error: "Invalid time" };
   }
 
-  await prisma.taskInstance.create({
-    data: { orgId, taskId, templateId, dayOffset, startTimeMin },
+  const endTimeMin = Math.min(startTimeMin + 60, 1439);
+  await prisma.templateEntry.create({
+    data: { taskId, templateId, dayIndex, startTimeMin, endTimeMin },
   });
 
   revalidatePath(`/orgs/${orgId}/timetable/templates/${templateId}`);
@@ -87,16 +94,19 @@ export async function removeTemplateInstanceAction(
   orgId: string,
   instanceId: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_DELETE);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const instance = await prisma.taskInstance.findFirst({
-    where: { id: instanceId, orgId, templateId: { not: null } },
+  const entry = await prisma.templateEntry.findFirst({
+    where: { id: instanceId, template: { orgId } },
     select: { id: true },
   });
-  if (!instance) return { ok: false, error: "Not found" };
+  if (!entry) return { ok: false, error: "Not found" };
 
-  await prisma.taskInstance.delete({ where: { id: instanceId } });
+  await prisma.templateEntry.delete({ where: { id: instanceId } });
   revalidatePath(`/orgs/${orgId}/timetable/templates`);
   return { ok: true };
 }
@@ -104,31 +114,34 @@ export async function removeTemplateInstanceAction(
 export async function updateTemplateInstanceAction(
   orgId: string,
   instanceId: string,
-  update: { dayOffset?: number; startTimeMin?: number },
+  update: { dayIndex?: number; startTimeMin?: number },
 ): Promise<{ ok: boolean; error?: string }> {
-  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_UPDATE);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const instance = await prisma.taskInstance.findFirst({
-    where: { id: instanceId, orgId, templateId: { not: null } },
+  const entry = await prisma.templateEntry.findFirst({
+    where: { id: instanceId, template: { orgId } },
     select: { id: true, templateId: true },
   });
-  if (!instance) return { ok: false, error: "Not found" };
+  if (!entry) return { ok: false, error: "Not found" };
 
-  if (update.dayOffset !== undefined) {
-    const template = await prisma.timetableTemplate.findFirst({
-      where: { id: instance.templateId!, orgId },
-      select: { templateDays: true },
+  if (update.dayIndex !== undefined) {
+    const template = await prisma.template.findFirst({
+      where: { id: entry.templateId, orgId },
+      select: { cycleLengthDays: true },
     });
     if (!template) return { ok: false, error: "Template not found" };
     if (
-      !Number.isInteger(update.dayOffset) ||
-      update.dayOffset < 1 ||
-      update.dayOffset > template.templateDays
+      !Number.isInteger(update.dayIndex) ||
+      update.dayIndex < 0 ||
+      update.dayIndex >= template.cycleLengthDays
     ) {
       return {
         ok: false,
-        error: `Day must be between 1 and ${template.templateDays}`,
+        error: `Day must be between 0 and ${template.cycleLengthDays - 1}`,
       };
     }
   }
@@ -140,10 +153,10 @@ export async function updateTemplateInstanceAction(
     return { ok: false, error: "Invalid time" };
   }
 
-  await prisma.taskInstance.update({
+  await prisma.templateEntry.update({
     where: { id: instanceId },
     data: {
-      ...(update.dayOffset !== undefined && { dayOffset: update.dayOffset }),
+      ...(update.dayIndex !== undefined && { dayIndex: update.dayIndex }),
       ...(update.startTimeMin !== undefined && {
         startTimeMin: update.startTimeMin,
       }),
@@ -157,37 +170,40 @@ export async function updateTemplateInstanceAction(
 export async function updateTemplateDaysAction(
   orgId: string,
   templateId: string,
-  templateDays: number,
+  cycleLengthDays: number,
 ): Promise<{ ok: boolean; error?: string }> {
-  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_UPDATE);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   if (
-    !Number.isInteger(templateDays) ||
-    templateDays < 1 ||
-    templateDays > 365
+    !Number.isInteger(cycleLengthDays) ||
+    cycleLengthDays < 1 ||
+    cycleLengthDays > 365
   ) {
     return { ok: false, error: "Invalid cycle length" };
   }
 
-  // Block shrink if any instances have a dayOffset that would be out of range
-  const stranded = await prisma.taskInstance.count({
+  // Block shrink if any entries have a dayIndex that would be out of range
+  const stranded = await prisma.templateEntry.count({
     where: {
       templateId,
-      orgId,
-      dayOffset: { gt: templateDays },
+      template: { orgId },
+      dayIndex: { gte: cycleLengthDays },
     },
   });
   if (stranded > 0) {
     return {
       ok: false,
-      error: `Cannot shrink cycle: ${stranded} task${stranded === 1 ? "" : "s"} are on days beyond ${templateDays}. Move or remove them first.`,
+      error: `Cannot shrink cycle: ${stranded} task${stranded === 1 ? "" : "s"} are on days beyond ${cycleLengthDays}. Move or remove them first.`,
     };
   }
 
-  await prisma.timetableTemplate.updateMany({
+  await prisma.template.updateMany({
     where: { id: templateId, orgId },
-    data: { templateDays },
+    data: { cycleLengthDays },
   });
 
   revalidatePath(`/orgs/${orgId}/timetable/templates/${templateId}`);
@@ -199,12 +215,15 @@ export async function addInstanceAssigneeAction(
   instanceId: string,
   membershipId: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_ASSIGN);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TIMETABLE,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const [instance, membership] = await Promise.all([
-    prisma.taskInstance.findFirst({
-      where: { id: instanceId, orgId },
+  const [entry, membership] = await Promise.all([
+    prisma.templateEntry.findFirst({
+      where: { id: instanceId, template: { orgId } },
       select: { id: true },
     }),
     prisma.membership.findFirst({
@@ -212,14 +231,17 @@ export async function addInstanceAssigneeAction(
       select: { id: true },
     }),
   ]);
-  if (!instance) return { ok: false, error: "Instance not found" };
+  if (!entry) return { ok: false, error: "Template entry not found" };
   if (!membership) return { ok: false, error: "Membership not found" };
 
-  await prisma.taskInstanceAssignee.upsert({
+  await prisma.templateEntryAssignee.upsert({
     where: {
-      taskInstanceId_membershipId: { taskInstanceId: instanceId, membershipId },
+      templateEntryId_membershipId: {
+        templateEntryId: instanceId,
+        membershipId,
+      },
     },
-    create: { taskInstanceId: instanceId, membershipId },
+    create: { templateEntryId: instanceId, membershipId },
     update: {},
   });
 
@@ -232,20 +254,23 @@ export async function removeInstanceAssigneeAction(
   instanceId: string,
   membershipId: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_ASSIGN);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TIMETABLE,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const assignee = await prisma.taskInstanceAssignee.findFirst({
+  const assignee = await prisma.templateEntryAssignee.findFirst({
     where: {
-      taskInstanceId: instanceId,
+      templateEntryId: instanceId,
       membershipId,
-      taskInstance: { orgId },
+      templateEntry: { template: { orgId } },
     },
     select: { id: true },
   });
   if (!assignee) return { ok: false, error: "Not found" };
 
-  await prisma.taskInstanceAssignee.delete({ where: { id: assignee.id } });
+  await prisma.templateEntryAssignee.delete({ where: { id: assignee.id } });
   revalidatePath(`/orgs/${orgId}/timetable/templates`);
   return { ok: true };
 }

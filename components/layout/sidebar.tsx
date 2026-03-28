@@ -18,6 +18,10 @@ import {
   Info,
   Phone,
   ChevronRight,
+  ChevronLeft,
+  ListCheckIcon,
+  ShieldCheck,
+  Bell,
 } from "lucide-react";
 import {
   Sidebar,
@@ -74,12 +78,7 @@ function NavCollapsible({
   );
 }
 
-/**
- * Nav items shown when the user is inside an org (any /orgs/[orgId]/... route).
- * To add a new org-scoped page, append an entry here and add the corresponding
- * route under app/(app)/orgs/[orgId]/.
- */
-function getOrgNavItems(orgId: string) {
+function getOrgItems(orgId: string) {
   return [
     { title: "Overview", url: `/orgs/${orgId}`, icon: Building2 },
     { title: "Timetable", url: `/orgs/${orgId}/timetable`, icon: Calendar },
@@ -89,12 +88,44 @@ function getOrgNavItems(orgId: string) {
   ];
 }
 
+function getSettingsItems(orgId: string) {
+  return [
+    { title: "Back to Org", url: `/orgs/${orgId}`, icon: ChevronLeft },
+    {
+      title: "Organization",
+      url: `/orgs/${orgId}/settings/organization`,
+      icon: Building2,
+    },
+    { title: "Roles", url: `/orgs/${orgId}/settings/roles`, icon: ShieldCheck },
+    {
+      title: "Timetable",
+      url: `/orgs/${orgId}/settings/timetable`,
+      icon: Calendar,
+    },
+    {
+      title: "Notification",
+      url: `/orgs/${orgId}/settings/notification`,
+      icon: Bell,
+    },
+  ];
+}
+
 /**
- * Nav items pinned to the bottom of the sidebar when inside an org.
- * Separated from the main nav by a dashed divider.
- * To add more footer items, append an entry here.
+ * Returns the correct nav items for the current org context.
+ * Derives the active mode from pathname so the component doesn't need to.
  */
-function getOrgFooterItems(orgId: string) {
+function getNavItems(orgId: string, pathname: string) {
+  if (pathname.startsWith(`/orgs/${orgId}/settings`))
+    return getSettingsItems(orgId);
+  return getOrgItems(orgId);
+}
+
+/**
+ * Returns footer items (e.g. Settings) when inside an org but not in settings.
+ * Empty array otherwise so the footer is hidden.
+ */
+function getFooterItems(orgId: string, pathname: string) {
+  if (pathname.startsWith(`/orgs/${orgId}/settings`)) return [];
   return [
     { title: "Settings", url: `/orgs/${orgId}/settings`, icon: Settings },
   ];
@@ -112,11 +143,10 @@ function getOrgFooterItems(orgId: string) {
 export function AppSidebar() {
   // orgId is present on any /orgs/[orgId]/... route, undefined otherwise
   const { orgId } = useParams<{ orgId?: string }>();
-  // Used to determine which nav item should be marked active
   const pathname = usePathname();
 
-  const orgNavItems = orgId ? getOrgNavItems(orgId) : [];
-  const footerItems = orgId ? getOrgFooterItems(orgId) : [];
+  const navItems = orgId ? getNavItems(orgId, pathname) : [];
+  const footerItems = orgId ? getFooterItems(orgId, pathname) : [];
 
   /**
    * Returns true when a nav item should be highlighted.
@@ -142,8 +172,8 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {orgId ? (
-                // ── Org-scoped nav ──────────────────────────────────────
-                orgNavItems.map((item) => (
+                // ── Org / Settings nav (mutually exclusive, same shape) ──
+                navItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild
@@ -175,6 +205,13 @@ export function AppSidebar() {
                     label="Organizations"
                     defaultOpen
                   >
+                    <SidebarMenuSubItem>
+                      {/* List — stub until feature is implemented */}
+                      <SidebarMenuSubButton title="Coming soon">
+                        <ListCheckIcon />
+                        <span>List</span>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
                     <SidebarMenuSubItem>
                       <SidebarMenuSubButton
                         asChild
@@ -223,7 +260,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Footer items pinned to the bottom, only inside an org */}
+      {/* Settings footer — only inside an org and not in settings */}
       {footerItems.length > 0 && (
         <>
           <SidebarSeparator className="border-dashed" />

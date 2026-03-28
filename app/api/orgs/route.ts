@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 import { createOrgSchema } from "@/lib/validators/org";
 import { createOrg } from "@/lib/services/orgs";
+import { requireUser } from "@/lib/authz";
 
 export async function POST(req: Request) {
   const authz = await requireUser();

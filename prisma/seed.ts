@@ -1,234 +1,73 @@
-import {
-  PrismaClient,
-  OrgPermission,
-  TaskInstanceStatus,
-} from "@prisma/client";
+import { PrismaClient, PermissionAction, EntryStatus } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { ROLE_KEYS } from "@/lib/rbac";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
-function timeToMin(hhmm: string) {
+function timeToMin(hhmm: string): number {
   const [h, m] = hhmm.split(":").map(Number);
   return h * 60 + m;
 }
 
+const OWNER_PERMISSIONS: PermissionAction[] = [
+  PermissionAction.MANAGE_MEMBERS,
+  PermissionAction.MANAGE_ROLES,
+  PermissionAction.MANAGE_TIMETABLE,
+  PermissionAction.MANAGE_TASKS,
+  PermissionAction.MANAGE_SETTINGS,
+  PermissionAction.VIEW_TIMETABLE,
+];
+
 async function main() {
-  // Clean in dependency-safe order (dev seed convenience)
-  await prisma.taskInstanceAssignee.deleteMany();
-  await prisma.taskInstance.deleteMany();
+  // ── 1. Clean existing org/task data (preserve User & auth records) ─────────
+  await prisma.timetableEntryAssignee.deleteMany();
+  await prisma.templateEntryAssignee.deleteMany();
+  await prisma.timetableEntry.deleteMany();
+  await prisma.templateEntry.deleteMany();
+  await prisma.template.deleteMany();
   await prisma.taskEligibility.deleteMany();
-  await prisma.rolePermission.deleteMany();
-  await prisma.membership.deleteMany();
-  await prisma.timetableTemplate.deleteMany();
   await prisma.task.deleteMany();
+  await prisma.permission.deleteMany();
+  await prisma.memberRole.deleteMany();
+  await prisma.membership.deleteMany();
   await prisma.role.deleteMany();
-  await prisma.organization.deleteMany(); // must precede user (ownerUserId FK)
-  await prisma.user.deleteMany();
+  await prisma.franchiseToken.deleteMany();
+  await prisma.timetableSettings.deleteMany();
+  await prisma.$executeRaw`UPDATE "Organization" SET "parentId" = NULL WHERE "parentId" IS NOT NULL`;
+  await prisma.organization.deleteMany();
 
-  // Users
-  const ownerUser = await prisma.user.create({
-    data: {
-      name: "Ivan",
-      email: "mystoganx2001@gmail.com",
-    },
-  });
-
-  const [worker1, worker2, worker3, worker4] = await Promise.all([
-    prisma.user.create({
-      data: { name: "Jordan", email: "alt28918@gmail.com" },
+  // ── 2. Users (upsert — keeps existing OAuth accounts intact) ──────────────
+  const [ivan, jordan, casey, riley, morgan] = await Promise.all([
+    prisma.user.upsert({
+      where: { email: "mystoganx2001@gmail.com" },
+      update: { name: "Ivan" },
+      create: { email: "mystoganx2001@gmail.com", name: "Ivan" },
     }),
-    prisma.user.create({
-      data: { name: "Casey", email: "alt28919@gmail.com" },
+    prisma.user.upsert({
+      where: { email: "alt28918@gmail.com" },
+      update: { name: "Jordan" },
+      create: { email: "alt28918@gmail.com", name: "Jordan" },
     }),
-    prisma.user.create({
-      data: { name: "Riley", email: "alt28920@gmail.com" },
+    prisma.user.upsert({
+      where: { email: "alt28919@gmail.com" },
+      update: { name: "Casey" },
+      create: { email: "alt28919@gmail.com", name: "Casey" },
     }),
-    prisma.user.create({
-      data: { name: "Morgan", email: "alt28921@gmail.com" },
+    prisma.user.upsert({
+      where: { email: "alt28920@gmail.com" },
+      update: { name: "Riley" },
+      create: { email: "alt28920@gmail.com", name: "Riley" },
     }),
-  ]);
-
-  // Org
-  const org = await prisma.organization.create({
-    data: {
-      title: "Donut Shop A",
-      ownerUserId: ownerUser.id,
-      openTimeMin: timeToMin("06:00"),
-      closeTimeMin: timeToMin("18:00"),
-      timezone: "Australia/Sydney",
-    },
-  });
-
-  // Roles
-  const ownerRole = await prisma.role.create({
-    data: {
-      orgId: org.id,
-      title: "Owner",
-      key: "owner",
-    },
-  });
-
-  const workerRole = await prisma.role.create({
-    data: {
-      orgId: org.id,
-      title: "Worker",
-      key: ROLE_KEYS.DEFAULT_MEMBER,
-    },
-  });
-
-  // Owner permissions (full access)
-  await prisma.rolePermission.createMany({
-    data: [
-      { roleId: ownerRole.id, permission: OrgPermission.ORG_MANAGE },
-      { roleId: ownerRole.id, permission: OrgPermission.ROLE_MANAGE },
-      { roleId: ownerRole.id, permission: OrgPermission.TASK_CREATE },
-      { roleId: ownerRole.id, permission: OrgPermission.TASK_UPDATE },
-      { roleId: ownerRole.id, permission: OrgPermission.TASK_DELETE },
-      { roleId: ownerRole.id, permission: OrgPermission.TASK_ASSIGN },
-      { roleId: ownerRole.id, permission: OrgPermission.TASKINSTANCE_COMPLETE },
-    ],
-    skipDuplicates: true,
-  });
-
-  // Worker permissions (can complete tasks assigned to them)
-  await prisma.rolePermission.createMany({
-    data: [
-      {
-        roleId: workerRole.id,
-        permission: OrgPermission.TASKINSTANCE_COMPLETE,
-      },
-    ],
-    skipDuplicates: true,
-  });
-
-  // Memberships
-  const ownerMembership = await prisma.membership.create({
-    data: { orgId: org.id, userId: ownerUser.id, roleId: ownerRole.id },
-  });
-
-  const [mem1, mem2, mem3, mem4] = await Promise.all([
-    prisma.membership.create({
-      data: { orgId: org.id, userId: worker1.id, roleId: workerRole.id },
-    }),
-    prisma.membership.create({
-      data: { orgId: org.id, userId: worker2.id, roleId: workerRole.id },
-    }),
-    prisma.membership.create({
-      data: { orgId: org.id, userId: worker3.id, roleId: workerRole.id },
-    }),
-    prisma.membership.create({
-      data: { orgId: org.id, userId: worker4.id, roleId: workerRole.id },
+    prisma.user.upsert({
+      where: { email: "alt28921@gmail.com" },
+      update: { name: "Morgan" },
+      create: { email: "alt28921@gmail.com", name: "Morgan" },
     }),
   ]);
 
-  // Tasks
-  const tasks = await Promise.all([
-    prisma.task.create({
-      data: {
-        orgId: org.id,
-        title: "Open shop checklist",
-        description: "Turn on lights, start fryer, prep counter.",
-        durationMin: 30,
-        preferredStartTimeMin: timeToMin("06:00"),
-        peopleRequired: 1,
-        minWaitDays: 0,
-        maxWaitDays: 1,
-      },
-    }),
-    prisma.task.create({
-      data: {
-        orgId: org.id,
-        title: "Clean ice cream machine",
-        description: "Full sanitize cycle.",
-        durationMin: 45,
-        preferredStartTimeMin: timeToMin("14:00"),
-        peopleRequired: 1,
-        minWaitDays: 2,
-        maxWaitDays: 3,
-      },
-    }),
-    prisma.task.create({
-      data: {
-        orgId: org.id,
-        title: "Close shop checklist",
-        description: "Trash, mop, lock up, end of day report.",
-        durationMin: 40,
-        preferredStartTimeMin: timeToMin("17:00"),
-        peopleRequired: 1,
-        minWaitDays: 0,
-        maxWaitDays: 1,
-      },
-    }),
-  ]);
-
-  // Eligibility: let Worker do all tasks
-  await prisma.taskEligibility.createMany({
-    data: tasks.map((t) => ({
-      taskId: t.id,
-      roleId: workerRole.id,
-    })),
-    skipDuplicates: true,
-  });
-
-  // Timetable template
-  const template = await prisma.timetableTemplate.create({
-    data: {
-      orgId: org.id,
-      title: "Week 1",
-      templateDays: 7,
-    },
-  });
-
-  // Template instances — positions are cycle-relative (dayOffset + startTimeMin)
-  const instance1 = await prisma.taskInstance.create({
-    data: {
-      orgId: org.id,
-      taskId: tasks[0].id,
-      templateId: template.id,
-      status: TaskInstanceStatus.TODO,
-      dayOffset: 1,
-      startTimeMin: timeToMin("06:00"),
-      assignees: {
-        create: [{ membershipId: mem1.id }, { membershipId: mem2.id }],
-      },
-    },
-  });
-
-  const instance2 = await prisma.taskInstance.create({
-    data: {
-      orgId: org.id,
-      taskId: tasks[1].id,
-      templateId: template.id,
-      status: TaskInstanceStatus.TODO,
-      dayOffset: 3,
-      startTimeMin: timeToMin("14:00"),
-      assignees: {
-        create: [{ membershipId: mem3.id }],
-      },
-    },
-  });
-
-  const instance3 = await prisma.taskInstance.create({
-    data: {
-      orgId: org.id,
-      taskId: tasks[2].id,
-      templateId: template.id,
-      status: TaskInstanceStatus.TODO,
-      dayOffset: 7,
-      startTimeMin: timeToMin("17:00"),
-      assignees: {
-        create: [{ membershipId: mem4.id }],
-      },
-    },
-  });
-
-  // Live scheduled instances (this week, no template — shown on timetable calendar)
-  // Build dates in the org timezone (Australia/Sydney) so seeded timestamps are
-  // consistent regardless of the machine running the seed.
+  // ── 3. Compute Monday of the current week (Australia/Sydney timezone) ──────
   const ORG_TZ = "Australia/Sydney";
-
   const todayLocal = new Date().toLocaleDateString("en-CA", {
     timeZone: ORG_TZ,
   });
@@ -247,83 +86,627 @@ async function main() {
     Fri: -4,
     Sat: -5,
   };
-  const mondayLocal = new Date(Date.UTC(ty, tm - 1, td + (DOW[localWd] ?? 0)))
+  const mondayDate = new Date(Date.UTC(ty, tm - 1, td + (DOW[localWd] ?? 0)));
+  const [my, mm, md] = mondayDate
     .toISOString()
-    .split("T")[0];
+    .split("T")[0]
+    .split("-")
+    .map(Number);
 
-  /** Returns a UTC Date representing `hhmm` local time on Monday + dayIndex in the org timezone. */
-  const atTime = (dayIndex: number, hhmm: string): Date => {
-    const [my, mm, md] = mondayLocal.split("-").map(Number);
-    const [h, min] = hhmm.split(":").map(Number);
-    const dateStr = new Date(Date.UTC(my, mm - 1, md + dayIndex))
-      .toISOString()
-      .split("T")[0];
-    // Find UTC offset for that date at noon to handle DST
-    const noon = Date.UTC(
-      ...(dateStr.split("-").map(Number) as [number, number, number]),
-      12,
-    );
-    const parts = Object.fromEntries(
-      new Intl.DateTimeFormat("en-US", {
-        timeZone: ORG_TZ,
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      })
-        .formatToParts(new Date(noon))
-        .map((p) => [p.type, p.value]),
-    );
-    const lH = parseInt(parts.hour ?? "0") % 24;
-    const lM = parseInt(parts.minute ?? "0");
-    const midnightUTC = noon - ((lH * 60 + lM) * 60 * 1000 - 12 * 3_600_000);
-    return new Date(midnightUTC + (h * 60 + min) * 60 * 1000);
-  };
+  /** Returns midnight UTC for the given day offset from Monday (0 = Mon). */
+  const dayDate = (dayIndex: number): Date =>
+    new Date(Date.UTC(my, mm - 1, md + dayIndex));
 
-  const live1 = await prisma.taskInstance.create({
+  // ──────────────────────────────────────────────────────────────────────────
+  // ORG 1: Donut Shop A  (Ivan owns · Jordan + Casey work)
+  // ──────────────────────────────────────────────────────────────────────────
+  const org1 = await prisma.organization.create({
     data: {
-      orgId: org.id,
-      taskId: tasks[0].id,
-      status: TaskInstanceStatus.TODO,
-      scheduledStartAt: atTime(0, "06:00"),
-      scheduledEndAt: atTime(0, "06:30"),
-      assignees: { create: [{ membershipId: mem1.id }] },
+      name: "Donut Shop A",
+      ownerId: ivan.id,
+      openTimeMin: timeToMin("06:00"),
+      closeTimeMin: timeToMin("18:00"),
+      timezone: "Australia/Sydney",
+      operatingDays: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
     },
   });
 
-  const live2 = await prisma.taskInstance.create({
+  const [o1Owner, o1Worker] = await Promise.all([
+    prisma.role.create({
+      data: {
+        orgId: org1.id,
+        name: "Owner",
+        key: ROLE_KEYS.OWNER,
+        isDeletable: false,
+        isDefault: false,
+      },
+    }),
+    prisma.role.create({
+      data: {
+        orgId: org1.id,
+        name: "Worker",
+        key: ROLE_KEYS.DEFAULT_MEMBER,
+        isDeletable: false,
+        isDefault: true,
+      },
+    }),
+  ]);
+
+  await prisma.permission.createMany({
+    data: OWNER_PERMISSIONS.map((action) => ({ roleId: o1Owner.id, action })),
+    skipDuplicates: true,
+  });
+  await prisma.permission.create({
+    data: { roleId: o1Worker.id, action: PermissionAction.VIEW_TIMETABLE },
+  });
+
+  const [o1Ivan, o1Jordan, o1Casey] = await Promise.all([
+    prisma.membership.create({
+      data: {
+        orgId: org1.id,
+        userId: ivan.id,
+        workingDays: ["mon", "tue", "wed", "thu", "fri"],
+      },
+    }),
+    prisma.membership.create({
+      data: {
+        orgId: org1.id,
+        userId: jordan.id,
+        workingDays: ["mon", "tue", "wed", "thu", "fri"],
+      },
+    }),
+    prisma.membership.create({
+      data: {
+        orgId: org1.id,
+        userId: casey.id,
+        workingDays: ["tue", "wed", "thu", "fri", "sat"],
+      },
+    }),
+  ]);
+
+  await prisma.memberRole.createMany({
+    data: [
+      { membershipId: o1Ivan.id, roleId: o1Owner.id },
+      { membershipId: o1Jordan.id, roleId: o1Worker.id },
+      { membershipId: o1Casey.id, roleId: o1Worker.id },
+    ],
+  });
+
+  const [o1Task1, o1Task2, o1Task3] = await Promise.all([
+    prisma.task.create({
+      data: {
+        orgId: org1.id,
+        name: "Open shop checklist",
+        description: "Turn on lights, start fryer, prep counter.",
+        durationMin: 30,
+        preferredStartTimeMin: timeToMin("06:00"),
+        minPeople: 1,
+        minWaitDays: 0,
+        maxWaitDays: 1,
+      },
+    }),
+    prisma.task.create({
+      data: {
+        orgId: org1.id,
+        name: "Clean ice cream machine",
+        description: "Full sanitize cycle.",
+        durationMin: 45,
+        preferredStartTimeMin: timeToMin("14:00"),
+        minPeople: 1,
+        minWaitDays: 2,
+        maxWaitDays: 3,
+      },
+    }),
+    prisma.task.create({
+      data: {
+        orgId: org1.id,
+        name: "Close shop checklist",
+        description: "Trash, mop, lock up, end of day report.",
+        durationMin: 40,
+        preferredStartTimeMin: timeToMin("17:00"),
+        minPeople: 1,
+        minWaitDays: 0,
+        maxWaitDays: 1,
+      },
+    }),
+  ]);
+
+  await prisma.taskEligibility.createMany({
+    data: [o1Task1, o1Task2, o1Task3].map((t) => ({
+      taskId: t.id,
+      roleId: o1Worker.id,
+    })),
+    skipDuplicates: true,
+  });
+
+  const o1Template = await prisma.template.create({
+    data: { orgId: org1.id, name: "Week 1", cycleLengthDays: 7 },
+  });
+
+  await prisma.templateEntry.createMany({
+    data: [
+      {
+        templateId: o1Template.id,
+        taskId: o1Task1.id,
+        dayIndex: 0,
+        startTimeMin: timeToMin("06:00"),
+        endTimeMin: timeToMin("06:30"),
+      },
+      {
+        templateId: o1Template.id,
+        taskId: o1Task2.id,
+        dayIndex: 2,
+        startTimeMin: timeToMin("14:00"),
+        endTimeMin: timeToMin("14:45"),
+      },
+      {
+        templateId: o1Template.id,
+        taskId: o1Task3.id,
+        dayIndex: 6,
+        startTimeMin: timeToMin("17:00"),
+        endTimeMin: timeToMin("17:40"),
+      },
+    ],
+  });
+
+  // Live timetable entries — Org 1
+  await Promise.all([
+    prisma.timetableEntry.create({
+      data: {
+        orgId: org1.id,
+        taskId: o1Task1.id,
+        taskName: o1Task1.name,
+        taskDescription: o1Task1.description,
+        durationMin: 30,
+        date: dayDate(0),
+        startTimeMin: timeToMin("06:00"),
+        endTimeMin: timeToMin("06:30"),
+        status: EntryStatus.DONE,
+        assignees: { create: [{ membershipId: o1Jordan.id }] },
+      },
+    }),
+    prisma.timetableEntry.create({
+      data: {
+        orgId: org1.id,
+        taskId: o1Task2.id,
+        taskName: o1Task2.name,
+        taskDescription: o1Task2.description,
+        durationMin: 45,
+        date: dayDate(2),
+        startTimeMin: timeToMin("14:00"),
+        endTimeMin: timeToMin("14:45"),
+        status: EntryStatus.IN_PROGRESS,
+        assignees: { create: [{ membershipId: o1Casey.id }] },
+      },
+    }),
+    prisma.timetableEntry.create({
+      data: {
+        orgId: org1.id,
+        taskId: o1Task3.id,
+        taskName: o1Task3.name,
+        taskDescription: o1Task3.description,
+        durationMin: 40,
+        date: dayDate(4),
+        startTimeMin: timeToMin("17:00"),
+        endTimeMin: timeToMin("17:40"),
+        status: EntryStatus.TODO,
+        assignees: { create: [{ membershipId: o1Jordan.id }] },
+      },
+    }),
+  ]);
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // ORG 2: Coffee House B  (Ivan owns · Riley + Morgan work)
+  // ──────────────────────────────────────────────────────────────────────────
+  const org2 = await prisma.organization.create({
     data: {
-      orgId: org.id,
-      taskId: tasks[1].id,
-      status: TaskInstanceStatus.IN_PROGRESS,
-      scheduledStartAt: atTime(2, "14:00"),
-      scheduledEndAt: atTime(2, "14:45"),
-      assignees: { create: [{ membershipId: mem3.id }] },
+      name: "Coffee House B",
+      ownerId: ivan.id,
+      openTimeMin: timeToMin("07:00"),
+      closeTimeMin: timeToMin("17:00"),
+      timezone: "Australia/Sydney",
+      operatingDays: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
     },
   });
 
-  const live3 = await prisma.taskInstance.create({
+  const [o2Owner, o2Barista] = await Promise.all([
+    prisma.role.create({
+      data: {
+        orgId: org2.id,
+        name: "Owner",
+        key: ROLE_KEYS.OWNER,
+        isDeletable: false,
+        isDefault: false,
+      },
+    }),
+    prisma.role.create({
+      data: {
+        orgId: org2.id,
+        name: "Barista",
+        key: ROLE_KEYS.DEFAULT_MEMBER,
+        isDeletable: false,
+        isDefault: true,
+      },
+    }),
+  ]);
+
+  await prisma.permission.createMany({
+    data: OWNER_PERMISSIONS.map((action) => ({ roleId: o2Owner.id, action })),
+    skipDuplicates: true,
+  });
+  await prisma.permission.create({
+    data: { roleId: o2Barista.id, action: PermissionAction.VIEW_TIMETABLE },
+  });
+
+  const [o2Ivan, o2Riley, o2Morgan] = await Promise.all([
+    prisma.membership.create({
+      data: {
+        orgId: org2.id,
+        userId: ivan.id,
+        workingDays: ["mon", "tue", "wed", "thu", "fri"],
+      },
+    }),
+    prisma.membership.create({
+      data: {
+        orgId: org2.id,
+        userId: riley.id,
+        workingDays: ["mon", "wed", "fri"],
+      },
+    }),
+    prisma.membership.create({
+      data: {
+        orgId: org2.id,
+        userId: morgan.id,
+        workingDays: ["tue", "thu", "sat"],
+      },
+    }),
+  ]);
+
+  await prisma.memberRole.createMany({
+    data: [
+      { membershipId: o2Ivan.id, roleId: o2Owner.id },
+      { membershipId: o2Riley.id, roleId: o2Barista.id },
+      { membershipId: o2Morgan.id, roleId: o2Barista.id },
+    ],
+  });
+
+  const [o2Task1, o2Task2, o2Task3] = await Promise.all([
+    prisma.task.create({
+      data: {
+        orgId: org2.id,
+        name: "Open cafe checklist",
+        description: "Unlock, start espresso machine, fill condiments.",
+        durationMin: 20,
+        preferredStartTimeMin: timeToMin("07:00"),
+        minPeople: 1,
+        minWaitDays: 0,
+        maxWaitDays: 1,
+      },
+    }),
+    prisma.task.create({
+      data: {
+        orgId: org2.id,
+        name: "Clean espresso machine",
+        description: "Backflush, descale group heads, clean steam wand.",
+        durationMin: 30,
+        preferredStartTimeMin: timeToMin("15:00"),
+        minPeople: 1,
+        minWaitDays: 1,
+        maxWaitDays: 2,
+      },
+    }),
+    prisma.task.create({
+      data: {
+        orgId: org2.id,
+        name: "Close cafe checklist",
+        description: "Cash up, wipe down, lock up.",
+        durationMin: 25,
+        preferredStartTimeMin: timeToMin("16:30"),
+        minPeople: 1,
+        minWaitDays: 0,
+        maxWaitDays: 1,
+      },
+    }),
+  ]);
+
+  await prisma.taskEligibility.createMany({
+    data: [o2Task1, o2Task2, o2Task3].map((t) => ({
+      taskId: t.id,
+      roleId: o2Barista.id,
+    })),
+    skipDuplicates: true,
+  });
+
+  const o2Template = await prisma.template.create({
+    data: { orgId: org2.id, name: "Standard Week", cycleLengthDays: 7 },
+  });
+
+  await prisma.templateEntry.createMany({
+    data: [
+      {
+        templateId: o2Template.id,
+        taskId: o2Task1.id,
+        dayIndex: 0,
+        startTimeMin: timeToMin("07:00"),
+        endTimeMin: timeToMin("07:20"),
+      },
+      {
+        templateId: o2Template.id,
+        taskId: o2Task2.id,
+        dayIndex: 3,
+        startTimeMin: timeToMin("15:00"),
+        endTimeMin: timeToMin("15:30"),
+      },
+      {
+        templateId: o2Template.id,
+        taskId: o2Task3.id,
+        dayIndex: 4,
+        startTimeMin: timeToMin("16:30"),
+        endTimeMin: timeToMin("16:55"),
+      },
+    ],
+  });
+
+  // Live timetable entries — Org 2
+  await Promise.all([
+    prisma.timetableEntry.create({
+      data: {
+        orgId: org2.id,
+        taskId: o2Task1.id,
+        taskName: o2Task1.name,
+        taskDescription: o2Task1.description,
+        durationMin: 20,
+        date: dayDate(0),
+        startTimeMin: timeToMin("07:00"),
+        endTimeMin: timeToMin("07:20"),
+        status: EntryStatus.DONE,
+        assignees: { create: [{ membershipId: o2Riley.id }] },
+      },
+    }),
+    prisma.timetableEntry.create({
+      data: {
+        orgId: org2.id,
+        taskId: o2Task2.id,
+        taskName: o2Task2.name,
+        taskDescription: o2Task2.description,
+        durationMin: 30,
+        date: dayDate(1),
+        startTimeMin: timeToMin("15:00"),
+        endTimeMin: timeToMin("15:30"),
+        status: EntryStatus.TODO,
+        assignees: { create: [{ membershipId: o2Morgan.id }] },
+      },
+    }),
+    prisma.timetableEntry.create({
+      data: {
+        orgId: org2.id,
+        taskId: o2Task3.id,
+        taskName: o2Task3.name,
+        taskDescription: o2Task3.description,
+        durationMin: 25,
+        date: dayDate(3),
+        startTimeMin: timeToMin("16:30"),
+        endTimeMin: timeToMin("16:55"),
+        status: EntryStatus.TODO,
+        assignees: { create: [{ membershipId: o2Morgan.id }] },
+      },
+    }),
+  ]);
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // ORG 3: Bakery C  (Jordan owns · Casey + Riley work)
+  // ──────────────────────────────────────────────────────────────────────────
+  const org3 = await prisma.organization.create({
     data: {
-      orgId: org.id,
-      taskId: tasks[2].id,
-      status: TaskInstanceStatus.TODO,
-      scheduledStartAt: atTime(4, "17:00"),
-      scheduledEndAt: atTime(4, "17:40"),
-      assignees: { create: [{ membershipId: mem4.id }] },
+      name: "Bakery C",
+      ownerId: jordan.id,
+      openTimeMin: timeToMin("05:00"),
+      closeTimeMin: timeToMin("14:00"),
+      timezone: "Australia/Sydney",
+      operatingDays: ["mon", "tue", "wed", "thu", "fri", "sat"],
     },
   });
+
+  const [o3Owner, o3Baker] = await Promise.all([
+    prisma.role.create({
+      data: {
+        orgId: org3.id,
+        name: "Owner",
+        key: ROLE_KEYS.OWNER,
+        isDeletable: false,
+        isDefault: false,
+      },
+    }),
+    prisma.role.create({
+      data: {
+        orgId: org3.id,
+        name: "Baker",
+        key: ROLE_KEYS.DEFAULT_MEMBER,
+        isDeletable: false,
+        isDefault: true,
+      },
+    }),
+  ]);
+
+  await prisma.permission.createMany({
+    data: OWNER_PERMISSIONS.map((action) => ({ roleId: o3Owner.id, action })),
+    skipDuplicates: true,
+  });
+  await prisma.permission.create({
+    data: { roleId: o3Baker.id, action: PermissionAction.VIEW_TIMETABLE },
+  });
+
+  const [o3Jordan, o3Casey, o3Riley] = await Promise.all([
+    prisma.membership.create({
+      data: {
+        orgId: org3.id,
+        userId: jordan.id,
+        workingDays: ["mon", "tue", "wed", "thu", "fri", "sat"],
+      },
+    }),
+    prisma.membership.create({
+      data: {
+        orgId: org3.id,
+        userId: casey.id,
+        workingDays: ["mon", "wed", "fri", "sat"],
+      },
+    }),
+    prisma.membership.create({
+      data: {
+        orgId: org3.id,
+        userId: riley.id,
+        workingDays: ["tue", "thu", "sat"],
+      },
+    }),
+  ]);
+
+  await prisma.memberRole.createMany({
+    data: [
+      { membershipId: o3Jordan.id, roleId: o3Owner.id },
+      { membershipId: o3Casey.id, roleId: o3Baker.id },
+      { membershipId: o3Riley.id, roleId: o3Baker.id },
+    ],
+  });
+
+  const [o3Task1, o3Task2, o3Task3] = await Promise.all([
+    prisma.task.create({
+      data: {
+        orgId: org3.id,
+        name: "Morning prep",
+        description: "Preheat ovens, prep dough, set up station.",
+        durationMin: 45,
+        preferredStartTimeMin: timeToMin("05:00"),
+        minPeople: 1,
+        minWaitDays: 0,
+        maxWaitDays: 1,
+      },
+    }),
+    prisma.task.create({
+      data: {
+        orgId: org3.id,
+        name: "Bread baking",
+        description: "Score and bake loaves for the day.",
+        durationMin: 90,
+        preferredStartTimeMin: timeToMin("06:00"),
+        minPeople: 2,
+        minWaitDays: 0,
+        maxWaitDays: 1,
+      },
+    }),
+    prisma.task.create({
+      data: {
+        orgId: org3.id,
+        name: "Evening cleanup",
+        description: "Clean ovens, sweep floor, store remaining stock.",
+        durationMin: 40,
+        preferredStartTimeMin: timeToMin("13:00"),
+        minPeople: 1,
+        minWaitDays: 0,
+        maxWaitDays: 1,
+      },
+    }),
+  ]);
+
+  await prisma.taskEligibility.createMany({
+    data: [o3Task1, o3Task2, o3Task3].map((t) => ({
+      taskId: t.id,
+      roleId: o3Baker.id,
+    })),
+    skipDuplicates: true,
+  });
+
+  const o3Template = await prisma.template.create({
+    data: { orgId: org3.id, name: "5-Day Rotation", cycleLengthDays: 5 },
+  });
+
+  await prisma.templateEntry.createMany({
+    data: [
+      {
+        templateId: o3Template.id,
+        taskId: o3Task1.id,
+        dayIndex: 0,
+        startTimeMin: timeToMin("05:00"),
+        endTimeMin: timeToMin("05:45"),
+      },
+      {
+        templateId: o3Template.id,
+        taskId: o3Task2.id,
+        dayIndex: 0,
+        startTimeMin: timeToMin("06:00"),
+        endTimeMin: timeToMin("07:30"),
+      },
+      {
+        templateId: o3Template.id,
+        taskId: o3Task3.id,
+        dayIndex: 4,
+        startTimeMin: timeToMin("13:00"),
+        endTimeMin: timeToMin("13:40"),
+      },
+    ],
+  });
+
+  // Live timetable entries — Org 3
+  await Promise.all([
+    prisma.timetableEntry.create({
+      data: {
+        orgId: org3.id,
+        taskId: o3Task1.id,
+        taskName: o3Task1.name,
+        taskDescription: o3Task1.description,
+        durationMin: 45,
+        date: dayDate(0),
+        startTimeMin: timeToMin("05:00"),
+        endTimeMin: timeToMin("05:45"),
+        status: EntryStatus.DONE,
+        assignees: { create: [{ membershipId: o3Casey.id }] },
+      },
+    }),
+    prisma.timetableEntry.create({
+      data: {
+        orgId: org3.id,
+        taskId: o3Task2.id,
+        taskName: o3Task2.name,
+        taskDescription: o3Task2.description,
+        durationMin: 90,
+        date: dayDate(0),
+        startTimeMin: timeToMin("06:00"),
+        endTimeMin: timeToMin("07:30"),
+        status: EntryStatus.DONE,
+        assignees: {
+          create: [{ membershipId: o3Casey.id }, { membershipId: o3Jordan.id }],
+        },
+      },
+    }),
+    prisma.timetableEntry.create({
+      data: {
+        orgId: org3.id,
+        taskId: o3Task3.id,
+        taskName: o3Task3.name,
+        taskDescription: o3Task3.description,
+        durationMin: 40,
+        date: dayDate(4),
+        startTimeMin: timeToMin("13:00"),
+        endTimeMin: timeToMin("13:40"),
+        status: EntryStatus.TODO,
+        assignees: { create: [{ membershipId: o3Riley.id }] },
+      },
+    }),
+  ]);
 
   console.log("Seeded successfully:");
   console.log({
-    orgId: org.id,
-    ownerUserId: ownerUser.id,
-    workerUserIds: [worker1.id, worker2.id, worker3.id, worker4.id],
-    ownerMembershipId: ownerMembership.id,
-    workerMembershipIds: [mem1.id, mem2.id, mem3.id, mem4.id],
-    roleIds: { ownerRoleId: ownerRole.id, workerRoleId: workerRole.id },
-    taskIds: tasks.map((t) => t.id),
-    templateId: template.id,
-    templateInstanceIds: [instance1.id, instance2.id, instance3.id],
-    liveInstanceIds: [live1.id, live2.id, live3.id],
+    users: {
+      ivan: ivan.id,
+      jordan: jordan.id,
+      casey: casey.id,
+      riley: riley.id,
+      morgan: morgan.id,
+    },
+    orgs: {
+      "Donut Shop A": org1.id,
+      "Coffee House B": org2.id,
+      "Bakery C": org3.id,
+    },
   });
 }
 

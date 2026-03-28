@@ -10,11 +10,11 @@ export async function createTask(orgId: string, data: CreateTaskInput) {
   return prisma.task.create({
     data: {
       orgId,
-      title: data.title,
+      name: data.title,
       description: data.description ?? null,
       durationMin: data.durationMin,
       preferredStartTimeMin: data.preferredStartTimeMin ?? null,
-      peopleRequired: data.peopleRequired ?? 1,
+      minPeople: data.peopleRequired ?? 1,
       minWaitDays: data.minWaitDays ?? null,
       maxWaitDays: data.maxWaitDays ?? null,
     },

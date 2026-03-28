@@ -1,7 +1,6 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { CalendarDays, Plus } from "lucide-react";
-import { requireOrgMember } from "@/lib/authz";
+import { requireOrgMemberPage } from "@/lib/authz";
 import { getTimetableTemplates } from "@/lib/services/templates";
 import { Toolbar } from "@/components/layout/toolbar";
 import { Button } from "@/components/ui/button";
@@ -12,8 +11,7 @@ export default async function TemplatesPage({
   params: Promise<{ orgId: string }>;
 }) {
   const { orgId } = await params;
-  const authz = await requireOrgMember(orgId);
-  if (!authz.ok) redirect("/");
+  await requireOrgMemberPage(orgId);
 
   const templates = await getTimetableTemplates(orgId);
 
@@ -47,36 +45,13 @@ export default async function TemplatesPage({
               href={`/orgs/${orgId}/timetable/templates/${t.id}`}
             >
               <div className="rounded-xl border p-4 hover:bg-muted/40 transition-colors cursor-pointer">
-                <div className="font-semibold text-sm">{t.title}</div>
+                <div className="font-semibold text-sm">{t.name}</div>
                 <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
-                  <span>{t.templateDays} days</span>
+                  <span>{t.cycleLengthDays} days</span>
                   <span>·</span>
-                  <span>{t._count.instances} slots</span>
+                  <span>{t._count.entries} slots</span>
                   <span>·</span>
-                  {(() => {
-                    const now = new Date();
-                    const isActive =
-                      !!t.effectiveFrom && t.effectiveFrom <= now;
-                    const isScheduled =
-                      !!t.effectiveFrom && t.effectiveFrom > now;
-                    return (
-                      <span
-                        className={
-                          isActive
-                            ? "text-green-600 font-medium"
-                            : isScheduled
-                              ? "text-amber-600 font-medium"
-                              : "text-slate-400"
-                        }
-                      >
-                        {isActive
-                          ? "Active"
-                          : isScheduled
-                            ? "Scheduled"
-                            : "Draft"}
-                      </span>
-                    );
-                  })()}
+                  <span className="text-slate-400">Draft</span>
                 </div>
               </div>
             </Link>

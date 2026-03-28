@@ -13,6 +13,9 @@ const SEGMENT_LABELS: Record<string, string> = {
   memberships: "Members",
   progress: "Progress",
   settings: "Settings",
+  organization: "Organization",
+  roles: "Roles",
+  notification: "Notification",
   new: "New",
 };
 

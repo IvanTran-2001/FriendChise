@@ -1,12 +1,11 @@
 import { getTasks } from "@/lib/services/tasks";
-import { requireOrgMember } from "@/lib/authz";
-import { redirect } from "next/navigation";
+import { requireOrgMemberPage } from "@/lib/authz";
 import { Toolbar } from "@/components/layout/toolbar";
 
 /**
  * Tasks list page — server component.
  *
- * Guards access with `requireOrgMember`; redirects to `/` if the caller is not
+ * Guards access with `requireOrgMemberPage`; redirects to `/` if the caller is not
  * a member. Fetches and renders all tasks for the org with a toolbar action
  * to create a new task.
  */
@@ -17,8 +16,7 @@ const TasksPage = async ({
 }) => {
   const { orgId } = await params;
 
-  const authz = await requireOrgMember(orgId);
-  if (!authz.ok) redirect("/");
+  await requireOrgMemberPage(orgId);
 
   const tasks = await getTasks(orgId);
 
@@ -37,7 +35,7 @@ const TasksPage = async ({
                 key={task.id}
                 className="border rounded-lg p-4 flex flex-col gap-1"
               >
-                <span className="font-medium">{task.title}</span>
+                <span className="font-medium">{task.name}</span>
                 {task.description && (
                   <span className="text-sm text-muted-foreground">
                     {task.description}
@@ -45,7 +43,7 @@ const TasksPage = async ({
                 )}
                 <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
                   <span>Duration: {task.durationMin} min</span>
-                  <span>People required: {task.peopleRequired}</span>
+                  <span>People required: {task.minPeople}</span>
                   {task.minWaitDays != null && (
                     <span>Min wait: {task.minWaitDays}d</span>
                   )}

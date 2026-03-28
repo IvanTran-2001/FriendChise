@@ -1,12 +1,11 @@
 import { getMemberships } from "@/lib/services/memberships";
-import { requireOrgMember } from "@/lib/authz";
-import { redirect } from "next/navigation";
+import { requireOrgMemberPage } from "@/lib/authz";
 import { Toolbar } from "@/components/layout/toolbar";
 
 /**
  * Members list page — server component.
  *
- * Guards access with `requireOrgMember`; redirects to `/` if the caller is not
+ * Guards access with `requireOrgMemberPage`; redirects to `/` if the caller is not
  * a member. Fetches and renders all memberships for the org with a toolbar
  * action to add a new member.
  */
@@ -17,8 +16,7 @@ const MembersPage = async ({
 }) => {
   const { orgId } = await params;
 
-  const authz = await requireOrgMember(orgId);
-  if (!authz.ok) redirect("/");
+  await requireOrgMemberPage(orgId);
 
   const memberships = await getMemberships(orgId);
 
@@ -44,7 +42,7 @@ const MembersPage = async ({
                     {m.user.name ?? "Unnamed user"}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {m.role.title}
+                    {m.memberRoles.map(({ role }) => role.name).join(", ") || "—"}
                   </span>
                 </div>
               </li>

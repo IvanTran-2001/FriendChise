@@ -16,6 +16,9 @@ importers:
       "@prisma/client":
         specifier: ^7.4.2
         version: 7.4.2(prisma@7.4.2(@types/react@19.2.14)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3))(typescript@5.9.3)
+      "@vvo/tzdb":
+        specifier: ^6.198.0
+        version: 6.198.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -2865,6 +2868,12 @@ packages:
       }
     cpu: [x64]
     os: [win32]
+
+  "@vvo/tzdb@6.198.0":
+    resolution:
+      {
+        integrity: sha512-bNRWBhWYl0edVgyX6AYbhoCM2tk2lXJjGCyO2VDc2xn6Dw8dLd7WGj2DDXkVOkmOIQTNjEAcxrEpIzz5pWVwFg==,
+      }
 
   accepts@2.0.0:
     resolution:
@@ -9178,6 +9187,8 @@ snapshots:
 
   "@unrs/resolver-binding-win32-x64-msvc@1.11.1":
     optional: true
+
+  "@vvo/tzdb@6.198.0": {}
 
   accepts@2.0.0:
     dependencies:

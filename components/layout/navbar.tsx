@@ -33,10 +33,12 @@ export const NavBar = async () => {
     ? await prisma.membership
         .findMany({
           where: { userId: user.id },
-          select: { org: { select: { id: true, title: true } } },
+          select: { organization: { select: { id: true, name: true } } },
         })
         .then((ms) =>
-          ms.map((m) => m.org).sort((a, b) => a.title.localeCompare(b.title)),
+          ms
+            .map((m) => m.organization)
+            .sort((a, b) => a.name.localeCompare(b.name)),
         )
         .catch((error) => {
           console.error("Failed to load organizations for navbar", error);
@@ -49,9 +51,12 @@ export const NavBar = async () => {
       {/* Left: sidebar toggle, app title, org switcher */}
       <div className="flex items-center gap-2">
         <SidebarTrigger />
-        <Button asChild size="sm">
-          <Link href="/">App</Link>
-        </Button>
+        <Link
+          href="/"
+          className="text-sm font-bold tracking-tight select-none px-1"
+        >
+          Friend<span className="text-primary">Chise</span>
+        </Link>
         <OrgSwitcher orgs={orgs} />
       </div>
 

@@ -1,27 +1,24 @@
 import { prisma } from "@/lib/prisma";
 
 export async function getTimetableTemplates(orgId: string) {
-  return prisma.timetableTemplate.findMany({
+  return prisma.template.findMany({
     where: { orgId },
     include: {
-      _count: { select: { instances: true } },
+      _count: { select: { entries: true } },
     },
     orderBy: { createdAt: "desc" },
   });
 }
 
 export async function getTimetableTemplate(orgId: string, templateId: string) {
-  return prisma.timetableTemplate.findFirst({
+  return prisma.template.findFirst({
     where: { id: templateId, orgId },
     include: {
-      instances: {
-        where: { dayOffset: { not: null }, startTimeMin: { not: null } },
+      entries: {
         include: {
-          task: { select: { id: true, title: true, durationMin: true } },
+          task: { select: { id: true, name: true, durationMin: true } },
           assignees: {
-            where: {
-              membership: { orgId },
-            },
+            where: { membership: { orgId } },
             include: {
               membership: {
                 include: { user: { select: { id: true, name: true } } },
@@ -29,7 +26,7 @@ export async function getTimetableTemplate(orgId: string, templateId: string) {
             },
           },
         },
-        orderBy: [{ dayOffset: "asc" }, { startTimeMin: "asc" }],
+        orderBy: [{ dayIndex: "asc" }, { startTimeMin: "asc" }],
       },
     },
   });

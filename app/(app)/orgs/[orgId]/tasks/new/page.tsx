@@ -1,12 +1,11 @@
-import { requireOrgPermission } from "@/lib/authz";
-import { OrgPermission } from "@prisma/client";
-import { redirect } from "next/navigation";
+import { requireOrgPermissionPage } from "@/lib/authz";
+import { PermissionAction } from "@prisma/client";
 import { CreateTaskForm } from "./create-task-form";
 
 /**
  * Create-task page — server component.
  *
- * Guards access with `requireOrgPermission(TASK_CREATE)`; redirects to `/`
+ * Guards access with `requireOrgPermissionPage(TASK_CREATE)`; redirects to `/`
  * if the caller lacks the permission. Renders the `CreateTaskForm` client
  * component inside a constrained-width container.
  */
@@ -17,8 +16,7 @@ const NewTaskPage = async ({
 }) => {
   const { orgId } = await params;
 
-  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_CREATE);
-  if (!authz.ok) redirect("/");
+  await requireOrgPermissionPage(orgId, PermissionAction.MANAGE_TASKS);
 
   return (
     <div className="max-w-lg mx-auto">

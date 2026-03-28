@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import type { ServiceResult } from "./types";
 
 /**
- * Assigns a member to a task instance. Validates that both the task instance
+ * Assigns a member to a timetable entry. Validates that both the entry
  * and the membership belong to the same org before creating the link,
  * preventing cross-org assignment via crafted IDs.
  */
@@ -12,16 +12,16 @@ export async function createAssignee(
   taskInstanceId: string,
   membershipId: string,
 ): Promise<
-  ServiceResult<Prisma.TaskInstanceAssigneeGetPayload<Record<string, never>>>
+  ServiceResult<Prisma.TimetableEntryAssigneeGetPayload<Record<string, never>>>
 > {
-  const taskInstance = await prisma.taskInstance.findFirst({
+  const entry = await prisma.timetableEntry.findFirst({
     where: { id: taskInstanceId, orgId },
     select: { id: true },
   });
-  if (!taskInstance) {
+  if (!entry) {
     return {
       ok: false,
-      error: "Task instance not found in this org",
+      error: "Timetable entry not found in this org",
       code: "NOT_FOUND",
     };
   }
@@ -39,8 +39,8 @@ export async function createAssignee(
   }
 
   try {
-    const assignee = await prisma.taskInstanceAssignee.create({
-      data: { taskInstanceId, membershipId },
+    const assignee = await prisma.timetableEntryAssignee.create({
+      data: { timetableEntryId: taskInstanceId, membershipId },
     });
     return { ok: true, data: assignee };
   } catch (e) {
@@ -55,8 +55,8 @@ export async function createAssignee(
 }
 
 /**
- * Removes a member from a task instance. Verifies org ownership of both the
- * task instance and the membership before deleting to prevent cross-org
+ * Removes a member from a timetable entry. Verifies org ownership of both
+ * the entry and the membership before deleting to prevent cross-org
  * manipulation via crafted IDs.
  */
 export async function deleteAssignee(
@@ -64,11 +64,11 @@ export async function deleteAssignee(
   taskInstanceId: string,
   membershipId: string,
 ): Promise<ServiceResult<null>> {
-  const link = await prisma.taskInstanceAssignee.findFirst({
+  const link = await prisma.timetableEntryAssignee.findFirst({
     where: {
-      taskInstanceId,
+      timetableEntryId: taskInstanceId,
       membershipId,
-      taskInstance: { is: { orgId } },
+      timetableEntry: { is: { orgId } },
       membership: { is: { orgId } },
     },
     select: { id: true },
@@ -77,25 +77,28 @@ export async function deleteAssignee(
   if (!link)
     return { ok: false, error: "Assignee not found", code: "NOT_FOUND" };
 
-  await prisma.taskInstanceAssignee.delete({ where: { id: link.id } });
+  await prisma.timetableEntryAssignee.delete({ where: { id: link.id } });
   return { ok: true, data: null };
 }
 
 /**
- * Returns all assignees for a task instance, scoped to `orgId`.
- * Each assignee includes the linked membership with user name and role title.
+ * Returns all assignees for a timetable entry, scoped to `orgId`.
+ * Each assignee includes the linked membership with user name and role name.
  */
 export async function getAssignees(orgId: string, taskInstanceId: string) {
-  return prisma.taskInstanceAssignee.findMany({
+  return prisma.timetableEntryAssignee.findMany({
     where: {
-      taskInstanceId,
-      taskInstance: { is: { orgId } },
+      timetableEntryId: taskInstanceId,
+      timetableEntry: { is: { orgId } },
     },
     include: {
       membership: {
         include: {
           user: { select: { id: true, name: true } },
-          role: { select: { id: true, title: true } },
+          memberRoles: {
+            include: { role: { select: { id: true, name: true } } },
+            take: 1, // Return only the first/primary role for display purposes
+          },
         },
       },
     },

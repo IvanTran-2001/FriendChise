@@ -1,27 +1,34 @@
 import { prisma } from "@/lib/prisma";
-import { Prisma, TaskInstanceStatus } from "@prisma/client";
+import { Prisma, EntryStatus } from "@prisma/client";
 import type { ServiceResult } from "./types";
+import type { CreateTaskInstanceInput } from "@/lib/validators/task-instance";
 
-/** Options for filtering the task instances returned by `getTaskInstances`. */
+/** Options for filtering timetable entries returned by `getTaskInstances`. */
 export type GetTaskInstancesOptions = {
-  status?: TaskInstanceStatus;
+  status?: EntryStatus;
   completed?: boolean;
 };
 
 /**
- * Creates a new task instance for the given org and task.
- * Validates that the task belongs to the org before inserting so crafted
- * `taskId` values from other orgs are rejected with a clear INVALID error.
+ * Creates a new timetable entry for the given org and task.
+ * Validates that the task belongs to the org before inserting and
+ * auto-populates snapshot fields (taskName, durationMin, etc.) from the task.
  */
 export async function createTaskInstance(
   orgId: string,
-  taskId: string,
+  data: CreateTaskInstanceInput,
 ): Promise<
-  ServiceResult<Prisma.TaskInstanceGetPayload<Record<string, never>>>
+  ServiceResult<Prisma.TimetableEntryGetPayload<Record<string, never>>>
 > {
   const task = await prisma.task.findFirst({
-    where: { id: taskId, orgId },
-    select: { id: true },
+    where: { id: data.taskId, orgId },
+    select: {
+      id: true,
+      name: true,
+      color: true,
+      description: true,
+      durationMin: true,
+    },
   });
   if (!task) {
     return {
@@ -31,27 +38,30 @@ export async function createTaskInstance(
     };
   }
 
+  const endTimeMin = data.endTimeMin ?? data.startTimeMin + task.durationMin;
+
   try {
-    const taskInstance = await prisma.taskInstance.create({
-      data: { orgId, taskId },
+    const entry = await prisma.timetableEntry.create({
+      data: {
+        orgId,
+        taskId: task.id,
+        taskName: task.name,
+        taskColor: task.color,
+        taskDescription: task.description,
+        durationMin: task.durationMin,
+        date: new Date(data.date),
+        startTimeMin: data.startTimeMin,
+        endTimeMin,
+      },
     });
-    return { ok: true, data: taskInstance };
+    return { ok: true, data: entry };
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
-      // Task removed (or relation invalid) between pre-check and create
       if (e.code === "P2003") {
         return {
           ok: false,
           error: "Invalid taskId: not found or does not belong to this org",
           code: "INVALID",
-        };
-      }
-      // Keep this only if a corresponding unique constraint is added in schema.
-      if (e.code === "P2002") {
-        return {
-          ok: false,
-          error: "Task instance already exists",
-          code: "CONFLICT",
         };
       }
     }
@@ -60,9 +70,9 @@ export async function createTaskInstance(
 }
 
 /**
- * Lists task instances for an org with optional status filtering.
+ * Lists timetable entries for an org with optional status filtering.
  * `status` and `completed` are mutually exclusive:
- *   - `status`: filter to an exact TaskInstanceStatus value
+ *   - `status`: filter to an exact EntryStatus value
  *   - `completed: true`:  only DONE or SKIPPED
  *   - `completed: false`: exclude DONE and SKIPPED
  */
@@ -70,86 +80,92 @@ export async function getTaskInstances(
   orgId: string,
   options: GetTaskInstancesOptions = {},
 ) {
-  const where: Prisma.TaskInstanceWhereInput = { orgId };
+  const where: Prisma.TimetableEntryWhereInput = { orgId };
 
   if (options.status != null) {
     where.status = options.status;
   } else if (options.completed === false) {
     where.status = {
-      notIn: [TaskInstanceStatus.DONE, TaskInstanceStatus.SKIPPED],
+      notIn: [EntryStatus.DONE, EntryStatus.SKIPPED],
     };
   } else if (options.completed === true) {
     where.status = {
-      in: [TaskInstanceStatus.DONE, TaskInstanceStatus.SKIPPED],
+      in: [EntryStatus.DONE, EntryStatus.SKIPPED],
     };
   }
 
-  return prisma.taskInstance.findMany({
+  return prisma.timetableEntry.findMany({
     where,
-    orderBy: { createdAt: "desc" },
+    orderBy: { date: "desc" },
   });
 }
 
 /**
- * Fetches a single task instance by id, scoped to `orgId`.
- * Returns NOT_FOUND if the instance does not exist in this org.
+ * Fetches a single timetable entry by id, scoped to `orgId`.
+ * Returns NOT_FOUND if the entry does not exist in this org.
  */
 export async function getTaskInstance(
   orgId: string,
   taskInstanceId: string,
 ): Promise<
-  ServiceResult<Prisma.TaskInstanceGetPayload<Record<string, never>>>
+  ServiceResult<Prisma.TimetableEntryGetPayload<Record<string, never>>>
 > {
-  const item = await prisma.taskInstance.findFirst({
+  const item = await prisma.timetableEntry.findFirst({
     where: { orgId, id: taskInstanceId },
   });
   if (!item)
     return {
       ok: false,
-      error: "Task instance not found in this org",
+      error: "Timetable entry not found in this org",
       code: "NOT_FOUND",
     };
   return { ok: true, data: item };
 }
 
 /**
- * Updates the status of a task instance inside a transaction.
+ * Updates the status of a timetable entry inside a transaction.
  * Uses `updateMany` (scoped by orgId) to detect missing records without an
  * extra query, then re-fetches the updated row to return to the caller.
  */
 export async function updateTaskInstanceStatus(
   orgId: string,
   taskInstanceId: string,
-  status: TaskInstanceStatus,
+  status: EntryStatus,
 ): Promise<
-  ServiceResult<Prisma.TaskInstanceGetPayload<Record<string, never>>>
+  ServiceResult<Prisma.TimetableEntryGetPayload<Record<string, never>>>
 > {
   try {
-    const taskInstance = await prisma.$transaction(async (tx) => {
-      const updated = await tx.taskInstance.updateMany({
+    const entry = await prisma.$transaction(async (tx) => {
+      const updated = await tx.timetableEntry.updateMany({
         where: { id: taskInstanceId, orgId },
         data: { status },
       });
 
       if (updated.count === 0) {
-        throw Object.assign(new Error("Task instance not found in this org"), {
-          code: "NOT_FOUND",
-        });
+        throw Object.assign(
+          new Error("Timetable entry not found in this org"),
+          {
+            code: "NOT_FOUND",
+          },
+        );
       }
 
-      const instance = await tx.taskInstance.findUnique({
+      const item = await tx.timetableEntry.findUnique({
         where: { id: taskInstanceId },
       });
-      if (!instance) {
-        throw Object.assign(new Error("Task instance not found in this org"), {
-          code: "NOT_FOUND",
-        });
+      if (!item) {
+        throw Object.assign(
+          new Error("Timetable entry not found in this org"),
+          {
+            code: "NOT_FOUND",
+          },
+        );
       }
 
-      return instance;
+      return item;
     });
 
-    return { ok: true, data: taskInstance };
+    return { ok: true, data: entry };
   } catch (e) {
     if (e instanceof Error && (e as { code?: string }).code === "NOT_FOUND") {
       return { ok: false, error: e.message, code: "NOT_FOUND" };
@@ -158,8 +174,8 @@ export async function updateTaskInstanceStatus(
   }
 }
 
-/** Full instance shape used by the timetable view. */
-export type TimetableInstance = Prisma.TaskInstanceGetPayload<{
+/** Full entry shape used by the timetable calendar view. */
+export type TimetableInstance = Prisma.TimetableEntryGetPayload<{
   include: {
     task: true;
     assignees: {
@@ -173,19 +189,19 @@ export type TimetableInstance = Prisma.TaskInstanceGetPayload<{
 }>;
 
 /**
- * Fetches task instances within a UTC date range for the timetable view.
- * Only instances with a scheduledStartAt in [from, to) are returned.
- * Includes task details and assignee/user data needed to render blocks.
+ * Fetches timetable entries within a date range for the calendar view.
+ * Entries whose `date` falls in [from, to) are returned, ordered by
+ * startTimeMin ascending. Includes task details and assignee/user data.
  */
 export async function getTaskInstancesForTimetable(
   orgId: string,
   from: Date,
   to: Date,
 ): Promise<TimetableInstance[]> {
-  return prisma.taskInstance.findMany({
+  return prisma.timetableEntry.findMany({
     where: {
       orgId,
-      scheduledStartAt: { gte: from, lt: to },
+      date: { gte: from, lt: to },
     },
     include: {
       task: true,
@@ -199,6 +215,6 @@ export async function getTaskInstancesForTimetable(
         },
       },
     },
-    orderBy: { scheduledStartAt: "asc" },
+    orderBy: { startTimeMin: "asc" },
   });
 }

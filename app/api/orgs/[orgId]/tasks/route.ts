@@ -8,7 +8,7 @@
 import { NextResponse } from "next/server";
 import { createTaskSchema } from "@/lib/validators/task";
 import { requireOrgMember, requireOrgPermission } from "@/lib/authz";
-import { OrgPermission } from "@prisma/client";
+import { PermissionAction } from "@prisma/client";
 import z from "zod";
 import { createTask, deleteTask, getTasks } from "@/lib/services/tasks";
 
@@ -18,7 +18,10 @@ export async function POST(
 ) {
   const { orgId } = await params;
 
-  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_CREATE);
+  const authz = await requireOrgPermission(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return authz.response;
 
   let json: unknown;
@@ -48,7 +51,10 @@ export async function DELETE(
 ) {
   const { orgId } = await params;
 
-  const authz = await requireOrgPermission(orgId, OrgPermission.TASK_DELETE);
+  const authz = await requireOrgPermission(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return authz.response;
 
   let json: unknown;

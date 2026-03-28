@@ -1,7 +1,7 @@
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { requireOrgMember } from "@/lib/authz";
+import { requireOrgMemberPage } from "@/lib/authz";
 import { getTimetableTemplate } from "@/lib/services/templates";
 import { prisma } from "@/lib/prisma";
 import { Toolbar } from "@/components/layout/toolbar";
@@ -19,8 +19,7 @@ export default async function TemplateEditorPage({
 }) {
   const { orgId, templateId } = await params;
 
-  const authz = await requireOrgMember(orgId);
-  if (!authz.ok) redirect("/");
+  await requireOrgMemberPage(orgId);
 
   const [template, org, rawTasks, rawMemberships] = await Promise.all([
     getTimetableTemplate(orgId, templateId),
@@ -30,8 +29,8 @@ export default async function TemplateEditorPage({
     }),
     prisma.task.findMany({
       where: { orgId },
-      select: { id: true, title: true, durationMin: true },
-      orderBy: { title: "asc" },
+      select: { id: true, name: true, durationMin: true },
+      orderBy: { name: "asc" },
     }),
     prisma.membership.findMany({
       where: { orgId },
@@ -42,36 +41,29 @@ export default async function TemplateEditorPage({
 
   if (!template) notFound();
 
-  const instances: ClientTemplateInstance[] = template.instances.map(
-    (inst) => ({
-      id: inst.id,
-      dayOffset: inst.dayOffset!,
-      startTimeMin: inst.startTimeMin!,
-      task: {
-        id: inst.task.id,
-        title: inst.task.title,
-        durationMin: inst.task.durationMin,
-      },
-      assignees: inst.assignees.map((a) => ({
-        id: a.id,
-        membership: {
-          id: a.membership.id,
-          user: {
-            id: a.membership.user.id,
-            name: a.membership.user.name,
-          },
+  const instances: ClientTemplateInstance[] = template.entries.map((inst) => ({
+    id: inst.id,
+    dayIndex: inst.dayIndex,
+    startTimeMin: inst.startTimeMin!,
+    task: {
+      id: inst.task.id,
+      name: inst.task.name,
+      durationMin: inst.task.durationMin,
+    },
+    assignees: inst.assignees.map((a) => ({
+      id: a.id,
+      membership: {
+        id: a.membership.id,
+        user: {
+          id: a.membership.user.id,
+          name: a.membership.user.name,
         },
-      })),
-    }),
-  );
+      },
+    })),
+  }));
 
   const availableTasks: ClientTask[] = rawTasks;
   const memberships: ClientMembership[] = rawMemberships;
-
-  const now = new Date();
-  const isActive = !!template.effectiveFrom && template.effectiveFrom <= now;
-  const isScheduled = !!template.effectiveFrom && template.effectiveFrom > now;
-  const statusLabel = isActive ? "Active" : isScheduled ? "Scheduled" : "Draft";
 
   return (
     <>
@@ -83,20 +75,12 @@ export default async function TemplateEditorPage({
           <ChevronLeft className="h-3.5 w-3.5" /> Templates
         </Link>
         <div className="flex items-center gap-2 ml-2">
-          <span className="font-semibold text-sm">{template.title}</span>
+          <span className="font-semibold text-sm">{template.name}</span>
           <span className="text-xs text-muted-foreground">
-            · {template.templateDays} day cycle
+            · {template.cycleLengthDays} day cycle
           </span>
-          <span
-            className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-              isActive
-                ? "bg-green-100 text-green-700"
-                : isScheduled
-                  ? "bg-amber-100 text-amber-700"
-                  : "bg-slate-100 text-slate-500"
-            }`}
-          >
-            {statusLabel}
+          <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-slate-100 text-slate-500">
+            Draft
           </span>
         </div>
       </Toolbar>
@@ -104,7 +88,7 @@ export default async function TemplateEditorPage({
       <TemplateEditorClient
         orgId={orgId}
         templateId={templateId}
-        templateDays={template.templateDays}
+        templateDays={template.cycleLengthDays}
         instances={instances}
         availableTasks={availableTasks}
         memberships={memberships}

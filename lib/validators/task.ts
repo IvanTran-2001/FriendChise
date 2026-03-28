@@ -5,7 +5,7 @@
  * and minWaitDays must not exceed maxWaitDays when both are set.
  */
 import { z } from "zod";
-import { TaskInstanceStatus } from "@prisma/client";
+import { EntryStatus } from "@prisma/client";
 
 export const createTaskSchema = z
   .object({
@@ -48,7 +48,7 @@ export const createTaskSchema = z
   });
 
 export const updateTaskInstanceStatusSchema = z.object({
-  status: z.nativeEnum(TaskInstanceStatus),
+  status: z.nativeEnum(EntryStatus),
 });
 
 export type UpdateTaskStatusInput = z.infer<
