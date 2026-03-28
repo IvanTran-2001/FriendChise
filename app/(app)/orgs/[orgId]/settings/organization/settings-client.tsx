@@ -163,8 +163,8 @@ function TransferOwnershipSection({
     setError(null);
     startTransition(async () => {
       const result = await transferOrgOwnership(orgId, { newOwnerId });
-      if (!result.ok) setError(result.error);
-      // On success the action redirects to "/" automatically
+      // On success, the action redirects — this code only runs on error
+      if (result && !result.ok) setError(result.error);
     });
   }
 
