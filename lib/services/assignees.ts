@@ -97,7 +97,7 @@ export async function getAssignees(orgId: string, taskInstanceId: string) {
           user: { select: { id: true, name: true } },
           memberRoles: {
             include: { role: { select: { id: true, name: true } } },
-            take: 1,
+            take: 1, // Return only the first/primary role for display purposes
           },
         },
       },

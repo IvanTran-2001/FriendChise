@@ -6,7 +6,9 @@ import { rawTimeZones } from "@vvo/tzdb";
 function fmtOffset(minutes: number): string {
   const sign = minutes >= 0 ? "+" : "-";
   const abs = Math.abs(minutes);
-  const h = Math.floor(abs / 60).toString().padStart(2, "0");
+  const h = Math.floor(abs / 60)
+    .toString()
+    .padStart(2, "0");
   const m = (abs % 60).toString().padStart(2, "0");
   return `UTC${sign}${h}:${m}`;
 }
@@ -14,7 +16,8 @@ function fmtOffset(minutes: number): string {
 const TIMEZONES = rawTimeZones.map((tz) => ({
   value: tz.name,
   label: `(${fmtOffset(tz.rawOffsetInMinutes)}) ${tz.alternativeName} — ${tz.mainCities[0] ?? tz.name}`,
-  search: `${tz.name} ${tz.alternativeName} ${tz.mainCities.join(" ")} ${tz.countryName}`.toLowerCase(),
+  search:
+    `${tz.name} ${tz.alternativeName} ${tz.mainCities.join(" ")} ${tz.countryName}`.toLowerCase(),
 }));
 
 export function TimezoneSelect({
@@ -36,29 +39,41 @@ export function TimezoneSelect({
     : TIMEZONES;
 
   useEffect(() => {
+    if (!open) return;
     function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
         setSearch("");
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [open]);
 
   return (
-    <div ref={containerRef} className={`relative ${className ?? "max-w-xs w-full"}`}>
+    <div
+      ref={containerRef}
+      className={`relative ${className ?? "max-w-xs w-full"}`}
+    >
       <input
         className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
         value={open ? search : (selected?.label ?? value)}
         onChange={(e) => setSearch(e.target.value)}
-        onFocus={() => { setOpen(true); setSearch(""); }}
+        onFocus={() => {
+          setOpen(true);
+          setSearch("");
+        }}
         placeholder="Search timezone…"
       />
       {open && (
         <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-background shadow-lg">
           {filtered.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-muted-foreground">No results</div>
+            <div className="px-3 py-2 text-sm text-muted-foreground">
+              No results
+            </div>
           ) : (
             filtered.map((tz) => (
               <div

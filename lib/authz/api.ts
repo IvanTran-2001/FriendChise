@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { PermissionAction } from "@prisma/client";
-import { getAuthUserId, getOrgMembership, memberHasPermission } from "./_shared";
+import {
+  getAuthUserId,
+  getOrgMembership,
+  memberHasPermission,
+} from "./_shared";
 
 /**
  * Auth guard helpers for API route handlers.
@@ -55,5 +59,9 @@ export async function requireOrgPermission(
     return { ok: false as const, response: permissionDenied() };
   }
 
-  return { ok: true as const, userId: authz.userId, membership: authz.membership };
+  return {
+    ok: true as const,
+    userId: authz.userId,
+    membership: authz.membership,
+  };
 }

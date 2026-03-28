@@ -36,7 +36,9 @@ export const NavBar = async () => {
           select: { organization: { select: { id: true, name: true } } },
         })
         .then((ms) =>
-          ms.map((m) => m.organization).sort((a, b) => a.name.localeCompare(b.name)),
+          ms
+            .map((m) => m.organization)
+            .sort((a, b) => a.name.localeCompare(b.name)),
         )
         .catch((error) => {
           console.error("Failed to load organizations for navbar", error);

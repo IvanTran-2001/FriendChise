@@ -1,10 +1,10 @@
 /**
  * REST endpoint: /api/orgs/[orgId]/memberships
  *
- * GET    — List all memberships for the org. Requires ORG_MANAGE permission.
- * POST   — Add a user to the org with a specified role. Requires ORG_MANAGE.
- * DELETE — Remove a user from the org. Requires ORG_MANAGE.
- *           The org owner cannot be removed.
+ * GET    — List all memberships for the org. Requires MANAGE_MEMBERS permission.
+ * POST   — Add a user to the org with a specified role. Requires MANAGE_MEMBERS.
+ * DELETE — Remove a user from the org. Requires MANAGE_MEMBERS.
+ *
  */
 import { NextResponse } from "next/server";
 import {
@@ -25,7 +25,10 @@ export async function POST(
 ) {
   const { orgId } = await params;
 
-  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_MEMBERS);
+  const authz = await requireOrgPermission(
+    orgId,
+    PermissionAction.MANAGE_MEMBERS,
+  );
   if (!authz.ok) return authz.response;
 
   let json: unknown;
@@ -57,7 +60,10 @@ export async function DELETE(
 ) {
   const { orgId } = await params;
 
-  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_MEMBERS);
+  const authz = await requireOrgPermission(
+    orgId,
+    PermissionAction.MANAGE_MEMBERS,
+  );
   if (!authz.ok) return authz.response;
 
   const json = await req.json().catch(() => null);
@@ -83,7 +89,10 @@ export async function GET(
 ) {
   const { orgId } = await params;
 
-  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_MEMBERS);
+  const authz = await requireOrgPermission(
+    orgId,
+    PermissionAction.MANAGE_MEMBERS,
+  );
   if (!authz.ok) return authz.response;
 
   const memberships = await getMemberships(orgId);

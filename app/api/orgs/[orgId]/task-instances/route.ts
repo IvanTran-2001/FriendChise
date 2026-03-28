@@ -6,7 +6,7 @@
  *           ?status=PENDING|IN_PROGRESS|DONE|SKIPPED  — exact status match
  *           ?completed=true|false                      — completed vs active
  * POST — Create a new task instance from an existing task.
- *         Requires TASK_CREATE permission.
+ *         Requires MANAGE_TASKS permission.
  */
 import { NextResponse } from "next/server";
 import { PermissionAction } from "@prisma/client";
@@ -25,7 +25,10 @@ export async function POST(
 ) {
   const { orgId } = await params;
 
-  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgPermission(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return authz.response;
 
   let json: unknown;

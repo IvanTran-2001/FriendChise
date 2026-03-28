@@ -86,9 +86,7 @@ async function main() {
     Fri: -4,
     Sat: -5,
   };
-  const mondayDate = new Date(
-    Date.UTC(ty, tm - 1, td + (DOW[localWd] ?? 0)),
-  );
+  const mondayDate = new Date(Date.UTC(ty, tm - 1, td + (DOW[localWd] ?? 0)));
   const [my, mm, md] = mondayDate
     .toISOString()
     .split("T")[0]
@@ -675,10 +673,7 @@ async function main() {
         endTimeMin: timeToMin("07:30"),
         status: EntryStatus.DONE,
         assignees: {
-          create: [
-            { membershipId: o3Casey.id },
-            { membershipId: o3Jordan.id },
-          ],
+          create: [{ membershipId: o3Casey.id }, { membershipId: o3Jordan.id }],
         },
       },
     }),

@@ -2,8 +2,8 @@
  * REST endpoint: /api/orgs/[orgId]/task-instances/[taskInstanceId]/assignees
  *
  * GET    — List all assignees for the task instance. Any org member may call this.
- * POST   — Assign a member to the task instance. Requires TASK_ASSIGN permission.
- * DELETE — Remove an assignee from the task instance. Requires TASK_ASSIGN permission.
+ * POST   — Assign a member to the task instance. Requires MANAGE_TIMETABLE permission.
+ * DELETE — Remove an assignee from the task instance. Requires MANAGE_TIMETABLE permission.
  */
 import { NextResponse } from "next/server";
 import { PermissionAction } from "@prisma/client";
@@ -24,7 +24,10 @@ export async function POST(
 ) {
   const { orgId, taskInstanceId } = await params;
 
-  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TIMETABLE);
+  const authz = await requireOrgPermission(
+    orgId,
+    PermissionAction.MANAGE_TIMETABLE,
+  );
   if (!authz.ok) return authz.response;
 
   let json: unknown;
@@ -73,7 +76,10 @@ export async function DELETE(
 ) {
   const { orgId, taskInstanceId } = await params;
 
-  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TIMETABLE);
+  const authz = await requireOrgPermission(
+    orgId,
+    PermissionAction.MANAGE_TIMETABLE,
+  );
   if (!authz.ok) return authz.response;
 
   const json = await req.json().catch(() => null);

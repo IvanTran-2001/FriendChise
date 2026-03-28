@@ -142,18 +142,24 @@ export async function updateTaskInstanceStatus(
       });
 
       if (updated.count === 0) {
-        throw Object.assign(new Error("Timetable entry not found in this org"), {
-          code: "NOT_FOUND",
-        });
+        throw Object.assign(
+          new Error("Timetable entry not found in this org"),
+          {
+            code: "NOT_FOUND",
+          },
+        );
       }
 
       const item = await tx.timetableEntry.findUnique({
         where: { id: taskInstanceId },
       });
       if (!item) {
-        throw Object.assign(new Error("Timetable entry not found in this org"), {
-          code: "NOT_FOUND",
-        });
+        throw Object.assign(
+          new Error("Timetable entry not found in this org"),
+          {
+            code: "NOT_FOUND",
+          },
+        );
       }
 
       return item;

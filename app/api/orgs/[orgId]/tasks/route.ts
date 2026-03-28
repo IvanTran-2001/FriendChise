@@ -18,7 +18,10 @@ export async function POST(
 ) {
   const { orgId } = await params;
 
-  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgPermission(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return authz.response;
 
   let json: unknown;
@@ -48,7 +51,10 @@ export async function DELETE(
 ) {
   const { orgId } = await params;
 
-  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgPermission(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return authz.response;
 
   let json: unknown;

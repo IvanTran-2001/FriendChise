@@ -1,7 +1,7 @@
 "use server";
 
 import { PermissionAction } from "@prisma/client";
-import { requireOrgPermission } from "@/lib/authz";
+import { requireOrgPermissionAction } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -16,7 +16,10 @@ export async function createTemplateAction(
   _prev: CreateTemplateFormState,
   formData: FormData,
 ): Promise<CreateTemplateFormState> {
-  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, errors: { _: ["Unauthorized"] } };
 
   const name = String(formData.get("title") ?? "").trim();
@@ -49,7 +52,10 @@ export async function addTemplateInstanceAction(
   dayIndex: number,
   startTimeMin: number,
 ): Promise<{ ok: boolean; error?: string }> {
-  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   const [task, template] = await Promise.all([
@@ -88,7 +94,10 @@ export async function removeTemplateInstanceAction(
   orgId: string,
   instanceId: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   const entry = await prisma.templateEntry.findFirst({
@@ -107,7 +116,10 @@ export async function updateTemplateInstanceAction(
   instanceId: string,
   update: { dayIndex?: number; startTimeMin?: number },
 ): Promise<{ ok: boolean; error?: string }> {
-  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   const entry = await prisma.templateEntry.findFirst({
@@ -160,7 +172,10 @@ export async function updateTemplateDaysAction(
   templateId: string,
   cycleLengthDays: number,
 ): Promise<{ ok: boolean; error?: string }> {
-  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   if (
@@ -200,7 +215,10 @@ export async function addInstanceAssigneeAction(
   instanceId: string,
   membershipId: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TIMETABLE);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TIMETABLE,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   const [entry, membership] = await Promise.all([
@@ -218,7 +236,10 @@ export async function addInstanceAssigneeAction(
 
   await prisma.templateEntryAssignee.upsert({
     where: {
-      templateEntryId_membershipId: { templateEntryId: instanceId, membershipId },
+      templateEntryId_membershipId: {
+        templateEntryId: instanceId,
+        membershipId,
+      },
     },
     create: { templateEntryId: instanceId, membershipId },
     update: {},
@@ -233,7 +254,10 @@ export async function removeInstanceAssigneeAction(
   instanceId: string,
   membershipId: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TIMETABLE);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TIMETABLE,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   const assignee = await prisma.templateEntryAssignee.findFirst({

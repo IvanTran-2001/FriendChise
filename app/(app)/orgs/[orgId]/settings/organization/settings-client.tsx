@@ -17,7 +17,9 @@ import {
 /** Format minutes-since-midnight as a time input value (HH:MM). */
 function minToTime(min: number | null): string {
   if (min == null) return "";
-  const h = Math.floor(min / 60).toString().padStart(2, "0");
+  const h = Math.floor(min / 60)
+    .toString()
+    .padStart(2, "0");
   const m = (min % 60).toString().padStart(2, "0");
   return `${h}:${m}`;
 }
@@ -26,6 +28,7 @@ function minToTime(min: number | null): string {
 function timeToMin(value: string): number | undefined {
   if (!value) return undefined;
   const [h, m] = value.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return undefined;
   return h * 60 + m;
 }
 
@@ -55,13 +58,7 @@ interface Props {
 
 // ─── Org Info Form ────────────────────────────────────────────────────────────
 
-function OrgInfoForm({
-  org,
-  orgId,
-}: {
-  org: OrgData;
-  orgId: string;
-}) {
+function OrgInfoForm({ org, orgId }: { org: OrgData; orgId: string }) {
   const [address, setAddress] = useState(org.address ?? "");
   const [timezone, setTimezone] = useState(org.timezone);
   const [openTime, setOpenTime] = useState(minToTime(org.openTimeMin));
@@ -96,7 +93,9 @@ function OrgInfoForm({
 
       <div className="space-y-3">
         <div className="flex items-center gap-4">
-          <label className="w-36 text-sm text-muted-foreground shrink-0">Location</label>
+          <label className="w-36 text-sm text-muted-foreground shrink-0">
+            Location
+          </label>
           <Input
             value={address}
             onChange={(e) => setAddress(e.target.value)}
@@ -106,12 +105,16 @@ function OrgInfoForm({
         </div>
 
         <div className="flex items-center gap-4">
-          <label className="w-36 text-sm text-muted-foreground shrink-0">Timezone</label>
+          <label className="w-36 text-sm text-muted-foreground shrink-0">
+            Timezone
+          </label>
           <TimezoneSelect value={timezone} onChange={setTimezone} />
         </div>
 
         <div className="flex items-center gap-4">
-          <label className="w-36 text-sm text-muted-foreground shrink-0">Operating Hours</label>
+          <label className="w-36 text-sm text-muted-foreground shrink-0">
+            Operating Hours
+          </label>
           <div className="flex items-center gap-2">
             <Input
               type="time"
@@ -176,12 +179,15 @@ function TransferOwnershipSection({
 
       {disabled && (
         <p className="text-sm text-muted-foreground">
-          Only the owner of a standalone (non-franchisee) org can transfer ownership.
+          Only the owner of a standalone (non-franchisee) org can transfer
+          ownership.
         </p>
       )}
 
       <div className="flex items-center gap-3">
-        <label className="text-sm text-muted-foreground shrink-0">Transfer to</label>
+        <label className="text-sm text-muted-foreground shrink-0">
+          Transfer to
+        </label>
         <select
           value={newOwnerId}
           onChange={(e) => setNewOwnerId(e.target.value)}
@@ -261,8 +267,9 @@ function DeleteOrgSection({
         <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-3">
           <AlertTriangle className="size-4 shrink-0 mt-0.5" />
           <span>
-            This will permanently delete <strong>{orgName}</strong> and all its data including
-            tasks, timetables, templates, and member associations. This cannot be undone.
+            This will permanently delete <strong>{orgName}</strong> and all its
+            data including tasks, timetables, templates, and member
+            associations. This cannot be undone.
           </span>
         </div>
       )}
@@ -317,4 +324,3 @@ export function OrgSettingsClient({
     </div>
   );
 }
-

@@ -91,10 +91,22 @@ function getOrgItems(orgId: string) {
 function getSettingsItems(orgId: string) {
   return [
     { title: "Back to Org", url: `/orgs/${orgId}`, icon: ChevronLeft },
-    { title: "Organization", url: `/orgs/${orgId}/settings/organization`, icon: Building2 },
+    {
+      title: "Organization",
+      url: `/orgs/${orgId}/settings/organization`,
+      icon: Building2,
+    },
     { title: "Roles", url: `/orgs/${orgId}/settings/roles`, icon: ShieldCheck },
-    { title: "Timetable", url: `/orgs/${orgId}/settings/timetable`, icon: Calendar },
-    { title: "Notification", url: `/orgs/${orgId}/settings/notification`, icon: Bell },
+    {
+      title: "Timetable",
+      url: `/orgs/${orgId}/settings/timetable`,
+      icon: Calendar,
+    },
+    {
+      title: "Notification",
+      url: `/orgs/${orgId}/settings/notification`,
+      icon: Bell,
+    },
   ];
 }
 
@@ -103,7 +115,8 @@ function getSettingsItems(orgId: string) {
  * Derives the active mode from pathname so the component doesn't need to.
  */
 function getNavItems(orgId: string, pathname: string) {
-  if (pathname.startsWith(`/orgs/${orgId}/settings`)) return getSettingsItems(orgId);
+  if (pathname.startsWith(`/orgs/${orgId}/settings`))
+    return getSettingsItems(orgId);
   return getOrgItems(orgId);
 }
 
@@ -113,7 +126,9 @@ function getNavItems(orgId: string, pathname: string) {
  */
 function getFooterItems(orgId: string, pathname: string) {
   if (pathname.startsWith(`/orgs/${orgId}/settings`)) return [];
-  return [{ title: "Settings", url: `/orgs/${orgId}/settings`, icon: Settings }];
+  return [
+    { title: "Settings", url: `/orgs/${orgId}/settings`, icon: Settings },
+  ];
 }
 
 /**

@@ -10,15 +10,29 @@
 import z from "zod";
 
 /** Canonical ordered day keys used throughout the app. */
-export const DAY_VALUES = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+export const DAY_VALUES = [
+  "mon",
+  "tue",
+  "wed",
+  "thu",
+  "fri",
+  "sat",
+  "sun",
+] as const;
 export type DayKey = (typeof DAY_VALUES)[number];
 
 /**
  * Shared schedule refinement — ensures openTimeMin is always before closeTimeMin
  * when both are provided.
  */
-function refineSchedule<T extends { openTimeMin?: number; closeTimeMin?: number }>(data: T) {
-  return data.openTimeMin == null || data.closeTimeMin == null || data.openTimeMin < data.closeTimeMin;
+function refineSchedule<
+  T extends { openTimeMin?: number; closeTimeMin?: number },
+>(data: T) {
+  return (
+    data.openTimeMin == null ||
+    data.closeTimeMin == null ||
+    data.openTimeMin < data.closeTimeMin
+  );
 }
 const scheduleRefinementOpts = {
   message: "Open time must be before close time",
@@ -84,3 +98,5 @@ export type TransferOrgInput = z.infer<typeof transferOrgSchema>;
 export const deleteOrgSchema = z.object({
   confirmName: z.string().min(1),
 });
+
+export type DeleteOrgInput = z.infer<typeof deleteOrgSchema>;

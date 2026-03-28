@@ -138,8 +138,25 @@ function useScheduleState() {
   const [address, setAddress] = useState("");
   const [openTime, setOpenTime] = useState("");
   const [closeTime, setCloseTime] = useState("");
-  const [days, setDays] = useState<DayKey[]>(["mon", "tue", "wed", "thu", "fri"]);
-  return { timezone, setTimezone, address, setAddress, openTime, setOpenTime, closeTime, setCloseTime, days, setDays };
+  const [days, setDays] = useState<DayKey[]>([
+    "mon",
+    "tue",
+    "wed",
+    "thu",
+    "fri",
+  ]);
+  return {
+    timezone,
+    setTimezone,
+    address,
+    setAddress,
+    openTime,
+    setOpenTime,
+    closeTime,
+    setCloseTime,
+    days,
+    setDays,
+  };
 }
 
 function buildSchedulePayload(s: ReturnType<typeof useScheduleState>) {
@@ -166,8 +183,14 @@ function CreateOrgForm({ onSwitch }: { onSwitch: () => void }) {
     setError(null);
     setLoading(true);
     try {
-      const result = await createOrg({ title, ...buildSchedulePayload(schedule) });
-      if (!result.ok) { setError(result.error); return; }
+      const result = await createOrg({
+        title,
+        ...buildSchedulePayload(schedule),
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
       router.push(`/orgs/${result.orgId}`);
     } catch {
       setError("Something went wrong");
@@ -231,8 +254,14 @@ function JoinFranchiseForm({ onSwitch }: { onSwitch: () => void }) {
     setError(null);
     setLoading(true);
     try {
-      const result = await joinFranchise({ token, ...buildSchedulePayload(schedule) });
-      if (!result.ok) { setError(result.error); return; }
+      const result = await joinFranchise({
+        token,
+        ...buildSchedulePayload(schedule),
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
       router.push(`/orgs/${result.orgId}`);
     } catch {
       setError("Something went wrong");
@@ -270,9 +299,7 @@ function JoinFranchiseForm({ onSwitch }: { onSwitch: () => void }) {
       <Separator />
 
       <div className="text-center">
-        <span className="text-sm text-muted-foreground">
-          Starting fresh?{" "}
-        </span>
+        <span className="text-sm text-muted-foreground">Starting fresh? </span>
         <button
           type="button"
           onClick={onSwitch}
@@ -309,4 +336,3 @@ export default function NewOrgPage() {
     </div>
   );
 }
-

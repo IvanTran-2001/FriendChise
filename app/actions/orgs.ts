@@ -70,7 +70,10 @@ export async function joinFranchise(raw: unknown): Promise<OrgResult> {
     revalidatePath("/", "layout");
     return { ok: true, orgId: org.id };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Failed to join franchise" };
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Failed to join franchise",
+    };
   }
 }
 
@@ -96,7 +99,10 @@ export async function updateOrgSettings(
     revalidatePath(`/orgs/${orgId}`, "layout");
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Failed to save settings" };
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Failed to save settings",
+    };
   }
 }
 
@@ -120,7 +126,11 @@ export async function transferOrgOwnership(
     revalidatePath("/", "layout");
     redirect("/");
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Failed to transfer ownership" };
+    return {
+      ok: false,
+      error:
+        err instanceof Error ? err.message : "Failed to transfer ownership",
+    };
   }
 }
 
@@ -144,6 +154,9 @@ export async function deleteOrg(
     revalidatePath("/", "layout");
     redirect("/");
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Failed to delete org" };
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Failed to delete org",
+    };
   }
 }

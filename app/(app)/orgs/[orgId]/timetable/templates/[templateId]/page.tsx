@@ -41,28 +41,26 @@ export default async function TemplateEditorPage({
 
   if (!template) notFound();
 
-  const instances: ClientTemplateInstance[] = template.entries.map(
-    (inst) => ({
-      id: inst.id,
-      dayIndex: inst.dayIndex,
-      startTimeMin: inst.startTimeMin!,
-      task: {
-        id: inst.task.id,
-        name: inst.task.name,
-        durationMin: inst.task.durationMin,
-      },
-      assignees: inst.assignees.map((a) => ({
-        id: a.id,
-        membership: {
-          id: a.membership.id,
-          user: {
-            id: a.membership.user.id,
-            name: a.membership.user.name,
-          },
+  const instances: ClientTemplateInstance[] = template.entries.map((inst) => ({
+    id: inst.id,
+    dayIndex: inst.dayIndex,
+    startTimeMin: inst.startTimeMin!,
+    task: {
+      id: inst.task.id,
+      name: inst.task.name,
+      durationMin: inst.task.durationMin,
+    },
+    assignees: inst.assignees.map((a) => ({
+      id: a.id,
+      membership: {
+        id: a.membership.id,
+        user: {
+          id: a.membership.user.id,
+          name: a.membership.user.name,
         },
-      })),
-    }),
-  );
+      },
+    })),
+  }));
 
   const availableTasks: ClientTask[] = rawTasks;
   const memberships: ClientMembership[] = rawMemberships;

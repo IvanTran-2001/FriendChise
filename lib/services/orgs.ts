@@ -25,9 +25,7 @@ const ownerPermissions: PermissionAction[] = [
 ];
 
 /** Permissions granted to the default Member role on a fresh org. */
-const memberPermissions: PermissionAction[] = [
-  PermissionAction.VIEW_TIMETABLE,
-];
+const memberPermissions: PermissionAction[] = [PermissionAction.VIEW_TIMETABLE];
 
 /**
  * Creates the default Owner + Member roles for a brand-new standalone org
@@ -102,7 +100,11 @@ export async function createOrg(userId: string, data: CreateOrgInput) {
       },
     });
 
-    const { ownerRole, memberRole, membership } = await bootstrapRoles(tx, org.id, userId);
+    const { ownerRole, memberRole, membership } = await bootstrapRoles(
+      tx,
+      org.id,
+      userId,
+    );
 
     return { org, ownerRole, memberRole, membership };
   });
@@ -214,9 +216,12 @@ export async function transferOrgOwnership(
   });
 
   if (!org) throw new Error("Organization not found");
-  if (org.ownerId !== currentOwnerId) throw new Error("Only the owner can transfer ownership");
-  if (org.parentId !== null) throw new Error("Franchisee orgs cannot transfer ownership");
-  if (currentOwnerId === newOwnerId) throw new Error("New owner must be a different member");
+  if (org.ownerId !== currentOwnerId)
+    throw new Error("Only the owner can transfer ownership");
+  if (org.parentId !== null)
+    throw new Error("Franchisee orgs cannot transfer ownership");
+  if (currentOwnerId === newOwnerId)
+    throw new Error("New owner must be a different member");
 
   return prisma.$transaction(async (tx) => {
     // Verify the target user is already a member of this org
@@ -230,7 +235,10 @@ export async function transferOrgOwnership(
         select: { id: true },
       }),
     ]);
-    if (!targetMembership) throw new Error("New owner must already be a member");
+    if (!targetMembership)
+      throw new Error("New owner must already be a member");
+    if (!currentMembership)
+      throw new Error("Current owner membership record is missing");
 
     const ownerRole = await tx.role.findFirst({
       where: { orgId, key: ROLE_KEYS.OWNER },
@@ -240,11 +248,9 @@ export async function transferOrgOwnership(
 
     // Swap the Owner role: remove from old owner, assign to new owner
     await Promise.all([
-      currentMembership
-        ? tx.memberRole.deleteMany({
-            where: { membershipId: currentMembership.id, roleId: ownerRole.id },
-          })
-        : Promise.resolve(),
+      tx.memberRole.deleteMany({
+        where: { membershipId: currentMembership.id, roleId: ownerRole.id },
+      }),
       tx.memberRole.upsert({
         where: {
           membershipId_roleId: {
@@ -280,9 +286,12 @@ export async function deleteOrg(
   });
 
   if (!org) throw new Error("Organization not found");
-  if (org.ownerId !== currentOwnerId) throw new Error("Only the owner can delete this org");
-  if (org.parentId !== null) throw new Error("Franchisee orgs cannot be deleted this way");
-  if (org.name !== confirmName) throw new Error("Confirmation name does not match");
+  if (org.ownerId !== currentOwnerId)
+    throw new Error("Only the owner can delete this org");
+  if (org.parentId !== null)
+    throw new Error("Franchisee orgs cannot be deleted this way");
+  if (org.name !== confirmName)
+    throw new Error("Confirmation name does not match");
 
   await prisma.organization.delete({ where: { id: orgId } });
 }

@@ -11,7 +11,10 @@ export default async function OrgSettingsOrganizationPage({
 }) {
   const { orgId } = await params;
 
-  const { userId } = await requireOrgPermissionPage(orgId, PermissionAction.MANAGE_SETTINGS);
+  const { userId } = await requireOrgPermissionPage(
+    orgId,
+    PermissionAction.MANAGE_SETTINGS,
+  );
 
   const org = await prisma.organization.findUnique({
     where: { id: orgId },

@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
 import { PermissionAction } from "@prisma/client";
-import { getAuthUserId, getOrgMembership, memberHasPermission } from "./_shared";
+import {
+  getAuthUserId,
+  getOrgMembership,
+  memberHasPermission,
+} from "./_shared";
 
 /**
  * Auth guard helpers for server component pages.
@@ -13,9 +17,9 @@ import { getAuthUserId, getOrgMembership, memberHasPermission } from "./_shared"
  */
 
 /** Requires the caller to be signed in (any authenticated user). */
-export async function requireUserPage(
-  { redirectTo = "/signin" } = {},
-): Promise<{ userId: string }> {
+export async function requireUserPage({
+  redirectTo = "/signin",
+} = {}): Promise<{ userId: string }> {
   const userId = await getAuthUserId();
   if (!userId) redirect(redirectTo);
   return { userId };
@@ -56,7 +60,8 @@ export async function requireOrgPermissionPage(
   const membership = await getOrgMembership(orgId, userId);
   if (!membership) redirect(redirectTo);
 
-  if (!(await memberHasPermission(membership.id, orgId, permission))) redirect(redirectTo);
+  if (!(await memberHasPermission(membership.id, orgId, permission)))
+    redirect(redirectTo);
 
   return { userId };
 }

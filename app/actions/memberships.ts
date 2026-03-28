@@ -7,7 +7,7 @@
  */
 
 import { PermissionAction } from "@prisma/client";
-import { requireOrgPermission } from "@/lib/authz";
+import { requireOrgPermissionAction } from "@/lib/authz";
 import { createMembership } from "@/lib/services/memberships";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -34,7 +34,10 @@ export async function createMembershipAction(
   _prev: CreateMembershipFormState,
   formData: FormData,
 ): Promise<CreateMembershipFormState> {
-  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_MEMBERS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_MEMBERS,
+  );
   if (!authz.ok) return { ok: false, errors: { _: ["Unauthorized"] } };
 
   const email = String(formData.get("email") ?? "")
