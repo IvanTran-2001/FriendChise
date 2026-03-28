@@ -42,7 +42,7 @@ const MembersPage = async ({
                     {m.user.name ?? "Unnamed user"}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {m.memberRoles[0]?.role.name ?? "—"}
+                    {m.memberRoles.map(({ role }) => role.name).join(", ") || "—"}
                   </span>
                 </div>
               </li>
