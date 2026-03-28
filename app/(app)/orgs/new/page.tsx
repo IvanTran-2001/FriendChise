@@ -160,12 +160,17 @@ function useScheduleState() {
 }
 
 function buildSchedulePayload(s: ReturnType<typeof useScheduleState>) {
+  const openMin = s.openTime ? timeToMinutes(s.openTime) : undefined;
+  const closeMin = s.closeTime ? timeToMinutes(s.closeTime) : undefined;
+  if (openMin !== undefined && closeMin !== undefined && closeMin <= openMin) {
+    throw new Error("Close time must be after open time");
+  }
   return {
     timezone: s.timezone || undefined,
     address: s.address || undefined,
     operatingDays: s.days,
-    openTimeMin: s.openTime ? timeToMinutes(s.openTime) : undefined,
-    closeTimeMin: s.closeTime ? timeToMinutes(s.closeTime) : undefined,
+    openTimeMin: openMin,
+    closeTimeMin: closeMin,
   };
 }
 
