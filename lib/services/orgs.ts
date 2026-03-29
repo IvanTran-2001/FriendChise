@@ -12,7 +12,7 @@ import type {
   JoinFranchiseInput,
   UpdateOrgSettingsInput,
 } from "@/lib/validators/org";
-import { cloneRolesFromParent, type Tx } from "@/lib/services/franchise";
+import { cloneRolesFromParent, cloneTasksFromParent, cloneTemplatesFromParent, cloneTimetableSettingsFromParent, type Tx } from "@/lib/services/franchise";
 
 /** Full set of permissions granted to the Owner role on a fresh org. */
 const ownerPermissions: PermissionAction[] = [
@@ -164,12 +164,21 @@ export async function joinFranchise(
     });
 
     // Clone all roles + permissions from the parent (no users carried over).
-    const { clonedRoles, membership } = await cloneRolesFromParent(
+    const { clonedRoles, roleIdMap, membership } = await cloneRolesFromParent(
       tx,
       token.orgId,
       org.id,
       userId,
     );
+
+    // Clone tasks with eligibility remapped to the cloned roles.
+    const { taskIdMap } = await cloneTasksFromParent(tx, token.orgId, org.id, roleIdMap);
+
+    // Clone timetable templates with taskIds remapped to the cloned tasks.
+    await cloneTemplatesFromParent(tx, token.orgId, org.id, taskIdMap);
+
+    // Clone timetable view settings.
+    await cloneTimetableSettingsFromParent(tx, token.orgId, org.id);
 
     // Mark the token as consumed so it cannot be reused.
     await tx.franchiseToken.update({

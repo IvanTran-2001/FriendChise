@@ -3,6 +3,7 @@ import { PermissionAction } from "@prisma/client";
 import {
   getAuthUserId,
   getOrgMembership,
+  isParentOrgOwner,
   memberHasPermission,
 } from "./_shared";
 
@@ -32,13 +33,13 @@ export async function requireUserPage({
  */
 export async function requireOrgMemberPage(
   orgId: string,
-  { redirectTo = "/" } = {},
+  { redirectTo }: { redirectTo?: string } = {},
 ): Promise<{ userId: string }> {
   const userId = await getAuthUserId();
   if (!userId) redirect("/signin");
 
   const membership = await getOrgMembership(orgId, userId);
-  if (!membership) redirect(redirectTo);
+  if (!membership) redirect(redirectTo ?? `/orgs/${orgId}`);
 
   return { userId };
 }
@@ -49,19 +50,33 @@ export async function requireOrgMemberPage(
  * - Permission denied  → redirects to redirectTo (default: /)
  * - Otherwise          → returns { userId }
  */
+/**
+ * Requires the caller to be the owner of a parent org (no parentId).
+ * Redirects to / if not signed in or not the parent org owner.
+ */
+export async function requireParentOrgOwnerPage(
+  orgId: string,
+  { redirectTo = "/" } = {},
+): Promise<{ userId: string }> {
+  const userId = await getAuthUserId();
+  if (!userId) redirect("/signin");
+  if (!(await isParentOrgOwner(orgId, userId))) redirect(redirectTo);
+  return { userId };
+}
+
 export async function requireOrgPermissionPage(
   orgId: string,
   permission: PermissionAction,
-  { redirectTo = "/" } = {},
+  { redirectTo }: { redirectTo?: string } = {},
 ): Promise<{ userId: string }> {
   const userId = await getAuthUserId();
   if (!userId) redirect("/signin");
 
   const membership = await getOrgMembership(orgId, userId);
-  if (!membership) redirect(redirectTo);
+  if (!membership) redirect(redirectTo ?? `/orgs/${orgId}`);
 
   if (!(await memberHasPermission(membership.id, orgId, permission)))
-    redirect(redirectTo);
+    redirect(redirectTo ?? `/orgs/${orgId}`);
 
   return { userId };
 }

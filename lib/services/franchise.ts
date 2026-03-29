@@ -60,6 +60,11 @@ export async function cloneRolesFromParent(
     ),
   );
 
+  // Build a map of parent role ID → cloned role ID (Promise.all preserves order)
+  const roleIdMap = new Map<string, string>(
+    parentRoles.map((r, i) => [r.id, clonedRoles[i].id]),
+  );
+
   // Assign the joining user as Owner of the new child org
   const ownerRole = clonedRoles.find((r) => r.key === ROLE_KEYS.OWNER);
   if (!ownerRole) throw new Error("Parent org has no Owner role to clone");
@@ -72,36 +77,83 @@ export async function cloneRolesFromParent(
     data: { membershipId: membership.id, roleId: ownerRole.id },
   });
 
-  return { clonedRoles, membership };
+  return { clonedRoles, roleIdMap, membership };
 }
 
 /**
- * Clones all timetable templates and their entries from a parent org into a
- * child org.
+ * Clones all tasks and their role eligibility from a parent org into a child org.
+ *
+ * What is cloned:
+ *   - Every Task (name, description, color, durations, constraints)
+ *   - TaskEligibility records — role IDs are remapped via roleIdMap so
+ *     eligibility points at the cloned roles, not the parent's.
+ *
+ * Returns a taskIdMap (parent task ID → child task ID) for use by
+ * cloneTemplatesFromParent.
+ */
+export async function cloneTasksFromParent(
+  tx: Tx,
+  parentOrgId: string,
+  childOrgId: string,
+  roleIdMap: Map<string, string>,
+) {
+  const parentTasks = await tx.task.findMany({
+    where: { orgId: parentOrgId },
+    include: { eligibility: { select: { roleId: true } } },
+  });
+
+  const taskIdMap = new Map<string, string>();
+
+  await Promise.all(
+    parentTasks.map(async (task) => {
+      const cloned = await tx.task.create({
+        data: {
+          orgId: childOrgId,
+          name: task.name,
+          description: task.description,
+          color: task.color,
+          durationMin: task.durationMin,
+          minPeople: task.minPeople,
+          maxPeople: task.maxPeople,
+          priority: task.priority,
+          preferredStartTimeMin: task.preferredStartTimeMin,
+          minWaitDays: task.minWaitDays,
+          maxWaitDays: task.maxWaitDays,
+          eligibility: {
+            create: task.eligibility
+              .map(({ roleId }) => roleIdMap.get(roleId))
+              .filter((id): id is string => id !== undefined)
+              .map((roleId) => ({ roleId })),
+          },
+        },
+      });
+      taskIdMap.set(task.id, cloned.id);
+    }),
+  );
+
+  return { taskIdMap };
+}
+
+/**
  *
  * What is cloned:
  *   - Every Template (name, cycleLengthDays)
- *   - Every TemplateEntry per template (dayIndex, startTimeMin, endTimeMin,
- *     priority, durationMin) — the taskId is preserved so the entry still
- *     references the same task definition.
+ *   - Every TemplateEntry per template — taskIds are remapped via taskIdMap
+ *     so entries point at the cloned tasks, not the parent's.
  *
  * What is NOT cloned:
  *   - TemplateEntryAssignee records — no role/member assignments are carried
  *     over. The child org's staff will be assigned separately.
- *   - Tasks themselves — tasks belong to an org and are not cloned here.
- *     If you also want to clone tasks, call cloneTasksFromParent first and
- *     remap taskIds before calling this function.
  *
- * Note: if the parent has template entries that reference tasks not present in
- * the child org, those entries will fail to create (foreign key violation).
- * Clone tasks first if needed.
+ * Entries whose parent taskId has no mapping in taskIdMap are skipped to
+ * avoid foreign-key violations.
  */
 export async function cloneTemplatesFromParent(
   tx: Tx,
   parentOrgId: string,
   childOrgId: string,
+  taskIdMap: Map<string, string>,
 ) {
-  // Fetch all templates + their entries (no assignees)
   const parentTemplates = await tx.template.findMany({
     where: { orgId: parentOrgId },
     include: {
@@ -118,7 +170,6 @@ export async function cloneTemplatesFromParent(
     },
   });
 
-  // Clone each template with its entries (no assignees)
   const clonedTemplates = await Promise.all(
     parentTemplates.map((template) =>
       tx.template.create({
@@ -127,14 +178,16 @@ export async function cloneTemplatesFromParent(
           name: template.name,
           cycleLengthDays: template.cycleLengthDays,
           entries: {
-            create: template.entries.map((entry) => ({
-              taskId: entry.taskId,
-              dayIndex: entry.dayIndex,
-              startTimeMin: entry.startTimeMin,
-              endTimeMin: entry.endTimeMin,
-              priority: entry.priority,
-              durationMin: entry.durationMin,
-            })),
+            create: template.entries
+              .filter((entry) => taskIdMap.has(entry.taskId))
+              .map((entry) => ({
+                taskId: taskIdMap.get(entry.taskId)!,
+                dayIndex: entry.dayIndex,
+                startTimeMin: entry.startTimeMin,
+                endTimeMin: entry.endTimeMin,
+                priority: entry.priority,
+                durationMin: entry.durationMin,
+              })),
           },
         },
       }),
@@ -142,4 +195,27 @@ export async function cloneTemplatesFromParent(
   );
 
   return { clonedTemplates };
+}
+
+/**
+ * Clones timetable view settings from a parent org into a child org.
+ * If the parent has no settings record, this is a no-op.
+ */
+export async function cloneTimetableSettingsFromParent(
+  tx: Tx,
+  parentOrgId: string,
+  childOrgId: string,
+) {
+  const settings = await tx.timetableSettings.findUnique({
+    where: { orgId: parentOrgId },
+  });
+  if (!settings) return null;
+  return tx.timetableSettings.create({
+    data: {
+      orgId: childOrgId,
+      viewType: settings.viewType,
+      startDay: settings.startDay,
+      slotDuration: settings.slotDuration,
+    },
+  });
 }

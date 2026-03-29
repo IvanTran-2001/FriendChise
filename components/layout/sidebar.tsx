@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import {
@@ -22,6 +22,7 @@ import {
   ListCheckIcon,
   ShieldCheck,
   Bell,
+  Network,
 } from "lucide-react";
 import {
   Sidebar,
@@ -124,9 +125,12 @@ function getNavItems(orgId: string, pathname: string) {
  * Returns footer items (e.g. Settings) when inside an org but not in settings.
  * Empty array otherwise so the footer is hidden.
  */
-function getFooterItems(orgId: string, pathname: string) {
+function getFooterItems(orgId: string, pathname: string, isParentOwner: boolean) {
   if (pathname.startsWith(`/orgs/${orgId}/settings`)) return [];
   return [
+    ...(isParentOwner
+      ? [{ title: "Franchisee", url: `/orgs/${orgId}/franchisee`, icon: Network }]
+      : []),
     { title: "Settings", url: `/orgs/${orgId}/settings`, icon: Settings },
   ];
 }
@@ -144,9 +148,20 @@ export function AppSidebar() {
   // orgId is present on any /orgs/[orgId]/... route, undefined otherwise
   const { orgId } = useParams<{ orgId?: string }>();
   const pathname = usePathname();
+  const [isParentOwner, setIsParentOwner] = useState(false);
+
+  useEffect(() => {
+    if (!orgId) return;
+    const controller = new AbortController();
+    fetch(`/api/orgs/${orgId}/is-parent-owner`, { signal: controller.signal })
+      .then((r) => r.json())
+      .then((d) => setIsParentOwner(d.isParentOwner ?? false))
+      .catch(() => {});
+    return () => controller.abort();
+  }, [orgId]);
 
   const navItems = orgId ? getNavItems(orgId, pathname) : [];
-  const footerItems = orgId ? getFooterItems(orgId, pathname) : [];
+  const footerItems = orgId ? getFooterItems(orgId, pathname, isParentOwner) : [];
 
   /**
    * Returns true when a nav item should be highlighted.

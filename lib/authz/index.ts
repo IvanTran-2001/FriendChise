@@ -8,4 +8,6 @@ export {
   requireUserAction,
   requireOrgMemberAction,
   requireOrgPermissionAction,
+  requireParentOrgOwnerAction,
 } from "./action";
+export { requireParentOrgOwnerPage } from "./page";
