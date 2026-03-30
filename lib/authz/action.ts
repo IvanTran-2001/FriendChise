@@ -2,6 +2,7 @@ import { PermissionAction } from "@prisma/client";
 import {
   getAuthUserId,
   getOrgMembership,
+  isParentOrgOwner,
   memberHasPermission,
 } from "./_shared";
 
@@ -38,6 +39,14 @@ export async function requireOrgMemberAction(orgId: string) {
   if (!membership) return { ok: false as const };
 
   return { ok: true as const, userId, membership };
+}
+
+/** Requires the caller to be the owner of a parent org (no parentId). */
+export async function requireParentOrgOwnerAction(orgId: string) {
+  const userId = await getAuthUserId();
+  if (!userId) return { ok: false as const };
+  if (!(await isParentOrgOwner(orgId, userId))) return { ok: false as const };
+  return { ok: true as const, userId };
 }
 
 /** Requires the caller to be a member of the org with the given permission. */
