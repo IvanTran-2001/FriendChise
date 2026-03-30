@@ -148,10 +148,12 @@ export function AppSidebar() {
   // orgId is present on any /orgs/[orgId]/... route, undefined otherwise
   const { orgId } = useParams<{ orgId?: string }>();
   const pathname = usePathname();
-  const [isParentOwner, setIsParentOwner] = useState(false);
+  const [parentOwnerStatus, setParentOwnerStatus] = useState<{
+    orgId: string | null;
+    isParentOwner: boolean;
+  }>({ orgId: null, isParentOwner: false });
 
   useEffect(() => {
-    setIsParentOwner(false);
     if (!orgId) return;
     const controller = new AbortController();
     fetch(`/api/orgs/${orgId}/is-parent-owner`, { signal: controller.signal })
@@ -159,10 +161,13 @@ export function AppSidebar() {
         if (!r.ok) throw new Error("Failed to load parent-owner status");
         return r.json();
       })
-      .then((d) => setIsParentOwner(d.isParentOwner ?? false))
+      .then((d) => setParentOwnerStatus({ orgId, isParentOwner: d.isParentOwner ?? false }))
       .catch(() => {});
     return () => controller.abort();
   }, [orgId]);
+
+  // Only true when the stored status is for the current org (prevents stale flash on org switch)
+  const isParentOwner = parentOwnerStatus.orgId === orgId && parentOwnerStatus.isParentOwner;
 
   const navItems = orgId ? getNavItems(orgId, pathname) : [];
   const footerItems = orgId ? getFooterItems(orgId, pathname, isParentOwner) : [];
