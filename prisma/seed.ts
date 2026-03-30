@@ -10,14 +10,7 @@ function timeToMin(hhmm: string): number {
   return h * 60 + m;
 }
 
-const OWNER_PERMISSIONS: PermissionAction[] = [
-  PermissionAction.MANAGE_MEMBERS,
-  PermissionAction.MANAGE_ROLES,
-  PermissionAction.MANAGE_TIMETABLE,
-  PermissionAction.MANAGE_TASKS,
-  PermissionAction.MANAGE_SETTINGS,
-  PermissionAction.VIEW_TIMETABLE,
-];
+const OWNER_PERMISSIONS = Object.values(PermissionAction);
 
 async function main() {
   // ── 1. Clean existing org/task data (preserve User & auth records) ─────────
