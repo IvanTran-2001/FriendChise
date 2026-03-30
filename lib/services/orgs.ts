@@ -14,15 +14,9 @@ import type {
 } from "@/lib/validators/org";
 import { cloneRolesFromParent, cloneTasksFromParent, cloneTemplatesFromParent, cloneTimetableSettingsFromParent, type Tx } from "@/lib/services/franchise";
 
-/** Full set of permissions granted to the Owner role on a fresh org. */
-const ownerPermissions: PermissionAction[] = [
-  PermissionAction.MANAGE_MEMBERS,
-  PermissionAction.MANAGE_ROLES,
-  PermissionAction.MANAGE_TIMETABLE,
-  PermissionAction.MANAGE_TASKS,
-  PermissionAction.MANAGE_SETTINGS,
-  PermissionAction.VIEW_TIMETABLE,
-];
+/** Full set of permissions granted to the Owner role on a fresh org. Derived
+ *  from the enum so it stays in sync whenever the schema adds new actions. */
+const ownerPermissions = Object.values(PermissionAction);
 
 /** Permissions granted to the default Member role on a fresh org. */
 const memberPermissions: PermissionAction[] = [PermissionAction.VIEW_TIMETABLE];
