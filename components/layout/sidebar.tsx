@@ -151,10 +151,14 @@ export function AppSidebar() {
   const [isParentOwner, setIsParentOwner] = useState(false);
 
   useEffect(() => {
+    setIsParentOwner(false);
     if (!orgId) return;
     const controller = new AbortController();
     fetch(`/api/orgs/${orgId}/is-parent-owner`, { signal: controller.signal })
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load parent-owner status");
+        return r.json();
+      })
       .then((d) => setIsParentOwner(d.isParentOwner ?? false))
       .catch(() => {});
     return () => controller.abort();

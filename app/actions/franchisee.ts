@@ -67,7 +67,9 @@ export async function extendFranchiseToken(
   });
   if (!token) return { ok: false, error: "Token not found" };
 
-  const newExpiry = new Date(token.expiresAt);
+  const now = new Date();
+  const base = token.expiresAt > now ? token.expiresAt : now;
+  const newExpiry = new Date(base);
   newExpiry.setDate(newExpiry.getDate() + 1);
 
   await prisma.franchiseToken.update({
