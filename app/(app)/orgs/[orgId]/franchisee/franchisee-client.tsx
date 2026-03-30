@@ -395,7 +395,7 @@ export function FranchiseeClient({
                         {t.token}
                       </td>
                       <td className="px-4 py-2 text-muted-foreground">
-                        {new Date(f.createdAt).toLocaleDateString("en-AU", { timeZone: "UTC" })}
+                        {new Date(t.expiresAt).toLocaleDateString("en-AU", { timeZone: "UTC" })}
                       </td>
                       <td className="px-4 py-2">
                         {used ? (

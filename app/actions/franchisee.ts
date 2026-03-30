@@ -89,16 +89,11 @@ export async function removeFranchisee(
   const authz = await requireParentOrgOwnerAction(orgId);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const child = await prisma.organization.findFirst({
+  const { count } = await prisma.organization.updateMany({
     where: { id: childOrgId, parentId: orgId },
-    select: { id: true },
-  });
-  if (!child) return { ok: false, error: "Franchisee not found" };
-
-  await prisma.organization.update({
-    where: { id: childOrgId },
     data: { parentId: null },
   });
+  if (count === 0) return { ok: false, error: "Franchisee not found" };
 
   revalidatePath(`/orgs/${orgId}/franchisee`);
   return { ok: true };
@@ -113,59 +108,65 @@ export async function changeFranchiseeOwner(
   const authz = await requireParentOrgOwnerAction(orgId);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const child = await prisma.organization.findFirst({
-    where: { id: childOrgId, parentId: orgId },
-    select: { id: true, ownerId: true },
-  });
-  if (!child) return { ok: false, error: "Franchisee not found" };
-
   const newOwner = await prisma.user.findUnique({
     where: { email: newOwnerEmail.trim().toLowerCase() },
     select: { id: true },
   });
   if (!newOwner) return { ok: false, error: "User not found" };
 
-  // Find the Owner role in the child org
-  const ownerRole = await prisma.role.findFirst({
-    where: { orgId: childOrgId, key: "owner" },
-    select: { id: true },
-  });
-  if (!ownerRole) return { ok: false, error: "Owner role not found" };
-
-  await prisma.$transaction(async (tx) => {
-    const oldMembership = await tx.membership.findFirst({
-      where: { orgId: childOrgId, userId: child.ownerId },
-      select: { id: true },
-    });
-    if (oldMembership) {
-      await tx.memberRole.deleteMany({
-        where: { membershipId: oldMembership.id, roleId: ownerRole.id },
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Read child inside the transaction so ownerId and parentId are current
+      const child = await tx.organization.findFirst({
+        where: { id: childOrgId, parentId: orgId },
+        select: { id: true, ownerId: true },
       });
-    }
+      if (!child) throw new Error("Franchisee not found");
 
-    // Upsert membership for new owner and assign Owner role
-    const newMembership = await tx.membership.upsert({
-      where: { userId_orgId: { userId: newOwner.id, orgId: childOrgId } },
-      create: { orgId: childOrgId, userId: newOwner.id, workingDays: [] },
-      update: {},
-    });
+      const ownerRole = await tx.role.findFirst({
+        where: { orgId: childOrgId, key: "owner" },
+        select: { id: true },
+      });
+      if (!ownerRole) throw new Error("Owner role not found");
 
-    await tx.memberRole.upsert({
-      where: {
-        membershipId_roleId: {
-          membershipId: newMembership.id,
-          roleId: ownerRole.id,
+      const oldMembership = await tx.membership.findFirst({
+        where: { orgId: childOrgId, userId: child.ownerId },
+        select: { id: true },
+      });
+      if (oldMembership) {
+        await tx.memberRole.deleteMany({
+          where: { membershipId: oldMembership.id, roleId: ownerRole.id },
+        });
+      }
+
+      const newMembership = await tx.membership.upsert({
+        where: { userId_orgId: { userId: newOwner.id, orgId: childOrgId } },
+        create: { orgId: childOrgId, userId: newOwner.id, workingDays: [] },
+        update: {},
+      });
+
+      await tx.memberRole.upsert({
+        where: {
+          membershipId_roleId: {
+            membershipId: newMembership.id,
+            roleId: ownerRole.id,
+          },
         },
-      },
-      create: { membershipId: newMembership.id, roleId: ownerRole.id },
-      update: {},
-    });
+        create: { membershipId: newMembership.id, roleId: ownerRole.id },
+        update: {},
+      });
 
-    await tx.organization.update({
-      where: { id: childOrgId },
-      data: { ownerId: newOwner.id },
+      // Include parentId in the where clause so we never update an org that
+      // has been reparented between the child read and this write
+      const { count } = await tx.organization.updateMany({
+        where: { id: childOrgId, parentId: orgId },
+        data: { ownerId: newOwner.id },
+      });
+      if (count === 0) throw new Error("Franchisee not found");
     });
-  });
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to change owner" };
+  }
 
   revalidatePath(`/orgs/${orgId}/franchisee`);
   return { ok: true };
