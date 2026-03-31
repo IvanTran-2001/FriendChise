@@ -49,32 +49,32 @@ Provider: PostgreSQL (Supabase), managed via Prisma ORM.
 
 ### Models
 
-| Model                    | Description                                                                                                                    |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `Organization`           | Top-level tenant. Owns all other resources. Supports franchise hierarchy via `parentId`.                                       |
-| `User`                   | Auth account, identified by email. Linked to orgs via `Membership`.                                                           |
-| `Membership`             | Links a `User` to an `Organization`. Tracks `workingDays` and `status` (ACTIVE / RESTRICTED).                                 |
-| `Role`                   | Org-scoped role (e.g. Owner, Worker) with a name, color, and stable `key`. System roles have `isDeletable: false`.            |
-| `Permission`             | Grants a `PermissionAction` enum value to a `Role`. One row per action per role.                                              |
-| `MemberRole`             | Many-to-many junction between `Membership` and `Role`. A member can hold multiple roles.                                      |
-| `Task`                   | Reusable task definition (name, duration, recurrence constraints, eligibility by role).                                       |
-| `TaskEligibility`        | Links a `Task` to a `Role`, defining which roles can be assigned to it.                                                        |
-| `TimetableEntry`         | A scheduled task occurrence with date, start/end times, status, and assignees.                                                |
-| `TimetableEntryAssignee` | Links a `Membership` to a `TimetableEntry` (many-to-many).                                                                    |
-| `TimetableSettings`      | Per-org timetable display preferences (view type, start day, slot duration).                                                  |
-| `Template`               | A reusable schedule template with a `cycleLengthDays`. Contains `TemplateEntry` rows.                                         |
-| `TemplateEntry`          | One time slot in a `Template` — which task, which day index, start/end times.                                                 |
-| `TemplateEntryAssignee`  | Pre-assigns a `Membership` to a `TemplateEntry`.                                                                               |
-| `FranchiseToken`         | One-time invite token issued by a parent org for a franchisee to join.                                                        |
+| Model                    | Description                                                                                                        |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `Organization`           | Top-level tenant. Owns all other resources. Supports franchise hierarchy via `parentId`.                           |
+| `User`                   | Auth account, identified by email. Linked to orgs via `Membership`.                                                |
+| `Membership`             | Links a `User` to an `Organization`. Tracks `workingDays` and `status` (ACTIVE / RESTRICTED).                      |
+| `Role`                   | Org-scoped role (e.g. Owner, Worker) with a name, color, and stable `key`. System roles have `isDeletable: false`. |
+| `Permission`             | Grants a `PermissionAction` enum value to a `Role`. One row per action per role.                                   |
+| `MemberRole`             | Many-to-many junction between `Membership` and `Role`. A member can hold multiple roles.                           |
+| `Task`                   | Reusable task definition (name, duration, recurrence constraints, eligibility by role).                            |
+| `TaskEligibility`        | Links a `Task` to a `Role`, defining which roles can be assigned to it.                                            |
+| `TimetableEntry`         | A scheduled task occurrence with date, start/end times, status, and assignees.                                     |
+| `TimetableEntryAssignee` | Links a `Membership` to a `TimetableEntry` (many-to-many).                                                         |
+| `TimetableSettings`      | Per-org timetable display preferences (view type, start day, slot duration).                                       |
+| `Template`               | A reusable schedule template with a `cycleLengthDays`. Contains `TemplateEntry` rows.                              |
+| `TemplateEntry`          | One time slot in a `Template` — which task, which day index, start/end times.                                      |
+| `TemplateEntryAssignee`  | Pre-assigns a `Membership` to a `TemplateEntry`.                                                                   |
+| `FranchiseToken`         | One-time invite token issued by a parent org for a franchisee to join.                                             |
 
 ### Enums
 
-| Enum               | Values                                                                                                                          |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| `PermissionAction` | `MANAGE_MEMBERS`, `MANAGE_ROLES`, `MANAGE_TIMETABLE`, `MANAGE_TASKS`, `MANAGE_SETTINGS`, `MANAGE_FRANCHISE`, `VIEW_TIMETABLE`  |
-| `EntryStatus`      | `TODO`, `IN_PROGRESS`, `DONE`, `SKIPPED`, `CANCELLED`                                                                          |
-| `MembershipStatus` | `ACTIVE`, `RESTRICTED`                                                                                                          |
-| `ViewType`         | `DAILY`, `WEEKLY`                                                                                                               |
+| Enum               | Values                                                                                                    |
+| ------------------ | --------------------------------------------------------------------------------------------------------- |
+| `PermissionAction` | `MANAGE_MEMBERS`, `MANAGE_ROLES`, `MANAGE_TIMETABLE`, `MANAGE_TASKS`, `MANAGE_SETTINGS`, `VIEW_TIMETABLE` |
+| `EntryStatus`      | `TODO`, `IN_PROGRESS`, `DONE`, `SKIPPED`, `CANCELLED`                                                     |
+| `MembershipStatus` | `ACTIVE`, `RESTRICTED`                                                                                    |
+| `ViewType`         | `DAILY`, `WEEKLY`                                                                                         |
 
 ### Migrations
 
@@ -117,19 +117,19 @@ This is required because Next.js middleware runs on the **Edge runtime**, which 
 
 Auth guards live in `lib/authz/` — a directory split by calling context. All three contexts share low-level DB helpers in `_shared.ts`.
 
-| File                  | Used by                | Returns on failure                               |
-| --------------------- | ---------------------- | ------------------------------------------------ |
-| `lib/authz/api.ts`    | API route handlers     | `{ ok: false, response: NextResponse }` (401/403)|
-| `lib/authz/page.ts`   | Server page components | Calls `redirect()` directly                      |
-| `lib/authz/action.ts` | Server actions         | `{ ok: false }` — no side effects                |
+| File                  | Used by                | Returns on failure                                |
+| --------------------- | ---------------------- | ------------------------------------------------- |
+| `lib/authz/api.ts`    | API route handlers     | `{ ok: false, response: NextResponse }` (401/403) |
+| `lib/authz/page.ts`   | Server page components | Calls `redirect()` directly                       |
+| `lib/authz/action.ts` | Server actions         | `{ ok: false }` — no side effects                 |
 
 Each context exposes three guards at increasing strictness:
 
-| Guard                               | Requirement                                                          |
-| ----------------------------------- | -------------------------------------------------------------------- |
-| `requireUser*()`                    | Caller must be signed in                                             |
-| `requireOrgMember*(orgId)`          | Caller must be signed in and hold a `Membership` in the org          |
-| `requireOrgPermission*(orgId, p)`   | Caller must be a member whose role(s) grant `PermissionAction` `p`   |
+| Guard                             | Requirement                                                        |
+| --------------------------------- | ------------------------------------------------------------------ |
+| `requireUser*()`                  | Caller must be signed in                                           |
+| `requireOrgMember*(orgId)`        | Caller must be signed in and hold a `Membership` in the org        |
+| `requireOrgPermission*(orgId, p)` | Caller must be a member whose role(s) grant `PermissionAction` `p` |
 
 `requireParentOrgOwner*(orgId)` is also available in `page` and `action` contexts — it requires the caller to be the owner of an org with no `parentId` (i.e. a franchisor).
 
@@ -139,15 +139,15 @@ All routes are prefixed with `/api`. Permissions refer to `PermissionAction` enu
 
 ### Orgs — `/api/orgs`
 
-| Method | Path        | Auth      | Description                                                                                              |
-| ------ | ----------- | --------- | -------------------------------------------------------------------------------------------------------- |
-| `POST` | `/api/orgs` | Signed in | Create a new org. Bootstraps Owner + Default Member roles with permissions and adds the creator as Owner.|
+| Method | Path        | Auth      | Description                                                                                               |
+| ------ | ----------- | --------- | --------------------------------------------------------------------------------------------------------- |
+| `POST` | `/api/orgs` | Signed in | Create a new org. Bootstraps Owner + Default Member roles with permissions and adds the creator as Owner. |
 
 ### Org — `/api/orgs/[orgId]`
 
-| Method | Path                                | Auth      | Description                                                  |
-| ------ | ----------------------------------- | --------- | ------------------------------------------------------------ |
-| `GET`  | `/api/orgs/[orgId]/is-parent-owner` | Signed in | Returns `{ isParentOwner: boolean }` for the current user.  |
+| Method | Path                                | Auth      | Description                                                |
+| ------ | ----------------------------------- | --------- | ---------------------------------------------------------- |
+| `GET`  | `/api/orgs/[orgId]/is-parent-owner` | Signed in | Returns `{ isParentOwner: boolean }` for the current user. |
 
 ### Memberships — `/api/orgs/[orgId]/memberships`
 
@@ -159,19 +159,19 @@ All routes are prefixed with `/api`. Permissions refer to `PermissionAction` enu
 
 ### Tasks — `/api/orgs/[orgId]/tasks`
 
-| Method   | Path                      | Auth           | Description                         |
-| -------- | ------------------------- | -------------- | ----------------------------------- |
-| `GET`    | `/api/orgs/[orgId]/tasks` | Member         | List all task definitions for an org.|
-| `POST`   | `/api/orgs/[orgId]/tasks` | `MANAGE_TASKS` | Create a new task definition.        |
-| `DELETE` | `/api/orgs/[orgId]/tasks` | `MANAGE_TASKS` | Delete a task definition.            |
+| Method   | Path                      | Auth           | Description                           |
+| -------- | ------------------------- | -------------- | ------------------------------------- |
+| `GET`    | `/api/orgs/[orgId]/tasks` | Member         | List all task definitions for an org. |
+| `POST`   | `/api/orgs/[orgId]/tasks` | `MANAGE_TASKS` | Create a new task definition.         |
+| `DELETE` | `/api/orgs/[orgId]/tasks` | `MANAGE_TASKS` | Delete a task definition.             |
 
 ### Timetable Entries — `/api/orgs/[orgId]/task-instances`
 
-| Method | Path                                                | Auth           | Description                                                                                          |
-| ------ | --------------------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------- |
-| `GET`  | `/api/orgs/[orgId]/task-instances`                  | Member         | List timetable entries. Supports `?status=` or `?completed=true\|false` (mutually exclusive).        |
-| `POST` | `/api/orgs/[orgId]/task-instances`                  | `MANAGE_TASKS` | Create a timetable entry from an existing task definition.                                           |
-| `GET`  | `/api/orgs/[orgId]/task-instances/[taskInstanceId]` | Member         | Get a single timetable entry by ID.                                                                  |
+| Method | Path                                                | Auth           | Description                                                                                   |
+| ------ | --------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------- |
+| `GET`  | `/api/orgs/[orgId]/task-instances`                  | Member         | List timetable entries. Supports `?status=` or `?completed=true\|false` (mutually exclusive). |
+| `POST` | `/api/orgs/[orgId]/task-instances`                  | `MANAGE_TASKS` | Create a timetable entry from an existing task definition.                                    |
+| `GET`  | `/api/orgs/[orgId]/task-instances/[taskInstanceId]` | Member         | Get a single timetable entry by ID.                                                           |
 
 ### Timetable Entry Assignees — `/api/orgs/[orgId]/task-instances/[taskInstanceId]/assignees`
 
@@ -183,8 +183,8 @@ All routes are prefixed with `/api`. Permissions refer to `PermissionAction` enu
 
 ### Timetable Entry Status — `/api/orgs/[orgId]/task-instances/[taskInstanceId]/status`
 
-| Method  | Path         | Auth               | Description                                                                         |
-| ------- | ------------ | ------------------ | ----------------------------------------------------------------------------------- |
+| Method  | Path         | Auth               | Description                                                                        |
+| ------- | ------------ | ------------------ | ---------------------------------------------------------------------------------- |
 | `PATCH` | `.../status` | `MANAGE_TIMETABLE` | Update the status of a timetable entry (`TODO`, `IN_PROGRESS`, `DONE`, `SKIPPED`). |
 
 ## Project Structure
@@ -205,7 +205,9 @@ app/
         settings/
           page.tsx        # Redirects to /settings/organization
           organization/   # Org info, timezone, hours, transfer, delete
-          roles/          # Role list with permissions + delete (MANAGE_ROLES)
+          roles/          # Role list, create, edit (MANAGE_ROLES)
+            new/          # Create role form
+            [roleId]/edit/# Edit role form
           timetable/      # Timetable display settings (stub)
           notification/   # Notification preferences (stub)
   (auth)/
@@ -216,7 +218,7 @@ app/
     tasks.ts              # createTask
     templates.ts          # createTemplate, updateTemplateEntry, deleteTemplateEntry, etc.
     franchisee.ts         # generateFranchiseToken, deleteFranchiseToken, removeFranchisee, etc.
-    roles.ts              # deleteRoleAction
+    roles.ts              # deleteRoleAction, createRoleAction, updateRoleAction
   api/                    # REST API route handlers (external/mobile clients)
     auth/[...nextauth]/   # Auth.js handler
     orgs/
@@ -273,7 +275,7 @@ lib/
     task-instances.ts   # getTaskInstances, createTaskInstance, updateTaskInstanceStatus
     assignees.ts        # getAssignees, createAssignee, deleteAssignee
     templates.ts        # getTimetableTemplates, getTimetableTemplate, template mutations
-    roles.ts            # getRoles, deleteRole
+    roles.ts            # getRoles, getRoleById, deleteRole, createRole, updateRole
     franchise.ts        # cloneRolesFromParent, cloneTasksFromParent, etc.
   validators/           # Zod schemas for request body validation
     org.ts
@@ -281,6 +283,7 @@ lib/
     task.ts
     task-instance.ts
     assignee.ts
+    role.ts             # roleFormSchema — name, color, permissions, taskIds
 
 prisma/
   schema.prisma         # Database schema
@@ -302,26 +305,28 @@ Server Actions call `revalidatePath` to invalidate the Next.js cache so server-r
 
 ## Pages
 
-| Route                                            | Guard                                      | Description                                               |
-| ------------------------------------------------ | ------------------------------------------ | --------------------------------------------------------- |
-| `/`                                              | Signed in                                  | Home                                                      |
-| `/signin`                                        | —                                          | Google OAuth sign-in                                      |
-| `/orgs/new`                                      | Signed in                                  | Create a new organization                                 |
-| `/orgs/[orgId]`                                  | `requireOrgMemberPage`                     | Org overview                                              |
-| `/orgs/[orgId]/franchisee`                       | `requireParentOrgOwnerPage`                | Franchise management — invite tokens + franchisee list    |
-| `/orgs/[orgId]/tasks`                            | `requireOrgMemberPage`                     | Task definition list                                      |
-| `/orgs/[orgId]/tasks/new`                        | `requireOrgPermissionPage MANAGE_TASKS`    | Create a new task definition                              |
-| `/orgs/[orgId]/memberships`                      | `requireOrgMemberPage`                     | Member list                                               |
-| `/orgs/[orgId]/memberships/new`                  | `requireOrgPermissionPage MANAGE_MEMBERS`  | Invite a new member by email                              |
-| `/orgs/[orgId]/timetable`                        | `requireOrgMemberPage`                     | Timetable — calendar or simple mode, week navigation      |
-| `/orgs/[orgId]/timetable/templates`              | `requireOrgMemberPage`                     | Timetable template list                                   |
-| `/orgs/[orgId]/timetable/templates/new`          | `requireOrgMemberPage`                     | Create a new timetable template                           |
-| `/orgs/[orgId]/timetable/templates/[templateId]` | `requireOrgMemberPage`                     | Template editor — drag-and-drop schedule builder          |
-| `/orgs/[orgId]/settings`                         | —                                          | Redirects to `/settings/organization`                     |
-| `/orgs/[orgId]/settings/organization`            | `requireOrgPermissionPage MANAGE_SETTINGS` | Org info, timezone, hours, transfer, delete               |
-| `/orgs/[orgId]/settings/roles`                   | `requireOrgPermissionPage MANAGE_ROLES`    | Role list + delete custom roles                           |
-| `/orgs/[orgId]/settings/timetable`               | —                                          | Timetable display settings (stub)                         |
-| `/orgs/[orgId]/settings/notification`            | —                                          | Notification preferences (stub)                           |
+| Route                                            | Guard                                      | Description                                                         |
+| ------------------------------------------------ | ------------------------------------------ | ------------------------------------------------------------------- |
+| `/`                                              | Signed in                                  | Home                                                                |
+| `/signin`                                        | —                                          | Google OAuth sign-in                                                |
+| `/orgs/new`                                      | Signed in                                  | Create a new organization                                           |
+| `/orgs/[orgId]`                                  | `requireOrgMemberPage`                     | Org overview                                                        |
+| `/orgs/[orgId]/franchisee`                       | `requireParentOrgOwnerPage`                | Franchise management — invite tokens + franchisee list              |
+| `/orgs/[orgId]/tasks`                            | `requireOrgMemberPage`                     | Task definition list                                                |
+| `/orgs/[orgId]/tasks/new`                        | `requireOrgPermissionPage MANAGE_TASKS`    | Create a new task definition                                        |
+| `/orgs/[orgId]/memberships`                      | `requireOrgMemberPage`                     | Member list                                                         |
+| `/orgs/[orgId]/memberships/new`                  | `requireOrgPermissionPage MANAGE_MEMBERS`  | Invite a new member by email                                        |
+| `/orgs/[orgId]/timetable`                        | `requireOrgMemberPage`                     | Timetable — calendar or simple mode, week navigation                |
+| `/orgs/[orgId]/timetable/templates`              | `requireOrgMemberPage`                     | Timetable template list                                             |
+| `/orgs/[orgId]/timetable/templates/new`          | `requireOrgMemberPage`                     | Create a new timetable template                                     |
+| `/orgs/[orgId]/timetable/templates/[templateId]` | `requireOrgMemberPage`                     | Template editor — drag-and-drop schedule builder                    |
+| `/orgs/[orgId]/settings`                         | —                                          | Redirects to `/settings/organization`                               |
+| `/orgs/[orgId]/settings/organization`            | `requireOrgPermissionPage MANAGE_SETTINGS` | Org info, timezone, hours, transfer, delete                         |
+| `/orgs/[orgId]/settings/roles`                   | `requireOrgPermissionPage MANAGE_ROLES`    | Role list + delete custom roles                                     |
+| `/orgs/[orgId]/settings/roles/new`               | `requireOrgPermissionPage MANAGE_ROLES`    | Create a new custom role                                            |
+| `/orgs/[orgId]/settings/roles/[roleId]/edit`     | `requireOrgPermissionPage MANAGE_ROLES`    | Edit a custom role's name, color, permissions, and task eligibility |
+| `/orgs/[orgId]/settings/timetable`               | —                                          | Timetable display settings (stub)                                   |
+| `/orgs/[orgId]/settings/notification`            | —                                          | Notification preferences (stub)                                     |
 
 All `/orgs/[orgId]/*` pages are guarded by at least `requireOrgMemberPage` — users not in the org are redirected.
 
@@ -342,10 +347,10 @@ A parent org can spawn franchisee orgs using a one-time invite token flow:
 - **Form validation** — server-action errors are rendered inline next to each field with `aria-invalid` / `aria-describedby` for accessibility, plus a Sonner toast summary.
 - **Timetable** — the server page fetches the week's entries (scoped to `date` in `[monday, monday+7)`) and passes them to `TimetableClient`. The client handles Calendar / Simple mode toggle, Prev/Next week navigation via `?week=` and `?mode=` params. Calendar view uses absolute positioning to render task blocks by time; overlapping tasks are assigned side-by-side columns. Status colours: gray = TODO, amber = IN_PROGRESS, green = DONE, red = SKIPPED.
 - **Template editor** — `TemplateEditorClient` renders a drag-and-drop grid over the org's operating hours. Entries can be added, moved, resized, and assigned to members.
-- **Roles page** — system roles (Owner, Default Member) show a `system` badge and cannot be deleted. Custom roles show a `···` menu with Edit (stub) and Delete (with AlertDialog confirmation).
+- **Roles page** — system roles (Owner, Default Member) show a `system` badge and cannot be deleted. The Owner role also cannot be edited. Custom roles show a `···` menu with Edit and Delete (with AlertDialog confirmation). The create/edit form includes a two-column task eligibility picker: the left panel lists tasks assigned to the role; the right panel lists available tasks. Click `+` / `−` to move tasks between panels. Both panels scroll independently.
 
 ## Status
 
-Work in progress. Fully implemented: service layer, REST API, auth, member management, task management, timetable view, timetable templates, org settings, role management, franchise management.
+Work in progress. Fully implemented: service layer, REST API, auth, member management, task management, timetable view, timetable templates, org settings, role management (list, create, edit, delete, task eligibility), franchise management.
 
 Not yet started: schedule generation (automatic cycle-based rotation), worker "Today" checklist, completion stats, timetable/notification settings pages.

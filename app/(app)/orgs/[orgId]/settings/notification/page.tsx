@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import { PermissionAction } from "@prisma/client";
 import { requireOrgPermissionPage } from "@/lib/authz";
 

@@ -16,7 +16,8 @@ const SEGMENT_LABELS: Record<string, string> = {
   organization: "Organization",
   roles: "Roles",
   notification: "Notification",
-  new: "New",
+  new: "Create",
+  edit: "Edit",
 };
 
 interface BreadcrumbItem {

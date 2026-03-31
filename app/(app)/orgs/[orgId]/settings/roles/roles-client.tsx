@@ -70,7 +70,6 @@ function RoleRowActions({
         toast.error("Failed to delete role. Please try again.");
       }
     });
-    });
   }
 
   return (
@@ -108,7 +107,9 @@ function RoleRowActions({
 
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete role &quot;{role.name}&quot;?</AlertDialogTitle>
+          <AlertDialogTitle>
+            Delete role &quot;{role.name}&quot;?
+          </AlertDialogTitle>
           <AlertDialogDescription>
             This will permanently remove the role and unassign it from all
             members. This action cannot be undone.
@@ -138,9 +139,7 @@ interface Props {
 
 export function RolesClient({ orgId, roles }: Props) {
   if (roles.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">No roles yet.</p>
-    );
+    return <p className="text-sm text-muted-foreground">No roles yet.</p>;
   }
 
   return (
@@ -153,6 +152,9 @@ export function RolesClient({ orgId, roles }: Props) {
             </th>
             <th className="px-4 py-3 text-left font-medium text-muted-foreground">
               Permissions
+            </th>
+            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+              Tasks
             </th>
             <th className="w-10" />
           </tr>
@@ -195,6 +197,28 @@ export function RolesClient({ orgId, roles }: Props) {
                         className="rounded bg-muted px-1.5 py-0.5 text-xs"
                       >
                         {formatPermissionLabel(action)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </td>
+              <td className="px-4 py-3">
+                {role.eligibleFor.length === 0 ? (
+                  <span className="text-muted-foreground">—</span>
+                ) : (
+                  <div className="flex flex-wrap gap-1">
+                    {role.eligibleFor.map(({ task }) => (
+                      <span
+                        key={task.id}
+                        className="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs"
+                      >
+                        {task.color && (
+                          <span
+                            className="inline-block h-2 w-2 rounded-full shrink-0"
+                            style={{ backgroundColor: task.color }}
+                          />
+                        )}
+                        {task.name}
                       </span>
                     ))}
                   </div>

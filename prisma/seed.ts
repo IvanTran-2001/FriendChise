@@ -117,7 +117,7 @@ async function main() {
     prisma.role.create({
       data: {
         orgId: org1.id,
-        name: "Worker",
+        name: "Default Member",
         key: ROLE_KEYS.DEFAULT_MEMBER,
         isDeletable: false,
         isDefault: true,

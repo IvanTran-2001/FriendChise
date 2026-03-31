@@ -12,7 +12,13 @@ import type {
   JoinFranchiseInput,
   UpdateOrgSettingsInput,
 } from "@/lib/validators/org";
-import { cloneRolesFromParent, cloneTasksFromParent, cloneTemplatesFromParent, cloneTimetableSettingsFromParent, type Tx } from "@/lib/services/franchise";
+import {
+  cloneRolesFromParent,
+  cloneTasksFromParent,
+  cloneTemplatesFromParent,
+  cloneTimetableSettingsFromParent,
+  type Tx,
+} from "@/lib/services/franchise";
 
 /** Full set of permissions granted to the Owner role on a fresh org. Derived
  *  from the enum so it stays in sync whenever the schema adds new actions. */
@@ -42,7 +48,7 @@ async function bootstrapRoles(tx: Tx, orgId: string, userId: string) {
     tx.role.create({
       data: {
         orgId,
-        name: "Member",
+        name: "Default Member",
         key: ROLE_KEYS.DEFAULT_MEMBER,
         isDeletable: false,
         isDefault: true,
@@ -130,10 +136,16 @@ export async function joinFranchise(
   data: JoinFranchiseInput,
 ) {
   return prisma.$transaction(async (tx) => {
-    const token = await tx.franchiseToken.findUnique({
-      where: { token: data.token },
-      include: { organization: { select: { id: true, name: true } } },
-    });
+    const [token, user] = await Promise.all([
+      tx.franchiseToken.findUnique({
+        where: { token: data.token },
+        include: { organization: { select: { id: true, name: true } } },
+      }),
+      tx.user.findUnique({
+        where: { id: userId },
+        select: { name: true },
+      }),
+    ]);
 
     if (!token) throw new Error("Invalid token");
     if (token.usedByOrgId) throw new Error("Token has already been used");
@@ -146,7 +158,7 @@ export async function joinFranchise(
     // Schedule is set independently by the franchisee.
     const org = await tx.organization.create({
       data: {
-        name: token.organization.name,
+        name: `${token.organization.name}: ${user?.name ?? userEmail}`,
         parentId: token.orgId,
         ownerId: userId,
         timezone: data.timezone ?? "Australia/Sydney",
@@ -166,7 +178,12 @@ export async function joinFranchise(
     );
 
     // Clone tasks with eligibility remapped to the cloned roles.
-    const { taskIdMap } = await cloneTasksFromParent(tx, token.orgId, org.id, roleIdMap);
+    const { taskIdMap } = await cloneTasksFromParent(
+      tx,
+      token.orgId,
+      org.id,
+      roleIdMap,
+    );
 
     // Clone timetable templates with taskIds remapped to the cloned tasks.
     await cloneTemplatesFromParent(tx, token.orgId, org.id, taskIdMap);

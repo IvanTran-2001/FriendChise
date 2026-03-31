@@ -36,5 +36,7 @@ export default async function FranchiseePage({
     }),
   ]);
 
-  return <FranchiseeClient orgId={orgId} franchisees={franchisees} tokens={tokens} />;
+  return (
+    <FranchiseeClient orgId={orgId} franchisees={franchisees} tokens={tokens} />
+  );
 }
