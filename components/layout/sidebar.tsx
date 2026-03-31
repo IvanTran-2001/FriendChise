@@ -125,11 +125,21 @@ function getNavItems(orgId: string, pathname: string) {
  * Returns footer items (e.g. Settings) when inside an org but not in settings.
  * Empty array otherwise so the footer is hidden.
  */
-function getFooterItems(orgId: string, pathname: string, isParentOwner: boolean) {
+function getFooterItems(
+  orgId: string,
+  pathname: string,
+  isParentOwner: boolean,
+) {
   if (pathname.startsWith(`/orgs/${orgId}/settings`)) return [];
   return [
     ...(isParentOwner
-      ? [{ title: "Franchisee", url: `/orgs/${orgId}/franchisee`, icon: Network }]
+      ? [
+          {
+            title: "Franchisee",
+            url: `/orgs/${orgId}/franchisee`,
+            icon: Network,
+          },
+        ]
       : []),
     { title: "Settings", url: `/orgs/${orgId}/settings`, icon: Settings },
   ];
@@ -161,16 +171,24 @@ export function AppSidebar() {
         if (!r.ok) throw new Error("Failed to load parent-owner status");
         return r.json();
       })
-      .then((d) => setParentOwnerStatus({ orgId, isParentOwner: d.isParentOwner ?? false }))
+      .then((d) =>
+        setParentOwnerStatus({
+          orgId,
+          isParentOwner: d.isParentOwner ?? false,
+        }),
+      )
       .catch(() => {});
     return () => controller.abort();
   }, [orgId]);
 
   // Only true when the stored status is for the current org (prevents stale flash on org switch)
-  const isParentOwner = parentOwnerStatus.orgId === orgId && parentOwnerStatus.isParentOwner;
+  const isParentOwner =
+    parentOwnerStatus.orgId === orgId && parentOwnerStatus.isParentOwner;
 
   const navItems = orgId ? getNavItems(orgId, pathname) : [];
-  const footerItems = orgId ? getFooterItems(orgId, pathname, isParentOwner) : [];
+  const footerItems = orgId
+    ? getFooterItems(orgId, pathname, isParentOwner)
+    : [];
 
   /**
    * Returns true when a nav item should be highlighted.

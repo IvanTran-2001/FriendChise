@@ -165,7 +165,10 @@ export async function changeFranchiseeOwner(
       if (count === 0) throw new Error("Franchisee not found");
     });
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Failed to change owner" };
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Failed to change owner",
+    };
   }
 
   revalidatePath(`/orgs/${orgId}/franchisee`);

@@ -34,7 +34,13 @@ type Token = {
 
 // ─── Modal portal ───────────────────────────────────────────────────────────
 
-function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+function Modal({
+  children,
+  onClose,
+}: {
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
@@ -63,10 +69,20 @@ function ConfirmPopup({
     <div className="absolute right-0 top-8 z-50 w-72 rounded-md border bg-popover p-4 shadow-md">
       <p className="text-sm mb-3">{message}</p>
       <div className="flex gap-2 justify-end">
-        <Button size="sm" variant="outline" onClick={onCancel} disabled={loading}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onCancel}
+          disabled={loading}
+        >
           Cancel
         </Button>
-        <Button size="sm" variant="destructive" onClick={onConfirm} disabled={loading}>
+        <Button
+          size="sm"
+          variant="destructive"
+          onClick={onConfirm}
+          disabled={loading}
+        >
           {loading ? "..." : "Confirm"}
         </Button>
       </div>
@@ -87,7 +103,12 @@ function FranchiseeActions({
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const reset = () => { setOpen(false); setMode("menu"); setNewOwnerEmail(""); setError(""); };
+  const reset = () => {
+    setOpen(false);
+    setMode("menu");
+    setNewOwnerEmail("");
+    setError("");
+  };
 
   const handleDelete = () => {
     startTransition(async () => {
@@ -99,7 +120,11 @@ function FranchiseeActions({
 
   const handleChangeOwner = () => {
     startTransition(async () => {
-      const res = await changeFranchiseeOwner(orgId, franchisee.id, newOwnerEmail);
+      const res = await changeFranchiseeOwner(
+        orgId,
+        franchisee.id,
+        newOwnerEmail,
+      );
       if (res.ok) reset();
       else setError(res.error);
     });
@@ -112,7 +137,11 @@ function FranchiseeActions({
         variant="ghost"
         className="h-7 w-7"
         aria-label={`Open actions for ${franchisee.name}`}
-        onClick={() => { setOpen((v) => !v); setMode("menu"); setError(""); }}
+        onClick={() => {
+          setOpen((v) => !v);
+          setMode("menu");
+          setError("");
+        }}
       >
         <MoreHorizontal className="h-4 w-4" />
       </Button>
@@ -147,14 +176,27 @@ function FranchiseeActions({
               <div className="p-4">
                 <p className="text-sm mb-3">
                   Are you sure you want to remove{" "}
-                  <span className="font-medium">{franchisee.name}</span> from org?
+                  <span className="font-medium">{franchisee.name}</span> from
+                  org?
                 </p>
-                {error && <p className="text-xs text-destructive mb-2">{error}</p>}
+                {error && (
+                  <p className="text-xs text-destructive mb-2">{error}</p>
+                )}
                 <div className="flex gap-2 justify-end">
-                  <Button size="sm" variant="outline" onClick={reset} disabled={isPending}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={reset}
+                    disabled={isPending}
+                  >
                     Cancel
                   </Button>
-                  <Button size="sm" variant="destructive" onClick={handleDelete} disabled={isPending}>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={isPending}
+                  >
                     {isPending ? "..." : "Confirm"}
                   </Button>
                 </div>
@@ -170,12 +212,23 @@ function FranchiseeActions({
                   onChange={(e) => setNewOwnerEmail(e.target.value)}
                   className="mb-2 h-8 text-sm"
                 />
-                {error && <p className="text-xs text-destructive mb-2">{error}</p>}
+                {error && (
+                  <p className="text-xs text-destructive mb-2">{error}</p>
+                )}
                 <div className="flex gap-2 justify-end mt-3">
-                  <Button size="sm" variant="outline" onClick={reset} disabled={isPending}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={reset}
+                    disabled={isPending}
+                  >
                     Cancel
                   </Button>
-                  <Button size="sm" onClick={handleChangeOwner} disabled={isPending || !newOwnerEmail.trim()}>
+                  <Button
+                    size="sm"
+                    onClick={handleChangeOwner}
+                    disabled={isPending || !newOwnerEmail.trim()}
+                  >
                     {isPending ? "..." : "Confirm"}
                   </Button>
                 </div>
@@ -188,19 +241,17 @@ function FranchiseeActions({
   );
 }
 
-function TokenActions({
-  orgId,
-  token,
-}: {
-  orgId: string;
-  token: Token;
-}) {
+function TokenActions({ orgId, token }: { orgId: string; token: Token }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"menu" | "delete">("menu");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const reset = () => { setOpen(false); setMode("menu"); setError(""); };
+  const reset = () => {
+    setOpen(false);
+    setMode("menu");
+    setError("");
+  };
 
   const handleDelete = () => {
     startTransition(async () => {
@@ -225,7 +276,11 @@ function TokenActions({
         variant="ghost"
         className="h-7 w-7"
         aria-label={`Open token actions for ${token.invitedEmail}`}
-        onClick={() => { setOpen((v) => !v); setMode("menu"); setError(""); }}
+        onClick={() => {
+          setOpen((v) => !v);
+          setMode("menu");
+          setError("");
+        }}
       >
         <MoreHorizontal className="h-4 w-4" />
       </Button>
@@ -248,18 +303,30 @@ function TokenActions({
                 >
                   {isPending ? "..." : "Extend (+1 day)"}
                 </button>
-            </>
-          )}
+              </>
+            )}
 
             {mode === "delete" && (
               <div className="p-4">
                 <p className="text-sm mb-3">Delete this token?</p>
-                {error && <p className="text-xs text-destructive mb-2">{error}</p>}
+                {error && (
+                  <p className="text-xs text-destructive mb-2">{error}</p>
+                )}
                 <div className="flex gap-2 justify-end">
-                  <Button size="sm" variant="outline" onClick={reset} disabled={isPending}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={reset}
+                    disabled={isPending}
+                  >
                     Cancel
                   </Button>
-                  <Button size="sm" variant="destructive" onClick={handleDelete} disabled={isPending}>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={isPending}
+                  >
                     {isPending ? "..." : "Confirm"}
                   </Button>
                 </div>
@@ -287,15 +354,15 @@ export function FranchiseeClient({
   const [tokenError, setTokenError] = useState("");
   const [isPending, startTransition] = useTransition();
 
-   const handleGenerateToken = () => {
-   const trimmedEmail = email.trim();
+  const handleGenerateToken = () => {
+    const trimmedEmail = email.trim();
     if (isPending || !trimmedEmail) return;
-     setTokenError("");
-     startTransition(async () => {
+    setTokenError("");
+    startTransition(async () => {
       const res = await generateFranchiseToken(orgId, trimmedEmail);
-       if (res.ok) setEmail("");
-       else setTokenError(res.error);
-     });
+      if (res.ok) setEmail("");
+      else setTokenError(res.error);
+    });
   };
 
   return (
@@ -317,18 +384,28 @@ export function FranchiseeClient({
             <tbody>
               {franchisees.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
-                    No franchisees yet. Generate an invite token below to add one.
+                  <td
+                    colSpan={5}
+                    className="px-4 py-6 text-center text-muted-foreground"
+                  >
+                    No franchisees yet. Generate an invite token below to add
+                    one.
                   </td>
                 </tr>
               ) : (
                 franchisees.map((f) => (
                   <tr key={f.id} className="border-t hover:bg-muted/30">
                     <td className="px-4 py-2 font-medium">{f.name}</td>
-                    <td className="px-4 py-2 text-muted-foreground">{f.address ?? "—"}</td>
-                    <td className="px-4 py-2">{f.owner.name ?? f.owner.email ?? "—"}</td>
                     <td className="px-4 py-2 text-muted-foreground">
-                      {new Date(f.createdAt).toLocaleDateString("en-AU", { timeZone: "UTC" })}
+                      {f.address ?? "—"}
+                    </td>
+                    <td className="px-4 py-2">
+                      {f.owner.name ?? f.owner.email ?? "—"}
+                    </td>
+                    <td className="px-4 py-2 text-muted-foreground">
+                      {new Date(f.createdAt).toLocaleDateString("en-AU", {
+                        timeZone: "UTC",
+                      })}
                     </td>
                     <td className="px-4 py-2 text-right">
                       <FranchiseeActions orgId={orgId} franchisee={f} />
@@ -352,18 +429,23 @@ export function FranchiseeClient({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="max-w-xs"
-           onKeyDown={(e) => {
-             if (e.key === "Enter" && !e.repeat) {
-               e.preventDefault();
-               handleGenerateToken();
-             }
-           }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.repeat) {
+                e.preventDefault();
+                handleGenerateToken();
+              }
+            }}
           />
-          <Button onClick={handleGenerateToken} disabled={isPending || !email.trim()}>
+          <Button
+            onClick={handleGenerateToken}
+            disabled={isPending || !email.trim()}
+          >
             {isPending ? "Generating..." : "Generate Token"}
           </Button>
         </div>
-        {tokenError && <p className="text-sm text-destructive mb-3">{tokenError}</p>}
+        {tokenError && (
+          <p className="text-sm text-destructive mb-3">{tokenError}</p>
+        )}
 
         {/* Token list */}
         <div className="rounded-md border overflow-hidden">
@@ -380,7 +462,10 @@ export function FranchiseeClient({
             <tbody>
               {tokens.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
+                  <td
+                    colSpan={5}
+                    className="px-4 py-6 text-center text-muted-foreground"
+                  >
                     No tokens generated yet.
                   </td>
                 </tr>
@@ -395,13 +480,19 @@ export function FranchiseeClient({
                         {t.token}
                       </td>
                       <td className="px-4 py-2 text-muted-foreground">
-                        {new Date(t.expiresAt).toLocaleDateString("en-AU", { timeZone: "UTC" })}
+                        {new Date(t.expiresAt).toLocaleDateString("en-AU", {
+                          timeZone: "UTC",
+                        })}
                       </td>
                       <td className="px-4 py-2">
                         {used ? (
-                          <span className="text-xs text-muted-foreground">Used</span>
+                          <span className="text-xs text-muted-foreground">
+                            Used
+                          </span>
                         ) : expired ? (
-                          <span className="text-xs text-destructive">Expired</span>
+                          <span className="text-xs text-destructive">
+                            Expired
+                          </span>
                         ) : (
                           <span className="text-xs text-green-600">Active</span>
                         )}
