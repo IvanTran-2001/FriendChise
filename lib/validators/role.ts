@@ -8,7 +8,11 @@ import z from "zod";
 import { PermissionAction } from "@prisma/client";
 
 export const roleFormSchema = z.object({
-  name: z.string().min(1, "Name is required").max(50, "Name is too long"),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required")
+    .max(50, "Name is too long"),
   color: z
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/, "Invalid color format")
