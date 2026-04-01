@@ -200,7 +200,7 @@ app/
         page.tsx          # Org overview
         franchisee/       # Franchise management (parent org owners only)
         memberships/      # Members list + invite new member
-        tasks/            # Task definition list + create form
+        tasks/            # Task definition list (searchable, sortable, filterable table) + create form
         timetable/        # Weekly timetable, template selector, template editor
         settings/
           page.tsx        # Redirects to /settings/organization
@@ -215,7 +215,7 @@ app/
   actions/                # Server Actions (web UI mutations)
     orgs.ts               # createOrg, updateOrgSettings, transferOrgOwnership, deleteOrg, joinFranchise
     memberships.ts        # createMembership, deleteMembership
-    tasks.ts              # createTask
+    tasks.ts              # createTaskAction, deleteTaskAction
     templates.ts          # createTemplate, updateTemplateEntry, deleteTemplateEntry, etc.
     franchisee.ts         # generateFranchiseToken, deleteFranchiseToken, removeFranchisee, etc.
     roles.ts              # deleteRoleAction, createRoleAction, updateRoleAction
@@ -271,7 +271,7 @@ lib/
     types.ts            # ServiceResult<T> discriminated union
     orgs.ts             # createOrg, updateOrgSettings, transferOrgOwnership, deleteOrg
     memberships.ts      # getMemberships, createMembership, deleteMembership
-    tasks.ts            # getTasks, createTask, deleteTask
+    tasks.ts            # getTasks (includes role eligibility), createTask, deleteTask
     task-instances.ts   # getTaskInstances, createTaskInstance, updateTaskInstanceStatus
     assignees.ts        # getAssignees, createAssignee, deleteAssignee
     templates.ts        # getTimetableTemplates, getTimetableTemplate, template mutations
@@ -312,7 +312,7 @@ Server Actions call `revalidatePath` to invalidate the Next.js cache so server-r
 | `/orgs/new`                                      | Signed in                                  | Create a new organization                                           |
 | `/orgs/[orgId]`                                  | `requireOrgMemberPage`                     | Org overview                                                        |
 | `/orgs/[orgId]/franchisee`                       | `requireParentOrgOwnerPage`                | Franchise management — invite tokens + franchisee list              |
-| `/orgs/[orgId]/tasks`                            | `requireOrgMemberPage`                     | Task definition list                                                |
+| `/orgs/[orgId]/tasks`                            | `requireOrgMemberPage`                     | Task definition list — searchable/sortable table with role filter and per-row actions (edit, duplicate, delete) |
 | `/orgs/[orgId]/tasks/new`                        | `requireOrgPermissionPage MANAGE_TASKS`    | Create a new task definition                                        |
 | `/orgs/[orgId]/memberships`                      | `requireOrgMemberPage`                     | Member list                                                         |
 | `/orgs/[orgId]/memberships/new`                  | `requireOrgPermissionPage MANAGE_MEMBERS`  | Invite a new member by email                                        |
@@ -347,7 +347,9 @@ A parent org can spawn franchisee orgs using a one-time invite token flow:
 - **Form validation** — server-action errors are rendered inline next to each field with `aria-invalid` / `aria-describedby` for accessibility, plus a Sonner toast summary.
 - **Timetable** — the server page fetches the week's entries (scoped to `date` in `[monday, monday+7)`) and passes them to `TimetableClient`. The client handles Calendar / Simple mode toggle, Prev/Next week navigation via `?week=` and `?mode=` params. Calendar view uses absolute positioning to render task blocks by time; overlapping tasks are assigned side-by-side columns. Status colours: gray = TODO, amber = IN_PROGRESS, green = DONE, red = SKIPPED.
 - **Template editor** — `TemplateEditorClient` renders a drag-and-drop grid over the org's operating hours. Entries can be added, moved, resized, and assigned to members.
+- **Task table** — `TaskTable` (client component) replaces the old static list. Toolbar has a search input, sort dropdown (name/duration/people), role filter dropdown, and an Actions menu with a "Create" entry. Each row has a `···` menu with **Edit**, **Duplicate**, and **Delete**. Delete opens an `AlertDialog` for confirmation before calling `deleteTaskAction`. Clicking elsewhere on a row navigates to the task detail page. The server page fetches tasks (now with `eligibility` included) and roles in parallel via `Promise.all`.
 - **Roles page** — system roles (Owner, Default Member) show a `system` badge and cannot be deleted. The Owner role also cannot be edited. Custom roles show a `···` menu with Edit and Delete (with AlertDialog confirmation). The create/edit form includes a two-column task eligibility picker: the left panel lists tasks assigned to the role; the right panel lists available tasks. Click `+` / `−` to move tasks between panels. Both panels scroll independently.
+- **Role security** — `createRole` and `updateRole` resolve `taskIds` against `Task` scoped to `orgId` inside the transaction. Any ID belonging to another org causes the transaction to abort with an `INVALID` error, preventing cross-tenant `TaskEligibility` rows. Both also deduplicate incoming `taskIds` and `permissions` with `new Set` before `createMany` to avoid unique-constraint failures.
 
 ## Status
 
