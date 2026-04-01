@@ -81,9 +81,10 @@ interface TaskTableProps {
   orgId: string;
   tasks: Task[];
   roles: Role[];
+  canManageTasks: boolean;
 }
 
-export function TaskTable({ orgId, tasks, roles }: TaskTableProps) {
+export function TaskTable({ orgId, tasks, roles, canManageTasks }: TaskTableProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState("");
@@ -139,7 +140,7 @@ export function TaskTable({ orgId, tasks, roles }: TaskTableProps) {
 
   return (
     <>
-      <Toolbar actions={[{ label: "Create", href: `/orgs/${orgId}/tasks/new` }]}>
+      <Toolbar actions={canManageTasks ? [{ label: "Create", href: `/orgs/${orgId}/tasks/new` }] : undefined}>
         <Input
           aria-label="Search tasks by title"
           placeholder="Search by title..."
@@ -215,15 +216,21 @@ export function TaskTable({ orgId, tasks, roles }: TaskTableProps) {
                 <th className="text-left px-4 py-2.5 font-medium">Duration</th>
                 <th className="text-left px-4 py-2.5 font-medium">People</th>
                 <th className="text-left px-4 py-2.5 font-medium">Role</th>
-                <th className="w-10" />
+                {canManageTasks && <th className="w-10" />}
               </tr>
             </thead>
             <tbody>
               {visible.map((task) => (
                 <tr
                   key={task.id}
+                  tabIndex={0}
                   onClick={() => router.push(`/orgs/${orgId}/tasks/${task.id}`)}
-                  className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return;
+                    if (e.target !== e.currentTarget) return;
+                    router.push(`/orgs/${orgId}/tasks/${task.id}`);
+                  }}
+                  className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                 >
                   <td className="px-4 py-3 font-medium">{task.name}</td>
                   <td className="px-4 py-3 text-muted-foreground max-w-60 truncate">
@@ -249,6 +256,7 @@ export function TaskTable({ orgId, tasks, roles }: TaskTableProps) {
                       </div>
                     )}
                   </td>
+                  {canManageTasks && (
                   <td
                     className="px-2 py-3 text-right"
                     onClick={(e) => e.stopPropagation()}
@@ -291,6 +299,7 @@ export function TaskTable({ orgId, tasks, roles }: TaskTableProps) {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </td>
+                  )}
                 </tr>
               ))}
             </tbody>
