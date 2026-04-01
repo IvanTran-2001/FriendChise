@@ -12,13 +12,13 @@ import Link from "next/link";
 import { PermissionAction } from "@prisma/client";
 import { requireOrgMemberPage } from "@/lib/authz";
 import {
-  getAuthUserId,
   getOrgMembership,
   memberHasPermission,
 } from "@/lib/authz/_shared";
 import { getTaskById } from "@/lib/services/tasks";
 import { Toolbar } from "@/components/layout/toolbar";
 import { TaskViewActions } from "./task-view-actions";
+import { formatDate } from "@/lib/utils";
 
 function formatDuration(min: number): string {
   if (min < 60) return `${min} min`;
@@ -146,8 +146,7 @@ const ViewTaskPage = async ({ params }: Props) => {
               Photo
             </div>
             <p className="text-xs text-muted-foreground">
-              Created{" "}
-              {task.createdAt.toLocaleDateString("en-AU", { timeZone: "UTC" })}
+              Created {formatDate(task.createdAt)}
             </p>
           </div>
         </div>
