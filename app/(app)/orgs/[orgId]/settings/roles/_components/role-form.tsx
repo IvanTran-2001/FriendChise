@@ -14,7 +14,7 @@
  *    the role (click `−` to remove), right panel shows the remaining org tasks
  *    (click `+` to add). Both panels scroll independently when the list is long.
  */
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { PermissionAction } from "@prisma/client";
 import { toast } from "sonner";
@@ -42,6 +42,7 @@ interface RoleFormProps {
 }
 
 export function RoleForm({ orgId, role, tasks }: RoleFormProps) {
+  const nameId = useId();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -104,8 +105,11 @@ export function RoleForm({ orgId, role, tasks }: RoleFormProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Name */}
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">Name</label>
+        <label htmlFor={nameId} className="text-sm font-medium">
+          Name
+        </label>
         <Input
+          id={nameId}
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Kitchen Staff"

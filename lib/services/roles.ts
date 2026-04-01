@@ -109,6 +109,15 @@ export async function createRole(
   data: RoleFormInput,
 ): Promise<ServiceResult<RoleWithPermissions>> {
   const role = await prisma.$transaction(async (tx) => {
+    const taskIds = [...new Set(data.taskIds)];
+    if (taskIds.length > 0) {
+      const orgTasks = await tx.task.findMany({
+        where: { orgId, id: { in: taskIds } },
+        select: { id: true },
+      });
+      if (orgTasks.length !== taskIds.length) return null;
+    }
+
     const created = await tx.role.create({
       data: {
         orgId,
@@ -129,9 +138,9 @@ export async function createRole(
       });
     }
 
-    if (data.taskIds.length > 0) {
+    if (taskIds.length > 0) {
       await tx.taskEligibility.createMany({
-        data: data.taskIds.map((taskId) => ({ roleId: created.id, taskId })),
+        data: taskIds.map((taskId) => ({ roleId: created.id, taskId })),
       });
     }
 
@@ -140,6 +149,14 @@ export async function createRole(
       select: roleSelect,
     });
   });
+
+  if (!role) {
+    return {
+      ok: false,
+      error: "One or more tasks are invalid for this organization.",
+      code: "INVALID",
+    };
+  }
 
   return { ok: true, data: role };
 }
@@ -170,7 +187,16 @@ export async function updateRole(
       code: "INVALID",
     };
 
-  await prisma.$transaction(async (tx) => {
+  const updated = await prisma.$transaction(async (tx) => {
+    const taskIds = [...new Set(data.taskIds)];
+    if (taskIds.length > 0) {
+      const orgTasks = await tx.task.findMany({
+        where: { orgId, id: { in: taskIds } },
+        select: { id: true },
+      });
+      if (orgTasks.length !== taskIds.length) return null;
+    }
+
     await tx.role.update({
       where: { id: roleId },
       data: { name: data.name, color: data.color ?? null },
@@ -183,17 +209,25 @@ export async function updateRole(
     }
 
     await tx.taskEligibility.deleteMany({ where: { roleId } });
-    if (data.taskIds.length > 0) {
+    if (taskIds.length > 0) {
       await tx.taskEligibility.createMany({
-        data: data.taskIds.map((taskId) => ({ roleId, taskId })),
+        data: taskIds.map((taskId) => ({ roleId, taskId })),
       });
     }
+
+    return tx.role.findUniqueOrThrow({
+      where: { id: roleId },
+      select: roleSelect,
+    });
   });
 
-  const updated = await prisma.role.findUniqueOrThrow({
-    where: { id: roleId },
-    select: roleSelect,
-  });
+  if (!updated) {
+    return {
+      ok: false,
+      error: "One or more tasks are invalid for this organization.",
+      code: "INVALID",
+    };
+  }
 
   return { ok: true, data: updated };
 }
