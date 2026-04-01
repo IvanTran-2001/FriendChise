@@ -1,3 +1,10 @@
+/**
+ * New Task page — `/orgs/[orgId]/tasks/new`
+ *
+ * Server component. Guards with `MANAGE_TASKS`. Fetches all org roles so the
+ * create form can pre-populate the eligibility selector, then renders the
+ * shared `TaskForm` in create mode.
+ */
 import { requireOrgPermissionPage } from "@/lib/authz";
 import { PermissionAction } from "@prisma/client";
 import { getRoles } from "@/lib/services/roles";

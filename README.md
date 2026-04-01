@@ -200,7 +200,9 @@ app/
         page.tsx          # Org overview
         franchisee/       # Franchise management (parent org owners only)
         memberships/      # Members list + invite new member
-        tasks/            # Task definition list (searchable, sortable, filterable table) + create form
+        tasks/            # Task definition list + create form
+          [taskId]/       # Task detail view
+            edit/         # Edit task form
         timetable/        # Weekly timetable, template selector, template editor
         settings/
           page.tsx        # Redirects to /settings/organization
@@ -215,7 +217,7 @@ app/
   actions/                # Server Actions (web UI mutations)
     orgs.ts               # createOrg, updateOrgSettings, transferOrgOwnership, deleteOrg, joinFranchise
     memberships.ts        # createMembership, deleteMembership
-    tasks.ts              # createTaskAction, deleteTaskAction
+    tasks.ts              # createTaskAction, deleteTaskAction, updateTaskAction, addEligibilityAction, removeEligibilityAction
     templates.ts          # createTemplate, updateTemplateEntry, deleteTemplateEntry, etc.
     franchisee.ts         # generateFranchiseToken, deleteFranchiseToken, removeFranchisee, etc.
     roles.ts              # deleteRoleAction, createRoleAction, updateRoleAction
@@ -271,7 +273,7 @@ lib/
     types.ts            # ServiceResult<T> discriminated union
     orgs.ts             # createOrg, updateOrgSettings, transferOrgOwnership, deleteOrg
     memberships.ts      # getMemberships, createMembership, deleteMembership
-    tasks.ts            # getTasks (includes role eligibility), createTask, deleteTask
+    tasks.ts            # getTasks, getTaskById, createTask, deleteTask, updateTask, addTaskEligibility, removeTaskEligibility, setTaskEligibilities
     task-instances.ts   # getTaskInstances, createTaskInstance, updateTaskInstanceStatus
     assignees.ts        # getAssignees, createAssignee, deleteAssignee
     templates.ts        # getTimetableTemplates, getTimetableTemplate, template mutations
@@ -313,7 +315,9 @@ Server Actions call `revalidatePath` to invalidate the Next.js cache so server-r
 | `/orgs/[orgId]`                                  | `requireOrgMemberPage`                     | Org overview                                                        |
 | `/orgs/[orgId]/franchisee`                       | `requireParentOrgOwnerPage`                | Franchise management — invite tokens + franchisee list              |
 | `/orgs/[orgId]/tasks`                            | `requireOrgMemberPage`                     | Task definition list — searchable/sortable table with role filter and per-row actions (edit, duplicate, delete) |
-| `/orgs/[orgId]/tasks/new`                        | `requireOrgPermissionPage MANAGE_TASKS`    | Create a new task definition                                        |
+| `/orgs/[orgId]/tasks/new`                        | `requireOrgPermissionPage MANAGE_TASKS`    | Create a new task definition with role eligibility selector          |
+| `/orgs/[orgId]/tasks/[taskId]`                   | `requireOrgMemberPage`                     | Task detail view — fields, eligible roles, Actions menu (edit/delete) for `MANAGE_TASKS` holders |
+| `/orgs/[orgId]/tasks/[taskId]/edit`              | `requireOrgPermissionPage MANAGE_TASKS`    | Edit a task definition's fields and role eligibility                 |
 | `/orgs/[orgId]/memberships`                      | `requireOrgMemberPage`                     | Member list                                                         |
 | `/orgs/[orgId]/memberships/new`                  | `requireOrgPermissionPage MANAGE_MEMBERS`  | Invite a new member by email                                        |
 | `/orgs/[orgId]/timetable`                        | `requireOrgMemberPage`                     | Timetable — calendar or simple mode, week navigation                |

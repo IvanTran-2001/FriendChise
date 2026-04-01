@@ -1,3 +1,11 @@
+/**
+ * Edit Task page — `/orgs/[orgId]/tasks/[taskId]/edit`
+ *
+ * Server component. Guards with `MANAGE_TASKS`. Fetches the task and all org
+ * roles in parallel, then renders the shared `TaskForm` in edit mode.
+ * Hydrates default field values and the current role eligibility list.
+ * Returns 404 if the task does not belong to the org.
+ */
 import { notFound } from "next/navigation";
 import { requireOrgPermissionPage } from "@/lib/authz";
 import { PermissionAction } from "@prisma/client";
