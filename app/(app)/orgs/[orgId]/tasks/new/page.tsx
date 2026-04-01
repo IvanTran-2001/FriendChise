@@ -1,14 +1,8 @@
 import { requireOrgPermissionPage } from "@/lib/authz";
 import { PermissionAction } from "@prisma/client";
-import { CreateTaskForm } from "./create-task-form";
+import { getRoles } from "@/lib/services/roles";
+import { TaskForm } from "../task-form";
 
-/**
- * Create-task page — server component.
- *
- * Guards access with `requireOrgPermissionPage(TASK_CREATE)`; redirects to `/`
- * if the caller lacks the permission. Renders the `CreateTaskForm` client
- * component inside a constrained-width container.
- */
 const NewTaskPage = async ({
   params,
 }: {
@@ -18,10 +12,12 @@ const NewTaskPage = async ({
 
   await requireOrgPermissionPage(orgId, PermissionAction.MANAGE_TASKS);
 
+  const allRoles = await getRoles(orgId);
+
   return (
-    <div className="max-w-lg mx-auto">
+    <div className="max-w-4xl mx-auto">
       <h1 className="text-xl font-semibold mb-6">Create Task</h1>
-      <CreateTaskForm orgId={orgId} />
+      <TaskForm mode="create" orgId={orgId} allRoles={allRoles} />
     </div>
   );
 };
