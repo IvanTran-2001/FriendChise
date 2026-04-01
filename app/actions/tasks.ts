@@ -13,8 +13,8 @@
 
 import { PermissionAction } from "@prisma/client";
 import { requireOrgPermissionAction } from "@/lib/authz";
-import { createTask, deleteTask } from "@/lib/services/tasks";
-import { createTaskSchema } from "@/lib/validators/task";
+import { createTask, deleteTask, updateTask, addTaskEligibility, removeTaskEligibility, setTaskEligibilities } from "@/lib/services/tasks";
+import { createTaskSchema, updateTaskSchema } from "@/lib/validators/task";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -61,7 +61,11 @@ export async function createTaskAction(
     };
   }
 
-  await createTask(orgId, parsed.data);
+  const task = await createTask(orgId, parsed.data);
+  const roleIds = formData.getAll("roleIds").filter((v): v is string => typeof v === "string");
+  if (roleIds.length > 0) {
+    await setTaskEligibilities(task.id, roleIds);
+  }
   revalidatePath(`/orgs/${orgId}/tasks`);
   redirect(`/orgs/${orgId}/tasks`);
 }
@@ -87,5 +91,80 @@ export async function deleteTaskAction(
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/tasks`);
+  return { ok: true };
+}
+
+export type TaskFormState =
+  | { ok: false; errors: Record<string, string[]> }
+  | { ok: true }
+  | null;
+
+export async function updateTaskAction(
+  orgId: string,
+  taskId: string,
+  _prev: TaskFormState,
+  formData: FormData,
+): Promise<TaskFormState> {
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return { ok: false, errors: { _: ["Unauthorized"] } };
+
+  const num = (key: string) => {
+    const v = formData.get(key);
+    if (v === null || v === "") return undefined;
+    const n = Number(v);
+    return isNaN(n) ? undefined : n;
+  };
+
+  const raw = {
+    title: String(formData.get("title") ?? ""),
+    description: formData.get("description") || undefined,
+    durationMin: num("durationMin"),
+    preferredStartTimeMin: num("preferredStartTimeMin"),
+    peopleRequired: num("peopleRequired") ?? 1,
+    minWaitDays: num("minWaitDays"),
+    maxWaitDays: num("maxWaitDays"),
+  };
+
+  const parsed = updateTaskSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      errors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+    };
+  }
+
+  const result = await updateTask(orgId, taskId, parsed.data);
+  if (!result.ok) return { ok: false, errors: { _: [result.error] } };
+
+  revalidatePath(`/orgs/${orgId}/tasks`);
+  revalidatePath(`/orgs/${orgId}/tasks/${taskId}/edit`);
+  return { ok: true };
+}
+
+export async function addEligibilityAction(
+  orgId: string,
+  taskId: string,
+  roleId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  const result = await addTaskEligibility(orgId, taskId, roleId);
+  if (!result.ok) return { ok: false, error: result.error };
+  revalidatePath(`/orgs/${orgId}/tasks`);
+  revalidatePath(`/orgs/${orgId}/tasks/${taskId}/edit`);
+  return { ok: true };
+}
+
+export async function removeEligibilityAction(
+  orgId: string,
+  taskId: string,
+  roleId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  const result = await removeTaskEligibility(orgId, taskId, roleId);
+  if (!result.ok) return { ok: false, error: result.error };
+  revalidatePath(`/orgs/${orgId}/tasks`);
+  revalidatePath(`/orgs/${orgId}/tasks/${taskId}/edit`);
   return { ok: true };
 }

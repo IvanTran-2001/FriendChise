@@ -56,3 +56,40 @@ export type UpdateTaskStatusInput = z.infer<
 >;
 
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
+
+export const updateTaskSchema = z
+  .object({
+    title: z.string().min(1).max(200),
+    description: z.string().max(5000).optional(),
+    durationMin: z
+      .number()
+      .int()
+      .positive()
+      .max(24 * 60),
+    preferredStartTimeMin: z.number().int().min(0).max(1439).optional(),
+    peopleRequired: z.number().int().min(1).max(50).optional(),
+    minWaitDays: z.number().int().min(0).max(3650).optional(),
+    maxWaitDays: z.number().int().min(1).max(3650).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.minWaitDays == null && data.maxWaitDays == null) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["minWaitDays"],
+        message: "Provide minWaitDays and/or maxWaitDays",
+      });
+    }
+    if (
+      data.minWaitDays != null &&
+      data.maxWaitDays != null &&
+      data.minWaitDays > data.maxWaitDays
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["minWaitDays"],
+        message: "minWaitDays cannot be greater than maxWaitDays",
+      });
+    }
+  });
+
+export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
