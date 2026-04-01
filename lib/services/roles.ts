@@ -33,16 +33,7 @@ export type RoleWithPermissions = {
 export async function getRoles(orgId: string): Promise<RoleWithPermissions[]> {
   return prisma.role.findMany({
     where: { orgId },
-    select: {
-      id: true,
-      name: true,
-      color: true,
-      key: true,
-      isDeletable: true,
-      isDefault: true,
-      permissions: { select: { action: true } },
-      eligibleFor: { select: { task: { select: { id: true, name: true, color: true } } } },
-    },
+    select: roleSelect,
     orderBy: { name: "asc" },
   });
 }
@@ -110,6 +101,7 @@ export async function createRole(
 ): Promise<ServiceResult<RoleWithPermissions>> {
   const role = await prisma.$transaction(async (tx) => {
     const taskIds = [...new Set(data.taskIds)];
+    const permissionActions = [...new Set(data.permissions)];
     if (taskIds.length > 0) {
       const orgTasks = await tx.task.findMany({
         where: { orgId, id: { in: taskIds } },
@@ -129,9 +121,9 @@ export async function createRole(
       },
     });
 
-    if (data.permissions.length > 0) {
+    if (permissionActions.length > 0) {
       await tx.permission.createMany({
-        data: data.permissions.map((action) => ({
+        data: permissionActions.map((action) => ({
           roleId: created.id,
           action,
         })),
@@ -189,6 +181,7 @@ export async function updateRole(
 
   const updated = await prisma.$transaction(async (tx) => {
     const taskIds = [...new Set(data.taskIds)];
+    const permissionActions = [...new Set(data.permissions)];
     if (taskIds.length > 0) {
       const orgTasks = await tx.task.findMany({
         where: { orgId, id: { in: taskIds } },
@@ -202,9 +195,9 @@ export async function updateRole(
       data: { name: data.name, color: data.color ?? null },
     });
     await tx.permission.deleteMany({ where: { roleId } });
-    if (data.permissions.length > 0) {
+    if (permissionActions.length > 0) {
       await tx.permission.createMany({
-        data: data.permissions.map((action) => ({ roleId, action })),
+        data: permissionActions.map((action) => ({ roleId, action })),
       });
     }
 
