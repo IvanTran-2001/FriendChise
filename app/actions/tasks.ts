@@ -64,7 +64,7 @@ export async function createTaskAction(
   const task = await createTask(orgId, parsed.data);
   const roleIds = formData.getAll("roleIds").filter((v): v is string => typeof v === "string");
   if (roleIds.length > 0) {
-    await setTaskEligibilities(task.id, roleIds);
+    await setTaskEligibilities(orgId, task.id, roleIds);
   }
   revalidatePath(`/orgs/${orgId}/tasks`);
   redirect(`/orgs/${orgId}/tasks`);

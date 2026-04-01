@@ -130,12 +130,18 @@ export async function removeTaskEligibility(
  * Used by createTaskAction to set initial eligibility after task creation.
  */
 export async function setTaskEligibilities(
+  orgId: string,
   taskId: string,
   roleIds: string[],
 ): Promise<void> {
   if (roleIds.length === 0) return;
+  const validRoles = await prisma.role.findMany({
+    where: { id: { in: roleIds }, orgId },
+    select: { id: true },
+  });
+  if (validRoles.length === 0) return;
   await prisma.taskEligibility.createMany({
-    data: roleIds.map((roleId) => ({ taskId, roleId })),
+    data: validRoles.map(({ id: roleId }) => ({ taskId, roleId })),
     skipDuplicates: true,
   });
 }
