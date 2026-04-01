@@ -11,7 +11,11 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { PermissionAction } from "@prisma/client";
 import { requireOrgMemberPage } from "@/lib/authz";
-import { getAuthUserId, getOrgMembership, memberHasPermission } from "@/lib/authz/_shared";
+import {
+  getAuthUserId,
+  getOrgMembership,
+  memberHasPermission,
+} from "@/lib/authz/_shared";
 import { getTaskById } from "@/lib/services/tasks";
 import { Toolbar } from "@/components/layout/toolbar";
 import { TaskViewActions } from "./task-view-actions";
@@ -38,21 +42,21 @@ interface Props {
 const ViewTaskPage = async ({ params }: Props) => {
   const { orgId, taskId } = await params;
 
-  await requireOrgMemberPage(orgId);
+  const { userId } = await requireOrgMemberPage(orgId);
 
-  const [task, userId] = await Promise.all([
+  const [task, membership] = await Promise.all([
     getTaskById(orgId, taskId),
-    getAuthUserId(),
+    getOrgMembership(orgId, userId),
   ]);
   if (!task) notFound();
 
-  let canManage = false;
-  if (userId) {
-    const membership = await getOrgMembership(orgId, userId);
-    if (membership) {
-      canManage = await memberHasPermission(membership.id, orgId, PermissionAction.MANAGE_TASKS);
-    }
-  }
+  const canManage = membership
+    ? await memberHasPermission(
+        membership.id,
+        orgId,
+        PermissionAction.MANAGE_TASKS,
+      )
+    : false;
 
   const eligibleRoles = task.eligibility.map((e) => e.role);
 
@@ -61,7 +65,11 @@ const ViewTaskPage = async ({ params }: Props) => {
       <Toolbar
         rightChildren={
           canManage ? (
-            <TaskViewActions orgId={orgId} taskId={taskId} taskName={task.name} />
+            <TaskViewActions
+              orgId={orgId}
+              taskId={taskId}
+              taskName={task.name}
+            />
           ) : undefined
         }
       >
@@ -81,39 +89,53 @@ const ViewTaskPage = async ({ params }: Props) => {
           {/* Left: task fields */}
           <dl className="flex flex-col gap-4">
             <div>
-              <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Duration</dt>
+              <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">
+                Duration
+              </dt>
               <dd className="text-sm">{formatDuration(task.durationMin)}</dd>
             </div>
 
             {task.preferredStartTimeMin != null && (
               <div>
-                <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Preferred start time</dt>
-                <dd className="text-sm">{formatTime(task.preferredStartTimeMin)}</dd>
+                <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">
+                  Preferred start time
+                </dt>
+                <dd className="text-sm">
+                  {formatTime(task.preferredStartTimeMin)}
+                </dd>
               </div>
             )}
 
             <div>
-              <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">People required</dt>
+              <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">
+                People required
+              </dt>
               <dd className="text-sm">{task.minPeople}</dd>
             </div>
 
             {(task.minWaitDays != null || task.maxWaitDays != null) && (
               <div>
-                <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Wait days</dt>
+                <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">
+                  Wait days
+                </dt>
                 <dd className="text-sm">
                   {task.minWaitDays != null && task.maxWaitDays != null
                     ? `${task.minWaitDays} – ${task.maxWaitDays} days`
                     : task.minWaitDays != null
-                    ? `Min ${task.minWaitDays} days`
-                    : `Max ${task.maxWaitDays} days`}
+                      ? `Min ${task.minWaitDays} days`
+                      : `Max ${task.maxWaitDays} days`}
                 </dd>
               </div>
             )}
 
             {task.description && (
               <div>
-                <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Description</dt>
-                <dd className="text-sm whitespace-pre-wrap">{task.description}</dd>
+                <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">
+                  Description
+                </dt>
+                <dd className="text-sm whitespace-pre-wrap">
+                  {task.description}
+                </dd>
               </div>
             )}
           </dl>
@@ -124,7 +146,8 @@ const ViewTaskPage = async ({ params }: Props) => {
               Photo
             </div>
             <p className="text-xs text-muted-foreground">
-              Created {task.createdAt.toLocaleDateString("en-AU", { timeZone: "UTC" })}
+              Created{" "}
+              {task.createdAt.toLocaleDateString("en-AU", { timeZone: "UTC" })}
             </p>
           </div>
         </div>

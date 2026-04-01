@@ -86,7 +86,8 @@ export async function updateTask(
       maxWaitDays: data.maxWaitDays ?? null,
     },
   });
-  if (count === 0) return { ok: false, error: "Task not found", code: "NOT_FOUND" };
+  if (count === 0)
+    return { ok: false, error: "Task not found", code: "NOT_FOUND" };
   return { ok: true, data: null };
 }
 
@@ -99,9 +100,15 @@ export async function addTaskEligibility(
   taskId: string,
   roleId: string,
 ): Promise<ServiceResult<null>> {
-  const task = await prisma.task.findFirst({ where: { id: taskId, orgId }, select: { id: true } });
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, orgId },
+    select: { id: true },
+  });
   if (!task) return { ok: false, error: "Task not found", code: "NOT_FOUND" };
-  const role = await prisma.role.findFirst({ where: { id: roleId, orgId }, select: { id: true } });
+  const role = await prisma.role.findFirst({
+    where: { id: roleId, orgId },
+    select: { id: true },
+  });
   if (!role) return { ok: false, error: "Role not found", code: "NOT_FOUND" };
   await prisma.taskEligibility.upsert({
     where: { taskId_roleId: { taskId, roleId } },
@@ -119,7 +126,10 @@ export async function removeTaskEligibility(
   taskId: string,
   roleId: string,
 ): Promise<ServiceResult<null>> {
-  const task = await prisma.task.findFirst({ where: { id: taskId, orgId }, select: { id: true } });
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, orgId },
+    select: { id: true },
+  });
   if (!task) return { ok: false, error: "Task not found", code: "NOT_FOUND" };
   await prisma.taskEligibility.deleteMany({ where: { taskId, roleId } });
   return { ok: true, data: null };

@@ -307,30 +307,30 @@ Server Actions call `revalidatePath` to invalidate the Next.js cache so server-r
 
 ## Pages
 
-| Route                                            | Guard                                      | Description                                                         |
-| ------------------------------------------------ | ------------------------------------------ | ------------------------------------------------------------------- |
-| `/`                                              | Signed in                                  | Home                                                                |
-| `/signin`                                        | —                                          | Google OAuth sign-in                                                |
-| `/orgs/new`                                      | Signed in                                  | Create a new organization                                           |
-| `/orgs/[orgId]`                                  | `requireOrgMemberPage`                     | Org overview                                                        |
-| `/orgs/[orgId]/franchisee`                       | `requireParentOrgOwnerPage`                | Franchise management — invite tokens + franchisee list              |
+| Route                                            | Guard                                      | Description                                                                                                     |
+| ------------------------------------------------ | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `/`                                              | Signed in                                  | Home                                                                                                            |
+| `/signin`                                        | —                                          | Google OAuth sign-in                                                                                            |
+| `/orgs/new`                                      | Signed in                                  | Create a new organization                                                                                       |
+| `/orgs/[orgId]`                                  | `requireOrgMemberPage`                     | Org overview                                                                                                    |
+| `/orgs/[orgId]/franchisee`                       | `requireParentOrgOwnerPage`                | Franchise management — invite tokens + franchisee list                                                          |
 | `/orgs/[orgId]/tasks`                            | `requireOrgMemberPage`                     | Task definition list — searchable/sortable table with role filter and per-row actions (edit, duplicate, delete) |
-| `/orgs/[orgId]/tasks/new`                        | `requireOrgPermissionPage MANAGE_TASKS`    | Create a new task definition with role eligibility selector          |
-| `/orgs/[orgId]/tasks/[taskId]`                   | `requireOrgMemberPage`                     | Task detail view — fields, eligible roles, Actions menu (edit/delete) for `MANAGE_TASKS` holders |
-| `/orgs/[orgId]/tasks/[taskId]/edit`              | `requireOrgPermissionPage MANAGE_TASKS`    | Edit a task definition's fields and role eligibility                 |
-| `/orgs/[orgId]/memberships`                      | `requireOrgMemberPage`                     | Member list                                                         |
-| `/orgs/[orgId]/memberships/new`                  | `requireOrgPermissionPage MANAGE_MEMBERS`  | Invite a new member by email                                        |
-| `/orgs/[orgId]/timetable`                        | `requireOrgMemberPage`                     | Timetable — calendar or simple mode, week navigation                |
-| `/orgs/[orgId]/timetable/templates`              | `requireOrgMemberPage`                     | Timetable template list                                             |
-| `/orgs/[orgId]/timetable/templates/new`          | `requireOrgMemberPage`                     | Create a new timetable template                                     |
-| `/orgs/[orgId]/timetable/templates/[templateId]` | `requireOrgMemberPage`                     | Template editor — drag-and-drop schedule builder                    |
-| `/orgs/[orgId]/settings`                         | —                                          | Redirects to `/settings/organization`                               |
-| `/orgs/[orgId]/settings/organization`            | `requireOrgPermissionPage MANAGE_SETTINGS` | Org info, timezone, hours, transfer, delete                         |
-| `/orgs/[orgId]/settings/roles`                   | `requireOrgPermissionPage MANAGE_ROLES`    | Role list + delete custom roles                                     |
-| `/orgs/[orgId]/settings/roles/new`               | `requireOrgPermissionPage MANAGE_ROLES`    | Create a new custom role                                            |
-| `/orgs/[orgId]/settings/roles/[roleId]/edit`     | `requireOrgPermissionPage MANAGE_ROLES`    | Edit a custom role's name, color, permissions, and task eligibility |
-| `/orgs/[orgId]/settings/timetable`               | —                                          | Timetable display settings (stub)                                   |
-| `/orgs/[orgId]/settings/notification`            | —                                          | Notification preferences (stub)                                     |
+| `/orgs/[orgId]/tasks/new`                        | `requireOrgPermissionPage MANAGE_TASKS`    | Create a new task definition with role eligibility selector                                                     |
+| `/orgs/[orgId]/tasks/[taskId]`                   | `requireOrgMemberPage`                     | Task detail view — fields, eligible roles, Actions menu (edit/delete) for `MANAGE_TASKS` holders                |
+| `/orgs/[orgId]/tasks/[taskId]/edit`              | `requireOrgPermissionPage MANAGE_TASKS`    | Edit a task definition's fields and role eligibility                                                            |
+| `/orgs/[orgId]/memberships`                      | `requireOrgMemberPage`                     | Member list                                                                                                     |
+| `/orgs/[orgId]/memberships/new`                  | `requireOrgPermissionPage MANAGE_MEMBERS`  | Invite a new member by email                                                                                    |
+| `/orgs/[orgId]/timetable`                        | `requireOrgMemberPage`                     | Timetable — calendar or simple mode, week navigation                                                            |
+| `/orgs/[orgId]/timetable/templates`              | `requireOrgMemberPage`                     | Timetable template list                                                                                         |
+| `/orgs/[orgId]/timetable/templates/new`          | `requireOrgMemberPage`                     | Create a new timetable template                                                                                 |
+| `/orgs/[orgId]/timetable/templates/[templateId]` | `requireOrgMemberPage`                     | Template editor — drag-and-drop schedule builder                                                                |
+| `/orgs/[orgId]/settings`                         | —                                          | Redirects to `/settings/organization`                                                                           |
+| `/orgs/[orgId]/settings/organization`            | `requireOrgPermissionPage MANAGE_SETTINGS` | Org info, timezone, hours, transfer, delete                                                                     |
+| `/orgs/[orgId]/settings/roles`                   | `requireOrgPermissionPage MANAGE_ROLES`    | Role list + delete custom roles                                                                                 |
+| `/orgs/[orgId]/settings/roles/new`               | `requireOrgPermissionPage MANAGE_ROLES`    | Create a new custom role                                                                                        |
+| `/orgs/[orgId]/settings/roles/[roleId]/edit`     | `requireOrgPermissionPage MANAGE_ROLES`    | Edit a custom role's name, color, permissions, and task eligibility                                             |
+| `/orgs/[orgId]/settings/timetable`               | —                                          | Timetable display settings (stub)                                                                               |
+| `/orgs/[orgId]/settings/notification`            | —                                          | Notification preferences (stub)                                                                                 |
 
 All `/orgs/[orgId]/*` pages are guarded by at least `requireOrgMemberPage` — users not in the org are redirected.
 
