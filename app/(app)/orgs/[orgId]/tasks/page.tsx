@@ -1,7 +1,11 @@
 import { getTasks } from "@/lib/services/tasks";
 import { getRoles } from "@/lib/services/roles";
 import { requireOrgMemberPage } from "@/lib/authz";
-import { getOrgMembership, memberHasPermission, getAuthUserId } from "@/lib/authz/_shared";
+import {
+  getOrgMembership,
+  memberHasPermission,
+  getAuthUserId,
+} from "@/lib/authz/_shared";
 import { PermissionAction } from "@prisma/client";
 import { TaskTable } from "./_components/task-table";
 
@@ -24,12 +28,23 @@ const TasksPage = async ({
   const userId = await getAuthUserId();
   const membership = userId ? await getOrgMembership(orgId, userId) : null;
   const canManageTasks = membership
-    ? await memberHasPermission(membership.id, orgId, PermissionAction.MANAGE_TASKS)
+    ? await memberHasPermission(
+        membership.id,
+        orgId,
+        PermissionAction.MANAGE_TASKS,
+      )
     : false;
 
   const [tasks, roles] = await Promise.all([getTasks(orgId), getRoles(orgId)]);
 
-  return <TaskTable orgId={orgId} tasks={tasks} roles={roles} canManageTasks={canManageTasks} />;
+  return (
+    <TaskTable
+      orgId={orgId}
+      tasks={tasks}
+      roles={roles}
+      canManageTasks={canManageTasks}
+    />
+  );
 };
 
 export default TasksPage;

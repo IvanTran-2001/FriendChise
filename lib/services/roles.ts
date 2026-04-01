@@ -74,7 +74,9 @@ const roleSelect = {
   isDeletable: true,
   isDefault: true,
   permissions: { select: { action: true } },
-  eligibleFor: { select: { task: { select: { id: true, name: true, color: true } } } },
+  eligibleFor: {
+    select: { task: { select: { id: true, name: true, color: true } } },
+  },
 } as const;
 
 /**

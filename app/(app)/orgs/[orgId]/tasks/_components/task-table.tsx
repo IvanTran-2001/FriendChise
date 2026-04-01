@@ -84,7 +84,12 @@ interface TaskTableProps {
   canManageTasks: boolean;
 }
 
-export function TaskTable({ orgId, tasks, roles, canManageTasks }: TaskTableProps) {
+export function TaskTable({
+  orgId,
+  tasks,
+  roles,
+  canManageTasks,
+}: TaskTableProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState("");
@@ -140,7 +145,13 @@ export function TaskTable({ orgId, tasks, roles, canManageTasks }: TaskTableProp
 
   return (
     <>
-      <Toolbar actions={canManageTasks ? [{ label: "Create", href: `/orgs/${orgId}/tasks/new` }] : undefined}>
+      <Toolbar
+        actions={
+          canManageTasks
+            ? [{ label: "Create", href: `/orgs/${orgId}/tasks/new` }]
+            : undefined
+        }
+      >
         <Input
           aria-label="Search tasks by title"
           placeholder="Search by title..."
@@ -257,48 +268,50 @@ export function TaskTable({ orgId, tasks, roles, canManageTasks }: TaskTableProp
                     )}
                   </td>
                   {canManageTasks && (
-                  <td
-                    className="px-2 py-3 text-right"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          disabled={isPending}
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Task actions</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() =>
-                            router.push(`/orgs/${orgId}/tasks/${task.id}/edit`)
-                          }
-                        >
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            router.push(
-                              `/orgs/${orgId}/tasks/new?duplicateFrom=${task.id}`,
-                            )
-                          }
-                        >
-                          Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => setDeleteTarget(task)}
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
+                    <td
+                      className="px-2 py-3 text-right"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            disabled={isPending}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Task actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() =>
+                              router.push(
+                                `/orgs/${orgId}/tasks/${task.id}/edit`,
+                              )
+                            }
+                          >
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              router.push(
+                                `/orgs/${orgId}/tasks/new?duplicateFrom=${task.id}`,
+                              )
+                            }
+                          >
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => setDeleteTarget(task)}
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
                   )}
                 </tr>
               ))}

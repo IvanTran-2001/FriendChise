@@ -13,7 +13,14 @@
 
 import { PermissionAction } from "@prisma/client";
 import { requireOrgPermissionAction } from "@/lib/authz";
-import { createTask, deleteTask, updateTask, addTaskEligibility, removeTaskEligibility, setTaskEligibilities } from "@/lib/services/tasks";
+import {
+  createTask,
+  deleteTask,
+  updateTask,
+  addTaskEligibility,
+  removeTaskEligibility,
+  setTaskEligibilities,
+} from "@/lib/services/tasks";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validators/task";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -62,7 +69,9 @@ export async function createTaskAction(
   }
 
   const task = await createTask(orgId, parsed.data);
-  const roleIds = formData.getAll("roleIds").filter((v): v is string => typeof v === "string");
+  const roleIds = formData
+    .getAll("roleIds")
+    .filter((v): v is string => typeof v === "string");
   if (roleIds.length > 0) {
     await setTaskEligibilities(orgId, task.id, roleIds);
   }
@@ -105,7 +114,10 @@ export async function updateTaskAction(
   _prev: TaskFormState,
   formData: FormData,
 ): Promise<TaskFormState> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, errors: { _: ["Unauthorized"] } };
 
   const num = (key: string) => {
@@ -146,7 +158,10 @@ export async function addEligibilityAction(
   taskId: string,
   roleId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
   const result = await addTaskEligibility(orgId, taskId, roleId);
   if (!result.ok) return { ok: false, error: result.error };
@@ -160,7 +175,10 @@ export async function removeEligibilityAction(
   taskId: string,
   roleId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
   const result = await removeTaskEligibility(orgId, taskId, roleId);
   if (!result.ok) return { ok: false, error: result.error };

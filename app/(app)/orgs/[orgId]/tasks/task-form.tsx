@@ -15,9 +15,20 @@
  * In create mode, eligibility can only be set after the task exists (edit page).
  */
 
-import { useActionState, useEffect, useTransition, useState, useRef } from "react";
+import {
+  useActionState,
+  useEffect,
+  useTransition,
+  useState,
+  useRef,
+} from "react";
 import { toast } from "sonner";
-import { createTaskAction, updateTaskAction, addEligibilityAction, removeEligibilityAction } from "@/app/actions/tasks";
+import {
+  createTaskAction,
+  updateTaskAction,
+  addEligibilityAction,
+  removeEligibilityAction,
+} from "@/app/actions/tasks";
 import type { CreateTaskFormState, TaskFormState } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,7 +65,13 @@ type TaskFormProps =
 
 type EligibilityPanelProps =
   | { mode: "create"; allRoles: Role[] }
-  | { mode: "edit"; orgId: string; taskId: string; allRoles: Role[]; eligibleRoles: Role[] };
+  | {
+      mode: "edit";
+      orgId: string;
+      taskId: string;
+      allRoles: Role[];
+      eligibleRoles: Role[];
+    };
 
 function EligibilityPanel(props: EligibilityPanelProps) {
   const isEdit = props.mode === "edit";
@@ -66,7 +83,8 @@ function EligibilityPanel(props: EligibilityPanelProps) {
 
   const roleIds = new Set(roles.map((r) => r.id));
   const filtered = props.allRoles.filter(
-    (r) => !roleIds.has(r.id) && r.name.toLowerCase().includes(search.toLowerCase()),
+    (r) =>
+      !roleIds.has(r.id) && r.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   const add = (role: Role) => {
@@ -75,7 +93,11 @@ function EligibilityPanel(props: EligibilityPanelProps) {
     inputRef.current?.blur();
     if (isEdit) {
       startTransition(async () => {
-        const res = await addEligibilityAction(props.orgId, props.taskId, role.id);
+        const res = await addEligibilityAction(
+          props.orgId,
+          props.taskId,
+          role.id,
+        );
         if (res.ok) setRoles((prev) => [...prev, role]);
         else toast.error(res.error);
       });
@@ -87,7 +109,11 @@ function EligibilityPanel(props: EligibilityPanelProps) {
   const remove = (roleId: string) => {
     if (isEdit) {
       startTransition(async () => {
-        const res = await removeEligibilityAction(props.orgId, props.taskId, roleId);
+        const res = await removeEligibilityAction(
+          props.orgId,
+          props.taskId,
+          roleId,
+        );
         if (res.ok) setRoles((prev) => prev.filter((r) => r.id !== roleId));
         else toast.error(res.error);
       });
@@ -101,9 +127,10 @@ function EligibilityPanel(props: EligibilityPanelProps) {
       <span className="text-sm font-medium">Eligible roles</span>
 
       {/* Hidden inputs for create mode — picked up by FormData on submit */}
-      {!isEdit && roles.map((role) => (
-        <input key={role.id} type="hidden" name="roleIds" value={role.id} />
-      ))}
+      {!isEdit &&
+        roles.map((role) => (
+          <input key={role.id} type="hidden" name="roleIds" value={role.id} />
+        ))}
 
       {/* Searchable role dropdown */}
       <div className="relative">
@@ -111,7 +138,10 @@ function EligibilityPanel(props: EligibilityPanelProps) {
           ref={inputRef}
           placeholder="Search roles..."
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setOpen(true); }}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setOpen(true);
+          }}
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           className="h-8 text-sm"
@@ -124,7 +154,10 @@ function EligibilityPanel(props: EligibilityPanelProps) {
                 key={role.id}
                 type="button"
                 className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
-                onMouseDown={(e) => { e.preventDefault(); add(role); }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  add(role);
+                }}
               >
                 {role.color && (
                   <span
@@ -147,7 +180,9 @@ function EligibilityPanel(props: EligibilityPanelProps) {
       {/* Current role list */}
       <div className="rounded-md border min-h-20">
         {roles.length === 0 ? (
-          <p className="px-3 py-4 text-sm text-muted-foreground text-center">All roles eligible</p>
+          <p className="px-3 py-4 text-sm text-muted-foreground text-center">
+            All roles eligible
+          </p>
         ) : (
           <ul>
             {roles.map((role) => (
@@ -194,14 +229,22 @@ export function TaskForm(props: TaskFormProps) {
   const [state, dispatch, pending] = useActionState<
     CreateTaskFormState | TaskFormState,
     FormData
-  >(boundAction as (prev: CreateTaskFormState | TaskFormState, fd: FormData) => Promise<CreateTaskFormState | TaskFormState>, null);
+  >(
+    boundAction as (
+      prev: CreateTaskFormState | TaskFormState,
+      fd: FormData,
+    ) => Promise<CreateTaskFormState | TaskFormState>,
+    null,
+  );
 
   const [, startTransition] = useTransition();
 
   useEffect(() => {
     if (!state) return;
     if (!state.ok) {
-      const messages = Object.entries((state as { ok: false; errors: Record<string, string[]> }).errors)
+      const messages = Object.entries(
+        (state as { ok: false; errors: Record<string, string[]> }).errors,
+      )
         .flatMap(([field, errs]) =>
           field === "_" ? errs : errs.map((e) => `${field}: ${e}`),
         )
@@ -220,17 +263,24 @@ export function TaskForm(props: TaskFormProps) {
 
   const err = (field: string): string | null =>
     state && !state.ok
-      ? ((state as { ok: false; errors: Record<string, string[]> }).errors[field]?.[0] ?? null)
+      ? ((state as { ok: false; errors: Record<string, string[]> }).errors[
+          field
+        ]?.[0] ?? null)
       : null;
 
   const dv = isEdit ? props.defaultValues : null;
 
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8 items-start">
+    <form
+      onSubmit={handleSubmit}
+      className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8 items-start"
+    >
       {/* ── Left: task fields ─────────────────────────────────────────────── */}
       <div className="flex flex-col gap-5">
         {err("_") && (
-          <p role="alert" className="text-sm text-destructive">{err("_")}</p>
+          <p role="alert" className="text-sm text-destructive">
+            {err("_")}
+          </p>
         )}
 
         <div className="flex flex-col gap-1.5">
@@ -248,7 +298,9 @@ export function TaskForm(props: TaskFormProps) {
             aria-describedby={err("title") ? "title-error" : undefined}
           />
           {err("title") && (
-            <p id="title-error" className="text-xs text-destructive">{err("title")}</p>
+            <p id="title-error" className="text-xs text-destructive">
+              {err("title")}
+            </p>
           )}
         </div>
 
@@ -264,10 +316,14 @@ export function TaskForm(props: TaskFormProps) {
             defaultValue={dv?.description ?? undefined}
             className="border rounded-md px-3 py-2 text-sm bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
             aria-invalid={!!err("description")}
-            aria-describedby={err("description") ? "description-error" : undefined}
+            aria-describedby={
+              err("description") ? "description-error" : undefined
+            }
           />
           {err("description") && (
-            <p id="description-error" className="text-xs text-destructive">{err("description")}</p>
+            <p id="description-error" className="text-xs text-destructive">
+              {err("description")}
+            </p>
           )}
         </div>
 
@@ -285,15 +341,22 @@ export function TaskForm(props: TaskFormProps) {
             placeholder="e.g. 60"
             defaultValue={dv?.durationMin}
             aria-invalid={!!err("durationMin")}
-            aria-describedby={err("durationMin") ? "durationMin-error" : undefined}
+            aria-describedby={
+              err("durationMin") ? "durationMin-error" : undefined
+            }
           />
           {err("durationMin") && (
-            <p id="durationMin-error" className="text-xs text-destructive">{err("durationMin")}</p>
+            <p id="durationMin-error" className="text-xs text-destructive">
+              {err("durationMin")}
+            </p>
           )}
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="preferredStartTimeMin" className="text-sm font-medium">
+          <label
+            htmlFor="preferredStartTimeMin"
+            className="text-sm font-medium"
+          >
             Preferred start time (minutes since midnight)
           </label>
           <Input
@@ -305,10 +368,19 @@ export function TaskForm(props: TaskFormProps) {
             placeholder="e.g. 480 = 8:00 am"
             defaultValue={dv?.preferredStartTimeMin ?? undefined}
             aria-invalid={!!err("preferredStartTimeMin")}
-            aria-describedby={err("preferredStartTimeMin") ? "preferredStartTimeMin-error" : undefined}
+            aria-describedby={
+              err("preferredStartTimeMin")
+                ? "preferredStartTimeMin-error"
+                : undefined
+            }
           />
           {err("preferredStartTimeMin") && (
-            <p id="preferredStartTimeMin-error" className="text-xs text-destructive">{err("preferredStartTimeMin")}</p>
+            <p
+              id="preferredStartTimeMin-error"
+              className="text-xs text-destructive"
+            >
+              {err("preferredStartTimeMin")}
+            </p>
           )}
         </div>
 
@@ -324,10 +396,14 @@ export function TaskForm(props: TaskFormProps) {
             max={50}
             defaultValue={dv?.peopleRequired ?? 1}
             aria-invalid={!!err("peopleRequired")}
-            aria-describedby={err("peopleRequired") ? "peopleRequired-error" : undefined}
+            aria-describedby={
+              err("peopleRequired") ? "peopleRequired-error" : undefined
+            }
           />
           {err("peopleRequired") && (
-            <p id="peopleRequired-error" className="text-xs text-destructive">{err("peopleRequired")}</p>
+            <p id="peopleRequired-error" className="text-xs text-destructive">
+              {err("peopleRequired")}
+            </p>
           )}
         </div>
 
@@ -345,10 +421,14 @@ export function TaskForm(props: TaskFormProps) {
               placeholder="e.g. 7"
               defaultValue={dv?.minWaitDays ?? undefined}
               aria-invalid={!!err("minWaitDays")}
-              aria-describedby={err("minWaitDays") ? "minWaitDays-error" : undefined}
+              aria-describedby={
+                err("minWaitDays") ? "minWaitDays-error" : undefined
+              }
             />
             {err("minWaitDays") && (
-              <p id="minWaitDays-error" className="text-xs text-destructive">{err("minWaitDays")}</p>
+              <p id="minWaitDays-error" className="text-xs text-destructive">
+                {err("minWaitDays")}
+              </p>
             )}
           </div>
           <div className="flex flex-col gap-1.5">
@@ -364,10 +444,14 @@ export function TaskForm(props: TaskFormProps) {
               placeholder="e.g. 14"
               defaultValue={dv?.maxWaitDays ?? undefined}
               aria-invalid={!!err("maxWaitDays")}
-              aria-describedby={err("maxWaitDays") ? "maxWaitDays-error" : undefined}
+              aria-describedby={
+                err("maxWaitDays") ? "maxWaitDays-error" : undefined
+              }
             />
             {err("maxWaitDays") && (
-              <p id="maxWaitDays-error" className="text-xs text-destructive">{err("maxWaitDays")}</p>
+              <p id="maxWaitDays-error" className="text-xs text-destructive">
+                {err("maxWaitDays")}
+              </p>
             )}
           </div>
         </div>
@@ -377,8 +461,12 @@ export function TaskForm(props: TaskFormProps) {
 
         <Button type="submit" disabled={pending}>
           {pending
-            ? isEdit ? "Saving..." : "Creating..."
-            : isEdit ? "Save" : "Create Task"}
+            ? isEdit
+              ? "Saving..."
+              : "Creating..."
+            : isEdit
+              ? "Save"
+              : "Create Task"}
         </Button>
       </div>
 
