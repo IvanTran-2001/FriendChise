@@ -28,5 +28,8 @@ export function formatDate(
   timeZone = "UTC",
   locale = "en-AU",
 ): string {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    throw new TypeError("formatDate: expected a valid Date");
+  }
   return date.toLocaleDateString(locale, { timeZone });
 }
