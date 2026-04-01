@@ -94,6 +94,15 @@ export async function getRoleById(
 /**
  * Creates a new custom role for an org with the supplied permissions and task eligibility.
  * All steps are atomic — role, permissions, and TaskEligibility rows are created together.
+ *
+ * Security: task IDs are resolved against `Task` scoped to `orgId` inside the transaction.
+ * Any ID that doesn't belong to this org causes the whole transaction to abort and returns
+ * an INVALID error, preventing cross-tenant TaskEligibility rows from being written.
+ *
+ * Duplicates in `data.taskIds` and `data.permissions` are silently deduplicated before
+ * insertion to avoid unique-constraint failures.
+ *
+ * Returns INVALID if any supplied task ID is not found in this org.
  */
 export async function createRole(
   orgId: string,
@@ -158,9 +167,17 @@ export async function createRole(
  * Both permissions and task eligibility are replaced wholesale (delete-then-insert)
  * so the caller provides the full desired set each time.
  *
+ * Security: task IDs are resolved against `Task` scoped to `orgId` inside the transaction.
+ * Any ID not belonging to this org aborts the transaction and returns INVALID, preventing
+ * cross-tenant TaskEligibility rows from being written.
+ *
+ * Duplicates in `data.taskIds` and `data.permissions` are silently deduplicated before
+ * insertion to avoid unique-constraint failures.
+ *
  * Guards:
  * - Returns NOT_FOUND if the role doesn't exist in this org.
  * - Returns INVALID if the role is the system Owner role.
+ * - Returns INVALID if any supplied task ID is not found in this org.
  */
 export async function updateRole(
   orgId: string,

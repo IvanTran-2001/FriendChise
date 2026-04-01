@@ -2,13 +2,18 @@
 
 /**
  * Server Actions for task management.
- * Used by the create task form — parses FormData, delegates to the task service,
- * then revalidates the tasks list and redirects back to it.
+ *
+ * createTaskAction — used by the create-task form. Parses FormData, validates with
+ * `createTaskSchema`, delegates to the task service, then revalidates the task list
+ * and redirects back to it.
+ *
+ * deleteTaskAction — called by the TaskTable row menu. Requires MANAGE_TASKS.
+ * Delegates to the task service (scoped delete) and revalidates the task list.
  */
 
 import { PermissionAction } from "@prisma/client";
 import { requireOrgPermissionAction } from "@/lib/authz";
-import { createTask } from "@/lib/services/tasks";
+import { createTask, deleteTask } from "@/lib/services/tasks";
 import { createTaskSchema } from "@/lib/validators/task";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -59,4 +64,28 @@ export async function createTaskAction(
   await createTask(orgId, parsed.data);
   revalidatePath(`/orgs/${orgId}/tasks`);
   redirect(`/orgs/${orgId}/tasks`);
+}
+
+/**
+ * Deletes a task definition for an org.
+ *
+ * Auth: caller must hold `MANAGE_TASKS` in this org.
+ * Delegates to `deleteTask` which scopes the delete to `orgId` to prevent
+ * cross-org deletion. Revalidates the tasks list on success.
+ */
+export async function deleteTaskAction(
+  orgId: string,
+  taskId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!authz.ok) return { ok: false, error: "Unauthorized." };
+
+  const result = await deleteTask(orgId, taskId);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  revalidatePath(`/orgs/${orgId}/tasks`);
+  return { ok: true };
 }

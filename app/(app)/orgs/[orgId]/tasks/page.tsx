@@ -1,13 +1,14 @@
 import { getTasks } from "@/lib/services/tasks";
+import { getRoles } from "@/lib/services/roles";
 import { requireOrgMemberPage } from "@/lib/authz";
-import { Toolbar } from "@/components/layout/toolbar";
+import { TaskTable } from "./_components/task-table";
 
 /**
  * Tasks list page — server component.
  *
  * Guards access with `requireOrgMemberPage`; redirects to `/` if the caller is not
- * a member. Fetches and renders all tasks for the org with a toolbar action
- * to create a new task.
+ * a member. Fetches tasks (with role eligibility) and all org roles, then renders
+ * the interactive TaskTable client component with search, sort, and filter.
  */
 const TasksPage = async ({
   params,
@@ -18,46 +19,9 @@ const TasksPage = async ({
 
   await requireOrgMemberPage(orgId);
 
-  const tasks = await getTasks(orgId);
+  const [tasks, roles] = await Promise.all([getTasks(orgId), getRoles(orgId)]);
 
-  return (
-    <>
-      <Toolbar
-        actions={[{ label: "+ Create Task", href: `/orgs/${orgId}/tasks/new` }]}
-      />
-      <div className="max-w-3xl mx-auto">
-        {tasks.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No tasks yet.</p>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {tasks.map((task) => (
-              <li
-                key={task.id}
-                className="border rounded-lg p-4 flex flex-col gap-1"
-              >
-                <span className="font-medium">{task.name}</span>
-                {task.description && (
-                  <span className="text-sm text-muted-foreground">
-                    {task.description}
-                  </span>
-                )}
-                <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
-                  <span>Duration: {task.durationMin} min</span>
-                  <span>People required: {task.minPeople}</span>
-                  {task.minWaitDays != null && (
-                    <span>Min wait: {task.minWaitDays}d</span>
-                  )}
-                  {task.maxWaitDays != null && (
-                    <span>Max wait: {task.maxWaitDays}d</span>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </>
-  );
+  return <TaskTable orgId={orgId} tasks={tasks} roles={roles} />;
 };
 
 export default TasksPage;

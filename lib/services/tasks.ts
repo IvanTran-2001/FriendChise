@@ -37,10 +37,18 @@ export async function deleteTask(
 
 /**
  * Returns all tasks for the given org, sorted newest-first.
+ * Includes role eligibility data for display in the task table.
  */
 export async function getTasks(orgId: string) {
   return prisma.task.findMany({
     where: { orgId },
+    include: {
+      eligibility: {
+        select: {
+          role: { select: { id: true, name: true, color: true } },
+        },
+      },
+    },
     orderBy: { createdAt: "desc" },
   });
 }
