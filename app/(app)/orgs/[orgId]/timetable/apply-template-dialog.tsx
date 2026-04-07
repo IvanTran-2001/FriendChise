@@ -73,13 +73,12 @@ function formatDateRange(startDateStr: string, totalDays: number): string {
  * Reactively fetches the count of existing entries in the target range so
  * the replacement warning is only shown when there is actually something to overwrite.
  */
-export function ApplyTemplateDialog({
-  open,
+function ApplyTemplateForm({
   onOpenChange,
   orgId,
   templates,
   defaultStartDate,
-}: ApplyTemplateDialogProps) {
+}: Omit<ApplyTemplateDialogProps, "open">) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -95,7 +94,7 @@ export function ApplyTemplateDialog({
     selected && startDate ? formatDateRange(startDate, totalDays) : null;
 
   useEffect(() => {
-    if (!open || !startDate || totalDays === 0) return;
+    if (!startDate || totalDays === 0) return;
     let cancelled = false;
     countTimetableEntriesInRangeAction(orgId, startDate, totalDays).then(
       (res) => {
@@ -105,7 +104,7 @@ export function ApplyTemplateDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, orgId, startDate, totalDays]);
+  }, [orgId, startDate, totalDays]);
 
   function handleApply() {
     if (!selectedId || !startDate || cycleRepeats < 1) return;
@@ -128,130 +127,150 @@ export function ApplyTemplateDialog({
   }
 
   return (
+    <>
+      <div className="flex flex-col gap-3">
+        {/* Template select */}
+        <div className="flex flex-col gap-1">
+          <label
+            htmlFor="apply-template-template"
+            className="text-xs font-medium text-muted-foreground"
+          >
+            Template
+          </label>
+          <select
+            id="apply-template-template"
+            className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            value={selectedId}
+            onChange={(e) => setSelectedId(e.target.value)}
+          >
+            {templates.length === 0 && (
+              <option value="" disabled>
+                No templates available
+              </option>
+            )}
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name} ({t.cycleLengthDays} day
+                {t.cycleLengthDays !== 1 ? "s" : ""})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Start date */}
+        <div className="flex flex-col gap-1">
+          <label
+            htmlFor="apply-template-start-date"
+            className="text-xs font-medium text-muted-foreground"
+          >
+            Start Date
+          </label>
+          <Input
+            id="apply-template-start-date"
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        </div>
+
+        {/* Cycle repeat */}
+        <div className="flex flex-col gap-1">
+          <label
+            htmlFor="apply-template-cycle-repeat"
+            className="text-xs font-medium text-muted-foreground"
+          >
+            Cycle Repeat
+          </label>
+          <Input
+            id="apply-template-cycle-repeat"
+            type="number"
+            min={1}
+            max={52}
+            step={1}
+            value={cycleRepeats}
+            onChange={(e) => {
+              const next = e.currentTarget.valueAsNumber;
+              setCycleRepeats(
+                Number.isFinite(next)
+                  ? Math.max(1, Math.min(52, Math.trunc(next)))
+                  : 1,
+              );
+            }}
+          />
+        </div>
+
+        {/* Preview */}
+        {selected && dateRangeLabel && (
+          <div className="rounded-lg border bg-amber-50 border-amber-200 p-3 text-sm text-amber-900 flex flex-col gap-2">
+            <div className="flex gap-2">
+              <InfoIcon className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+              <div>
+                <span className="font-medium">
+                  {selected.name} × {cycleRepeats}
+                </span>
+                <div className="text-xs mt-0.5 text-amber-700">
+                  {dateRangeLabel}
+                </div>
+              </div>
+            </div>
+            {existingCount > 0 && (
+              <div className="flex gap-2">
+                <TriangleAlertIcon className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+                <span className="text-xs text-amber-700">
+                  {existingCount} existing entr
+                  {existingCount === 1 ? "y" : "ies"} in this range will be
+                  replaced.
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {error && <p className="text-sm text-destructive">{error}</p>}
+      </div>
+
+      <DialogFooter>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onOpenChange(false)}
+          disabled={isPending}
+        >
+          Cancel
+        </Button>
+        <Button
+          size="sm"
+          onClick={handleApply}
+          disabled={isPending || !selectedId || templates.length === 0}
+        >
+          {isPending ? "Applying…" : "Apply"}
+        </Button>
+      </DialogFooter>
+    </>
+  );
+}
+
+export function ApplyTemplateDialog({
+  open,
+  onOpenChange,
+  orgId,
+  templates,
+  defaultStartDate,
+}: ApplyTemplateDialogProps) {
+  return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Apply Template</DialogTitle>
         </DialogHeader>
-
-        <div className="flex flex-col gap-3">
-          {/* Template select */}
-          <div className="flex flex-col gap-1">
-            <label
-              htmlFor="apply-template-template"
-              className="text-xs font-medium text-muted-foreground"
-            >
-              Template
-            </label>
-            <select
-              id="apply-template-template"
-              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              value={selectedId}
-              onChange={(e) => setSelectedId(e.target.value)}
-            >
-              {templates.length === 0 && (
-                <option value="" disabled>
-                  No templates available
-                </option>
-              )}
-              {templates.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name} ({t.cycleLengthDays} day
-                  {t.cycleLengthDays !== 1 ? "s" : ""})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Start date */}
-          <div className="flex flex-col gap-1">
-            <label
-              htmlFor="apply-template-start-date"
-              className="text-xs font-medium text-muted-foreground"
-            >
-              Start Date
-            </label>
-            <Input
-              id="apply-template-start-date"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </div>
-
-          {/* Cycle repeat */}
-          <div className="flex flex-col gap-1">
-            <label
-              htmlFor="apply-template-cycle-repeat"
-              className="text-xs font-medium text-muted-foreground"
-            >
-              Cycle Repeat
-            </label>
-            <Input
-              id="apply-template-cycle-repeat"
-              type="number"
-              min={1}
-              max={52}
-              step={1}
-              value={cycleRepeats}
-              onChange={(e) => {
-                const next = e.currentTarget.valueAsNumber;
-                setCycleRepeats(
-                  Number.isFinite(next)
-                    ? Math.max(1, Math.min(52, Math.trunc(next)))
-                    : 1,
-                );
-              }}
-            />
-          </div>
-
-          {/* Preview */}
-          {selected && dateRangeLabel && (
-            <div className="rounded-lg border bg-amber-50 border-amber-200 p-3 text-sm text-amber-900 flex flex-col gap-2">
-              <div className="flex gap-2">
-                <InfoIcon className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
-                <div>
-                  <span className="font-medium">
-                    {selected.name} × {cycleRepeats}
-                  </span>
-                  <div className="text-xs mt-0.5 text-amber-700">
-                    {dateRangeLabel}
-                  </div>
-                </div>
-              </div>
-              {existingCount > 0 && (
-                <div className="flex gap-2">
-                  <TriangleAlertIcon className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
-                  <span className="text-xs text-amber-700">
-                    {existingCount} existing entr
-                    {existingCount === 1 ? "y" : "ies"} in this range will be
-                    replaced.
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
-        </div>
-
-        <DialogFooter>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-            disabled={isPending}
-          >
-            Cancel
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleApply}
-            disabled={isPending || !selectedId || templates.length === 0}
-          >
-            {isPending ? "Applying…" : "Apply"}
-          </Button>
-        </DialogFooter>
+        {open && (
+          <ApplyTemplateForm
+            onOpenChange={onOpenChange}
+            orgId={orgId}
+            templates={templates}
+            defaultStartDate={defaultStartDate}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
