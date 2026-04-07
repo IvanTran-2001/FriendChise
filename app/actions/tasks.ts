@@ -25,6 +25,26 @@ import { createTaskSchema, updateTaskSchema } from "@/lib/validators/task";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+/** Parses numeric and string fields from a task FormData submission. */
+function parseTaskFormData(formData: FormData) {
+  const num = (key: string) => {
+    const v = formData.get(key);
+    if (v === null || v === "") return undefined;
+    const n = Number(v);
+    return isNaN(n) ? undefined : n;
+  };
+
+  return {
+    title: String(formData.get("title") ?? ""),
+    description: formData.get("description") || undefined,
+    durationMin: num("durationMin"),
+    preferredStartTimeMin: num("preferredStartTimeMin"),
+    peopleRequired: num("peopleRequired") ?? 1,
+    minWaitDays: num("minWaitDays"),
+    maxWaitDays: num("maxWaitDays"),
+  };
+}
+
 export type CreateTaskFormState =
   | { ok: false; errors: Record<string, string[]> }
   | { ok: true }
@@ -50,25 +70,7 @@ export async function createTaskAction(
   );
   if (!authz.ok) return { ok: false, errors: { _: ["Unauthorized"] } };
 
-  // FormData values are always strings; convert numeric fields to numbers
-  // before passing to the Zod schema which expects `number`.
-  const num = (key: string) => {
-    const v = formData.get(key);
-    if (v === null || v === "") return undefined;
-    const n = Number(v);
-    return isNaN(n) ? undefined : n;
-  };
-
-  const raw = {
-    title: String(formData.get("title") ?? ""),
-    description: formData.get("description") || undefined,
-    durationMin: num("durationMin"),
-    preferredStartTimeMin: num("preferredStartTimeMin"),
-    peopleRequired: num("peopleRequired") ?? 1,
-    minWaitDays: num("minWaitDays"),
-    maxWaitDays: num("maxWaitDays"),
-  };
-
+  const raw = parseTaskFormData(formData);
   const parsed = createTaskSchema.safeParse(raw);
   if (!parsed.success) {
     return {
@@ -118,7 +120,7 @@ export type TaskFormState =
   | null;
 
 /**
- * Updates a task definition's fields and eligibility for an org.
+ * Updates a task definition's fields for an org.
  *
  * Auth: caller must hold `MANAGE_TASKS` in this org.
  * Parses raw `FormData`, validates with `updateTaskSchema`, then delegates to
@@ -136,23 +138,7 @@ export async function updateTaskAction(
   );
   if (!authz.ok) return { ok: false, errors: { _: ["Unauthorized"] } };
 
-  const num = (key: string) => {
-    const v = formData.get(key);
-    if (v === null || v === "") return undefined;
-    const n = Number(v);
-    return isNaN(n) ? undefined : n;
-  };
-
-  const raw = {
-    title: String(formData.get("title") ?? ""),
-    description: formData.get("description") || undefined,
-    durationMin: num("durationMin"),
-    preferredStartTimeMin: num("preferredStartTimeMin"),
-    peopleRequired: num("peopleRequired") ?? 1,
-    minWaitDays: num("minWaitDays"),
-    maxWaitDays: num("maxWaitDays"),
-  };
-
+  const raw = parseTaskFormData(formData);
   const parsed = updateTaskSchema.safeParse(raw);
   if (!parsed.success) {
     return {

@@ -153,7 +153,7 @@ export function utcToLocal(
     minute: "2-digit",
     hour12: false,
   }).formatToParts(d);
-  const hour = Number(parts.find((p) => p.type === "hour")!.value);
-  const minute = Number(parts.find((p) => p.type === "minute")!.value);
+  const hour = Number(parts.find((p) => p.type === "hour")?.value ?? 0);
+  const minute = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
   return { localDateStr, localStartTimeMin: hour * 60 + minute };
 }
