@@ -62,7 +62,7 @@ export function RoleFilterButton({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant={selectedRoleId ? "default" : "outline"}
+          variant={selectedRole ? "default" : "outline"}
           size="sm"
           className="gap-1.5"
         >

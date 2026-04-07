@@ -137,10 +137,14 @@ export function ApplyTemplateDialog({
         <div className="flex flex-col gap-3">
           {/* Template select */}
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">
+            <label
+              htmlFor="apply-template-template"
+              className="text-xs font-medium text-muted-foreground"
+            >
               Template
             </label>
             <select
+              id="apply-template-template"
               className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               value={selectedId}
               onChange={(e) => setSelectedId(e.target.value)}
@@ -161,10 +165,14 @@ export function ApplyTemplateDialog({
 
           {/* Start date */}
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">
+            <label
+              htmlFor="apply-template-start-date"
+              className="text-xs font-medium text-muted-foreground"
+            >
               Start Date
             </label>
             <Input
+              id="apply-template-start-date"
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
@@ -173,19 +181,27 @@ export function ApplyTemplateDialog({
 
           {/* Cycle repeat */}
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">
+            <label
+              htmlFor="apply-template-cycle-repeat"
+              className="text-xs font-medium text-muted-foreground"
+            >
               Cycle Repeat
             </label>
             <Input
+              id="apply-template-cycle-repeat"
               type="number"
               min={1}
               max={52}
+              step={1}
               value={cycleRepeats}
-              onChange={(e) =>
+              onChange={(e) => {
+                const next = e.currentTarget.valueAsNumber;
                 setCycleRepeats(
-                  Math.max(1, Math.min(52, Number(e.target.value))),
-                )
-              }
+                  Number.isFinite(next)
+                    ? Math.max(1, Math.min(52, Math.trunc(next)))
+                    : 1,
+                );
+              }}
             />
           </div>
 

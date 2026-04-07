@@ -59,7 +59,10 @@ export async function createTimetableEntryFromInput(
     };
   }
 
-  const endTimeMin = data.endTimeMin ?? data.startTimeMin + task.durationMin;
+  const endTimeMin = Math.min(
+    data.endTimeMin ?? data.startTimeMin + task.durationMin,
+    1440,
+  );
 
   try {
     const entry = await prisma.timetableEntry.create({

@@ -69,7 +69,7 @@ export async function createTemplate(
 
 /**
  * Adds a task entry to a template at the given day index and start time.
- * `endTimeMin` defaults to `startTimeMin + 60`, capped at 23:59.
+ * `endTimeMin` defaults to `startTimeMin + task.durationMin`, capped at 24:00 (1440).
  */
 export async function addTemplateInstance(
   orgId: string,
