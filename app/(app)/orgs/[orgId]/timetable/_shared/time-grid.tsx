@@ -201,7 +201,11 @@ export function TimeGrid<TInstance extends GridInstance, TColumnKey extends stri
                 {/* Task blocks */}
                 {positioned.map(({ instance: inst, col: colSlot, totalCols }) => {
                   const topPx = (inst.startTimeMin / 60) * HOUR_HEIGHT;
-                  const heightPx = Math.max((inst.task.durationMin / 60) * HOUR_HEIGHT, 20);
+                  const visibleDurationMin = Math.min(
+                    inst.task.durationMin,
+                    Math.max(0, 1440 - inst.startTimeMin),
+                  );
+                  const heightPx = Math.max((visibleDurationMin / 60) * HOUR_HEIGHT, 20);
                   const widthPct = 100 / totalCols;
                   const leftPct = colSlot * widthPct;
 
