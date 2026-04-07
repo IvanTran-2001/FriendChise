@@ -12,12 +12,12 @@ import { NextResponse } from "next/server";
 import { PermissionAction } from "@prisma/client";
 import { updateTaskInstanceStatusSchema } from "@/lib/validators/task";
 import { requireOrgMember, requireOrgPermission } from "@/lib/authz";
-import { createTaskInstanceSchema } from "@/lib/validators/task-instance";
+import { createTimetableEntrySchema } from "@/lib/validators/timetable-entry";
 import {
-  createTaskInstance,
-  getTaskInstances,
-  type GetTaskInstancesOptions,
-} from "@/lib/services/task-instances";
+  createTimetableEntryFromInput,
+  listTimetableEntries,
+  type ListTimetableEntriesOptions,
+} from "@/lib/services/timetable-entries";
 
 export async function POST(
   req: Request,
@@ -38,7 +38,7 @@ export async function POST(
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const parsed = createTaskInstanceSchema.safeParse(json);
+  const parsed = createTimetableEntrySchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Validation failed", issues: parsed.error.issues },
@@ -46,7 +46,7 @@ export async function POST(
     );
   }
 
-  const result = await createTaskInstance(orgId, parsed.data);
+  const result = await createTimetableEntryFromInput(orgId, parsed.data);
   if (!result.ok) {
     const status = result.code === "CONFLICT" ? 409 : 400;
     return NextResponse.json({ error: result.error }, { status });
@@ -74,7 +74,7 @@ export async function GET(
     );
   }
 
-  const options: GetTaskInstancesOptions = {};
+  const options: ListTimetableEntriesOptions = {};
 
   if (statusParam) {
     const parsedStatus = updateTaskInstanceStatusSchema.safeParse({
@@ -98,6 +98,6 @@ export async function GET(
     );
   }
 
-  const items = await getTaskInstances(orgId, options);
+  const items = await listTimetableEntries(orgId, options);
   return NextResponse.json(items, { status: 200 });
 }

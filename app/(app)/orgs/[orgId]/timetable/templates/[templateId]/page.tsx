@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { requireOrgMemberPage } from "@/lib/authz";
+import { requireOrgPermissionPage } from "@/lib/authz";
 import { getTimetableTemplate } from "@/lib/services/templates";
 import { prisma } from "@/lib/prisma";
 import { Toolbar } from "@/components/layout/toolbar";
@@ -11,6 +11,7 @@ import {
   type ClientTask,
   type ClientMembership,
 } from "./template-editor-client";
+import { PermissionAction } from "@prisma/client";
 
 export default async function TemplateEditorPage({
   params,
@@ -19,7 +20,9 @@ export default async function TemplateEditorPage({
 }) {
   const { orgId, templateId } = await params;
 
-  await requireOrgMemberPage(orgId);
+  await requireOrgPermissionPage(orgId, PermissionAction.MANAGE_TIMETABLE, {
+    redirectTo: `/orgs/${orgId}/timetable`,
+  });
 
   const [template, org, rawTasks, rawMemberships] = await Promise.all([
     getTimetableTemplate(orgId, templateId),
@@ -66,7 +69,7 @@ export default async function TemplateEditorPage({
   const memberships: ClientMembership[] = rawMemberships;
 
   return (
-    <>
+    <div className="flex flex-col" style={{ height: "calc(100dvh - 148px)" }}>
       <Toolbar>
         <Link
           href={`/orgs/${orgId}/timetable/templates`}
@@ -94,7 +97,8 @@ export default async function TemplateEditorPage({
         memberships={memberships}
         openTimeMin={org?.openTimeMin ?? 360}
         closeTimeMin={org?.closeTimeMin ?? 1320}
+        fillHeight
       />
-    </>
+    </div>
   );
 }

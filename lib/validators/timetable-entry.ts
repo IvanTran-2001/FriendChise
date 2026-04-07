@@ -1,7 +1,7 @@
 /** Zod schemas and inferred types for timetable entry create operations. */
 import z from "zod";
 
-export const createTaskInstanceSchema = z.object({
+export const createTimetableEntrySchema = z.object({
   taskId: z.string(),
   /** ISO date string for the local date the entry falls on (e.g. "2026-03-25"). */
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD"),
@@ -11,4 +11,4 @@ export const createTaskInstanceSchema = z.object({
   endTimeMin: z.number().int().min(0).max(1440).optional(),
 });
 
-export type CreateTaskInstanceInput = z.infer<typeof createTaskInstanceSchema>;
+export type CreateTimetableEntryInput = z.infer<typeof createTimetableEntrySchema>;
