@@ -315,3 +315,14 @@ export async function deleteOrg(
 
   await prisma.organization.delete({ where: { id: orgId } });
 }
+
+/**
+ * Returns the timezone and operating-hours settings for an org.
+ * Used by the timetable page to resolve the local week and grid bounds.
+ */
+export async function getOrgTimetableMeta(orgId: string) {
+  return prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { timezone: true, openTimeMin: true, closeTimeMin: true },
+  });
+}

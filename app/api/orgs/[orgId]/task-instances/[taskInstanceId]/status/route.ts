@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { PermissionAction } from "@prisma/client";
 import { updateTaskInstanceStatusSchema } from "@/lib/validators/task";
 import { requireOrgPermission } from "@/lib/authz";
-import { updateTaskInstanceStatus } from "@/lib/services/task-instances";
+import { updateTimetableEntryStatus } from "@/lib/services/timetable-entries";
 
 export async function PATCH(
   req: Request,
@@ -31,7 +31,7 @@ export async function PATCH(
     );
   }
 
-  const result = await updateTaskInstanceStatus(
+  const result = await updateTimetableEntryStatus(
     orgId,
     taskInstanceId,
     parsed.data.status,

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition, useRef, useEffect } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Minus, X, Search as SearchIcon } from "lucide-react";
+import { Plus, Minus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,6 +13,11 @@ import {
   addInstanceAssigneeAction,
   removeInstanceAssigneeAction,
 } from "@/app/actions/templates";
+import { TimeGrid } from "../../_shared/time-grid";
+import type { DragDataRef } from "../../_shared/time-grid";
+import { TaskPanel } from "../../_shared/task-panel";
+import { minToHHMM, hhmmToMin } from "../../_shared/grid-utils";
+import type { SharedTask, SharedMembership } from "../../_shared/types";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -29,80 +34,11 @@ export type ClientTemplateInstance = {
   }>;
 };
 
-export type ClientTask = { id: string; name: string; durationMin: number };
-export type ClientMembership = {
-  id: string;
-  user: { id: string; name: string | null };
-};
+export type ClientTask = SharedTask;
+export type ClientMembership = SharedMembership;
 
 // ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const HOUR_HEIGHT = 64;
-const SNAP_MIN = 15;
-const DAYS_PER_PAGE = 7;
-
-// ---------------------------------------------------------------------------
-// Utilities
-// ---------------------------------------------------------------------------
-
-function minToHHMM(min: number): string {
-  return `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
-}
-
-function hhmmToMin(hhmm: string): number | null {
-  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(hhmm);
-  if (!match) return null;
-  return Number(match[1]) * 60 + Number(match[2]);
-}
-
-function snapMin(raw: number): number {
-  return Math.max(0, Math.min(1439, Math.round(raw / SNAP_MIN) * SNAP_MIN));
-}
-
-function calcDropTimeMin(
-  clientY: number,
-  colEl: Element,
-  startHour: number,
-  offsetMin = 0,
-): number {
-  const rect = colEl.getBoundingClientRect();
-  return snapMin(
-    ((clientY - rect.top) / HOUR_HEIGHT) * 60 + startHour * 60 - offsetMin,
-  );
-}
-
-type PositionedInstance = {
-  instance: ClientTemplateInstance;
-  col: number;
-  totalCols: number;
-};
-
-function assignColumns(
-  instances: ClientTemplateInstance[],
-): PositionedInstance[] {
-  const sorted = [...instances].sort((a, b) => a.startTimeMin - b.startTimeMin);
-  const colEnds: number[] = [];
-
-  const positioned = sorted.map((inst) => {
-    const endMin = inst.startTimeMin + inst.task.durationMin;
-    let col = colEnds.findIndex((e) => e <= inst.startTimeMin);
-    if (col === -1) {
-      col = colEnds.length;
-      colEnds.push(endMin);
-    } else {
-      colEnds[col] = endMin;
-    }
-    return { instance: inst, col, totalCols: 0 };
-  });
-
-  const totalCols = Math.max(colEnds.length, 1);
-  return positioned.map((p) => ({ ...p, totalCols }));
-}
-
-// ---------------------------------------------------------------------------
-// EditPopup
+// EditPopup (template-specific: no status field)
 // ---------------------------------------------------------------------------
 
 interface EditPopupProps {
@@ -114,14 +50,7 @@ interface EditPopupProps {
   onClose: () => void;
 }
 
-function EditPopup({
-  instance,
-  memberships,
-  orgId,
-  onSave,
-  onRemove,
-  onClose,
-}: EditPopupProps) {
+function EditPopup({ instance, memberships, orgId, onSave, onRemove, onClose }: EditPopupProps) {
   const router = useRouter();
   const [startTime, setStartTime] = useState(minToHHMM(instance.startTimeMin));
   const [localAssignees, setLocalAssignees] = useState(instance.assignees);
@@ -130,36 +59,20 @@ function EditPopup({
 
   const assignedIds = new Set(localAssignees.map((a) => a.membership.id));
   const available = memberships.filter((m) => !assignedIds.has(m.id));
-
-  useEffect(() => {
-    if (
-      available.length > 0 &&
-      !available.find((m) => m.id === addMembershipId)
-    ) {
-      (async () => setAddMembershipId(available[0].id))();
-    }
-  }, [localAssignees, available, addMembershipId]);
+  const effectiveAddId = available.find((m) => m.id === addMembershipId)
+    ? addMembershipId
+    : (available[0]?.id ?? "");
 
   const parsedStartTime = hhmmToMin(startTime);
-  const endMin =
-    parsedStartTime == null
-      ? null
-      : parsedStartTime + instance.task.durationMin;
+  const endMin = parsedStartTime == null ? null : parsedStartTime + instance.task.durationMin;
 
   function handleAddAssignee() {
-    const membership = memberships.find((m) => m.id === addMembershipId);
+    const membership = memberships.find((m) => m.id === effectiveAddId);
     if (!membership) return;
     startT(async () => {
-      const r = await addInstanceAssigneeAction(
-        orgId,
-        instance.id,
-        addMembershipId,
-      );
+      const r = await addInstanceAssigneeAction(orgId, instance.id, effectiveAddId);
       if (r.ok) {
-        setLocalAssignees((p) => [
-          ...p,
-          { id: `opt-${addMembershipId}`, membership },
-        ]);
+        setLocalAssignees((p) => [...p, { id: `opt-${effectiveAddId}`, membership }]);
         router.refresh();
       }
     });
@@ -167,15 +80,9 @@ function EditPopup({
 
   function handleRemoveAssignee(membershipId: string) {
     startT(async () => {
-      const r = await removeInstanceAssigneeAction(
-        orgId,
-        instance.id,
-        membershipId,
-      );
+      const r = await removeInstanceAssigneeAction(orgId, instance.id, membershipId);
       if (r.ok) {
-        setLocalAssignees((p) =>
-          p.filter((a) => a.membership.id !== membershipId),
-        );
+        setLocalAssignees((p) => p.filter((a) => a.membership.id !== membershipId));
         router.refresh();
       }
     });
@@ -192,19 +99,13 @@ function EditPopup({
       >
         <div className="flex items-start justify-between">
           <span className="font-semibold">{instance.task.name}</span>
-          <button
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground"
-          >
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Time */}
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground font-medium">
-            Start time
-          </label>
+          <label className="text-xs text-muted-foreground font-medium">Start time</label>
           <Input
             type="time"
             value={startTime}
@@ -212,27 +113,18 @@ function EditPopup({
             className="h-8 w-32 text-sm"
           />
           <p className="text-xs text-muted-foreground">
-            {startTime} → {endMin == null ? "--:--" : minToHHMM(endMin)} ·{" "}
-            {instance.task.durationMin} min
+            {startTime} → {endMin == null ? "--:--" : minToHHMM(endMin)} · {instance.task.durationMin} min
           </p>
         </div>
 
-        {/* Assignees */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-muted-foreground font-medium">
-            Assign
-          </label>
+          <label className="text-xs text-muted-foreground font-medium">Assign</label>
           {localAssignees.length === 0 && (
-            <span className="text-xs text-muted-foreground italic">
-              No one assigned
-            </span>
+            <span className="text-xs text-muted-foreground italic">No one assigned</span>
           )}
           <div className="flex flex-col gap-1">
             {localAssignees.map((a) => (
-              <div
-                key={a.membership.id}
-                className="flex items-center justify-between rounded bg-muted/50 px-2 py-1 text-xs"
-              >
+              <div key={a.membership.id} className="flex items-center justify-between rounded bg-muted/50 px-2 py-1 text-xs">
                 <span>{a.membership.user.name ?? "Unknown"}</span>
                 <button
                   onClick={() => handleRemoveAssignee(a.membership.id)}
@@ -246,29 +138,21 @@ function EditPopup({
           {available.length > 0 && (
             <div className="flex gap-1 items-center mt-0.5">
               <select
-                value={addMembershipId}
+                value={effectiveAddId}
                 onChange={(e) => setAddMembershipId(e.target.value)}
                 className="flex-1 border rounded px-2 py-1 text-xs bg-background"
               >
                 {available.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.user.name ?? "Unknown"}
-                  </option>
+                  <option key={m.id} value={m.id}>{m.user.name ?? "Unknown"}</option>
                 ))}
               </select>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleAddAssignee}
-                className="h-7 w-7 p-0"
-              >
+              <Button size="sm" variant="outline" onClick={handleAddAssignee} className="h-7 w-7 p-0">
                 <Plus className="h-3.5 w-3.5" />
               </Button>
             </div>
           )}
         </div>
 
-        {/* Footer */}
         <div className="flex gap-2 pt-1 border-t">
           <Button
             size="sm"
@@ -278,17 +162,8 @@ function EditPopup({
           >
             Save
           </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={onRemove}
-            className="h-7"
-          >
-            Remove
-          </Button>
-          <Button size="sm" variant="ghost" onClick={onClose} className="h-7">
-            Cancel
-          </Button>
+          <Button size="sm" variant="destructive" onClick={onRemove} className="h-7">Remove</Button>
+          <Button size="sm" variant="ghost" onClick={onClose} className="h-7">Cancel</Button>
         </div>
       </div>
     </div>
@@ -299,6 +174,8 @@ function EditPopup({
 // Main export
 // ---------------------------------------------------------------------------
 
+const DAYS_PER_PAGE = 7;
+
 interface TemplateEditorClientProps {
   orgId: string;
   templateId: string;
@@ -308,6 +185,7 @@ interface TemplateEditorClientProps {
   memberships: ClientMembership[];
   openTimeMin: number;
   closeTimeMin: number;
+  fillHeight?: boolean;
 }
 
 export function TemplateEditorClient({
@@ -317,57 +195,24 @@ export function TemplateEditorClient({
   instances,
   availableTasks,
   memberships,
-  openTimeMin,
-  closeTimeMin,
+  fillHeight,
 }: TemplateEditorClientProps) {
   const router = useRouter();
   const [, startT] = useTransition();
 
-  // Cycle page nav
   const totalPages = Math.ceil(templateDays / DAYS_PER_PAGE);
   const [page, setPage] = useState(0);
   const pageStart = page * DAYS_PER_PAGE;
   const pageEnd = Math.min(pageStart + DAYS_PER_PAGE, templateDays);
-  const visibleDays = Array.from(
-    { length: pageEnd - pageStart },
-    (_, i) => pageStart + i,
-  );
+  const visibleDays = Array.from({ length: pageEnd - pageStart }, (_, i) => pageStart + i);
+  const columns = visibleDays.map(String);
 
-  // Grid dimensions
-  const startHour = Math.floor(openTimeMin / 60);
-  const endHour = Math.ceil(closeTimeMin / 60);
-  const hours = Array.from(
-    { length: endHour - startHour },
-    (_, i) => startHour + i,
-  );
-  const totalHeight = hours.length * HOUR_HEIGHT;
-
-  // Task search
-  const [search, setSearch] = useState("");
-  const filteredTasks = availableTasks.filter((t) =>
-    t.name.toLowerCase().includes(search.toLowerCase()),
-  );
-
-  // Drag
   type DragData =
     | { type: "task"; taskId: string }
     | { type: "move"; instanceId: string; offsetMin: number };
   const dragDataRef = useRef<DragData | null>(null);
-  const [dragOver, setDragOver] = useState<{
-    day: number;
-    timeMin: number;
-  } | null>(null);
-
-  // Edit popup
-  const [editingInstance, setEditingInstance] =
-    useState<ClientTemplateInstance | null>(null);
-
-  // Group by day
-  const byDay = new Map<number, ClientTemplateInstance[]>();
-  for (const inst of instances) {
-    if (!byDay.has(inst.dayIndex)) byDay.set(inst.dayIndex, []);
-    byDay.get(inst.dayIndex)!.push(inst);
-  }
+  const [dragOver, setDragOver] = useState<{ column: string; timeMin: number } | null>(null);
+  const [editingInstance, setEditingInstance] = useState<ClientTemplateInstance | null>(null);
 
   function handleAddDay() {
     startT(async () => {
@@ -386,53 +231,13 @@ export function TemplateEditorClient({
     });
   }
 
-  function handleColumnDragOver(
-    e: React.DragEvent<HTMLDivElement>,
-    day: number,
-  ) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect =
-      dragDataRef.current?.type === "move" ? "move" : "copy";
-    const offsetMin =
-      dragDataRef.current?.type === "move" ? dragDataRef.current.offsetMin : 0;
-    setDragOver({
-      day,
-      timeMin: calcDropTimeMin(
-        e.clientY,
-        e.currentTarget,
-        startHour,
-        offsetMin,
-      ),
-    });
-  }
-
-  function handleColumnDrop(e: React.DragEvent<HTMLDivElement>, day: number) {
-    e.preventDefault();
-    const data = dragDataRef.current;
-    dragDataRef.current = null;
-    setDragOver(null);
-    if (!data) return;
-    const offsetMin = data.type === "move" ? data.offsetMin : 0;
-    const timeMin = calcDropTimeMin(
-      e.clientY,
-      e.currentTarget,
-      startHour,
-      offsetMin,
-    );
+  function handleDrop(col: string, timeMin: number, data: DragData) {
+    const day = parseInt(col, 10);
     startT(async () => {
       const result =
         data.type === "task"
-          ? await addTemplateInstanceAction(
-              orgId,
-              templateId,
-              data.taskId,
-              day,
-              timeMin,
-            )
-          : await updateTemplateInstanceAction(orgId, data.instanceId, {
-              dayIndex: day,
-              startTimeMin: timeMin,
-            });
+          ? await addTemplateInstanceAction(orgId, templateId, data.taskId, day, timeMin)
+          : await updateTemplateInstanceAction(orgId, data.instanceId, { dayIndex: day, startTimeMin: timeMin });
       if (!result.ok) return;
       router.refresh();
     });
@@ -441,13 +246,7 @@ export function TemplateEditorClient({
   function handleEditSave(startTimeMin: number) {
     if (!editingInstance) return;
     startT(async () => {
-      const result = await updateTemplateInstanceAction(
-        orgId,
-        editingInstance.id,
-        {
-          startTimeMin,
-        },
-      );
+      const result = await updateTemplateInstanceAction(orgId, editingInstance.id, { startTimeMin });
       if (!result.ok) return;
       setEditingInstance(null);
       router.refresh();
@@ -457,10 +256,7 @@ export function TemplateEditorClient({
   function handleEditRemove() {
     if (!editingInstance) return;
     startT(async () => {
-      const result = await removeTemplateInstanceAction(
-        orgId,
-        editingInstance.id,
-      );
+      const result = await removeTemplateInstanceAction(orgId, editingInstance.id);
       if (!result.ok) return;
       setEditingInstance(null);
       router.refresh();
@@ -468,202 +264,62 @@ export function TemplateEditorClient({
   }
 
   return (
-    <>
-      <div className="flex gap-4">
-        {/* ── Left: grid ── */}
-        <div className="flex-1 min-w-0 flex flex-col gap-3">
+    <div className={fillHeight ? "flex flex-col flex-1 min-h-0" : "flex flex-col gap-4"}>
+      <div className={`flex gap-4${fillHeight ? " flex-1 min-h-0" : ""}`}>
+        {/* \u2500\u2500 Left: nav + grid \u2500\u2500 */}
+        <div className={`flex-1 min-w-0 flex flex-col gap-3${fillHeight ? " min-h-0" : ""}`}>
           {/* Cycle navigation */}
           <div className="flex items-center justify-between rounded-lg border px-4 py-1.5">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setPage((p) => p - 1)}
-              disabled={page === 0}
-            >
-              ◀ Prev
+            <Button variant="ghost" size="sm" onClick={() => setPage((p) => p - 1)} disabled={page === 0}>
+              ◄ Prev
             </Button>
             <span className="text-sm font-medium">
-              Cycle: {templateDays} Day{templateDays !== 1 ? "s" : ""}, Day{" "}
-              {pageStart + 1}–{pageEnd}
+              Cycle: {templateDays} Day{templateDays !== 1 ? "s" : ""}, Day {pageStart + 1}–{pageEnd}
             </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setPage((p) => p + 1)}
-              disabled={page >= totalPages - 1}
-            >
-              Next ▶
+            <Button variant="ghost" size="sm" onClick={() => setPage((p) => p + 1)} disabled={page >= totalPages - 1}>
+              Next ►
             </Button>
           </div>
 
-          {/* Grid */}
-          <div className="rounded-xl border-2 border-purple-400 overflow-hidden">
-            {/* Day headers */}
-            <div className="flex border-b-2 border-purple-300 bg-purple-100">
-              <div className="w-14 shrink-0 border-r border-purple-300" />
-              {visibleDays.map((day) => (
-                <div
-                  key={day}
-                  className="flex-1 py-2 text-center border-r border-purple-300 last:border-r-0 text-slate-700"
-                >
-                  <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
-                    Day
+          <TimeGrid
+            columns={columns}
+            instances={instances.filter((inst) => visibleDays.includes(inst.dayIndex))}
+            getColumnKey={(inst) => String(inst.dayIndex)}
+            renderColumnHeader={(col) => (
+              <>
+                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Day</div>
+                <div className="text-base font-bold leading-none mt-0.5">{parseInt(col, 10) + 1}</div>
+              </>
+            )}
+            renderBlock={(inst, heightPx) => (
+              <>
+                <div className="font-semibold truncate">{inst.task.name}</div>
+                {heightPx >= 32 && (
+                  <div className="opacity-70 text-[10px]">{minToHHMM(inst.startTimeMin)}</div>
+                )}
+                {heightPx >= 48 && inst.assignees.length > 0 && (
+                  <div className="opacity-70 text-[10px] truncate">
+                    {inst.assignees.map((a) => a.membership.user.name?.split(" ")[0]).join(", ")}
                   </div>
-                  <div className="text-base font-bold leading-none mt-0.5">
-                    {day + 1}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Time grid */}
-            <div
-              className="overflow-y-auto bg-purple-50/40"
-              style={{ maxHeight: 520 }}
-            >
-              <div className="flex" style={{ height: totalHeight }}>
-                {/* Hour gutter */}
-                <div className="w-14 shrink-0 border-r border-purple-200">
-                  {hours.map((h) => (
-                    <div
-                      key={h}
-                      style={{ height: HOUR_HEIGHT }}
-                      className="flex items-start justify-end pr-2 pt-1 text-xs text-muted-foreground border-b border-purple-200/50 select-none"
-                    >
-                      {`${h}:00`}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Day columns */}
-                {visibleDays.map((day) => {
-                  const dayInsts = byDay.get(day) ?? [];
-                  const positioned = assignColumns(dayInsts);
-                  const isDragTarget = dragOver?.day === day;
-
-                  return (
-                    <div
-                      key={day}
-                      className={`flex-1 relative border-r border-purple-300 last:border-r-0 transition-colors ${isDragTarget ? "bg-purple-100/70" : ""}`}
-                      style={{ height: totalHeight }}
-                      onDragOver={(e) => handleColumnDragOver(e, day)}
-                      onDragLeave={(e) => {
-                        if (!e.currentTarget.contains(e.relatedTarget as Node))
-                          setDragOver(null);
-                      }}
-                      onDrop={(e) => handleColumnDrop(e, day)}
-                    >
-                      {/* Hour lines */}
-                      {hours.map((h) => (
-                        <div
-                          key={h}
-                          className="absolute inset-x-0 border-b border-purple-200/50 pointer-events-none"
-                          style={{
-                            top: (h - startHour) * HOUR_HEIGHT,
-                            height: HOUR_HEIGHT,
-                          }}
-                        />
-                      ))}
-
-                      {/* Drop indicator */}
-                      {isDragTarget && dragOver && (
-                        <div
-                          className="absolute inset-x-1 h-0.5 bg-purple-500 z-10 pointer-events-none rounded"
-                          style={{
-                            top:
-                              ((dragOver.timeMin - startHour * 60) / 60) *
-                              HOUR_HEIGHT,
-                          }}
-                        />
-                      )}
-
-                      {/* Task blocks */}
-                      {positioned.map(({ instance: inst, col, totalCols }) => {
-                        const topPx = Math.max(
-                          ((inst.startTimeMin - startHour * 60) / 60) *
-                            HOUR_HEIGHT,
-                          0,
-                        );
-                        const heightPx = Math.max(
-                          (inst.task.durationMin / 60) * HOUR_HEIGHT,
-                          20,
-                        );
-                        const widthPct = 100 / totalCols;
-                        const leftPct = col * widthPct;
-                        return (
-                          <div
-                            key={inst.id}
-                            draggable
-                            onDragStart={(e) => {
-                              const rect =
-                                e.currentTarget.getBoundingClientRect();
-                              dragDataRef.current = {
-                                type: "move",
-                                instanceId: inst.id,
-                                offsetMin:
-                                  ((e.clientY - rect.top) / HOUR_HEIGHT) * 60,
-                              };
-                              e.dataTransfer.effectAllowed = "move";
-                            }}
-                            onDragEnd={() => {
-                              dragDataRef.current = null;
-                              setDragOver(null);
-                            }}
-                            onDoubleClick={(e) => {
-                              e.stopPropagation();
-                              setEditingInstance(inst);
-                            }}
-                            className="absolute rounded border p-1 text-[11px] leading-snug cursor-grab active:cursor-grabbing bg-purple-300/80 text-purple-900 border-purple-400 hover:opacity-90 select-none overflow-hidden"
-                            style={{
-                              top: topPx + 1,
-                              height: Math.max(heightPx - 2, 18),
-                              left: `${leftPct + 0.5}%`,
-                              width: `${widthPct - 1}%`,
-                            }}
-                            title="Drag to move · Double-click to edit"
-                          >
-                            <div className="font-semibold truncate">
-                              {inst.task.name}
-                            </div>
-                            {heightPx >= 32 && (
-                              <div className="opacity-70 text-[10px]">
-                                {minToHHMM(inst.startTimeMin)}
-                              </div>
-                            )}
-                            {heightPx >= 48 && inst.assignees.length > 0 && (
-                              <div className="opacity-70 text-[10px] truncate">
-                                {inst.assignees
-                                  .map(
-                                    (a) =>
-                                      a.membership.user.name?.split(" ")[0],
-                                  )
-                                  .join(", ")}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+                )}
+              </>
+            )}
+            dragDataRef={dragDataRef as DragDataRef}
+            onDragOver={(col, timeMin) => setDragOver({ column: col, timeMin })}
+            onDrop={handleDrop}
+            onDragLeave={() => setDragOver(null)}
+            dragOver={dragOver}
+            onBlockMenuClick={setEditingInstance}
+            draggable
+            fillHeight={fillHeight}
+          />
         </div>
 
-        {/* ── Right panel ── */}
-        <div className="w-56 shrink-0 flex flex-col gap-3">
-          {/* Cycle controls */}
+        {/* \u2500\u2500 Right panel \u2500\u2500 */}
+        <div className={`w-56 shrink-0 flex flex-col gap-3${fillHeight ? " min-h-0" : ""}`}>
           <div className="rounded-xl border p-3 flex flex-col gap-2">
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Cycle
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="justify-start gap-2"
-              onClick={handleAddDay}
-            >
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Cycle</div>
+            <Button variant="outline" size="sm" className="justify-start gap-2" onClick={handleAddDay}>
               <Plus className="h-3.5 w-3.5" /> Add Day
             </Button>
             <Button
@@ -677,55 +333,21 @@ export function TemplateEditorClient({
             </Button>
           </div>
 
-          {/* Task list */}
-          <div className="rounded-xl border flex flex-col overflow-hidden flex-1">
-            <div className="px-3 py-2.5 font-medium text-sm border-b">
-              Search
-            </div>
-            <div className="px-2 py-2 border-b">
-              <div className="relative">
-                <SearchIcon className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                <Input
-                  placeholder="Search tasks…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-7 h-8 text-sm"
-                />
-              </div>
-            </div>
-            <div className="overflow-y-auto flex-1">
-              {filteredTasks.length === 0 ? (
-                <div className="px-3 py-3 text-xs text-muted-foreground italic">
-                  No tasks found
-                </div>
-              ) : (
-                filteredTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    draggable
-                    onDragStart={(e) => {
-                      dragDataRef.current = { type: "task", taskId: task.id };
-                      e.dataTransfer.effectAllowed = "copy";
-                    }}
-                    onDragEnd={() => {
-                      dragDataRef.current = null;
-                      setDragOver(null);
-                    }}
-                    className="px-3 py-2.5 border-b last:border-b-0 cursor-grab active:cursor-grabbing hover:bg-muted/30 transition-colors select-none"
-                  >
-                    <div className="text-sm font-medium">{task.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {task.durationMin} min
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          <TaskPanel
+            tasks={availableTasks}
+            fillHeight={fillHeight}
+            onDragStart={(taskId, e) => {
+              dragDataRef.current = { type: "task", taskId };
+              e.dataTransfer.effectAllowed = "copy";
+            }}
+            onDragEnd={() => {
+              dragDataRef.current = null;
+              setDragOver(null);
+            }}
+          />
         </div>
       </div>
 
-      {/* Edit popup */}
       {editingInstance && (
         <EditPopup
           instance={editingInstance}
@@ -736,6 +358,6 @@ export function TemplateEditorClient({
           onClose={() => setEditingInstance(null)}
         />
       )}
-    </>
+    </div>
   );
 }

@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { CalendarDays, Plus } from "lucide-react";
-import { requireOrgMemberPage } from "@/lib/authz";
+import { requireOrgPermissionPage } from "@/lib/authz";
 import { getTimetableTemplates } from "@/lib/services/templates";
 import { Toolbar } from "@/components/layout/toolbar";
 import { Button } from "@/components/ui/button";
+import { PermissionAction } from "@prisma/client";
 
 export default async function TemplatesPage({
   params,
@@ -11,7 +12,9 @@ export default async function TemplatesPage({
   params: Promise<{ orgId: string }>;
 }) {
   const { orgId } = await params;
-  await requireOrgMemberPage(orgId);
+  await requireOrgPermissionPage(orgId, PermissionAction.MANAGE_TIMETABLE, {
+    redirectTo: `/orgs/${orgId}/timetable`,
+  });
 
   const templates = await getTimetableTemplates(orgId);
 

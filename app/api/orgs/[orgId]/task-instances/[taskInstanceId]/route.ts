@@ -6,7 +6,7 @@
  */
 import { NextResponse } from "next/server";
 import { requireOrgMember } from "@/lib/authz";
-import { getTaskInstance } from "@/lib/services/task-instances";
+import { getTimetableEntry } from "@/lib/services/timetable-entries";
 
 export async function GET(
   _req: Request,
@@ -17,7 +17,7 @@ export async function GET(
   const authz = await requireOrgMember(orgId);
   if (!authz.ok) return authz.response;
 
-  const result = await getTaskInstance(orgId, taskInstanceId);
+  const result = await getTimetableEntry(orgId, taskInstanceId);
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 404 });
   }

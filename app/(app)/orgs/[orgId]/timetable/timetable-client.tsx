@@ -1,17 +1,49 @@
 "use client";
 
+import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  createTimetableEntryAction,
+  updateTimetableEntryAction,
+  updateTimetableEntryStatusAction,
+  deleteTimetableEntryAction,
+  addTimetableEntryAssigneeAction,
+  removeTimetableEntryAssigneeAction,
+} from "@/app/actions/timetable-entries";
+import { TimeGrid } from "./_shared/time-grid";
+import { TaskPanel } from "./_shared/task-panel";
+import {
+  addDays,
+  isToday,
+  getDayName,
+  getMonthName,
+  formatWeekRange,
+  groupBy,
+  minToHHMM,
+  hhmmToMin,
+} from "./_shared/grid-utils";
+import type { SharedTask } from "./_shared/types";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
+export type ClientTask = SharedTask;
+export type ClientMembership = {
+  id: string;
+  user: { id: string; name: string | null };
+  roles: { id: string; name: string; color: string | null }[];
+};
+
 export type ClientTimetableInstance = {
   id: string;
   taskId: string;
-  /** True for template-projected instances — id is synthetic, not a DB record. Do not use for mutations. */
+  date: string;
+  startTimeMin: number;
   isProjected?: boolean;
   status: "TODO" | "IN_PROGRESS" | "DONE" | "SKIPPED";
   scheduledStartAt: string | null;
@@ -24,35 +56,13 @@ export type ClientTimetableInstance = {
   };
   assignees: Array<{
     id: string;
-    membership: {
-      id: string;
-      user: { id: string; name: string | null };
-    };
+    membership: { id: string; user: { id: string; name: string | null } };
   }>;
 };
 
 // ---------------------------------------------------------------------------
-// Constants
+// Status helpers
 // ---------------------------------------------------------------------------
-
-const HOUR_HEIGHT = 64; // px per hour
-
-const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-const MONTH_NAMES = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
 
 const STATUS_LABELS: Record<ClientTimetableInstance["status"], string> = {
   TODO: "TODO",
@@ -61,137 +71,169 @@ const STATUS_LABELS: Record<ClientTimetableInstance["status"], string> = {
   SKIPPED: "SKIP",
 };
 
-// ---------------------------------------------------------------------------
-// Date utilities — UTC-based to match server-side week computation
-// ---------------------------------------------------------------------------
-
-function addDays(dateStr: string, n: number): string {
-  const d = new Date(dateStr + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().split("T")[0];
-}
-
-function isToday(dateStr: string): boolean {
-  return new Date().toISOString().split("T")[0] === dateStr;
-}
-
-function formatDateRange(weekStart: string): string {
-  const s = new Date(weekStart + "T00:00:00Z");
-  const e = new Date(addDays(weekStart, 6) + "T00:00:00Z");
-  return `${MONTH_NAMES[s.getUTCMonth()]} ${s.getUTCDate()} \u2013 ${MONTH_NAMES[e.getUTCMonth()]} ${e.getUTCDate()}, ${e.getUTCFullYear()}`;
-}
-
-/** Groups instances by UTC date string (YYYY-MM-DD). */
-function groupByDate(
-  instances: ClientTimetableInstance[],
-): Map<string, ClientTimetableInstance[]> {
-  const map = new Map<string, ClientTimetableInstance[]>();
-  for (const inst of instances) {
-    if (!inst.scheduledStartAt) continue;
-    const key = inst.scheduledStartAt.split("T")[0];
-    if (!map.has(key)) map.set(key, []);
-    map.get(key)!.push(inst);
-  }
-  return map;
-}
-
-// ---------------------------------------------------------------------------
-// Status styling
-// ---------------------------------------------------------------------------
-
-function statusBlockClass(status: ClientTimetableInstance["status"]): string {
-  switch (status) {
-    case "TODO":
-      return "bg-slate-300/80 text-slate-800 border-slate-400";
-    case "IN_PROGRESS":
-      return "bg-amber-300/80 text-amber-900 border-amber-400";
-    case "DONE":
-      return "bg-green-300/80 text-green-900 border-green-400";
-    case "SKIPPED":
-      return "bg-red-300/80 text-red-900 border-red-400";
-  }
-}
-
-function statusBadgeClass(status: string): string {
-  switch (status) {
-    case "TODO":
-      return "bg-slate-200 text-slate-600";
-    case "IN_PROGRESS":
-      return "bg-amber-100 text-amber-700";
-    case "DONE":
-      return "bg-green-100 text-green-700";
-    case "SKIPPED":
-      return "bg-red-100 text-red-700";
-    default:
-      return "bg-slate-100 text-slate-600";
-  }
-}
-
 function statusDotClass(status: string): string {
   switch (status) {
-    case "TODO":
-      return "bg-slate-400";
-    case "IN_PROGRESS":
-      return "bg-amber-500";
-    case "DONE":
-      return "bg-green-500";
-    case "SKIPPED":
-      return "bg-red-500";
-    default:
-      return "bg-slate-400";
+    case "TODO":        return "bg-slate-400";
+    case "IN_PROGRESS": return "bg-amber-400";
+    case "DONE":        return "bg-green-500";
+    case "SKIPPED":     return "bg-red-400";
+    default:            return "bg-slate-400";
   }
 }
 
 // ---------------------------------------------------------------------------
-// Column-overlap layout for the calendar view
+// CalendarEditPopup
 // ---------------------------------------------------------------------------
 
-type PositionedInstance = {
+interface CalendarEditPopupProps {
   instance: ClientTimetableInstance;
-  col: number;
-  totalCols: number;
-};
+  memberships: ClientMembership[];
+  orgId: string;
+  canManage: boolean;
+  onClose: () => void;
+  onRefresh: () => void;
+}
 
-/**
- * Assigns non-overlapping column slots to instances within a single day.
- * Overlapping tasks share the column width proportionally so they're both
- * visible side by side.
- */
-function assignColumns(
-  dayInstances: ClientTimetableInstance[],
-  openTimeMin: number,
-): PositionedInstance[] {
-  const sorted = [...dayInstances].sort((a, b) => {
-    const ta = a.scheduledStartAt ? new Date(a.scheduledStartAt).getTime() : 0;
-    const tb = b.scheduledStartAt ? new Date(b.scheduledStartAt).getTime() : 0;
-    return ta - tb;
-  });
+function CalendarEditPopup({ instance, memberships, orgId, canManage, onClose, onRefresh }: CalendarEditPopupProps) {
+  const [startTime, setStartTime] = useState(minToHHMM(instance.startTimeMin));
+  const [status, setStatus] = useState<ClientTimetableInstance["status"]>(instance.status);
+  const [localAssignees, setLocalAssignees] = useState(instance.assignees);
+  const [addMembershipId, setAddMembershipId] = useState("");
+  const [, startT] = useTransition();
 
-  // colEnds[i] = the UTC minute at which column i last becomes free
-  const colEnds: number[] = [];
+  const assignedIds = new Set(localAssignees.map((a) => a.membership.id));
+  const available = memberships.filter((m) => !assignedIds.has(m.id));
+  const effectiveAddId = available.find((m) => m.id === addMembershipId)
+    ? addMembershipId
+    : (available[0]?.id ?? "");
 
-  const positioned = sorted.map((inst) => {
-    const start = inst.scheduledStartAt
-      ? new Date(inst.scheduledStartAt)
-      : null;
-    const startMin = start
-      ? start.getUTCHours() * 60 + start.getUTCMinutes()
-      : openTimeMin;
-    const endMin = startMin + inst.task.durationMin;
+  const parsedStart = hhmmToMin(startTime);
+  const endMin = parsedStart == null ? null : parsedStart + instance.task.durationMin;
 
-    let col = colEnds.findIndex((e) => e <= startMin);
-    if (col === -1) {
-      col = colEnds.length;
-      colEnds.push(endMin);
-    } else {
-      colEnds[col] = endMin;
-    }
+  function handleSave() {
+    startT(async () => {
+      if (canManage) {
+        if (parsedStart == null) return;
+        await updateTimetableEntryAction(orgId, instance.id, { startTimeMin: parsedStart, status });
+      } else {
+        await updateTimetableEntryStatusAction(orgId, instance.id, status);
+      }
+      onClose();
+      onRefresh();
+    });
+  }
 
-    return { instance: inst, col, totalCols: 0 };
-  });
+  function handleDelete() {
+    startT(async () => {
+      await deleteTimetableEntryAction(orgId, instance.id);
+      onClose();
+      onRefresh();
+    });
+  }
 
-  const totalCols = Math.max(colEnds.length, 1);
-  return positioned.map((p) => ({ ...p, totalCols }));
+  function handleAddAssignee() {
+    const membership = memberships.find((m) => m.id === effectiveAddId);
+    if (!membership) return;
+    startT(async () => {
+      const r = await addTimetableEntryAssigneeAction(orgId, instance.id, effectiveAddId);
+      if (r.ok) {
+        setLocalAssignees((p) => [...p, { id: `opt-${effectiveAddId}`, membership }]);
+        onRefresh();
+      }
+    });
+  }
+
+  function handleRemoveAssignee(membershipId: string) {
+    startT(async () => {
+      const r = await removeTimetableEntryAssigneeAction(orgId, instance.id, membershipId);
+      if (r.ok) {
+        setLocalAssignees((p) => p.filter((a) => a.membership.id !== membershipId));
+        onRefresh();
+      }
+    });
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onMouseDown={onClose}
+    >
+      <div
+        className="bg-background rounded-xl border shadow-2xl w-72 p-4 flex flex-col gap-3"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between">
+          <span className="font-semibold">{instance.task.title}</span>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {canManage && (
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-muted-foreground font-medium">Start time</label>
+            <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="h-8 w-32 text-sm" />
+            <p className="text-xs text-muted-foreground">
+              {startTime} → {endMin == null ? "--:--" : minToHHMM(endMin)} · {instance.task.durationMin} min
+            </p>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-muted-foreground font-weight">Status</label>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as ClientTimetableInstance["status"])}
+            className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <option value="TODO">To Do</option>
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="DONE">Done</option>
+            <option value="SKIPPED">Skipped</option>
+          </select>
+        </div>
+
+        {canManage && <div className="flex flex-col gap-1.5">
+          <label className="text-xs text-muted-foreground font-medium">Assign</label>
+          {localAssignees.length === 0 && (
+            <span className="text-xs text-muted-foreground italic">No one assigned</span>
+          )}
+          <div className="flex flex-col gap-1">
+            {localAssignees.map((a) => (
+              <div key={a.membership.id} className="flex items-center justify-between rounded bg-muted/50 px-2 py-1 text-xs">
+                <span>{a.membership.user.name ?? "Unknown"}</span>
+                <button onClick={() => handleRemoveAssignee(a.membership.id)} className="text-muted-foreground hover:text-destructive ml-2">
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+          {available.length > 0 && (
+            <div className="flex gap-1 items-center mt-0.5">
+              <select
+                value={effectiveAddId}
+                onChange={(e) => setAddMembershipId(e.target.value)}
+                className="flex-1 border rounded px-2 py-1 text-xs bg-background"
+              >
+                {available.map((m) => (
+                  <option key={m.id} value={m.id}>{m.user.name ?? "Unknown"}</option>
+                ))}
+              </select>
+              <Button size="sm" variant="outline" onClick={handleAddAssignee} className="h-7 w-7 p-0">
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
+        </div>}
+
+        <div className="flex gap-2 pt-1 border-t">
+          <Button size="sm" onClick={handleSave} disabled={canManage && parsedStart == null} className="flex-1 h-7">Save</Button>
+          {canManage && <Button size="sm" variant="destructive" onClick={handleDelete} className="h-7">Delete</Button>}
+          <Button size="sm" variant="ghost" onClick={onClose} className="h-7">Cancel</Button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -202,151 +244,125 @@ interface CalendarViewProps {
   instances: ClientTimetableInstance[];
   weekStart: string;
   openTimeMin: number;
-  closeTimeMin: number;
+  fillHeight?: boolean;
+  orgId: string;
+  todayStr: string;
+  canManage: boolean;
+  availableTasks?: ClientTask[];
+  memberships?: ClientMembership[];
 }
 
-function CalendarView({
-  instances,
-  weekStart,
-  openTimeMin,
-  closeTimeMin,
-}: CalendarViewProps) {
-  const startHour = Math.floor(openTimeMin / 60);
-  const endHour = Math.ceil(closeTimeMin / 60);
-  const hours = Array.from(
-    { length: endHour - startHour },
-    (_, i) => startHour + i,
-  );
+function CalendarView({ instances, weekStart, openTimeMin, fillHeight, orgId, todayStr, canManage, availableTasks, memberships }: CalendarViewProps) {
+  function effStatus(inst: ClientTimetableInstance) {
+    return inst.status === "TODO" && inst.date < todayStr ? "SKIPPED" : inst.status;
+  }
+  const router = useRouter();
+  const [, startT] = useTransition();
+
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  const totalHeight = hours.length * HOUR_HEIGHT;
-  const byDate = groupByDate(instances);
+
+  type DragData = { type: "task"; taskId: string } | { type: "move"; instanceId: string; offsetMin: number };
+  const dragDataRef = useRef<DragData | null>(null);
+  const [dragOver, setDragOver] = useState<{ column: string; timeMin: number } | null>(null);
+  const [editingInstance, setEditingInstance] = useState<ClientTimetableInstance | null>(null);
+
+  const hasPanel = !!availableTasks;
+
+  let initialScrollMin = openTimeMin;
+  for (const inst of instances) {
+    if (inst.startTimeMin < initialScrollMin) initialScrollMin = inst.startTimeMin;
+  }
+
+  function handleDrop(col: string, timeMin: number, data: DragData) {
+    startT(async () => {
+      if (data.type === "task") {
+        await createTimetableEntryAction(orgId, data.taskId, col, timeMin);
+      } else {
+        await updateTimetableEntryAction(orgId, data.instanceId, { startTimeMin: timeMin, dateStr: col });
+      }
+      router.refresh();
+    });
+  }
 
   return (
-    <div className="rounded-xl border-2 border-purple-400 overflow-hidden">
-      {/* Day-name header */}
-      <div className="flex border-b-2 border-purple-300 bg-purple-100">
-        <div className="w-14 shrink-0 border-r border-purple-300" />
-        {days.map((dayStr, i) => {
-          const d = new Date(dayStr + "T00:00:00Z");
-          const today = isToday(dayStr);
-          return (
-            <div
-              key={dayStr}
-              className={`flex-1 py-2 text-center text-sm border-r border-purple-300 last:border-r-0 ${
-                today ? "bg-blue-200 text-blue-800" : "text-slate-700"
-              }`}
-            >
-              <div className="font-medium">{DAY_NAMES[i]}</div>
-              <div
-                className={`text-lg font-bold leading-none mt-0.5 ${
-                  today ? "text-blue-700" : ""
-                }`}
-              >
-                {d.getUTCDate()}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Scrollable time grid */}
-      <div
-        className="overflow-y-auto bg-purple-50/40"
-        style={{ maxHeight: 520 }}
-      >
-        <div className="flex" style={{ height: totalHeight }}>
-          {/* Hour-label gutter */}
-          <div className="w-14 shrink-0 border-r border-purple-200">
-            {hours.map((h) => (
-              <div
-                key={h}
-                style={{ height: HOUR_HEIGHT }}
-                className="flex items-start justify-end pr-2 pt-1 text-xs text-muted-foreground border-b border-purple-200/50 select-none"
-              >
-                {`${h}:00`}
-              </div>
-            ))}
-          </div>
-
-          {/* Day columns */}
-          {days.map((dayStr) => {
-            const dayInstances = byDate.get(dayStr) ?? [];
-            const positioned = assignColumns(dayInstances, openTimeMin);
+    <>
+      <div className={`flex gap-4${fillHeight ? " flex-1 min-h-0" : ""}`}>
+        <TimeGrid
+          columns={days}
+          instances={instances}
+          getColumnKey={(inst) => inst.date}
+          renderColumnHeader={(dayStr) => {
+            const d = new Date(dayStr + "T00:00:00Z");
             const today = isToday(dayStr);
-
             return (
-              <div
-                key={dayStr}
-                className={`flex-1 relative border-r border-purple-300 last:border-r-0 ${
-                  today ? "bg-blue-50/50" : ""
-                }`}
-                style={{ height: totalHeight }}
-              >
-                {/* Background hour lines */}
-                {hours.map((h) => (
-                  <div
-                    key={h}
-                    className="absolute inset-x-0 border-b border-purple-200/50"
-                    style={{
-                      top: (h - startHour) * HOUR_HEIGHT,
-                      height: HOUR_HEIGHT,
-                    }}
-                  />
-                ))}
-
-                {/* Task blocks */}
-                {positioned.map(({ instance: inst, col, totalCols }) => {
-                  const startDate = new Date(inst.scheduledStartAt!);
-                  const startMin =
-                    startDate.getUTCHours() * 60 + startDate.getUTCMinutes();
-                  const topPx = Math.max(
-                    ((startMin - startHour * 60) / 60) * HOUR_HEIGHT,
-                    0,
-                  );
-                  const heightPx = Math.max(
-                    (inst.task.durationMin / 60) * HOUR_HEIGHT,
-                    20,
-                  );
-                  const widthPct = 100 / totalCols;
-                  const leftPct = col * widthPct;
-                  const assigneeNames = inst.assignees
-                    .map((a) => a.membership.user.name?.split(" ")[0] ?? "?")
-                    .join(", ");
-
-                  return (
-                    <div
-                      key={inst.id}
-                      className={`absolute rounded border overflow-hidden p-1 text-[11px] leading-snug cursor-pointer hover:opacity-90 transition-opacity ${statusBlockClass(inst.status)}`}
-                      style={{
-                        top: topPx + 1,
-                        height: Math.max(heightPx - 2, 18),
-                        left: `${leftPct + 0.5}%`,
-                        width: `${widthPct - 1}%`,
-                      }}
-                      title={`${inst.task.title} — ${inst.task.durationMin} min`}
-                    >
-                      <div className="font-semibold truncate">
-                        {inst.task.title}
-                      </div>
-                      {heightPx >= 36 && assigneeNames && (
-                        <div className="truncate opacity-80">
-                          {assigneeNames}
-                        </div>
-                      )}
-                      {heightPx >= 52 && (
-                        <div className="opacity-60 text-[10px]">
-                          • {STATUS_LABELS[inst.status]}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              <>
+                <div className="font-medium">{getDayName(dayStr)}</div>
+                <div className={`text-lg font-bold leading-none mt-0.5 ${today ? "text-foreground" : ""}`}>
+                  {d.getUTCDate()}
+                </div>
+              </>
             );
-          })}
-        </div>
+          }}
+          renderBlock={(inst, heightPx) => {
+            const assigneeNames = inst.assignees
+              .map((a) => a.membership.user.name?.split(" ")[0] ?? "?")
+              .join(", ");
+            return (
+              <>
+                <div className="text-[10px] text-muted-foreground font-mono leading-none mb-0.5">
+                  {minToHHMM(inst.startTimeMin)}
+                </div>
+                <div className="font-semibold truncate">{inst.task.title}</div>
+                {heightPx >= 44 && (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDotClass(effStatus(inst))}`} />
+                    <span className="truncate text-[10px] text-muted-foreground">{STATUS_LABELS[effStatus(inst)]}</span>
+                  </div>
+                )}
+                {heightPx >= 60 && assigneeNames && (
+                  <div className="truncate text-[10px] text-muted-foreground mt-0.5">{assigneeNames}</div>
+                )}
+              </>
+            );
+          }}
+          dragDataRef={dragDataRef}
+          onDragOver={(col, timeMin) => setDragOver({ column: col, timeMin })}
+          onDrop={handleDrop}
+          onDragLeave={() => setDragOver(null)}
+          dragOver={dragOver}
+          onBlockMenuClick={memberships ? setEditingInstance : undefined}
+          draggable={hasPanel}
+          initialScrollMin={initialScrollMin}
+          fillHeight={fillHeight}
+          columnHighlightClass={(dayStr) => (isToday(dayStr) ? "bg-muted text-foreground" : undefined)}
+        />
+        {hasPanel && (
+          <TaskPanel
+            tasks={availableTasks}
+            fillHeight={fillHeight}
+            onDragStart={(taskId, e) => {
+              dragDataRef.current = { type: "task", taskId };
+              e.dataTransfer.effectAllowed = "copy";
+            }}
+            onDragEnd={() => {
+              dragDataRef.current = null;
+              setDragOver(null);
+            }}
+          />
+        )}
       </div>
-    </div>
+
+      {editingInstance && memberships && (
+        <CalendarEditPopup
+          instance={editingInstance}
+          memberships={memberships}
+          orgId={orgId}
+          canManage={canManage}
+          onClose={() => setEditingInstance(null)}
+          onRefresh={() => router.refresh()}
+        />
+      )}
+    </>
   );
 }
 
@@ -357,100 +373,82 @@ function CalendarView({
 interface SimpleViewProps {
   instances: ClientTimetableInstance[];
   weekStart: string;
+  todayStr: string;
+  canManage: boolean;
+  memberships?: ClientMembership[];
+  orgId: string;
 }
 
-function SimpleView({ instances, weekStart }: SimpleViewProps) {
+function SimpleView({ instances, weekStart, todayStr, canManage, memberships, orgId }: SimpleViewProps) {
+  const router = useRouter();
+  const [editingInstance, setEditingInstance] = useState<ClientTimetableInstance | null>(null);
+
+  function effStatus(inst: ClientTimetableInstance) {
+    return inst.status === "TODO" && inst.date < todayStr ? "SKIPPED" : inst.status;
+  }
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  const byDate = groupByDate(instances);
+  const byDate = groupBy(instances, (inst) => inst.date);
 
   return (
-    <div className="flex flex-col gap-4">
-      {days.map((dayStr, dayIdx) => {
+    <>
+      <div className="flex flex-col gap-4">
+        {days.map((dayStr) => {
         const d = new Date(dayStr + "T00:00:00Z");
         const today = isToday(dayStr);
         const dayInstances = byDate.get(dayStr) ?? [];
-        const dayLabel = `${DAY_NAMES[dayIdx]}, ${MONTH_NAMES[d.getUTCMonth()]} ${d.getUTCDate()}`;
+        const dayLabel = `${getDayName(dayStr)}, ${getMonthName(d.getUTCMonth())} ${d.getUTCDate()}`;
 
         return (
           <div key={dayStr} className="rounded-xl border overflow-hidden">
-            {/* Day header */}
-            <div
-              className={`px-4 py-2.5 flex items-center gap-2 font-semibold text-sm border-b ${
-                today
-                  ? "bg-blue-50 text-blue-800 border-blue-200"
-                  : "bg-muted/50"
-              }`}
-            >
+            <div className={`px-4 py-2.5 flex items-center gap-2 font-semibold text-sm border-b ${today ? "bg-muted/50 text-foreground border-border" : "bg-muted/20"}`}>
               {dayLabel}
-              {today && (
-                <span className="text-xs font-normal text-blue-500 ml-1">
-                  Today
-                </span>
-              )}
+              {today && <span className="text-xs font-normal text-muted-foreground ml-1">Today</span>}
             </div>
 
             {dayInstances.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-muted-foreground">
-                No tasks scheduled
-              </div>
+              <div className="px-4 py-3 text-sm text-muted-foreground">No tasks scheduled</div>
             ) : (
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/20">
                   <tr className="text-xs text-muted-foreground uppercase tracking-wide">
                     <th className="px-3 py-1.5 text-left font-medium w-8">#</th>
-                    <th className="px-3 py-1.5 text-left font-medium">
-                      Status
-                    </th>
+                    <th className="px-3 py-1.5 text-left font-medium">Status</th>
                     <th className="px-3 py-1.5 text-left font-medium">Task</th>
-                    <th className="px-3 py-1.5 text-left font-medium">
-                      Duration
-                    </th>
-                    <th className="px-3 py-1.5 text-left font-medium">
-                      Assigned To
-                    </th>
+                    <th className="px-3 py-1.5 text-left font-medium">Duration</th>
+                    <th className="px-3 py-1.5 text-left font-medium">Assigned To</th>
+                    {memberships && <th className="px-3 py-1.5 w-8" />}
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {dayInstances.map((inst, idx) => {
                     const assigneeNames =
-                      inst.assignees
-                        .map((a) => a.membership.user.name ?? "Unknown")
-                        .join(", ") || "\u2014";
-                    const isSkipped = inst.status === "SKIPPED";
-
+                      inst.assignees.map((a) => a.membership.user.name ?? "Unknown").join(", ") || "—";
+                    const isSkipped = effStatus(inst) === "SKIPPED";
                     return (
-                      <tr
-                        key={inst.id}
-                        className="hover:bg-muted/20 transition-colors"
-                      >
-                        <td className="px-3 py-2 text-muted-foreground">
-                          {idx + 1}
-                        </td>
+                      <tr key={inst.id} onClick={() => memberships && setEditingInstance(inst)} className={`hover:bg-muted/20 transition-colors ${memberships ? "cursor-pointer" : ""}`}>
+                        <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
                         <td className="px-3 py-2">
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass(inst.status)}`}
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${statusDotClass(inst.status)}`}
-                            />
-                            {STATUS_LABELS[inst.status]}
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">
+                            <span className={`w-2 h-2 rounded-full ${statusDotClass(effStatus(inst))}`} />
+                            {STATUS_LABELS[effStatus(inst)]}
                           </span>
                         </td>
-                        <td
-                          className={`px-3 py-2 font-medium ${
-                            isSkipped
-                              ? "line-through text-muted-foreground"
-                              : ""
-                          }`}
-                        >
+                        <td className={`px-3 py-2 font-medium ${isSkipped ? "line-through text-muted-foreground" : ""}`}>
                           {inst.task.title}
                         </td>
-                        <td className="px-3 py-2 text-muted-foreground text-xs">
-                          {inst.task.durationMin} min
-                        </td>
-                        <td className="px-3 py-2 text-muted-foreground text-xs">
-                          {assigneeNames}
-                        </td>
+                        <td className="px-3 py-2 text-muted-foreground text-xs">{inst.task.durationMin} min</td>
+                        <td className="px-3 py-2 text-muted-foreground text-xs">{assigneeNames}</td>
+                        {memberships && (
+                          <td className="px-2 py-2">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setEditingInstance(inst); }}
+                              className="flex items-center justify-center w-6 h-6 rounded bg-muted/50 text-xs font-bold hover:bg-muted transition-colors cursor-pointer"
+                              aria-label="Edit"
+                            >
+                              ···
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -461,6 +459,18 @@ function SimpleView({ instances, weekStart }: SimpleViewProps) {
         );
       })}
     </div>
+
+    {editingInstance && memberships && (
+      <CalendarEditPopup
+        instance={editingInstance}
+        memberships={memberships}
+        orgId={orgId}
+        canManage={canManage}
+        onClose={() => setEditingInstance(null)}
+        onRefresh={() => router.refresh()}
+      />
+    )}
+    </>
   );
 }
 
@@ -475,7 +485,12 @@ interface TimetableClientProps {
   openTimeMin: number;
   closeTimeMin: number;
   mode: "calendar" | "simple";
-  selectedTemplateId: string | null;
+  fillHeight?: boolean;
+  todayStr: string;
+  roleId?: string | null;
+  canManage?: boolean;
+  availableTasks?: ClientTask[];
+  memberships?: ClientMembership[];
 }
 
 export function TimetableClient({
@@ -485,27 +500,30 @@ export function TimetableClient({
   openTimeMin,
   closeTimeMin,
   mode,
-  selectedTemplateId,
+  fillHeight,
+  todayStr,
+  roleId,
+  canManage = false,
+  availableTasks,
+  memberships,
 }: TimetableClientProps) {
   const prevWeek = addDays(weekStart, -7);
   const nextWeek = addDays(weekStart, 7);
-  const dateRangeLabel = formatDateRange(weekStart);
-
   const makeHref = (w: string, m: string) => {
-    const t = selectedTemplateId ? `&template=${selectedTemplateId}` : "";
-    return `/orgs/${orgId}/timetable?week=${w}&mode=${m}${t}`;
+    const p = new URLSearchParams({ week: w, mode: m });
+    if (roleId) p.set("roleId", roleId);
+    return `/orgs/${orgId}/timetable?${p.toString()}`;
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Week navigation */}
+    <div className={`flex flex-col gap-4${fillHeight ? " flex-1 min-h-0" : ""}`}>
       <div className="flex items-center justify-between rounded-lg border px-4 py-1.5">
         <Link href={makeHref(prevWeek, mode)}>
           <Button variant="ghost" size="sm" className="gap-1">
             <ChevronLeft className="h-4 w-4" /> Prev
           </Button>
         </Link>
-        <span className="text-sm font-medium">{dateRangeLabel}</span>
+        <span className="text-sm font-medium">{formatWeekRange(weekStart)}</span>
         <Link href={makeHref(nextWeek, mode)}>
           <Button variant="ghost" size="sm" className="gap-1">
             Next <ChevronRight className="h-4 w-4" />
@@ -513,16 +531,20 @@ export function TimetableClient({
         </Link>
       </div>
 
-      {/* View */}
       {mode === "calendar" ? (
         <CalendarView
           instances={instances}
           weekStart={weekStart}
           openTimeMin={openTimeMin}
-          closeTimeMin={closeTimeMin}
+          fillHeight={fillHeight}
+          orgId={orgId}
+          todayStr={todayStr}
+          canManage={canManage}
+          availableTasks={availableTasks}
+          memberships={memberships}
         />
       ) : (
-        <SimpleView instances={instances} weekStart={weekStart} />
+        <SimpleView instances={instances} weekStart={weekStart} todayStr={todayStr} canManage={canManage} memberships={memberships} orgId={orgId} />
       )}
     </div>
   );
