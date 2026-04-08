@@ -96,11 +96,13 @@ function ApplyTemplateForm({
   useEffect(() => {
     if (!startDate || totalDays === 0) return;
     let cancelled = false;
-    countTimetableEntriesInRangeAction(orgId, startDate, totalDays).then(
-      (res) => {
+    countTimetableEntriesInRangeAction(orgId, startDate, totalDays)
+      .then((res) => {
         if (!cancelled) setExistingCount(res.ok ? (res.count ?? 0) : 0);
-      },
-    );
+      })
+      .catch(() => {
+        if (!cancelled) setExistingCount(0);
+      });
     return () => {
       cancelled = true;
     };
