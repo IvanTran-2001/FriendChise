@@ -48,6 +48,7 @@ type TaskFormProps =
       allRoles: Role[];
       eligibleRoles: Role[];
       defaultValues: {
+        color: string;
         title: string;
         description?: string | null;
         durationMin: number;
@@ -73,6 +74,17 @@ type EligibilityPanelProps =
       eligibleRoles: Role[];
     };
 
+/**
+ * Role eligibility panel used inside `TaskForm`.
+ *
+ * In **create** mode the selected roles are held in local state and emitted as
+ * hidden `<input name="roleIds">` elements so they travel with the FormData
+ * on submit.
+ *
+ * In **edit** mode each add/remove fires an immediate server action
+ * (`addEligibilityAction` / `removeEligibilityAction`) so changes persist
+ * without a full form submit.
+ */
 function EligibilityPanel(props: EligibilityPanelProps) {
   const isEdit = props.mode === "edit";
   const [roles, setRoles] = useState<Role[]>(isEdit ? props.eligibleRoles : []);
@@ -219,8 +231,33 @@ function EligibilityPanel(props: EligibilityPanelProps) {
 
 // ─── Main form ────────────────────────────────────────────────────────────────
 
+/**
+ * Two-column task form (create / edit).
+ *
+ * Left column  — task fields: title, color picker, description, duration,
+ *                preferred start time, people required, min/max wait days.
+ * Right column — `EligibilityPanel` for picking which roles can be assigned.
+ *
+ * Color is managed via a `useState` lazy initialiser (random hex for new tasks,
+ * pre-filled from `defaultValues.color` for edits). A hidden
+ * `<input name="color">` keeps the value in sync with `FormData` so it flows
+ * through the server action without a controlled form library.
+ *
+ * Form state errors are rendered inline with `aria-invalid`/`aria-describedby`
+ * and summarised in a Sonner toast.
+ */
 export function TaskForm(props: TaskFormProps) {
   const isEdit = props.mode === "edit";
+
+  const dv = isEdit ? props.defaultValues : null;
+
+  const [color, setColor] = useState(
+    () =>
+      dv?.color ??
+      `#${Math.floor(Math.random() * 0xffffff)
+        .toString(16)
+        .padStart(6, "0")}`,
+  );
 
   const boundAction = isEdit
     ? updateTaskAction.bind(null, props.orgId, props.taskId)
@@ -268,8 +305,6 @@ export function TaskForm(props: TaskFormProps) {
         ]?.[0] ?? null)
       : null;
 
-  const dv = isEdit ? props.defaultValues : null;
-
   return (
     <form
       onSubmit={handleSubmit}
@@ -301,6 +336,26 @@ export function TaskForm(props: TaskFormProps) {
             <p id="title-error" className="text-xs text-destructive">
               {err("title")}
             </p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="color" className="text-sm font-medium">
+            Color <span className="text-destructive">*</span>
+          </label>
+          <div className="flex items-center gap-3">
+            <input type="hidden" name="color" value={color} />
+            <input
+              id="color"
+              type="color"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              className="h-9 w-14 cursor-pointer rounded-md border border-input p-0.5 bg-background"
+            />
+            <span className="text-sm text-muted-foreground font-mono">{color}</span>
+          </div>
+          {err("color") && (
+            <p className="text-xs text-destructive">{err("color")}</p>
           )}
         </div>
 

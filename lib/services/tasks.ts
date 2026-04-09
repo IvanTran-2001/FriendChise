@@ -11,6 +11,7 @@ export async function createTask(orgId: string, data: CreateTaskInput) {
     data: {
       orgId,
       name: data.title,
+      color: data.color,
       description: data.description ?? null,
       durationMin: data.durationMin,
       preferredStartTimeMin: data.preferredStartTimeMin ?? null,
@@ -78,6 +79,7 @@ export async function updateTask(
     where: { id: taskId, orgId },
     data: {
       name: data.title,
+      color: data.color,
       description: data.description ?? null,
       durationMin: data.durationMin,
       preferredStartTimeMin: data.preferredStartTimeMin ?? null,

@@ -145,67 +145,69 @@ export function TaskTable({
 
   return (
     <>
-      <Toolbar
-        actions={
-          canManageTasks
-            ? [{ label: "Create", href: `/orgs/${orgId}/tasks/new` }]
-            : undefined
-        }
-      >
-        <Input
-          aria-label="Search tasks by title"
-          placeholder="Search by title..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-xs h-8"
-        />
+      <Toolbar>
+        <div className="flex items-center gap-2 flex-1">
+          <Input
+            aria-label="Search tasks by title"
+            placeholder="Search by title..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="max-w-xs h-8"
+          />
 
-        {/* Sort */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
-              {activeSort.label}
-              <ChevronDown className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            {SORT_OPTIONS.map((o) => (
-              <DropdownMenuItem key={o.value} onClick={() => setSort(o.value)}>
-                {o.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Filter by role */}
-        {roles.length > 0 && (
+          {/* Sort */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant={filterRoleId ? "secondary" : "outline"}
-                size="sm"
-                className="gap-1.5 shrink-0"
-              >
-                {activeRole ? activeRole.name : "Filter by role"}
+              <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
+                {activeSort.label}
                 <ChevronDown className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              {filterRoleId && (
-                <DropdownMenuItem onClick={() => setFilterRoleId(null)}>
-                  All roles
-                </DropdownMenuItem>
-              )}
-              {roles.map((r) => (
-                <DropdownMenuItem
-                  key={r.id}
-                  onClick={() => setFilterRoleId(r.id)}
-                >
-                  {r.name}
+              {SORT_OPTIONS.map((o) => (
+                <DropdownMenuItem key={o.value} onClick={() => setSort(o.value)}>
+                  {o.label}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Filter by role */}
+          {roles.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={filterRoleId ? "secondary" : "outline"}
+                  size="sm"
+                  className="gap-1.5 shrink-0"
+                >
+                  {activeRole ? activeRole.name : "Filter by role"}
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {filterRoleId && (
+                  <DropdownMenuItem onClick={() => setFilterRoleId(null)}>
+                    All roles
+                  </DropdownMenuItem>
+                )}
+                {roles.map((r) => (
+                  <DropdownMenuItem
+                    key={r.id}
+                    onClick={() => setFilterRoleId(r.id)}
+                  >
+                    {r.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+
+        {canManageTasks && (
+          <Button asChild size="sm">
+            <a href={`/orgs/${orgId}/tasks/new`}>+ Create Task</a>
+          </Button>
         )}
       </Toolbar>
 

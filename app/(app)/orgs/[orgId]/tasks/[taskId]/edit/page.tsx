@@ -41,6 +41,7 @@ const EditTaskPage = async ({
         allRoles={allRoles}
         eligibleRoles={eligibleRoles}
         defaultValues={{
+          color: task.color,
           title: task.name,
           description: task.description,
           durationMin: task.durationMin,

@@ -1,11 +1,9 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname, useParams } from "next/navigation";
+import { headers } from "next/headers";
+import { prisma } from "@/lib/prisma";
 
 /**
- * Maps URL path segments to human-readable breadcrumb labels.
- * Add an entry here whenever a new route segment is introduced.
+ * Maps static URL path segments to human-readable breadcrumb labels.
  */
 const SEGMENT_LABELS: Record<string, string> = {
   timetable: "Timetable",
@@ -18,60 +16,107 @@ const SEGMENT_LABELS: Record<string, string> = {
   notification: "Notification",
   new: "Create",
   edit: "Edit",
+  templates: "Templates",
+  franchisee: "Franchise",
 };
 
 interface BreadcrumbItem {
   label: string;
-  /** When set, the crumb renders as a clickable link. The last crumb never has an href. */
   href?: string;
+}
+
+/** Returns true if a segment looks like a DB id rather than a known keyword. */
+function looksLikeId(seg: string): boolean {
+  return seg.length > 8 && /^[a-z0-9]+$/i.test(seg) && !(seg in SEGMENT_LABELS);
+}
+
+/**
+ * Resolves a URL segment to a human-readable label.
+ * For known keywords it uses SEGMENT_LABELS; for id-like segments it
+ * queries the DB using the preceding segment as a type hint.
+ */
+async function resolveLabel(
+  seg: string,
+  index: number,
+  segments: string[],
+): Promise<string> {
+  if (seg in SEGMENT_LABELS) return SEGMENT_LABELS[seg];
+  if (!looksLikeId(seg)) return seg;
+
+  const parent = index > 0 ? segments[index - 1] : null;
+
+  try {
+    if (parent === "tasks") {
+      const t = await prisma.task.findUnique({
+        where: { id: seg },
+        select: { name: true },
+      });
+      if (t) return t.name;
+    } else if (parent === "memberships") {
+      const u = await prisma.user.findUnique({
+        where: { id: seg },
+        select: { name: true },
+      });
+      if (u) return u.name ?? seg;
+    } else if (parent === "roles") {
+      const r = await prisma.role.findUnique({
+        where: { id: seg },
+        select: { name: true },
+      });
+      if (r) return r.name;
+    } else if (parent === "templates") {
+      const t = await prisma.template.findUnique({
+        where: { id: seg },
+        select: { name: true },
+      });
+      if (t) return t.name;
+    }
+  } catch {
+    // DB unavailable — fall back to raw id
+  }
+
+  return seg;
 }
 
 /**
  * Renders a purple breadcrumb bar that automatically reflects the current route.
- * Placed in the app layout so every page gets it without any per-page setup.
  *
- * Breadcrumb logic:
- * - Outside an org (no `orgId` param): only shown on specific standalone pages e.g. /orgs/new.
- * - Inside an org: always starts with "Overview" (the org root), then appends one crumb
- *   per additional URL segment. All crumbs except the last are rendered as links.
- * - Returns null (renders nothing) on pages that don't need a breadcrumb bar, e.g. home.
+ * Async server component: reads the current pathname from the `x-pathname`
+ * request header (set by the middleware in proxy.ts) and resolves any
+ * dynamic id segments to entity names via direct Prisma queries.
  */
-export function PageHeader() {
-  // Current URL path, e.g. "/orgs/abc123/tasks/new"
-  const pathname = usePathname();
-  // Dynamic route params — orgId is present on any /orgs/[orgId]/... page
-  const { orgId } = useParams<{ orgId?: string }>();
+export async function PageHeader() {
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") ?? "";
 
   const breadcrumbs: BreadcrumbItem[] = [];
 
-  if (!orgId) {
-    // Non-org pages — only add a crumb for known standalone routes
+  const orgMatch = pathname.match(/^\/orgs\/([^/]+)(\/.*)?$/);
+
+  if (!orgMatch || orgMatch[1] === "new") {
     if (pathname === "/orgs/new") {
       breadcrumbs.push({ label: "Create Organization" });
     }
   } else {
+    const orgId = orgMatch[1];
     const base = `/orgs/${orgId}`;
 
-    // "Overview" is always the root crumb for any org page
     breadcrumbs.push({ label: "Overview", href: base });
 
-    // Strip the org base path and split the remainder into segments
-    // e.g. "/orgs/abc/tasks/new" → ["tasks", "new"]
-    const rest = pathname.slice(base.length).replace(/^\//, "");
+    const rest = (orgMatch[2] ?? "").replace(/^\//, "");
     const segments = rest ? rest.split("/") : [];
 
-    segments.forEach((seg, i) => {
-      const label = SEGMENT_LABELS[seg] ?? seg;
+    for (let i = 0; i < segments.length; i++) {
+      const seg = segments[i];
+      const label = await resolveLabel(seg, i, segments);
       const isLast = i === segments.length - 1;
-      // Intermediate crumbs get a href so they're navigable; the last crumb does not
       const href = isLast
         ? undefined
         : `${base}/${segments.slice(0, i + 1).join("/")}`;
       breadcrumbs.push({ label, href });
-    });
+    }
   }
 
-  // No crumbs means this page doesn't need a header bar — render nothing
   if (breadcrumbs.length === 0) return null;
 
   return (
@@ -101,3 +146,4 @@ export function PageHeader() {
     </div>
   );
 }
+

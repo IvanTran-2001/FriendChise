@@ -59,23 +59,20 @@ const ViewTaskPage = async ({ params }: Props) => {
 
   return (
     <>
-      <Toolbar
-        rightChildren={
-          canManage ? (
-            <TaskViewActions
-              orgId={orgId}
-              taskId={taskId}
-              taskName={task.name}
-            />
-          ) : undefined
-        }
-      >
+      <Toolbar>
         <Link
           href={`/orgs/${orgId}/tasks`}
           className="text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           ← Tasks
         </Link>
+        {canManage && (
+          <TaskViewActions
+            orgId={orgId}
+            taskId={taskId}
+            taskName={task.name}
+          />
+        )}
       </Toolbar>
 
       <div className="max-w-4xl mx-auto flex flex-col gap-6">
