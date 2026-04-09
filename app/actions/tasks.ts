@@ -35,6 +35,7 @@ function parseTaskFormData(formData: FormData) {
   };
 
   return {
+    color: String(formData.get("color") ?? "#6366f1"),
     title: String(formData.get("title") ?? ""),
     description: formData.get("description") || undefined,
     durationMin: num("durationMin"),

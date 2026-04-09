@@ -114,55 +114,54 @@ export default async function TimetablePage({
 
   return (
     <div className="flex flex-col" style={{ height: "calc(100dvh - 148px)" }}>
-      <Toolbar
-        rightChildren={
-          canManageTimetable ? (
-            <TimetableActions
-              orgId={orgId}
-              templates={templates.map((t) => ({
-                id: t.id,
-                name: t.name,
-                cycleLengthDays: t.cycleLengthDays,
-              }))}
-              weekStart={weekStart}
-            />
-          ) : undefined
-        }
-      >
-        {/* Role filter */}
-        <RoleFilterButton
-          roles={filterRoles}
-          weekStart={weekStart}
-          mode={mode}
-          selectedRoleId={rawRoleId}
-          orgId={orgId}
-        />
+      <Toolbar>
+        <div className="flex items-center gap-2 flex-1">
+          {/* Role filter */}
+          <RoleFilterButton
+            roles={filterRoles}
+            weekStart={weekStart}
+            mode={mode}
+            selectedRoleId={rawRoleId}
+            orgId={orgId}
+          />
 
-        {/* Calendar / Simple toggle */}
-        <div className="flex rounded-md overflow-hidden border text-sm font-medium">
-          <Link
-            href={timetableHref("calendar")}
-            aria-current={mode === "calendar" ? "page" : undefined}
-            className={`px-3 py-1 transition-colors ${
-              mode === "calendar"
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-muted text-muted-foreground"
-            }`}
-          >
-            Calendar
-          </Link>
-          <Link
-            href={timetableHref("simple")}
-            aria-current={mode === "simple" ? "page" : undefined}
-            className={`px-3 py-1 border-l transition-colors ${
-              mode === "simple"
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-muted text-muted-foreground"
-            }`}
-          >
-            Simple
-          </Link>
+          {/* Calendar / Simple toggle */}
+          <div className="flex rounded-md overflow-hidden border text-sm font-medium">
+            <Link
+              href={timetableHref("calendar")}
+              aria-current={mode === "calendar" ? "page" : undefined}
+              className={`px-3 py-1 transition-colors ${
+                mode === "calendar"
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-muted text-muted-foreground"
+              }`}
+            >
+              Calendar
+            </Link>
+            <Link
+              href={timetableHref("simple")}
+              aria-current={mode === "simple" ? "page" : undefined}
+              className={`px-3 py-1 border-l transition-colors ${
+                mode === "simple"
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-muted text-muted-foreground"
+              }`}
+            >
+              Simple
+            </Link>
+          </div>
         </div>
+        {canManageTimetable && (
+          <TimetableActions
+            orgId={orgId}
+            templates={templates.map((t) => ({
+              id: t.id,
+              name: t.name,
+              cycleLengthDays: t.cycleLengthDays,
+            }))}
+            weekStart={weekStart}
+          />
+        )}
       </Toolbar>
       <TimetableClient
         orgId={orgId}

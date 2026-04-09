@@ -1,15 +1,10 @@
-import { requireOrgPermissionPage } from "@/lib/authz";
+import Link from "next/link";
 import { PermissionAction } from "@prisma/client";
+import { requireOrgPermissionPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
+import { Toolbar } from "@/components/layout/toolbar";
 import { CreateMembershipForm } from "./create-membership-form";
 
-/**
- * Add-member page — server component.
- *
- * Guards access with `requireOrgPermissionPage(ORG_MANAGE)`; redirects to `/`
- * if the caller lacks the permission. Fetches the org's roles and passes them
- * to the client form so the user can select a role when inviting a member.
- */
 const NewMemberPage = async ({
   params,
 }: {
@@ -20,16 +15,25 @@ const NewMemberPage = async ({
   await requireOrgPermissionPage(orgId, PermissionAction.MANAGE_MEMBERS);
 
   const roles = await prisma.role.findMany({
-    where: { orgId },
+    where: { orgId, NOT: { key: "owner" } },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
 
   return (
-    <div className="max-w-lg mx-auto">
-      <h1 className="text-xl font-semibold mb-6">Add Member</h1>
-      <CreateMembershipForm orgId={orgId} roles={roles} />
-    </div>
+    <>
+      <Toolbar>
+        <Link
+          href={`/orgs/${orgId}/memberships`}
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          ← Members
+        </Link>
+      </Toolbar>
+      <div className="max-w-lg mx-auto">
+        <CreateMembershipForm orgId={orgId} roles={roles} />
+      </div>
+    </>
   );
 };
 

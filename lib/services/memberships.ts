@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import type { CreateMembershipInput } from "@/lib/validators/membership";
 import type { ServiceResult } from "./types";
+import { ROLE_KEYS } from "@/lib/rbac";
 
 /**
  * Creates a membership linking a user to an org, then assigns the specified
@@ -100,9 +101,85 @@ export async function getMemberships(orgId: string) {
   return prisma.membership.findMany({
     where: { orgId },
     include: {
-      user: { select: { id: true, name: true } },
+      user: { select: { id: true, name: true, image: true } },
       memberRoles: { include: { role: true } },
     },
     orderBy: { joinedAt: "desc" },
   });
+}
+
+/**
+ * Returns a single membership by orgId + userId, with full user and role
+ * details needed for the member detail page. Returns null if not found.
+ */
+export async function getMembershipDetail(orgId: string, userId: string) {
+  return prisma.membership.findUnique({
+    where: { userId_orgId: { userId, orgId } },
+    include: {
+      user: { select: { id: true, name: true, email: true, image: true } },
+      memberRoles: { include: { role: true } },
+    },
+  });
+}
+
+/**
+ * Updates a membership's working days and role assignment.
+ * Replaces all existing MemberRole rows with the new roles in a
+ * transaction so the state is always consistent.
+ */
+export async function updateMembership(
+  orgId: string,
+  userId: string,
+  data: { workingDays: string[]; roleIds: string[] },
+): Promise<ServiceResult<null>> {
+  const membership = await prisma.membership.findUnique({
+    where: { userId_orgId: { userId, orgId } },
+    select: { id: true },
+  });
+  if (!membership) return { ok: false, error: "Membership not found", code: "NOT_FOUND" };
+
+  if (data.roleIds.length === 0)
+    return { ok: false, error: "At least one role is required", code: "INVALID" };
+
+  const validRoles = await prisma.role.findMany({
+    where: { id: { in: data.roleIds }, orgId },
+    select: { id: true, key: true },
+  });
+  if (validRoles.length !== data.roleIds.length)
+    return { ok: false, error: "One or more roles not found", code: "INVALID" };
+
+  if (validRoles.some((r) => r.key === ROLE_KEYS.OWNER))
+    return { ok: false, error: "Cannot assign the owner role", code: "INVALID" };
+
+  await prisma.$transaction(async (tx) => {
+    await tx.membership.update({
+      where: { id: membership.id },
+      data: { workingDays: data.workingDays },
+    });
+    await tx.memberRole.deleteMany({ where: { membershipId: membership.id } });
+    await Promise.all(
+      data.roleIds.map((roleId) =>
+        tx.memberRole.create({ data: { membershipId: membership.id, roleId } }),
+      ),
+    );
+  });
+
+  return { ok: true, data: null };
+}
+
+/**
+ * Toggles a membership's status between ACTIVE and RESTRICTED.
+ */
+export async function setMembershipStatus(
+  orgId: string,
+  userId: string,
+  status: "ACTIVE" | "RESTRICTED",
+): Promise<ServiceResult<null>> {
+  const updated = await prisma.membership.updateMany({
+    where: { userId, orgId },
+    data: { status },
+  });
+  if (updated.count === 0)
+    return { ok: false, error: "Membership not found", code: "NOT_FOUND" };
+  return { ok: true, data: null };
 }

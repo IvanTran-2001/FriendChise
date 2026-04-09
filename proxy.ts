@@ -10,10 +10,15 @@
  */
 import { authConfig } from "@/auth.config";
 import NextAuth from "next-auth";
+import { NextResponse } from "next/server";
 
-const { auth: proxy } = NextAuth(authConfig);
+const { auth } = NextAuth(authConfig);
 
-export { proxy };
+export const proxy = auth((req) => {
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-pathname", req.nextUrl.pathname);
+  return NextResponse.next({ request: { headers: requestHeaders } });
+});
 
 export const config = {
   matcher: ["/", "/orgs/:path*"],

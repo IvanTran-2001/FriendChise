@@ -481,7 +481,13 @@ function CalendarView({
                 <div className="text-[10px] text-muted-foreground font-mono leading-none mb-0.5">
                   {minToHHMM(inst.startTimeMin)}
                 </div>
-                <div className="font-semibold truncate">{inst.task.title}</div>
+                <Link
+                  href={`/orgs/${orgId}/tasks/${inst.taskId}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="font-semibold truncate block hover:underline"
+                >
+                  {inst.task.title}
+                </Link>
                 {heightPx >= 44 && (
                   <div className="flex items-center gap-1 mt-0.5">
                     <span
@@ -654,7 +660,13 @@ function SimpleView({
                           <td
                             className={`px-3 py-2 font-medium ${isSkipped ? "line-through text-muted-foreground" : ""}`}
                           >
-                            {inst.task.title}
+                            <Link
+                              href={`/orgs/${orgId}/tasks/${inst.taskId}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="hover:underline"
+                            >
+                              {inst.task.title}
+                            </Link>
                           </td>
                           <td className="px-3 py-2 text-muted-foreground text-xs">
                             {inst.task.durationMin} min

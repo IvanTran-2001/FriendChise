@@ -85,7 +85,7 @@ function getOrgItems(orgId: string) {
     { title: "Timetable", url: `/orgs/${orgId}/timetable`, icon: Calendar },
     { title: "Tasks", url: `/orgs/${orgId}/tasks`, icon: ListTodo },
     { title: "Members", url: `/orgs/${orgId}/memberships`, icon: Users },
-    { title: "Progress", url: `/orgs/${orgId}/progress`, icon: BarChart2 },
+    { title: "Progress", url: `/orgs/${orgId}/progress`, icon: BarChart2, disabled: true },
   ];
 }
 
@@ -218,13 +218,22 @@ export function AppSidebar() {
                 navItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
-                      asChild
+                      asChild={!item.disabled}
                       isActive={isActiveItem(item.url)}
+                      disabled={item.disabled}
+                      className={item.disabled ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}
                     >
-                      <Link href={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
+                      {item.disabled ? (
+                        <span>
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </span>
+                      ) : (
+                        <Link href={item.url}>
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </Link>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))

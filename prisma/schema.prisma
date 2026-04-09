@@ -178,7 +178,7 @@ model Membership {
 model Role {
   id          String   @id @default(cuid())
   name        String
-  color       String?
+  color       String
   key         String   // "owner", "default", "cook"
 
   orgId       String
@@ -241,7 +241,7 @@ model Task {
   id                    String   @id @default(cuid())
   name                  String
   description           String?
-  color                 String?
+  color                 String
 
   orgId                 String
   organization          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)

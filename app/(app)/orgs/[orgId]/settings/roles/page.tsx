@@ -1,7 +1,9 @@
 import { PermissionAction } from "@prisma/client";
+import Link from "next/link";
 import { requireOrgPermissionPage } from "@/lib/authz";
 import { getRoles } from "@/lib/services/roles";
 import { Toolbar } from "@/components/layout/toolbar";
+import { Button } from "@/components/ui/button";
 import { RolesClient } from "./roles-client";
 
 /**
@@ -24,11 +26,12 @@ export default async function RolesPage({
 
   return (
     <>
-      <Toolbar
-        actions={[
-          { label: "+ Add Role", href: `/orgs/${orgId}/settings/roles/new` },
-        ]}
-      />
+      <Toolbar>
+        <div />
+        <Button asChild size="sm">
+          <Link href={`/orgs/${orgId}/settings/roles/new`}>+ Add Role</Link>
+        </Button>
+      </Toolbar>
       <div className="max-w-3xl mx-auto">
         <RolesClient orgId={orgId} roles={roles} />
       </div>
