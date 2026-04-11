@@ -52,7 +52,11 @@ export function MemberToolbarActions({
 
   function handleDelete() {
     startTransition(async () => {
-      await deleteMembershipAction(orgId, userId);
+      const result = await deleteMembershipAction(orgId, userId);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
       router.push(`/orgs/${orgId}/memberships`);
     });
   }
@@ -61,8 +65,13 @@ export function MemberToolbarActions({
     const next = isRestricted ? "ACTIVE" : "RESTRICTED";
     startTransition(async () => {
       const result = await setMemberStatusAction(orgId, userId, next);
-      if (result.ok) router.refresh();
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      router.refresh();
     });
+  }
   }
 
   return (

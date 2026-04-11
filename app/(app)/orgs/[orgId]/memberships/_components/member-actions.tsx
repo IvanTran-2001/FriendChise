@@ -41,9 +41,14 @@ export function MemberActions({ orgId, userId, memberName }: MemberActionsProps)
 
   function handleDelete() {
     startTransition(async () => {
-      await deleteMembershipAction(orgId, userId);
+      const result = await deleteMembershipAction(orgId, userId);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
       router.refresh();
     });
+  }
   }
 
   return (

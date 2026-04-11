@@ -350,12 +350,14 @@ export function TaskForm(props: TaskFormProps) {
               type="color"
               value={color}
               onChange={(e) => setColor(e.target.value)}
+              aria-invalid={!!err("color")}
+              aria-describedby={err("color") ? "color-error" : undefined}
               className="h-9 w-14 cursor-pointer rounded-md border border-input p-0.5 bg-background"
             />
             <span className="text-sm text-muted-foreground font-mono">{color}</span>
           </div>
           {err("color") && (
-            <p className="text-xs text-destructive">{err("color")}</p>
+            <p id="color-error" className="text-xs text-destructive">{err("color")}</p>
           )}
         </div>
 
