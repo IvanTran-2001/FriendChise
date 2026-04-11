@@ -6,20 +6,11 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RolePicker } from "./role-picker";
+import { DAYS } from "../_constants";
 import {
   createMembershipAction,
   updateMembershipAction,
 } from "@/app/actions/memberships";
-
-const DAYS = [
-  { key: "mon", label: "Mon" },
-  { key: "tue", label: "Tue" },
-  { key: "wed", label: "Wed" },
-  { key: "thu", label: "Thu" },
-  { key: "fri", label: "Fri" },
-  { key: "sat", label: "Sat" },
-  { key: "sun", label: "Sun" },
-] as const;
 
 type Role = { id: string; name: string };
 

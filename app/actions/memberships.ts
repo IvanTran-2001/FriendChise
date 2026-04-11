@@ -13,6 +13,7 @@ import {
 } from "@/lib/services/memberships";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { ROLE_KEYS } from "@/lib/rbac";
 
 /**
  * Adds a new member to an org by email, with working days and one or more roles.
@@ -54,7 +55,7 @@ export async function createMembershipAction(
   });
   if (validRoles.length !== data.roleIds.length)
     return { ok: false, error: "One or more roles not found", field: "roles" };
-  if (validRoles.some((r) => r.key === "owner"))
+  if (validRoles.some((r) => r.key === ROLE_KEYS.OWNER))
     return { ok: false, error: "Cannot assign the owner role", field: "roles" };
 
   try {

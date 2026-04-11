@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -69,6 +70,7 @@ export function MemberToolbarActions({
         toast.error(result.error);
         return;
       }
+      setRestrictOpen(false);
       router.refresh();
     });
   }
@@ -140,10 +142,7 @@ export function MemberToolbarActions({
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                setRestrictOpen(false);
-                handleToggleRestrict();
-              }}
+              onClick={handleToggleRestrict}
               disabled={isPending}
             >
               {isRestricted ? "Unrestrict" : "Restrict"}

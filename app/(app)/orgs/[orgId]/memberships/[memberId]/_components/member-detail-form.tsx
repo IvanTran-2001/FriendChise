@@ -30,16 +30,7 @@ import {
   setMemberStatusAction,
 } from "@/app/actions/memberships";
 import { RolePicker } from "../../_components/role-picker";
-
-const DAYS = [
-  { key: "mon", label: "Mon" },
-  { key: "tue", label: "Tue" },
-  { key: "wed", label: "Wed" },
-  { key: "thu", label: "Thu" },
-  { key: "fri", label: "Fri" },
-  { key: "sat", label: "Sat" },
-  { key: "sun", label: "Sun" },
-] as const;
+import { DAYS } from "../../_constants";
 
 type Role = { id: string; name: string };
 
@@ -128,6 +119,7 @@ export function MemberDetailForm({
         setError(result.error);
         return;
       }
+      setRestrictOpen(false);
       router.refresh();
     });
   }
@@ -336,10 +328,7 @@ export function MemberDetailForm({
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                setRestrictOpen(false);
-                handleToggleRestrict();
-              }}
+              onClick={handleToggleRestrict}
               disabled={isPending}
             >
               {isRestricted ? "Unrestrict" : "Restrict"}

@@ -8,17 +8,7 @@ import { getMembershipDetail } from "@/lib/services/memberships";
 import { Toolbar } from "@/components/layout/toolbar";
 import { Button } from "@/components/ui/button";
 import { MemberToolbarActions } from "./_components/member-toolbar-actions";
-
-const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
-const DAY_LABELS: Record<string, string> = {
-  mon: "Mon",
-  tue: "Tue",
-  wed: "Wed",
-  thu: "Thu",
-  fri: "Fri",
-  sat: "Sat",
-  sun: "Sun",
-};
+import { DAYS } from "../_constants";
 
 const MemberDetailPage = async ({
   params,
@@ -100,16 +90,16 @@ const MemberDetailPage = async ({
                 Working Days
               </dt>
               <dd className="flex flex-wrap gap-2">
-                {DAYS.map((day) => (
+                {DAYS.map(({ key, label }) => (
                   <span
-                    key={day}
+                    key={key}
                     className={`px-3 py-1 rounded-full text-xs font-medium border ${
-                      workingDays.includes(day)
+                      workingDays.includes(key)
                         ? "bg-primary text-primary-foreground border-primary"
                         : "border-border text-muted-foreground"
                     }`}
                   >
-                    {DAY_LABELS[day]}
+                    {label}
                   </span>
                 ))}
               </dd>

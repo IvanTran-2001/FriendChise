@@ -255,6 +255,8 @@ export function TaskForm(props: TaskFormProps) {
 
   useEffect(() => {
     if (!isEdit) {
+      // Randomize color on mount only (stable fallback used during SSR to avoid hydration mismatch)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setColor(
         `#${Math.floor(Math.random() * 0xffffff)
           .toString(16)

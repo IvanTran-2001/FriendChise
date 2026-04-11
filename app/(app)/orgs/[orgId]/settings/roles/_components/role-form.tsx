@@ -128,8 +128,7 @@ export function RoleForm({ orgId, role, tasks }: RoleFormProps) {
             disabled={isPending}
             className="h-4 w-4 rounded"
           />
-          Role color
-          <span className="text-muted-foreground font-normal">(optional)</span>
+          Use custom color
         </label>
         {useColor && (
           <input

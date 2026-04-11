@@ -55,8 +55,8 @@ async function resolveLabel(
       if (t) return t.name;
     } else if (parent === "memberships" && orgId) {
       const m = await prisma.membership.findFirst({
-        where: { orgId, userId: seg },
-        include: { user: { select: { name: true } } },
+        where: { orgId, id: seg },
+        select: { user: { select: { name: true } } },
       });
       if (m?.user?.name) return m.user.name;
     } else if (parent === "roles") {
