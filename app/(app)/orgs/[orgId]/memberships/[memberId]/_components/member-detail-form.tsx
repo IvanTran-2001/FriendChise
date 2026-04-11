@@ -100,7 +100,12 @@ export function MemberDetailForm({
 
   function handleDelete() {
     startTransition(async () => {
-      await deleteMembershipAction(orgId, userId);
+      const result = await deleteMembershipAction(orgId, userId);
+      if (!result.ok) {
+        setError(result.error);
+        setDeleteOpen(false);
+        return;
+      }
       router.push(`/orgs/${orgId}/memberships`);
     });
   }
