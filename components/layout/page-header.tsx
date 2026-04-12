@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useBreadcrumbOverride } from "@/components/layout/breadcrumb-context";
 
@@ -73,7 +73,7 @@ function buildCrumbs(pathname: string): BreadcrumbItem[] {
       breadcrumbs.push({ label: SEGMENT_LABELS[seg], href });
     } else if (looksLikeId(seg)) {
       const parent = i > 0 ? segments[i - 1] : null;
-      const isResolvable = parent && parent in PARENT_TO_TYPE;
+      const isResolvable = !!(parent && parent in PARENT_TO_TYPE);
       breadcrumbs.push({ label: seg, href, loading: isResolvable });
     } else {
       breadcrumbs.push({ label: seg, href });
@@ -91,14 +91,25 @@ function buildCrumbs(pathname: string): BreadcrumbItem[] {
 export function PageHeader() {
   const pathname = usePathname();
   const { override } = useBreadcrumbOverride();
-  const [crumbs, setCrumbs] = useState<BreadcrumbItem[]>(() =>
-    buildCrumbs(pathname),
-  );
+
+  const baseCrumbs = useMemo(() => buildCrumbs(pathname), [pathname]);
+
+  // crumbIdx → resolved label, keyed by pathname so stale fetches from
+  // previous routes never overwrite the current route's crumbs.
+  const [resolvedByPath, setResolvedByPath] = useState<
+    Record<string, Record<number, string>>
+  >({});
+
+  const crumbs = useMemo(() => {
+    const resolved = resolvedByPath[pathname] ?? {};
+    return baseCrumbs.map((c, idx) =>
+      resolved[idx] === undefined
+        ? c
+        : { ...c, label: resolved[idx], loading: false },
+    );
+  }, [baseCrumbs, pathname, resolvedByPath]);
 
   useEffect(() => {
-    const base = buildCrumbs(pathname);
-    setCrumbs(base);
-
     const orgMatch = pathname.match(/^\/orgs\/([^/]+)(\/.*)?$/);
     if (!orgMatch || orgMatch[1] === "new") return;
     const orgId = orgMatch[1];
@@ -128,44 +139,32 @@ export function PageHeader() {
       )
         .then((r) => {
           if (r.ok) return r.json();
-          // Non-OK response: clear loading state, keep segment as label
-          setCrumbs((prev) =>
-            prev.map((c, idx) =>
-              idx === crumbIdx && c.loading
-                ? { ...c, label: seg, loading: false }
-                : c,
-            ),
-          );
+          setResolvedByPath((prev) => ({
+            ...prev,
+            [pathname]: { ...(prev[pathname] ?? {}), [crumbIdx]: seg },
+          }));
           return null;
         })
         .then((data: { name: string } | null) => {
           if (!data?.name) return;
-          setCrumbs((prev) =>
-            prev.map((c, idx) =>
-              idx === crumbIdx && c.loading
-                ? { ...c, label: data.name, loading: false }
-                : c,
-            ),
-          );
+          setResolvedByPath((prev) => ({
+            ...prev,
+            [pathname]: { ...(prev[pathname] ?? {}), [crumbIdx]: data.name },
+          }));
         })
         .catch((error) => {
-          // Ignore aborted requests
-          if (error.name === 'AbortError') return;
-          // Error (network): clear loading state, keep segment as label
-          setCrumbs((prev) =>
-            prev.map((c, idx) =>
-              idx === crumbIdx && c.loading
-                ? { ...c, label: seg, loading: false }
-                : c,
-            ),
-          );
+          if (error.name === "AbortError") return;
+          setResolvedByPath((prev) => ({
+            ...prev,
+            [pathname]: { ...(prev[pathname] ?? {}), [crumbIdx]: seg },
+          }));
         });
     });
 
     return () => controllers.forEach((c) => c.abort());
   }, [pathname]);
 
-  if (crumbs.length === 0) return null;
+  if (baseCrumbs.length === 0) return null;
 
   return (
     <div className="border-b bg-card px-6 py-2.5">

@@ -3,6 +3,30 @@
 import { useRef, useEffect } from "react";
 import { HOUR_HEIGHT, calcDropTimeMin, assignColumns } from "./grid-utils";
 
+/**
+ * Converts any CSS color to an rgba() string with the given alpha.
+ * Handles 3-digit (#rgb), 6-digit (#rrggbb) and 8-digit (#rrggbbaa) hex.
+ * Falls back to `color-mix` for non-hex values (rgb, hsl, named colors).
+ */
+function withAlpha(color: string, alpha: number): string {
+  const hex = color.trim();
+  if (hex.startsWith("#")) {
+    let r: number, g: number, b: number;
+    if (hex.length === 4) {
+      r = parseInt(hex[1] + hex[1], 16);
+      g = parseInt(hex[2] + hex[2], 16);
+      b = parseInt(hex[3] + hex[3], 16);
+    } else {
+      r = parseInt(hex.slice(1, 3), 16);
+      g = parseInt(hex.slice(3, 5), 16);
+      b = parseInt(hex.slice(5, 7), 16);
+    }
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+  // For rgb(), hsl(), named colors, CSS variables — use color-mix (supported in all modern browsers)
+  return `color-mix(in srgb, ${color} ${Math.round(alpha * 100)}%, transparent)`;
+}
+
 /** Minimal shape a grid instance must satisfy. */
 export type GridInstance = {
   id: string;
@@ -348,11 +372,11 @@ export function TimeGrid<
                           ...(blockColor?.(inst)
                             ? {
                                 borderColor: blockColor(inst)!,
-                                backgroundColor: blockColor(inst)! + "18",
+                                backgroundColor: withAlpha(blockColor(inst)!, 0.094),
                               }
                             : {
                                 borderColor: "#9ca3af",
-                                backgroundColor: "#9ca3af18",
+                                backgroundColor: withAlpha("#9ca3af", 0.094),
                               }),
                         }}
                       >

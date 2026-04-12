@@ -30,6 +30,7 @@ export function TemplatesClient({ orgId, templates }: TemplatesClientProps) {
         type="button"
         onClick={() => setView("list")}
         aria-label="List view"
+        aria-pressed={view === "list"}
         className={cn(
           "p-1.5 transition-colors",
           view === "list"
@@ -43,6 +44,7 @@ export function TemplatesClient({ orgId, templates }: TemplatesClientProps) {
         type="button"
         onClick={() => setView("card")}
         aria-label="Card view"
+        aria-pressed={view === "card"}
         className={cn(
           "p-1.5 transition-colors",
           view === "card"

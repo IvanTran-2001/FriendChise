@@ -2,7 +2,6 @@
 
 import { useSidebar, SidebarTrigger } from "@/components/ui/sidebar";
 import { Logo } from "@/components/layout/logo";
-import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 /**
@@ -35,16 +34,11 @@ export function NavbarLogoSpacer() {
  */
 export function NavbarLogo() {
   const { open } = useSidebar();
+  if (open) return null;
   return (
     <Link
       href="/"
-      className={cn(
-        "rounded-lg px-2 py-1 -mx-2 -my-1 hover:bg-primary/8 hover:ring-1 hover:ring-primary/30 transition-all duration-200 ease-in-out",
-        open
-          ? "opacity-0 pointer-events-none w-0 overflow-hidden"
-          : "opacity-100",
-      )}
-      tabIndex={open ? -1 : 0}
+      className="rounded-lg px-2 py-1 -mx-2 -my-1 hover:bg-primary/8 hover:ring-1 hover:ring-primary/30 transition-all duration-200 ease-in-out"
     >
       <Logo />
     </Link>

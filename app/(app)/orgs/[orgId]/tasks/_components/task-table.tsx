@@ -222,6 +222,7 @@ export function TaskTable({
             type="button"
             onClick={() => setView("list")}
             aria-label="List view"
+            aria-pressed={view === "list"}
             className={cn(
               "p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               view === "list"
@@ -235,6 +236,7 @@ export function TaskTable({
             type="button"
             onClick={() => setView("card")}
             aria-label="Card view"
+            aria-pressed={view === "card"}
             className={cn(
               "p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               view === "card"
@@ -308,7 +310,7 @@ export function TaskTable({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                        className="h-7 w-7 opacity-100 transition-opacity sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto sm:focus-visible:opacity-100 sm:focus-visible:pointer-events-auto"
                         disabled={isPending}
                         onClick={(e) => {
                           e.preventDefault();

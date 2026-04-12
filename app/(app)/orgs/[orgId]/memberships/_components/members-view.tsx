@@ -225,6 +225,7 @@ export function MembersView({
                   : "text-muted-foreground hover:bg-muted",
               )}
               aria-label="List view"
+              aria-pressed={view === "list"}
             >
               <List className="h-4 w-4" />
             </button>
@@ -238,6 +239,7 @@ export function MembersView({
                   : "text-muted-foreground hover:bg-muted",
               )}
               aria-label="Card view"
+              aria-pressed={view === "card"}
             >
               <LayoutGrid className="h-4 w-4" />
             </button>
