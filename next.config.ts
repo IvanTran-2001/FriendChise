@@ -16,11 +16,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  turbo: {
-    resolveAlias: {
-      '@': './src',
-    },
-  },
 };
 
 export default nextConfig;

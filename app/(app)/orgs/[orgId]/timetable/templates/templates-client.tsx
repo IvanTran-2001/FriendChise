@@ -32,7 +32,7 @@ export function TemplatesClient({ orgId, templates }: TemplatesClientProps) {
         aria-label="List view"
         aria-pressed={view === "list"}
         className={cn(
-          "p-1.5 transition-colors",
+          "p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary",
           view === "list"
             ? "bg-primary text-primary-foreground"
             : "text-muted-foreground hover:bg-muted",
@@ -46,7 +46,7 @@ export function TemplatesClient({ orgId, templates }: TemplatesClientProps) {
         aria-label="Card view"
         aria-pressed={view === "card"}
         className={cn(
-          "p-1.5 transition-colors",
+          "p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary",
           view === "card"
             ? "bg-primary text-primary-foreground"
             : "text-muted-foreground hover:bg-muted",
@@ -170,7 +170,7 @@ export function TemplatesClient({ orgId, templates }: TemplatesClientProps) {
                       );
                     }
                   }}
-                  className="border-b last:border-0 hover:bg-primary/5 cursor-pointer transition-colors"
+                  className="border-b last:border-0 hover:bg-primary/5 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50"
                 >
                   <td className="px-4 py-3 font-medium">{t.name}</td>
                   <td className="px-4 py-3 text-muted-foreground">

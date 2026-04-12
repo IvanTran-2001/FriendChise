@@ -240,7 +240,7 @@ export function TimeGrid<
             return (
               <div
                 key={col}
-                className={`flex-1 relative border-r border-border last:border-r-0 transition-colors ${highlightClass ? "bg-primary/5" : ""} ${isDragTarget ? "bg-primary/8" : ""}`}
+                className={`flex-1 relative border-r border-border last:border-r-0 transition-colors ${highlightClass ? "bg-primary/5" : ""} ${isDragTarget ? "bg-primary/10" : ""}`}
                 style={{ height: totalHeight }}
                 onDragOver={(e) => handleColumnDragOver(e, col)}
                 onDragLeave={(e) => {
