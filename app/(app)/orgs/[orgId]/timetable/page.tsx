@@ -56,7 +56,11 @@ export default async function TimetablePage({
   const mode = modeParam === "simple" ? "simple" : "calendar";
   const span = spanParam === "day" ? "day" : "week";
   const dayStr =
-    dayParam && /^\d{4}-\d{2}-\d{2}$/.test(dayParam) ? dayParam : todayStr;
+    dayParam && /^\d{4}-\d{2}-\d{2}$/.test(dayParam)
+      ? dayParam
+      : span === "day" && weekStart
+        ? weekStart
+        : todayStr;
   const [
     instances,
     templates,
@@ -113,9 +117,15 @@ export default async function TimetablePage({
     );
   }
 
-  // Map taskId → first role color so calendar blocks match the task panel
+  // Map taskId → role color (use filtered role when active, else first eligible)
   const taskRoleColorMap = new Map(
-    tasks.map((t) => [t.id, t.eligibility[0]?.role?.color ?? null]),
+    tasks.map((t) => {
+      if (rawRoleId) {
+        const filteredRole = t.eligibility.find((e) => e.role.id === rawRoleId);
+        return [t.id, filteredRole?.role?.color ?? null];
+      }
+      return [t.id, t.eligibility[0]?.role?.color ?? null];
+    }),
   );
   const coloredInstances = filteredInstances.map((inst) => ({
     ...inst,
@@ -219,14 +229,16 @@ export default async function TimetablePage({
         roleId={rawRoleId}
         canManage={canManageTimetable}
         availableTasks={canManageTimetable ? tasks.map((t) => {
-          const firstRole = t.eligibility[0]?.role ?? null;
+          const displayRole = rawRoleId
+            ? t.eligibility.find((e) => e.role.id === rawRoleId)?.role
+            : t.eligibility[0]?.role;
           return {
             id: t.id,
             name: t.name,
             durationMin: t.durationMin,
             color: t.color,
-            roleColor: firstRole?.color ?? null,
-            roleName: firstRole?.name ?? null,
+            roleColor: displayRole?.color ?? null,
+            roleName: displayRole?.name ?? null,
           };
         }) : undefined}
         memberships={clientMemberships}

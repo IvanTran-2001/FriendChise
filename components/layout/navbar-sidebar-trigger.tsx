@@ -12,14 +12,10 @@ import Link from "next/link";
  */
 export function NavbarSidebarTrigger() {
   const { open } = useSidebar();
+  if (open) return null;
   return (
     <SidebarTrigger
-      className={cn(
-        "transition-all duration-200 ease-in-out",
-        open
-          ? "opacity-0 pointer-events-none -translate-x-1 w-0 overflow-hidden px-0"
-          : "opacity-100 translate-x-0",
-      )}
+      className="transition-all duration-200 ease-in-out opacity-100 translate-x-0"
     />
   );
 }

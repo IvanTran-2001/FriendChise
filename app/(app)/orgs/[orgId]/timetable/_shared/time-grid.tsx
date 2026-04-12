@@ -325,6 +325,20 @@ export function TimeGrid<
                           e.stopPropagation();
                           onBlockClick(inst);
                         }}
+                        onKeyDown={
+                          onBlockClick
+                            ? (e) => {
+                                if (e.key !== "Enter" && e.key !== " ") return;
+                                if (e.key === " ") e.preventDefault();
+                                const down = pointerDownPos.current;
+                                if (down && down.id !== inst.id) return;
+                                e.stopPropagation();
+                                onBlockClick(inst);
+                              }
+                            : undefined
+                        }
+                        role={onBlockClick ? "button" : undefined}
+                        tabIndex={onBlockClick ? 0 : undefined}
                         className={`absolute rounded-md overflow-hidden p-1.5 text-[11px] leading-snug bg-white border-2 border-primary/50 text-foreground shadow-sm hover:border-primary/80 hover:shadow transition-all select-none ${draggable ? "cursor-grab active:cursor-grabbing" : onBlockClick ? "cursor-pointer" : "cursor-default"}`}
                         style={{
                           top: topPx + 1,

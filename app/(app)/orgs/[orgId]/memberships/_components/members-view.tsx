@@ -103,14 +103,14 @@ function StatusBadge({ status }: { status: "ACTIVE" | "RESTRICTED" }) {
   );
 }
 
-function RolesBadge({ roles }: { roles: { name: string; color: string }[] }) {
+function RolesBadge({ roles }: { roles: { id: string; name: string; color: string }[] }) {
   if (roles.length === 0)
     return <span className="text-xs text-muted-foreground">No role</span>;
   return (
     <div className="flex flex-wrap gap-1 justify-center">
       {roles.map((r) => (
         <span
-          key={r.name}
+          key={r.id}
           className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
           style={{ backgroundColor: r.color + "22", color: r.color }}
         >
@@ -272,7 +272,7 @@ function CardGrid({
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
       {members.map((m) => {
-        const roles = m.memberRoles.map(({ role }) => ({ name: role.name, color: role.color }));
+        const roles = m.memberRoles.map(({ role }) => ({ id: role.id, name: role.name, color: role.color }));
         return (
           <Link
             key={m.userId}
@@ -324,7 +324,7 @@ function MemberList({
   return (
     <ul className="flex flex-col divide-y rounded-xl border bg-card overflow-hidden shadow-sm">
       {members.map((m) => {
-        const roles = m.memberRoles.map(({ role }) => ({ name: role.name, color: role.color }));
+        const roles = m.memberRoles.map(({ role }) => ({ id: role.id, name: role.name, color: role.color }));
         return (
           <li
             key={m.userId}

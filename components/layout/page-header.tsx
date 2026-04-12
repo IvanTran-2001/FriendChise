@@ -121,7 +121,18 @@ export function PageHeader() {
         `/api/orgs/${orgId}/entity-name?type=${encodeURIComponent(type)}&id=${encodeURIComponent(seg)}`,
         { signal: ctrl.signal },
       )
-        .then((r) => (r.ok ? r.json() : null))
+        .then((r) => {
+          if (r.ok) return r.json();
+          // Non-OK response: clear loading state, keep segment as label
+          setCrumbs((prev) =>
+            prev.map((c) =>
+              c.label === seg && c.loading
+                ? { ...c, label: seg, loading: false }
+                : c,
+            ),
+          );
+          return null;
+        })
         .then((data: { name: string } | null) => {
           if (!data?.name) return;
           setCrumbs((prev) =>
@@ -132,7 +143,16 @@ export function PageHeader() {
             ),
           );
         })
-        .catch(() => {});
+        .catch(() => {
+          // Error (network, abort): clear loading state, keep segment as label
+          setCrumbs((prev) =>
+            prev.map((c) =>
+              c.label === seg && c.loading
+                ? { ...c, label: seg, loading: false }
+                : c,
+            ),
+          );
+        });
     });
 
     return () => controllers.forEach((c) => c.abort());
@@ -178,4 +198,3 @@ export function PageHeader() {
     </div>
   );
 }
-

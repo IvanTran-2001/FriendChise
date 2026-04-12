@@ -153,11 +153,21 @@ export function TemplatesClient({ orgId, templates }: TemplatesClientProps) {
               {templates.map((t) => (
                 <tr
                   key={t.id}
+                  role="link"
+                  tabIndex={0}
                   onClick={() =>
                     router.push(
                       `/orgs/${orgId}/timetable/templates/${t.id}`,
                     )
                   }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      router.push(
+                        `/orgs/${orgId}/timetable/templates/${t.id}`,
+                      );
+                    }
+                  }}
                   className="border-b last:border-0 hover:bg-primary/5 cursor-pointer transition-colors"
                 >
                   <td className="px-4 py-3 font-medium">{t.name}</td>

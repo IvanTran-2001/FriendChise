@@ -16,6 +16,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  optimizeFonts: false,
 };
 
 export default nextConfig;

@@ -22,6 +22,7 @@
  */
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ChevronDown, LayoutGrid, List, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -257,45 +258,97 @@ export function TaskTable({
           {visible.map((task) => (
             <div
               key={task.id}
-              onClick={() => router.push(`/orgs/${orgId}/tasks/${task.id}`)}
-              className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden"
+              className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden relative group"
             >
               {/* Color accent bar */}
               <div className="h-1.5 w-full" style={{ backgroundColor: task.color }} />
-              <div className="p-4 flex flex-col gap-3">
-                <div className="font-semibold text-sm leading-snug">{task.name}</div>
-                {task.description && (
-                  <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                    {task.description}
-                  </p>
-                )}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                    {task.durationMin} min
-                  </span>
-                  <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                    {task.minPeople}+ people
-                  </span>
-                </div>
-                {task.eligibility.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {task.eligibility.map((e) => (
-                      <span
-                        key={e.role.id}
-                        className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium"
-                      >
-                        {e.role.color && (
-                          <span
-                            className="h-1.5 w-1.5 rounded-full shrink-0"
-                            style={{ backgroundColor: e.role.color }}
-                          />
-                        )}
-                        {e.role.name}
-                      </span>
-                    ))}
+              <Link
+                href={`/orgs/${orgId}/tasks/${task.id}`}
+                className="block p-4 cursor-pointer"
+              >
+                <div className="flex flex-col gap-3">
+                  <div className="font-semibold text-sm leading-snug">{task.name}</div>
+                  {task.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                      {task.description}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                      {task.durationMin} min
+                    </span>
+                    <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                      {task.minPeople}+ people
+                    </span>
                   </div>
-                )}
-              </div>
+                  {task.eligibility.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {task.eligibility.map((e) => (
+                        <span
+                          key={e.role.id}
+                          className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium"
+                        >
+                          {e.role.color && (
+                            <span
+                              className="h-1.5 w-1.5 rounded-full shrink-0"
+                              style={{ backgroundColor: e.role.color }}
+                            />
+                          )}
+                          {e.role.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </Link>
+              {canManageTasks && (
+                <div className="absolute top-3 right-3">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                        disabled={isPending}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">Task actions</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/orgs/${orgId}/tasks/${task.id}/edit`);
+                        }}
+                      >
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/orgs/${orgId}/tasks/new?duplicateFrom=${task.id}`);
+                        }}
+                      >
+                        Duplicate
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget(task);
+                        }}
+                      >
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
             </div>
           ))}
         </div>

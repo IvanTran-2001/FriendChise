@@ -16,17 +16,17 @@ import Twitter from "next-auth/providers/twitter";
  * For the full config with Prisma adapter and session callbacks, see auth.ts.
  */
 export const authConfig: NextAuthConfig = {
-  // allowDangerousEmailAccountLinking is safe here because we are OAuth-only
-  // (no email/password sign-up). If email+password is ever added, remove this
-  // flag and verify emails before linking accounts.
+  // allowDangerousEmailAccountLinking is kept only for Apple and Google which
+  // provide email_verified guarantees. Other providers do not have this flag
+  // to prevent account takeover via unverified email addresses.
   providers: [
     Apple({ allowDangerousEmailAccountLinking: true }),
-    Discord({ allowDangerousEmailAccountLinking: true }),
-    GitHub({ allowDangerousEmailAccountLinking: true }),
+    Discord(),
+    GitHub(),
     Google({ allowDangerousEmailAccountLinking: true }),
-    LinkedIn({ allowDangerousEmailAccountLinking: true }),
-    MicrosoftEntraId({ allowDangerousEmailAccountLinking: true }),
-    Twitter({ allowDangerousEmailAccountLinking: true }),
+    LinkedIn(),
+    MicrosoftEntraId(),
+    Twitter(),
   ],
   pages: {
     signIn: "/signin",
