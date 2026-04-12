@@ -157,8 +157,8 @@ export default async function TimetablePage({
             span={span}
             calendarHref={timetableHref("calendar")}
             simpleHref={timetableHref("simple")}
-            dayHref={timetableHref(mode, "day", dayStr)}
-            weekHref={timetableHref(mode, "week", dayStr)}
+            dayHref={timetableHref(mode, "day", weekStart)}
+            weekHref={timetableHref(mode, "week", weekStart)}
           />
         </div>
         {canManageTimetable && (

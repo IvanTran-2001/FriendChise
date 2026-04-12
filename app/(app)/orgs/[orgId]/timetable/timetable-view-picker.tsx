@@ -24,7 +24,7 @@ export function TimetableViewPicker({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  // On mobile, automatically switch to day view if week is selected
+  // Navigate to href using startTransition
   const navigate = (href: string) =>
     startTransition(() => router.push(href));
 
