@@ -186,6 +186,18 @@ export function RolesClient({ orgId, roles }: Props) {
                     </span>
                   )}
                 </div>
+                <div className="sm:hidden mt-1 flex flex-wrap gap-1">
+                  {role.permissions.length > 0 && (
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                      {role.permissions.length} permission{role.permissions.length !== 1 ? "s" : ""}
+                    </span>
+                  )}
+                  {role.eligibleFor.length > 0 && (
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                      {role.eligibleFor.length} task{role.eligibleFor.length !== 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
               </td>
               <td className="hidden sm:table-cell px-4 py-3">
                 {role.permissions.length === 0 ? (

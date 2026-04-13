@@ -73,6 +73,15 @@ export function TaskPanel({
                 onDragStart={!tapToPlaceMode ? (e) => onDragStart(task.id, e) : undefined}
                 onDragEnd={!tapToPlaceMode ? onDragEnd : undefined}
                 onClick={tapToPlaceMode && onTaskSelect ? () => onTaskSelect(isSelected ? null : task.id) : undefined}
+                role={tapToPlaceMode ? "button" : undefined}
+                tabIndex={tapToPlaceMode ? 0 : undefined}
+                aria-pressed={tapToPlaceMode ? isSelected : undefined}
+                onKeyDown={tapToPlaceMode && onTaskSelect ? (e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onTaskSelect(isSelected ? null : task.id);
+                  }
+                } : undefined}
                 className={`relative px-3 py-2.5 border-b last:border-b-0 transition-colors select-none pl-4 ${
                   tapToPlaceMode
                     ? `cursor-pointer ${isSelected ? "bg-primary/20 hover:bg-primary/25" : "hover:bg-muted/30"}`
