@@ -92,27 +92,27 @@ function OrgInfoForm({ org, orgId }: { org: OrgData; orgId: string }) {
       </h2>
 
       <div className="space-y-3">
-        <div className="flex items-center gap-4">
-          <label className="w-36 text-sm text-muted-foreground shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4">
+          <label className="w-full sm:w-36 text-sm text-muted-foreground shrink-0">
             Location
           </label>
           <Input
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="e.g. Melbourne, AU"
-            className="max-w-xs"
+            className="w-full sm:max-w-xs"
           />
         </div>
 
-        <div className="flex items-center gap-4">
-          <label className="w-36 text-sm text-muted-foreground shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4">
+          <label className="w-full sm:w-36 text-sm text-muted-foreground shrink-0">
             Timezone
           </label>
           <TimezoneSelect value={timezone} onChange={setTimezone} />
         </div>
 
-        <div className="flex items-center gap-4">
-          <label className="w-36 text-sm text-muted-foreground shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4">
+          <label className="w-full sm:w-36 text-sm text-muted-foreground shrink-0">
             Operating Hours
           </label>
           <div className="flex items-center gap-2">
@@ -184,14 +184,14 @@ function TransferOwnershipSection({
         </p>
       )}
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
         <label className="text-sm text-muted-foreground shrink-0">
           Transfer to
         </label>
         <select
           value={newOwnerId}
           onChange={(e) => setNewOwnerId(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm max-w-xs w-full"
+          className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm w-full sm:max-w-xs"
         >
           <option value="">Select member</option>
           {members.map((m) => (
@@ -274,15 +274,16 @@ function DeleteOrgSection({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col gap-2">
         <label className="text-sm text-muted-foreground">
           Type &ldquo;{orgName}&rdquo; to confirm
         </label>
+        <div className="flex flex-wrap items-center gap-2">
         <Input
           value={confirmName}
           onChange={(e) => setConfirmName(e.target.value)}
           placeholder={orgName}
-          className="max-w-xs"
+          className="flex-1 min-w-0 sm:max-w-xs"
         />
         <Button
           variant="destructive"
@@ -292,6 +293,7 @@ function DeleteOrgSection({
         >
           {isPending ? "Deleting…" : "Delete Org"}
         </Button>
+        </div>
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}

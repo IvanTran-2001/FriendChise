@@ -144,14 +144,16 @@ function getFooterItems(
   orgId: string,
   pathname: string,
   isParentOwner: boolean,
+  parentOrgId: string | null,
 ): NavItem[] {
   if (pathname.startsWith(`/orgs/${orgId}/settings`)) return [];
+  const franchiseeOrgId = isParentOwner ? orgId : parentOrgId;
   return [
-    ...(isParentOwner
+    ...(franchiseeOrgId
       ? [
           {
             title: "Franchisee",
-            url: `/orgs/${orgId}/franchisee`,
+            url: `/orgs/${franchiseeOrgId}/franchisee`,
             icon: Network,
           },
         ]
@@ -173,11 +175,13 @@ export function AppSidebar() {
   // orgId is present on any /orgs/[orgId]/... route, undefined otherwise
   const { orgId } = useParams<{ orgId?: string }>();
   const pathname = usePathname();
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, isMobile, setOpenMobile } = useSidebar();
+  const closeSidebar = () => { if (isMobile) setOpenMobile(false); };
   const [parentOwnerStatus, setParentOwnerStatus] = useState<{
     orgId: string | null;
     isParentOwner: boolean;
-  }>({ orgId: null, isParentOwner: false });
+    parentOrgId: string | null;
+  }>({ orgId: null, isParentOwner: false, parentOrgId: null });
 
   useEffect(() => {
     if (!orgId) return;
@@ -191,6 +195,7 @@ export function AppSidebar() {
         setParentOwnerStatus({
           orgId,
           isParentOwner: d.isParentOwner ?? false,
+          parentOrgId: d.parentOrgId ?? null,
         }),
       )
       .catch(() => {});
@@ -200,10 +205,12 @@ export function AppSidebar() {
   // Only true when the stored status is for the current org (prevents stale flash on org switch)
   const isParentOwner =
     parentOwnerStatus.orgId === orgId && parentOwnerStatus.isParentOwner;
+  const parentOrgId =
+    parentOwnerStatus.orgId === orgId ? parentOwnerStatus.parentOrgId : null;
 
   const navItems = orgId ? getNavItems(orgId, pathname) : [];
   const footerItems = orgId
-    ? getFooterItems(orgId, pathname, isParentOwner)
+    ? getFooterItems(orgId, pathname, isParentOwner, parentOrgId)
     : [];
 
   /**
@@ -258,7 +265,7 @@ export function AppSidebar() {
                           <span>{item.title}</span>
                         </>
                       ) : (
-                        <Link href={item.url}>
+                        <Link href={item.url} onClick={closeSidebar}>
                           <item.icon />
                           <span>{item.title}</span>
                         </Link>
@@ -272,7 +279,7 @@ export function AppSidebar() {
                   {/* Workspace */}
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={pathname === "/"}>
-                      <Link href="/">
+                      <Link href="/" onClick={closeSidebar}>
                         <LayoutDashboard />
                         <span>Workspace</span>
                       </Link>
@@ -297,7 +304,7 @@ export function AppSidebar() {
                         asChild
                         isActive={isActiveItem("/orgs/new")}
                       >
-                        <Link href="/orgs/new">
+                        <Link href="/orgs/new" onClick={closeSidebar}>
                           <PlusCircle />
                           <span>Create</span>
                         </Link>
@@ -349,7 +356,7 @@ export function AppSidebar() {
               {footerItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActiveItem(item.url)}>
-                    <Link href={item.url}>
+                    <Link href={item.url} onClick={closeSidebar}>
                       <item.icon />
                       <span>{item.title}</span>
                     </Link>

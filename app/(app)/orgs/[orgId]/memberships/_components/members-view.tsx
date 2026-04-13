@@ -36,6 +36,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { Toolbar } from "@/components/layout/toolbar";
 import { MemberActions } from "./member-actions";
 
 type Member = {
@@ -168,53 +169,19 @@ export function MembersView({
   return (
     <>
       {/* Toolbar */}
-      <div className="-mx-6 -mt-6 mb-6 border-b bg-card px-6 py-2 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 flex-1">
-          <div className="relative w-52">
+      <Toolbar>
+        {/* Row 1: search + view toggle */}
+        <div className="flex items-center gap-2 w-full">
+          <div className="relative flex-1">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
             <Input
               placeholder="Search members…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-7"
+              className="pl-7 h-8 w-full"
             />
           </div>
-
-          {/* Role filter */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1.5">
-                {roleFilter
-                  ? (allRoles.find((r) => r.id === roleFilter)?.name ?? "Role")
-                  : "All roles"}
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onSelect={() => setRoleFilter(null)}>
-                All roles
-              </DropdownMenuItem>
-              {allRoles.map((role) => (
-                <DropdownMenuItem
-                  key={role.id}
-                  onSelect={() => setRoleFilter(role.id)}
-                >
-                  {role.name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {canManage && (
-            <Button asChild size="sm">
-              <Link href={`/orgs/${orgId}/memberships/new`}>+ Add Member</Link>
-            </Button>
-          )}
-
-          {/* View toggle — always rightmost */}
-          <div className="flex items-center rounded-md border overflow-hidden">
+          <div className="flex items-center rounded-md border overflow-hidden shrink-0">
             <button
               type="button"
               onClick={() => setView("list")}
@@ -245,7 +212,40 @@ export function MembersView({
             </button>
           </div>
         </div>
-      </div>
+
+        {/* Row 2: role filter + add member */}
+        <div className="flex items-center gap-2 w-full">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
+                {roleFilter
+                  ? (allRoles.find((r) => r.id === roleFilter)?.name ?? "Role")
+                  : "All roles"}
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onSelect={() => setRoleFilter(null)}>
+                All roles
+              </DropdownMenuItem>
+              {allRoles.map((role) => (
+                <DropdownMenuItem
+                  key={role.id}
+                  onSelect={() => setRoleFilter(role.id)}
+                >
+                  {role.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {canManage && (
+            <Button asChild size="sm" className="ml-auto shrink-0">
+              <Link href={`/orgs/${orgId}/memberships/new`}>+ Add Member</Link>
+            </Button>
+          )}
+        </div>
+      </Toolbar>
 
       {filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground">

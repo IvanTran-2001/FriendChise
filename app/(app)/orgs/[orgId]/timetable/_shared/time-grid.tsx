@@ -102,6 +102,10 @@ interface TimeGridProps<
   /** Render a shaded band and line at the org's open/close hours. */
   openTimeMin?: number;
   closeTimeMin?: number;
+
+  /** Tap-to-place mode: when set, clicking a column places this task. */
+  selectedTaskId?: string | null;
+  onTapPlace?: (column: TColumnKey, timeMin: number, taskId: string) => void;
 }
 
 /**
@@ -134,6 +138,8 @@ export function TimeGrid<
   blockColor,
   openTimeMin,
   closeTimeMin,
+  selectedTaskId,
+  onTapPlace,
 }: TimeGridProps<TInstance, TColumnKey>) {
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const totalHeight = hours.length * HOUR_HEIGHT;
@@ -189,17 +195,33 @@ export function TimeGrid<
     );
   }
 
+  function handleColumnClick(
+    e: React.MouseEvent<HTMLDivElement>,
+    col: TColumnKey,
+  ) {
+    if (!selectedTaskId || !onTapPlace) return;
+    const timeMin = calcDropTimeMin(e.clientY, e.currentTarget, 0, 0);
+    onTapPlace(col, timeMin, selectedTaskId);
+  }
+
+  // Min px width per column so week view is horizontally scrollable on mobile
+  const MIN_COL_WIDTH = 80;
+  const minGridWidth = columns.length > 1 ? `${14 * 4 + columns.length * MIN_COL_WIDTH}px` : undefined;
+
   return (
     <div
       className={`rounded-xl border border-border overflow-hidden${fillHeight ? " flex flex-col flex-1 min-h-0" : ""}`}
     >
+      {/* Horizontal scroll wrapper */}
+      <div className="overflow-x-auto">
       {/* Column headers */}
-      <div className="flex border-b border-border bg-card">
+      <div className="flex border-b border-border bg-card" style={minGridWidth ? { minWidth: minGridWidth } : undefined}>
         <div className="w-14 shrink-0 border-r border-border" />
         {columns.map((col) => (
           <div
             key={col}
-            className={`flex-1 py-2 text-center text-sm border-r border-border last:border-r-0 ${columnHighlightClass?.(col) ?? "text-muted-foreground"}`}
+            className={`py-2 text-center text-sm border-r border-border last:border-r-0 ${columnHighlightClass?.(col) ?? "text-muted-foreground"}`}
+            style={{ minWidth: MIN_COL_WIDTH, flex: 1 }}
           >
             {renderColumnHeader(col)}
           </div>
@@ -214,9 +236,9 @@ export function TimeGrid<
             ? "overflow-y-auto bg-card flex-1 min-h-0"
             : "overflow-y-auto bg-card"
         }
-        style={fillHeight ? undefined : { height: "calc(100dvh - 220px)" }}
+        style={fillHeight ? (minGridWidth ? { minWidth: minGridWidth } : undefined) : { height: "calc(100dvh - 220px)", ...(minGridWidth ? { minWidth: minGridWidth } : {}) }}
       >
-        <div className="flex" style={{ height: totalHeight }}>
+        <div className="flex" style={{ height: totalHeight, ...(minGridWidth ? { minWidth: minGridWidth } : {}) }}>
           {/* Hour-label gutter */}
           <div className="w-14 shrink-0 border-r border-border">
             {hours.map((h) => (
@@ -240,7 +262,7 @@ export function TimeGrid<
             return (
               <div
                 key={col}
-                className={`flex-1 relative border-r border-border last:border-r-0 transition-colors ${highlightClass ? "bg-primary/5" : ""} ${isDragTarget ? "bg-primary/10" : ""}`}
+                className={`flex-1 relative border-r border-border last:border-r-0 transition-colors ${highlightClass ? "bg-primary/5" : ""} ${isDragTarget ? "bg-primary/10" : ""} ${selectedTaskId ? "cursor-crosshair" : ""}`}
                 style={{ height: totalHeight }}
                 onDragOver={(e) => handleColumnDragOver(e, col)}
                 onDragLeave={(e) => {
@@ -248,6 +270,7 @@ export function TimeGrid<
                     onDragLeave();
                 }}
                 onDrop={(e) => handleColumnDrop(e, col)}
+                onClick={(e) => handleColumnClick(e, col)}
               >
                 {/* Outside-hours shading */}
                 {openTimeMin !== undefined && openTimeMin > 0 && (
@@ -403,6 +426,7 @@ export function TimeGrid<
           })}
         </div>
       </div>
+      </div> {/* end overflow-x-auto */}
     </div>
   );
 }

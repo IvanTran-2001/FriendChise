@@ -98,8 +98,9 @@ export async function extendFranchiseToken(
 }
 
 /**
- * Detaches a franchisee from this parent org by clearing its `parentId`.
- * The child org continues to exist independently after removal.
+ * Permanently deletes a franchisee org from the database.
+ * All related data (memberships, roles, tasks, timetable entries, templates)
+ * is removed automatically via cascade deletes defined in the schema.
  */
 export async function removeFranchisee(
   orgId: string,
@@ -108,9 +109,8 @@ export async function removeFranchisee(
   const authz = await requireParentOrgOwnerAction(orgId);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const { count } = await prisma.organization.updateMany({
+  const { count } = await prisma.organization.deleteMany({
     where: { id: childOrgId, parentId: orgId },
-    data: { parentId: null },
   });
   if (count === 0) return { ok: false, error: "Franchisee not found" };
 

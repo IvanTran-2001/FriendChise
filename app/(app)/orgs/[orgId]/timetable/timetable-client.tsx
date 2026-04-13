@@ -32,10 +32,10 @@
  * mutating the database.
  */
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, MoreHorizontal, Plus, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, LayoutList, MoreHorizontal, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -44,6 +44,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   createTimetableEntryAction,
   updateTimetableEntryAction,
@@ -440,6 +447,7 @@ function CalendarView({
   } | null>(null);
   const [editingInstance, setEditingInstance] =
     useState<ClientTimetableInstance | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const hasPanel = !!availableTasks;
 
@@ -462,6 +470,25 @@ function CalendarView({
       router.refresh();
     });
   }
+
+  function handleTapPlace(col: string, timeMin: number, taskId: string) {
+    startT(async () => {
+      await createTimetableEntryAction(orgId, taskId, col, timeMin);
+      setSelectedTaskId(null);
+      setTaskPanelOpen(false);
+      router.refresh();
+    });
+  }
+
+  const isMobile = useIsMobile();
+  const [taskPanelOpen, setTaskPanelOpen] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(false);
+  useEffect(() => {
+    const update = () => setIsLandscape(window.innerWidth > window.innerHeight);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   return (
     <>
@@ -548,8 +575,10 @@ function CalendarView({
           blockColor={(inst) => inst.taskColor ?? undefined}
           openTimeMin={openTimeMin}
           closeTimeMin={closeTimeMin}
+          selectedTaskId={isMobile ? selectedTaskId : null}
+          onTapPlace={isMobile ? handleTapPlace : undefined}
         />
-        {hasPanel && (
+        {hasPanel && !isMobile && (
           <TaskPanel
             tasks={availableTasks}
             fillHeight={fillHeight}
@@ -564,6 +593,63 @@ function CalendarView({
           />
         )}
       </div>
+
+      {/* Mobile: floating Tasks button + Sheet */}
+      {hasPanel && isMobile && (
+        <>
+          {selectedTaskId ? (
+            <button
+              onClick={() => setSelectedTaskId(null)}
+              className="fixed bottom-6 right-4 z-40 flex items-center gap-2 rounded-full bg-destructive text-destructive-foreground shadow-lg px-4 py-2.5 text-sm font-medium active:scale-95 transition-transform"
+              style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
+              aria-label="Cancel task placement"
+            >
+              <X className="h-4 w-4" />
+              Cancel
+            </button>
+          ) : (
+            <button
+              onClick={() => setTaskPanelOpen(true)}
+              className="fixed bottom-6 right-4 z-40 flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-lg px-4 py-2.5 text-sm font-medium active:scale-95 transition-transform"
+              style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
+              aria-label="Open task list"
+            >
+              <LayoutList className="h-4 w-4" />
+              Tasks
+            </button>
+          )}
+          <Sheet open={taskPanelOpen} onOpenChange={setTaskPanelOpen}>
+            <SheetContent
+              side={isLandscape ? "right" : "bottom"}
+              className={isLandscape ? "w-64 p-0 flex flex-col" : "h-[55vh] p-0 flex flex-col"}
+            >
+              <SheetHeader className="px-4 pt-4 pb-2 border-b shrink-0">
+                <SheetTitle>Tasks</SheetTitle>
+              </SheetHeader>
+              <TaskPanel
+                tasks={availableTasks}
+                fullWidth={true}
+                fillHeight={true}
+                tapToPlaceMode={true}
+                selectedTaskId={selectedTaskId}
+                onTaskSelect={(taskId) => {
+                  setSelectedTaskId(taskId);
+                  if (taskId) setTaskPanelOpen(false);
+                }}
+                onDragStart={(taskId, e) => {
+                  dragDataRef.current = { type: "task", taskId };
+                  e.dataTransfer.effectAllowed = "copy";
+                }}
+                onDragEnd={() => {
+                  dragDataRef.current = null;
+                  setDragOver(null);
+                  setTaskPanelOpen(false);
+                }}
+              />
+            </SheetContent>
+          </Sheet>
+        </>
+      )}
 
       {editingInstance && memberships && (
         <CalendarEditPopup
