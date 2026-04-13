@@ -7,7 +7,8 @@
  * and navigates to the selected org's root page on selection.
  */
 import { useRouter, usePathname } from "next/navigation";
-import { ChevronsUpDown } from "lucide-react";
+import { useTransition } from "react";
+import { ChevronsUpDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,6 +22,7 @@ type Org = { id: string; name: string };
 export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
 
   // Derive active org from the current URL e.g. /orgs/[orgId]/...
   const activeOrgId = pathname.match(/^\/orgs\/([^\/]+)/)?.[1];
@@ -29,9 +31,11 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 max-w-48">
-          <span className="truncate">{activeOrg?.name ?? "Select Org"}</span>
-          <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+        <Button variant="outline" size="sm" className="gap-2 max-w-48" disabled={isPending}>
+          <span className="truncate max-w-28 sm:max-w-40">{activeOrg?.name ?? "Select Org"}</span>
+          {isPending
+            ? <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin opacity-50" />
+            : <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-48">
@@ -41,7 +45,7 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
           orgs.map((org) => (
             <DropdownMenuItem
               key={org.id}
-              onSelect={() => router.push(`/orgs/${org.id}/timetable`)}
+              onSelect={() => startTransition(() => router.push(`/orgs/${org.id}/timetable`))}
             >
               {org.name}
             </DropdownMenuItem>

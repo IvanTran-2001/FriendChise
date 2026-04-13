@@ -11,10 +11,29 @@ export async function GET(
 
   const { orgId } = await params;
 
-  const org = await prisma.organization.findFirst({
+  // Case 1: current org is a root org owned by this user
+  const parentOrg = await prisma.organization.findFirst({
     where: { id: orgId, ownerId: authz.userId, parentId: null },
     select: { id: true },
   });
+  if (parentOrg) {
+    return NextResponse.json({ isParentOwner: true, parentOrgId: null });
+  }
 
-  return NextResponse.json({ isParentOwner: org !== null });
+  // Case 2: current org is a child org whose parent is owned by this user
+  const childOrg = await prisma.organization.findFirst({
+    where: { id: orgId, parentId: { not: null } },
+    select: { parentId: true },
+  });
+  if (childOrg?.parentId) {
+    const ownedParent = await prisma.organization.findFirst({
+      where: { id: childOrg.parentId, ownerId: authz.userId, parentId: null },
+      select: { id: true },
+    });
+    if (ownedParent) {
+      return NextResponse.json({ isParentOwner: false, parentOrgId: ownedParent.id });
+    }
+  }
+
+  return NextResponse.json({ isParentOwner: false, parentOrgId: null });
 }

@@ -2,7 +2,6 @@
  * @file page.tsx
  * Timetable week-view server component.
  */
-import Link from "next/link";
 import { PermissionAction } from "@prisma/client";
 import { requireOrgMemberPage } from "@/lib/authz";
 import { getOrgMembership, memberHasPermission } from "@/lib/authz/_shared";
@@ -15,6 +14,7 @@ import { getRoles } from "@/lib/services/roles";
 import { prisma } from "@/lib/prisma";
 import { Toolbar } from "@/components/layout/toolbar";
 import { TimetableClient } from "./timetable-client";
+import { TimetableViewPicker } from "./timetable-view-picker";
 import { TimetableActions } from "./timetable-actions";
 import { RoleFilterButton } from "./role-filter-button";
 import { toLocalDateStr, getMondayDateStr } from "@/lib/date-utils";
@@ -141,7 +141,7 @@ export default async function TimetablePage({
   return (
     <div className="flex flex-col" style={{ height: "calc(100dvh - 148px)" }}>
       <Toolbar>
-        <div className="flex items-center gap-2 flex-1">
+        <div className="flex flex-wrap items-center gap-2 flex-1">
           {/* Role filter */}
           <RoleFilterButton
             roles={filterRoles}
@@ -151,59 +151,18 @@ export default async function TimetablePage({
             orgId={orgId}
           />
 
-          {/* Day / Week span picker */}
-          <div className="flex rounded-md overflow-hidden border text-sm font-medium">
-              <Link
-                href={timetableHref(mode, "day", dayStr)}
-                aria-current={span === "day" ? "page" : undefined}
-                className={`px-3 py-1 transition-colors ${
-                  span === "day"
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-primary/8 hover:text-primary text-muted-foreground"
-                }`}
-              >
-                Day
-              </Link>
-              <Link
-                href={timetableHref(mode, "week", dayStr)}
-                aria-current={span === "week" ? "page" : undefined}
-                className={`px-3 py-1 border-l transition-colors ${
-                  span === "week"
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-primary/8 hover:text-primary text-muted-foreground"
-                }`}
-              >
-                Week
-              </Link>
-            </div>
-
-          {/* Calendar / Simple toggle */}
-          <div className="flex rounded-md overflow-hidden border text-sm font-medium">
-            <Link
-              href={timetableHref("calendar")}
-              aria-current={mode === "calendar" ? "page" : undefined}
-              className={`px-3 py-1 transition-colors ${
-                mode === "calendar"
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted text-muted-foreground"
-              }`}
-            >
-              Calendar
-            </Link>
-            <Link
-              href={timetableHref("simple")}
-              aria-current={mode === "simple" ? "page" : undefined}
-              className={`px-3 py-1 border-l transition-colors ${
-                mode === "simple"
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted text-muted-foreground"
-              }`}
-            >
-              Simple
-            </Link>
-          </div>
+          {/* Day/Week + Calendar/Simple pickers */}
+          <TimetableViewPicker
+            mode={mode}
+            span={span}
+            calendarHref={timetableHref("calendar")}
+            simpleHref={timetableHref("simple")}
+            dayHref={timetableHref(mode, "day", weekStart)}
+            weekHref={timetableHref(mode, "week", weekStart)}
+          />
         </div>
         {canManageTimetable && (
+          <div className="flex items-center gap-2 flex-wrap">
           <TimetableActions
             orgId={orgId}
             templates={templates.map((t) => ({
@@ -213,6 +172,7 @@ export default async function TimetablePage({
             }))}
             weekStart={weekStart}
           />
+          </div>
         )}
       </Toolbar>
       <TimetableClient

@@ -49,10 +49,12 @@ export const NavBar = async () => {
   return (
     <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4">
       {/* Left: sidebar toggle, app title, org switcher */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 min-w-0">
         <NavbarSidebarTrigger />
-        <NavbarLogo />
-        <NavbarLogoSpacer />
+        <span className="hidden sm:contents">
+          <NavbarLogo />
+          <NavbarLogoSpacer />
+        </span>
         <OrgSwitcher orgs={orgs} />
       </div>
 

@@ -6,12 +6,13 @@ import Link from "next/link";
 
 /**
  * Wraps SidebarTrigger so it fades out smoothly when the sidebar is open.
- * When the sidebar is open the user can close it from inside, so the
- * navbar trigger becomes redundant and is hidden to reduce clutter.
+ * On mobile the sidebar is a Sheet controlled by openMobile, so we use that
+ * state instead of the desktop `open` state.
  */
 export function NavbarSidebarTrigger() {
-  const { open } = useSidebar();
-  if (open) return null;
+  const { open, openMobile, isMobile } = useSidebar();
+  const isOpen = isMobile ? openMobile : open;
+  if (isOpen) return null;
   return (
     <SidebarTrigger
       className="transition-all duration-200 ease-in-out opacity-100 translate-x-0"
@@ -24,8 +25,9 @@ export function NavbarSidebarTrigger() {
  * is open so the org switcher doesn't float to the right unnecessarily.
  */
 export function NavbarLogoSpacer() {
-  const { open } = useSidebar();
-  return open ? null : <div className="w-3" />;
+  const { open, openMobile, isMobile } = useSidebar();
+  const isOpen = isMobile ? openMobile : open;
+  return isOpen ? null : <div className="w-3" />;
 }
 
 /**
@@ -33,8 +35,9 @@ export function NavbarLogoSpacer() {
  * shows its own logo, so the navbar one becomes duplicate clutter).
  */
 export function NavbarLogo() {
-  const { open } = useSidebar();
-  if (open) return null;
+  const { open, openMobile, isMobile } = useSidebar();
+  const isOpen = isMobile ? openMobile : open;
+  if (isOpen) return null;
   return (
     <Link
       href="/"

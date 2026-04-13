@@ -144,17 +144,17 @@ export function RolesClient({ orgId, roles }: Props) {
   }
 
   return (
-    <div className="rounded-lg border bg-card overflow-hidden shadow-sm">
+    <div className="rounded-lg border bg-card overflow-hidden overflow-x-auto shadow-sm">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b bg-muted/40">
             <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               Role name
             </th>
-            <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               Permissions
             </th>
-            <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               Tasks
             </th>
             <th className="w-10" />
@@ -186,8 +186,20 @@ export function RolesClient({ orgId, roles }: Props) {
                     </span>
                   )}
                 </div>
+                <div className="sm:hidden mt-1 flex flex-wrap gap-1">
+                  {role.permissions.length > 0 && (
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                      {role.permissions.length} permission{role.permissions.length !== 1 ? "s" : ""}
+                    </span>
+                  )}
+                  {role.eligibleFor.length > 0 && (
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                      {role.eligibleFor.length} task{role.eligibleFor.length !== 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
               </td>
-              <td className="px-4 py-3">
+              <td className="hidden sm:table-cell px-4 py-3">
                 {role.permissions.length === 0 ? (
                   <span className="text-muted-foreground">—</span>
                 ) : (
@@ -203,7 +215,7 @@ export function RolesClient({ orgId, roles }: Props) {
                   </div>
                 )}
               </td>
-              <td className="px-4 py-3">
+              <td className="hidden sm:table-cell px-4 py-3">
                 {role.eligibleFor.length === 0 ? (
                   <span className="text-muted-foreground">—</span>
                 ) : (

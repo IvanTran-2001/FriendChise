@@ -1,11 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
-import Apple from "next-auth/providers/apple";
-import Discord from "next-auth/providers/discord";
-import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
-import LinkedIn from "next-auth/providers/linkedin";
-import MicrosoftEntraId from "next-auth/providers/microsoft-entra-id";
-import Twitter from "next-auth/providers/twitter";
 
 /**
  * Edge-compatible Auth.js config.
@@ -20,13 +14,7 @@ export const authConfig: NextAuthConfig = {
   // (no email/password sign-up). If email+password is ever added, remove this
   // flag and verify emails before linking accounts.
   providers: [
-    Apple({ allowDangerousEmailAccountLinking: true }),
-    Discord({ allowDangerousEmailAccountLinking: true }),
-    GitHub({ allowDangerousEmailAccountLinking: true }),
     Google({ allowDangerousEmailAccountLinking: true }),
-    LinkedIn({ allowDangerousEmailAccountLinking: true }),
-    MicrosoftEntraId({ allowDangerousEmailAccountLinking: true }),
-    Twitter({ allowDangerousEmailAccountLinking: true }),
   ],
   pages: {
     signIn: "/signin",

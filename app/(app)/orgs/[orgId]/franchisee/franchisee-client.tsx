@@ -1,10 +1,18 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   generateFranchiseToken,
   deleteFranchiseToken,
@@ -32,63 +40,7 @@ type Token = {
   usedByOrgId: string | null;
 };
 
-// ─── Modal portal ───────────────────────────────────────────────────────────
-
-function Modal({
-  children,
-  onClose,
-}: {
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={onClose}
-    >
-      <div onClick={(e) => e.stopPropagation()}>{children}</div>
-    </div>,
-    document.body,
-  );
-}
-
 // ─── Popup components ─────────────────────────────────────────────────────────
-
-function ConfirmPopup({
-  message,
-  onConfirm,
-  onCancel,
-  loading,
-}: {
-  message: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-  loading: boolean;
-}) {
-  return (
-    <div className="absolute right-0 top-8 z-50 w-72 rounded-md border bg-popover p-4 shadow-md">
-      <p className="text-sm mb-3">{message}</p>
-      <div className="flex gap-2 justify-end">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onCancel}
-          disabled={loading}
-        >
-          Cancel
-        </Button>
-        <Button
-          size="sm"
-          variant="destructive"
-          onClick={onConfirm}
-          disabled={loading}
-        >
-          {loading ? "..." : "Confirm"}
-        </Button>
-      </div>
-    </div>
-  );
-}
 
 function FranchiseeActions({
   orgId,
@@ -97,15 +49,14 @@ function FranchiseeActions({
   orgId: string;
   franchisee: Franchisee;
 }) {
-  const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"menu" | "delete" | "changeOwner">("menu");
+  const [mode, setMode] = useState<"closed" | "menu" | "delete" | "changeOwner">("closed");
   const [newOwnerEmail, setNewOwnerEmail] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const reset = () => {
-    setOpen(false);
-    setMode("menu");
+    setMode("closed");
     setNewOwnerEmail("");
     setError("");
   };
@@ -113,145 +64,115 @@ function FranchiseeActions({
   const handleDelete = () => {
     startTransition(async () => {
       const res = await removeFranchisee(orgId, franchisee.id);
-      if (res.ok) reset();
+      if (res.ok) { reset(); router.refresh(); }
       else setError(res.error);
     });
   };
 
   const handleChangeOwner = () => {
     startTransition(async () => {
-      const res = await changeFranchiseeOwner(
-        orgId,
-        franchisee.id,
-        newOwnerEmail,
-      );
-      if (res.ok) reset();
+      const res = await changeFranchiseeOwner(orgId, franchisee.id, newOwnerEmail);
+      if (res.ok) { reset(); router.refresh(); }
       else setError(res.error);
     });
   };
 
   return (
-    <div className="relative">
+    <>
       <Button
         size="icon"
         variant="ghost"
         className="h-7 w-7"
         aria-label={`Open actions for ${franchisee.name}`}
-        onClick={() => {
-          setOpen((v) => !v);
-          setMode("menu");
-          setError("");
-        }}
+        onClick={() => setMode("menu")}
       >
         <MoreHorizontal className="h-4 w-4" />
       </Button>
 
-      {open && (
-        <Modal onClose={reset}>
-          <div className="w-80 rounded-md border bg-popover shadow-lg">
-            {mode === "menu" && (
-              <>
-                <button
-                  className="w-full text-left px-4 py-3 text-sm hover:bg-accent"
-                  onClick={() => setMode("changeOwner")}
-                >
-                  Change Owner
-                </button>
-                <button
-                  className="w-full text-left px-4 py-3 text-sm hover:bg-accent"
-                  onClick={reset}
-                >
-                  View
-                </button>
-                <button
-                  className="w-full text-left px-4 py-3 text-sm text-destructive hover:bg-accent"
-                  onClick={() => setMode("delete")}
-                >
-                  Delete
-                </button>
-              </>
-            )}
-
-            {mode === "delete" && (
-              <div className="p-4">
-                <p className="text-sm mb-3">
-                  Are you sure you want to remove{" "}
-                  <span className="font-medium">{franchisee.name}</span> from
-                  org?
-                </p>
-                {error && (
-                  <p className="text-xs text-destructive mb-2">{error}</p>
-                )}
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={reset}
-                    disabled={isPending}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={handleDelete}
-                    disabled={isPending}
-                  >
-                    {isPending ? "..." : "Confirm"}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {mode === "changeOwner" && (
-              <div className="p-4">
-                <p className="text-sm font-medium mb-3">Change Owner</p>
-                <Input
-                  placeholder="New owner email"
-                  value={newOwnerEmail}
-                  onChange={(e) => setNewOwnerEmail(e.target.value)}
-                  className="mb-2 h-8 text-sm"
-                />
-                {error && (
-                  <p className="text-xs text-destructive mb-2">{error}</p>
-                )}
-                <div className="flex gap-2 justify-end mt-3">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={reset}
-                    disabled={isPending}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleChangeOwner}
-                    disabled={isPending || !newOwnerEmail.trim()}
-                  >
-                    {isPending ? "..." : "Confirm"}
-                  </Button>
-                </div>
-              </div>
-            )}
+      {/* Menu dialog */}
+      <Dialog open={mode === "menu"} onOpenChange={(o) => !o && reset()}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>{franchisee.name}</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-1 -mx-2">
+            <button
+              className="w-full text-left px-4 py-2.5 text-sm rounded-md hover:bg-accent"
+              onClick={() => setMode("changeOwner")}
+            >
+              Change Owner
+            </button>
+            <button
+              className="w-full text-left px-4 py-2.5 text-sm text-destructive rounded-md hover:bg-accent"
+              onClick={() => setMode("delete")}
+            >
+              Delete
+            </button>
           </div>
-        </Modal>
-      )}
-    </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete dialog */}
+      <Dialog open={mode === "delete"} onOpenChange={(o) => !o && reset()}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete franchisee</DialogTitle>
+            <DialogDescription>
+              This will permanently delete{" "}
+              <span className="font-medium text-foreground">{franchisee.name}</span>{" "}
+              and all its data. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={reset} disabled={isPending}>
+              Cancel
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleDelete} disabled={isPending}>
+              {isPending ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change owner dialog */}
+      <Dialog open={mode === "changeOwner"} onOpenChange={(o) => !o && reset()}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Change Owner</DialogTitle>
+            <DialogDescription>
+              Enter the email of the new owner for{" "}
+              <span className="font-medium text-foreground">{franchisee.name}</span>.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            placeholder="New owner email"
+            value={newOwnerEmail}
+            onChange={(e) => setNewOwnerEmail(e.target.value)}
+            className="h-8 text-sm"
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.repeat) handleChangeOwner(); }}
+          />
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={reset} disabled={isPending}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleChangeOwner} disabled={isPending || !newOwnerEmail.trim()}>
+              {isPending ? "Saving…" : "Confirm"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
 function TokenActions({ orgId, token }: { orgId: string; token: Token }) {
-  const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"menu" | "delete">("menu");
+  const [mode, setMode] = useState<"closed" | "menu" | "delete">("closed");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const reset = () => {
-    setOpen(false);
-    setMode("menu");
-    setError("");
-  };
+  const reset = () => { setMode("closed"); setError(""); };
 
   const handleDelete = () => {
     startTransition(async () => {
@@ -270,72 +191,63 @@ function TokenActions({ orgId, token }: { orgId: string; token: Token }) {
   };
 
   return (
-    <div className="relative">
+    <>
       <Button
         size="icon"
         variant="ghost"
         className="h-7 w-7"
         aria-label={`Open token actions for ${token.invitedEmail}`}
-        onClick={() => {
-          setOpen((v) => !v);
-          setMode("menu");
-          setError("");
-        }}
+        onClick={() => setMode("menu")}
       >
         <MoreHorizontal className="h-4 w-4" />
       </Button>
 
-      {open && (
-        <Modal onClose={reset}>
-          <div className="w-72 rounded-md border bg-popover shadow-lg">
-            {mode === "menu" && (
-              <>
-                <button
-                  className="w-full text-left px-4 py-3 text-sm text-destructive hover:bg-accent"
-                  onClick={() => setMode("delete")}
-                >
-                  Delete
-                </button>
-                <button
-                  className="w-full text-left px-4 py-3 text-sm hover:bg-accent"
-                  onClick={handleExtend}
-                  disabled={isPending}
-                >
-                  {isPending ? "..." : "Extend (+1 day)"}
-                </button>
-              </>
-            )}
-
-            {mode === "delete" && (
-              <div className="p-4">
-                <p className="text-sm mb-3">Delete this token?</p>
-                {error && (
-                  <p className="text-xs text-destructive mb-2">{error}</p>
-                )}
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={reset}
-                    disabled={isPending}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={handleDelete}
-                    disabled={isPending}
-                  >
-                    {isPending ? "..." : "Confirm"}
-                  </Button>
-                </div>
-              </div>
-            )}
+      {/* Menu dialog */}
+      <Dialog open={mode === "menu"} onOpenChange={(o) => !o && reset()}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>{token.invitedEmail}</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-1 -mx-2">
+            <button
+              className="w-full text-left px-4 py-2.5 text-sm rounded-md hover:bg-accent"
+              onClick={handleExtend}
+              disabled={isPending}
+            >
+              {isPending ? "…" : "Extend (+1 day)"}
+            </button>
+            <button
+              className="w-full text-left px-4 py-2.5 text-sm text-destructive rounded-md hover:bg-accent"
+              onClick={() => setMode("delete")}
+            >
+              Delete
+            </button>
           </div>
-        </Modal>
-      )}
-    </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete dialog */}
+      <Dialog open={mode === "delete"} onOpenChange={(o) => !o && reset()}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete token</DialogTitle>
+            <DialogDescription>
+              Delete the invite token for{" "}
+              <span className="font-medium text-foreground">{token.invitedEmail}</span>?
+            </DialogDescription>
+          </DialogHeader>
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={reset} disabled={isPending}>
+              Cancel
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleDelete} disabled={isPending}>
+              {isPending ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -370,14 +282,14 @@ export function FranchiseeClient({
       {/* ── Franchisee List ─────────────────────────────────────────────── */}
       <section>
         <h2 className="text-lg font-semibold mb-3">Franchisee List</h2>
-        <div className="rounded-md border overflow-hidden">
+        <div className="rounded-md border overflow-hidden overflow-x-auto bg-card">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-muted-foreground">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Name</th>
-                <th className="text-left px-4 py-2 font-medium">Location</th>
-                <th className="text-left px-4 py-2 font-medium">Owner</th>
-                <th className="text-left px-4 py-2 font-medium">Created</th>
+                <th className="hidden sm:table-cell text-left px-4 py-2 font-medium">Location</th>
+                <th className="hidden sm:table-cell text-left px-4 py-2 font-medium">Owner</th>
+                <th className="hidden sm:table-cell text-left px-4 py-2 font-medium">Created</th>
                 <th className="px-4 py-2" />
               </tr>
             </thead>
@@ -395,14 +307,20 @@ export function FranchiseeClient({
               ) : (
                 franchisees.map((f) => (
                   <tr key={f.id} className="border-t hover:bg-muted/30">
-                    <td className="px-4 py-2 font-medium">{f.name}</td>
-                    <td className="px-4 py-2 text-muted-foreground">
+                    <td className="px-4 py-2 font-medium">
+                      <div>{f.name}</div>
+                      <div className="sm:hidden text-xs text-muted-foreground">
+                        {f.owner.name ?? f.owner.email ?? "—"}
+                        {f.address ? ` · ${f.address}` : ""}
+                      </div>
+                    </td>
+                    <td className="hidden sm:table-cell px-4 py-2 text-muted-foreground">
                       {f.address ?? "—"}
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="hidden sm:table-cell px-4 py-2">
                       {f.owner.name ?? f.owner.email ?? "—"}
                     </td>
-                    <td className="px-4 py-2 text-muted-foreground">
+                    <td className="hidden sm:table-cell px-4 py-2 text-muted-foreground">
                       {new Date(f.createdAt).toLocaleDateString("en-AU", {
                         timeZone: "UTC",
                       })}
@@ -428,7 +346,7 @@ export function FranchiseeClient({
             placeholder="Email to invite"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="max-w-xs"
+            className="flex-1 min-w-0 h-9 text-sm"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.repeat) {
                 e.preventDefault();
@@ -448,13 +366,13 @@ export function FranchiseeClient({
         )}
 
         {/* Token list */}
-        <div className="rounded-md border overflow-hidden">
+        <div className="rounded-md border overflow-hidden overflow-x-auto bg-card">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-muted-foreground">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Email</th>
-                <th className="text-left px-4 py-2 font-medium">Token</th>
-                <th className="text-left px-4 py-2 font-medium">Expires</th>
+                <th className="hidden sm:table-cell text-left px-4 py-2 font-medium">Token</th>
+                <th className="hidden sm:table-cell text-left px-4 py-2 font-medium">Expires</th>
                 <th className="text-left px-4 py-2 font-medium">Status</th>
                 <th className="px-4 py-2" />
               </tr>
@@ -475,11 +393,16 @@ export function FranchiseeClient({
                   const used = !!t.usedAt;
                   return (
                     <tr key={t.id} className="border-t hover:bg-muted/30">
-                      <td className="px-4 py-2">{t.invitedEmail}</td>
-                      <td className="px-4 py-2 font-mono text-xs text-muted-foreground truncate max-w-[180px]">
+                      <td className="px-4 py-2">
+                        <div>{t.invitedEmail}</div>
+                        <div className="sm:hidden text-xs text-muted-foreground">
+                          {new Date(t.expiresAt).toLocaleDateString("en-AU", { timeZone: "UTC" })}
+                        </div>
+                      </td>
+                      <td className="hidden sm:table-cell px-4 py-2 font-mono text-xs text-muted-foreground truncate max-w-45">
                         {t.token}
                       </td>
-                      <td className="px-4 py-2 text-muted-foreground">
+                      <td className="hidden sm:table-cell px-4 py-2 text-muted-foreground">
                         {new Date(t.expiresAt).toLocaleDateString("en-AU", {
                           timeZone: "UTC",
                         })}

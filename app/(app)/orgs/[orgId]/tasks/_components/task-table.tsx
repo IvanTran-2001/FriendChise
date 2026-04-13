@@ -150,15 +150,49 @@ export function TaskTable({
   return (
     <>
       <Toolbar>
-        <div className="flex items-center gap-2 flex-1">
+        {/* Row 1: search + view toggle */}
+        <div className="flex items-center gap-2 w-full">
           <Input
             aria-label="Search tasks by title"
             placeholder="Search by title..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="max-w-xs h-8"
+            className="flex-1 h-8"
           />
+          <div className="flex items-center rounded-md border overflow-hidden shrink-0">
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              aria-label="List view"
+              aria-pressed={view === "list"}
+              className={cn(
+                "p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                view === "list"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted",
+              )}
+            >
+              <List className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("card")}
+              aria-label="Card view"
+              aria-pressed={view === "card"}
+              className={cn(
+                "p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                view === "card"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted",
+              )}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
 
+        {/* Row 2: sort + role filter + create */}
+        <div className="flex items-center gap-2 flex-wrap w-full">
           {/* Sort */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -209,43 +243,12 @@ export function TaskTable({
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-        </div>
 
-        {canManageTasks && (
-          <Button asChild size="sm">
-            <a href={`/orgs/${orgId}/tasks/new`}>+ Create Task</a>
-          </Button>
-        )}
-        {/* View toggle */}
-        <div className="flex items-center rounded-md border overflow-hidden ml-1">
-          <button
-            type="button"
-            onClick={() => setView("list")}
-            aria-label="List view"
-            aria-pressed={view === "list"}
-            className={cn(
-              "p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              view === "list"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted",
-            )}
-          >
-            <List className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("card")}
-            aria-label="Card view"
-            aria-pressed={view === "card"}
-            className={cn(
-              "p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              view === "card"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted",
-            )}
-          >
-            <LayoutGrid className="h-4 w-4" />
-          </button>
+          {canManageTasks && (
+            <Button asChild size="sm" className="ml-auto shrink-0">
+              <a href={`/orgs/${orgId}/tasks/new`}>+ Create Task</a>
+            </Button>
+          )}
         </div>
       </Toolbar>
 
@@ -269,7 +272,21 @@ export function TaskTable({
                 className="block p-4 cursor-pointer"
               >
                 <div className="flex flex-col gap-3">
-                  <div className="font-semibold text-sm leading-snug">{task.name}</div>
+                  <div className="flex items-start gap-2">
+                    {task.eligibility.length > 0 && (
+                      <div className="flex items-center gap-0.5 mt-0.5 shrink-0">
+                        {task.eligibility.slice(0, 4).map((e) => (
+                          <span
+                            key={e.role.id}
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: e.role.color ?? "#9ca3af" }}
+                            title={e.role.name}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    <div className="font-semibold text-sm leading-snug">{task.name}</div>
+                  </div>
                   {task.description && (
                     <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                       {task.description}
@@ -355,17 +372,17 @@ export function TaskTable({
           ))}
         </div>
       ) : (
-        <div className="rounded-lg border bg-card overflow-hidden shadow-sm">
+        <div className="rounded-lg border bg-card overflow-hidden shadow-sm overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/40">
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Title</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   Description
                 </th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Duration</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">People</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Role</th>
+                <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Duration</th>
+                <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">People</th>
+                <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Role</th>
                 {canManageTasks && <th className="w-10" />}
               </tr>
             </thead>
@@ -382,15 +399,31 @@ export function TaskTable({
                   }}
                   className="border-b last:border-0 hover:bg-primary/5 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                 >
-                  <td className="px-4 py-3 font-medium">{task.name}</td>
-                  <td className="px-4 py-3 text-muted-foreground max-w-60 truncate">
+                  <td className="px-4 py-3 font-medium">
+                    <div className="flex items-center gap-2">
+                      {task.eligibility.length > 0 && (
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          {task.eligibility.slice(0, 4).map((e) => (
+                            <span
+                              key={e.role.id}
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: e.role.color ?? "#9ca3af" }}
+                              title={e.role.name}
+                            />
+                          ))}
+                        </div>
+                      )}
+                      {task.name}
+                    </div>
+                  </td>
+                  <td className="hidden sm:table-cell px-4 py-3 text-muted-foreground max-w-60 truncate">
                     {task.description ?? "—"}
                   </td>
-                  <td className="px-4 py-3 tabular-nums">
+                  <td className="hidden sm:table-cell px-4 py-3 tabular-nums">
                     {task.durationMin} min
                   </td>
-                  <td className="px-4 py-3 tabular-nums">{task.minPeople}</td>
-                  <td className="px-4 py-3">
+                  <td className="hidden sm:table-cell px-4 py-3 tabular-nums">{task.minPeople}</td>
+                  <td className="hidden sm:table-cell px-4 py-3">
                     {task.eligibility.length === 0 ? (
                       <span className="text-muted-foreground">—</span>
                     ) : (
