@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
 }
 
 // ─────────────────────────────────────
@@ -92,8 +92,9 @@ model User {
   name          String?
   image         String?
 
-  memberships   Membership[]
-  ownedOrgs     Organization[] @relation("OrgOwner")
+  memberships               Membership[]
+  ownedOrgs                 Organization[] @relation("OrgOwner")
+  receivedFranchiseInvites  FranchiseToken[] @relation("ReceivedFranchiseInvites")
 
   accounts      Account[]
   sessions      Session[]
@@ -431,8 +432,15 @@ model FranchiseToken {
   invitedEmail String
   usedByOrgId  String?  @unique
 
+  // In-app invite: links to an existing user account
+  recipientId  String?
+  recipient    User?    @relation("ReceivedFranchiseInvites", fields: [recipientId], references: [id], onDelete: SetNull)
+
   expiresAt    DateTime
   usedAt       DateTime?
+  declinedAt   DateTime?
 
   createdAt    DateTime @default(now())
+
+  @@index([recipientId])
 }
