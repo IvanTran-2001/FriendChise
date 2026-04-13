@@ -109,13 +109,10 @@ export async function removeFranchisee(
   const authz = await requireParentOrgOwnerAction(orgId);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const child = await prisma.organization.findFirst({
+  const { count } = await prisma.organization.deleteMany({
     where: { id: childOrgId, parentId: orgId },
-    select: { id: true },
   });
-  if (!child) return { ok: false, error: "Franchisee not found" };
-
-  await prisma.organization.delete({ where: { id: childOrgId } });
+  if (count === 0) return { ok: false, error: "Franchisee not found" };
 
   revalidatePath(`/orgs/${orgId}/franchisee`);
   return { ok: true };

@@ -447,6 +447,7 @@ function CalendarView({
   } | null>(null);
   const [editingInstance, setEditingInstance] =
     useState<ClientTimetableInstance | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const hasPanel = !!availableTasks;
 
@@ -466,6 +467,15 @@ function CalendarView({
           dateStr: col,
         });
       }
+      router.refresh();
+    });
+  }
+
+  function handleTapPlace(col: string, timeMin: number, taskId: string) {
+    startT(async () => {
+      await createTimetableEntryAction(orgId, taskId, col, timeMin);
+      setSelectedTaskId(null);
+      setTaskPanelOpen(false);
       router.refresh();
     });
   }
@@ -565,6 +575,8 @@ function CalendarView({
           blockColor={(inst) => inst.taskColor ?? undefined}
           openTimeMin={openTimeMin}
           closeTimeMin={closeTimeMin}
+          selectedTaskId={isMobile ? selectedTaskId : null}
+          onTapPlace={isMobile ? handleTapPlace : undefined}
         />
         {hasPanel && !isMobile && (
           <TaskPanel
@@ -585,15 +597,27 @@ function CalendarView({
       {/* Mobile: floating Tasks button + Sheet */}
       {hasPanel && isMobile && (
         <>
-          <button
-            onClick={() => setTaskPanelOpen(true)}
-            className="fixed bottom-6 right-4 z-40 flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-lg px-4 py-2.5 text-sm font-medium active:scale-95 transition-transform"
-            style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
-            aria-label="Open task list"
-          >
-            <LayoutList className="h-4 w-4" />
-            Tasks
-          </button>
+          {selectedTaskId ? (
+            <button
+              onClick={() => setSelectedTaskId(null)}
+              className="fixed bottom-6 right-4 z-40 flex items-center gap-2 rounded-full bg-destructive text-destructive-foreground shadow-lg px-4 py-2.5 text-sm font-medium active:scale-95 transition-transform"
+              style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
+              aria-label="Cancel task placement"
+            >
+              <X className="h-4 w-4" />
+              Cancel
+            </button>
+          ) : (
+            <button
+              onClick={() => setTaskPanelOpen(true)}
+              className="fixed bottom-6 right-4 z-40 flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-lg px-4 py-2.5 text-sm font-medium active:scale-95 transition-transform"
+              style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
+              aria-label="Open task list"
+            >
+              <LayoutList className="h-4 w-4" />
+              Tasks
+            </button>
+          )}
           <Sheet open={taskPanelOpen} onOpenChange={setTaskPanelOpen}>
             <SheetContent
               side={isLandscape ? "right" : "bottom"}
@@ -604,6 +628,14 @@ function CalendarView({
               </SheetHeader>
               <TaskPanel
                 tasks={availableTasks}
+                fullWidth={true}
+                fillHeight={true}
+                tapToPlaceMode={true}
+                selectedTaskId={selectedTaskId}
+                onTaskSelect={(taskId) => {
+                  setSelectedTaskId(taskId);
+                  if (taskId) setTaskPanelOpen(false);
+                }}
                 onDragStart={(taskId, e) => {
                   dragDataRef.current = { type: "task", taskId };
                   e.dataTransfer.effectAllowed = "copy";

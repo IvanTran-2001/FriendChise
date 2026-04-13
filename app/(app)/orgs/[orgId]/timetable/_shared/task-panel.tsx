@@ -8,8 +8,12 @@ import type { SharedTask } from "./types";
 interface TaskPanelProps {
   tasks: SharedTask[];
   fillHeight?: boolean;
+  fullWidth?: boolean;
   onDragStart: (taskId: string, e: React.DragEvent) => void;
   onDragEnd: () => void;
+  selectedTaskId?: string | null;
+  onTaskSelect?: (taskId: string | null) => void;
+  tapToPlaceMode?: boolean;
 }
 
 /**
@@ -19,8 +23,12 @@ interface TaskPanelProps {
 export function TaskPanel({
   tasks,
   fillHeight,
+  fullWidth,
   onDragStart,
   onDragEnd,
+  selectedTaskId,
+  onTaskSelect,
+  tapToPlaceMode,
 }: TaskPanelProps) {
   const [search, setSearch] = useState("");
   const filtered = tasks.filter((t) =>
@@ -34,7 +42,7 @@ export function TaskPanel({
 
   return (
     <div
-      className={`w-56 shrink-0 rounded-xl border bg-card flex flex-col overflow-hidden${fillHeight ? " min-h-0" : ""}`}
+      className={`${fullWidth ? "w-full" : "w-56"} shrink-0 rounded-xl border bg-card flex flex-col overflow-hidden${fillHeight ? " min-h-0" : ""}`}
     >
       <div className="px-3 py-2.5 font-medium text-sm border-b shrink-0">
         Tasks
@@ -56,24 +64,37 @@ export function TaskPanel({
             No tasks found
           </div>
         ) : (
-          filtered.map((task) => (
-            <div
-              key={task.id}
-              draggable
-              onDragStart={(e) => onDragStart(task.id, e)}
-              onDragEnd={onDragEnd}
-              className="relative px-3 py-2.5 border-b last:border-b-0 cursor-grab active:cursor-grabbing hover:bg-muted/30 transition-colors select-none pl-4"
-            >
-              <span
-                className="absolute left-0 inset-y-0 w-1 rounded-r-sm"
-                style={{ backgroundColor: task.roleColor ?? task.color ?? "#9ca3af" }}
-              />
-              <div className="text-sm font-medium">{task.name}</div>
-              <div className="text-xs text-muted-foreground">
-                {task.roleName ? `${task.roleName} · ` : ""}{task.durationMin} min
+          filtered.map((task) => {
+            const isSelected = selectedTaskId === task.id;
+            return (
+              <div
+                key={task.id}
+                draggable={!tapToPlaceMode}
+                onDragStart={!tapToPlaceMode ? (e) => onDragStart(task.id, e) : undefined}
+                onDragEnd={!tapToPlaceMode ? onDragEnd : undefined}
+                onClick={tapToPlaceMode && onTaskSelect ? () => onTaskSelect(isSelected ? null : task.id) : undefined}
+                className={`relative px-3 py-2.5 border-b last:border-b-0 transition-colors select-none pl-4 ${
+                  tapToPlaceMode
+                    ? `cursor-pointer ${isSelected ? "bg-primary/20 hover:bg-primary/25" : "hover:bg-muted/30"}`
+                    : "cursor-grab active:cursor-grabbing hover:bg-muted/30"
+                }`}
+              >
+                <span
+                  className="absolute left-0 inset-y-0 w-1 rounded-r-sm"
+                  style={{ backgroundColor: task.roleColor ?? task.color ?? "#9ca3af" }}
+                />
+                <div className="text-sm font-medium">{task.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {task.roleName ? `${task.roleName} · ` : ""}{task.durationMin} min
+                </div>
+                {tapToPlaceMode && isSelected && (
+                  <div className="text-xs text-primary font-medium mt-1">
+                    Tap on grid to place
+                  </div>
+                )}
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

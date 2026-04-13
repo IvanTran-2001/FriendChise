@@ -102,6 +102,10 @@ interface TimeGridProps<
   /** Render a shaded band and line at the org's open/close hours. */
   openTimeMin?: number;
   closeTimeMin?: number;
+
+  /** Tap-to-place mode: when set, clicking a column places this task. */
+  selectedTaskId?: string | null;
+  onTapPlace?: (column: TColumnKey, timeMin: number, taskId: string) => void;
 }
 
 /**
@@ -134,6 +138,8 @@ export function TimeGrid<
   blockColor,
   openTimeMin,
   closeTimeMin,
+  selectedTaskId,
+  onTapPlace,
 }: TimeGridProps<TInstance, TColumnKey>) {
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const totalHeight = hours.length * HOUR_HEIGHT;
@@ -187,6 +193,15 @@ export function TimeGrid<
       calcDropTimeMin(e.clientY, e.currentTarget, 0, offsetMin),
       data,
     );
+  }
+
+  function handleColumnClick(
+    e: React.MouseEvent<HTMLDivElement>,
+    col: TColumnKey,
+  ) {
+    if (!selectedTaskId || !onTapPlace) return;
+    const timeMin = calcDropTimeMin(e.clientY, e.currentTarget, 0, 0);
+    onTapPlace(col, timeMin, selectedTaskId);
   }
 
   // Min px width per column so week view is horizontally scrollable on mobile
@@ -247,7 +262,7 @@ export function TimeGrid<
             return (
               <div
                 key={col}
-                className={`flex-1 relative border-r border-border last:border-r-0 transition-colors ${highlightClass ? "bg-primary/5" : ""} ${isDragTarget ? "bg-primary/10" : ""}`}
+                className={`flex-1 relative border-r border-border last:border-r-0 transition-colors ${highlightClass ? "bg-primary/5" : ""} ${isDragTarget ? "bg-primary/10" : ""} ${selectedTaskId ? "cursor-crosshair" : ""}`}
                 style={{ height: totalHeight }}
                 onDragOver={(e) => handleColumnDragOver(e, col)}
                 onDragLeave={(e) => {
@@ -255,6 +270,7 @@ export function TimeGrid<
                     onDragLeave();
                 }}
                 onDrop={(e) => handleColumnDrop(e, col)}
+                onClick={(e) => handleColumnClick(e, col)}
               >
                 {/* Outside-hours shading */}
                 {openTimeMin !== undefined && openTimeMin > 0 && (
