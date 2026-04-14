@@ -12,7 +12,10 @@ export default function RolesLoading() {
       {/* Roles list */}
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3 px-4 py-3 border-b last:border-b-0">
+          <div
+            key={i}
+            className="flex items-center gap-3 px-4 py-3 border-b last:border-b-0"
+          >
             <Skeleton className="h-4 w-4 rounded-full shrink-0" />
             <Skeleton className="h-4 w-32 rounded flex-1" />
             <Skeleton className="h-4 w-16 rounded" />

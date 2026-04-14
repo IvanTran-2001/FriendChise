@@ -20,11 +20,21 @@ export default function FranchiseeLoading() {
             <tbody>
               {Array.from({ length: 4 }).map((_, i) => (
                 <tr key={i} className="border-t">
-                  <td className="px-4 py-2"><Skeleton className="h-4 w-28 rounded" /></td>
-                  <td className="px-4 py-2"><Skeleton className="h-4 w-24 rounded" /></td>
-                  <td className="px-4 py-2"><Skeleton className="h-4 w-24 rounded" /></td>
-                  <td className="px-4 py-2"><Skeleton className="h-4 w-16 rounded" /></td>
-                  <td className="px-4 py-2"><Skeleton className="h-6 w-6 rounded" /></td>
+                  <td className="px-4 py-2">
+                    <Skeleton className="h-4 w-28 rounded" />
+                  </td>
+                  <td className="px-4 py-2">
+                    <Skeleton className="h-4 w-24 rounded" />
+                  </td>
+                  <td className="px-4 py-2">
+                    <Skeleton className="h-4 w-24 rounded" />
+                  </td>
+                  <td className="px-4 py-2">
+                    <Skeleton className="h-4 w-16 rounded" />
+                  </td>
+                  <td className="px-4 py-2">
+                    <Skeleton className="h-6 w-6 rounded" />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -53,12 +63,24 @@ export default function FranchiseeLoading() {
             <tbody>
               {Array.from({ length: 3 }).map((_, i) => (
                 <tr key={i} className="border-t">
-                  <td className="px-4 py-2"><Skeleton className="h-4 w-20 rounded" /></td>
-                  <td className="px-4 py-2"><Skeleton className="h-4 w-36 rounded" /></td>
-                  <td className="px-4 py-2"><Skeleton className="h-4 w-20 rounded" /></td>
-                  <td className="px-4 py-2"><Skeleton className="h-4 w-16 rounded" /></td>
-                  <td className="px-4 py-2"><Skeleton className="h-5 w-12 rounded-full" /></td>
-                  <td className="px-4 py-2"><Skeleton className="h-6 w-6 rounded" /></td>
+                  <td className="px-4 py-2">
+                    <Skeleton className="h-4 w-20 rounded" />
+                  </td>
+                  <td className="px-4 py-2">
+                    <Skeleton className="h-4 w-36 rounded" />
+                  </td>
+                  <td className="px-4 py-2">
+                    <Skeleton className="h-4 w-20 rounded" />
+                  </td>
+                  <td className="px-4 py-2">
+                    <Skeleton className="h-4 w-16 rounded" />
+                  </td>
+                  <td className="px-4 py-2">
+                    <Skeleton className="h-5 w-12 rounded-full" />
+                  </td>
+                  <td className="px-4 py-2">
+                    <Skeleton className="h-6 w-6 rounded" />
+                  </td>
                 </tr>
               ))}
             </tbody>

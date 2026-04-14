@@ -49,15 +49,15 @@
 
 :root {
   /* Page & surfaces */
-  --background: oklch(0.965 0.004 258);        /* slight blue-gray page bg */
-  --foreground: oklch(0.24 0.05 258);           /* dark navy text */
+  --background: oklch(0.965 0.004 258); /* slight blue-gray page bg */
+  --foreground: oklch(0.24 0.05 258); /* dark navy text */
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.24 0.05 258);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.24 0.05 258);
 
   /* Brand — blue */
-  --primary: oklch(0.50 0.22 263);
+  --primary: oklch(0.5 0.22 263);
   --primary-foreground: oklch(0.985 0 0);
 
   /* Secondary / muted */
@@ -74,7 +74,7 @@
   /* Structure */
   --border: oklch(0.885 0.006 258);
   --input: oklch(0.885 0.006 258);
-  --ring: oklch(0.50 0.22 263);
+  --ring: oklch(0.5 0.22 263);
 
   /* Charts */
   --chart-1: oklch(0.809 0.105 251.813);
@@ -89,12 +89,12 @@
   /* Sidebar — clean white */
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.24 0.05 258);
-  --sidebar-primary: oklch(0.93 0.05 263);           /* light blue active bg */
+  --sidebar-primary: oklch(0.93 0.05 263); /* light blue active bg */
   --sidebar-primary-foreground: oklch(0.45 0.22 263); /* blue text on active */
-  --sidebar-accent: oklch(0.96 0.003 258);            /* subtle hover */
+  --sidebar-accent: oklch(0.96 0.003 258); /* subtle hover */
   --sidebar-accent-foreground: oklch(0.35 0.04 258);
   --sidebar-border: oklch(0.885 0.006 258);
-  --sidebar-ring: oklch(0.50 0.22 263);
+  --sidebar-ring: oklch(0.5 0.22 263);
 }
 
 .dark {
@@ -152,7 +152,9 @@
 /* Subtle card elevation */
 .rounded-lg.border.bg-card,
 .rounded-xl.border.bg-card {
-  box-shadow: 0 1px 3px 0 oklch(0 0 0 / 0.06), 0 1px 2px -1px oklch(0 0 0 / 0.04);
+  box-shadow:
+    0 1px 3px 0 oklch(0 0 0 / 0.06),
+    0 1px 2px -1px oklch(0 0 0 / 0.04);
 }
 
 /* Press/active visual feedback on all interactive elements */

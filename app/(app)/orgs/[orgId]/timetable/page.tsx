@@ -133,7 +133,12 @@ export default async function TimetablePage({
   }));
 
   const timetableHref = (m: string, s = span, d = dayStr) => {
-    const params = new URLSearchParams({ week: weekStart, mode: m, span: s, day: d });
+    const params = new URLSearchParams({
+      week: weekStart,
+      mode: m,
+      span: s,
+      day: d,
+    });
     if (rawRoleId) params.set("roleId", rawRoleId);
     return `/orgs/${orgId}/timetable?${params.toString()}`;
   };
@@ -163,15 +168,15 @@ export default async function TimetablePage({
         </div>
         {canManageTimetable && (
           <div className="flex items-center gap-2 flex-wrap">
-          <TimetableActions
-            orgId={orgId}
-            templates={templates.map((t) => ({
-              id: t.id,
-              name: t.name,
-              cycleLengthDays: t.cycleLengthDays,
-            }))}
-            weekStart={weekStart}
-          />
+            <TimetableActions
+              orgId={orgId}
+              templates={templates.map((t) => ({
+                id: t.id,
+                name: t.name,
+                cycleLengthDays: t.cycleLengthDays,
+              }))}
+              weekStart={weekStart}
+            />
           </div>
         )}
       </Toolbar>
@@ -188,19 +193,23 @@ export default async function TimetablePage({
         todayStr={todayStr}
         roleId={rawRoleId}
         canManage={canManageTimetable}
-        availableTasks={canManageTimetable ? tasks.map((t) => {
-          const displayRole = rawRoleId
-            ? t.eligibility.find((e) => e.role.id === rawRoleId)?.role
-            : t.eligibility[0]?.role;
-          return {
-            id: t.id,
-            name: t.name,
-            durationMin: t.durationMin,
-            color: t.color,
-            roleColor: displayRole?.color ?? null,
-            roleName: displayRole?.name ?? null,
-          };
-        }) : undefined}
+        availableTasks={
+          canManageTimetable
+            ? tasks.map((t) => {
+                const displayRole = rawRoleId
+                  ? t.eligibility.find((e) => e.role.id === rawRoleId)?.role
+                  : t.eligibility[0]?.role;
+                return {
+                  id: t.id,
+                  name: t.name,
+                  durationMin: t.durationMin,
+                  color: t.color,
+                  roleColor: displayRole?.color ?? null,
+                  roleName: displayRole?.name ?? null,
+                };
+              })
+            : undefined
+        }
         memberships={clientMemberships}
       />
     </div>

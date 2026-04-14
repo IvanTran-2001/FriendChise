@@ -73,7 +73,9 @@ export function TemplatesClient({ orgId, templates }: TemplatesClientProps) {
         </Toolbar>
         <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
           <CalendarDays className="h-10 w-10 opacity-30" />
-          <p className="text-sm">No templates yet. Create one to get started.</p>
+          <p className="text-sm">
+            No templates yet. Create one to get started.
+          </p>
           <Button asChild variant="outline" size="sm">
             <Link href={`/orgs/${orgId}/timetable/templates/new`}>
               Create Template
@@ -158,16 +160,12 @@ export function TemplatesClient({ orgId, templates }: TemplatesClientProps) {
                   role="link"
                   tabIndex={0}
                   onClick={() =>
-                    router.push(
-                      `/orgs/${orgId}/timetable/templates/${t.id}`,
-                    )
+                    router.push(`/orgs/${orgId}/timetable/templates/${t.id}`)
                   }
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      router.push(
-                        `/orgs/${orgId}/timetable/templates/${t.id}`,
-                      );
+                      router.push(`/orgs/${orgId}/timetable/templates/${t.id}`);
                     }
                   }}
                   className="border-b last:border-0 hover:bg-primary/5 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50"

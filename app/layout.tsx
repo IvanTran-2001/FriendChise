@@ -3,7 +3,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "sonner";
 import "./globals.css";
 
-
 export const metadata: Metadata = {
   title: "FriendChise",
   description: "Franchise management made simple.",
@@ -29,11 +28,16 @@ export default function RootLayout({
       <body
         className="antialiased"
         suppressHydrationWarning
-        style={{
-          "--font-sans": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-          "--font-logo": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-          "--font-mono": "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace",
-        } as React.CSSProperties}
+        style={
+          {
+            "--font-sans":
+              "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            "--font-logo":
+              "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            "--font-mono":
+              "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace",
+          } as React.CSSProperties
+        }
       >
         <TooltipProvider>
           {children}

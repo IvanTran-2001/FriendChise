@@ -136,7 +136,12 @@ export async function updateTemplateInstance(
 ): Promise<ServiceResult<null>> {
   const entry = await prisma.templateEntry.findFirst({
     where: { id: instanceId, template: { orgId } },
-    select: { id: true, templateId: true, durationMin: true, task: { select: { durationMin: true } } },
+    select: {
+      id: true,
+      templateId: true,
+      durationMin: true,
+      task: { select: { durationMin: true } },
+    },
   });
   if (!entry) return { ok: false, error: "Not found", code: "NOT_FOUND" };
 
@@ -173,7 +178,10 @@ export async function updateTemplateInstance(
       ...(update.dayIndex !== undefined && { dayIndex: update.dayIndex }),
       ...(update.startTimeMin !== undefined && {
         startTimeMin: update.startTimeMin,
-        endTimeMin: Math.min(update.startTimeMin + (entry.durationMin ?? entry.task.durationMin), 1440),
+        endTimeMin: Math.min(
+          update.startTimeMin + (entry.durationMin ?? entry.task.durationMin),
+          1440,
+        ),
       }),
     },
   });

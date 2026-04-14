@@ -247,6 +247,8 @@ export function TemplateEditorClient({
   instances,
   availableTasks,
   memberships,
+  openTimeMin,
+  closeTimeMin,
   fillHeight,
 }: TemplateEditorClientProps) {
   const router = useRouter();
@@ -288,6 +290,12 @@ export function TemplateEditorClient({
       if (page >= newPages) setPage(Math.max(0, newPages - 1));
       router.refresh();
     });
+  }
+
+  let initialScrollMin = openTimeMin;
+  for (const inst of instances) {
+    if (inst.startTimeMin < initialScrollMin)
+      initialScrollMin = inst.startTimeMin;
   }
 
   function handleDrop(col: string, timeMin: number, data: DragData) {
@@ -413,6 +421,9 @@ export function TemplateEditorClient({
             dragOver={dragOver}
             onBlockMenuClick={setEditingInstance}
             draggable
+            initialScrollMin={initialScrollMin}
+            openTimeMin={openTimeMin}
+            closeTimeMin={closeTimeMin}
             fillHeight={fillHeight}
           />
         </div>

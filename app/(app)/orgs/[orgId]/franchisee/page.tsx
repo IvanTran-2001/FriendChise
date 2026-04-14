@@ -29,7 +29,7 @@ export default async function FranchiseePage({
         token: true,
         invitedEmail: true,
         expiresAt: true,
-        usedAt: true,
+        acceptedAt: true,
         usedByOrgId: true,
       },
       orderBy: { createdAt: "desc" },

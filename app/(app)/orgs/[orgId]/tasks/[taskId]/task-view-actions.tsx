@@ -76,7 +76,8 @@ export function TaskViewActions({ orgId, taskId, taskName }: Props) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete task</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove <strong>{taskName}</strong>? This action cannot be undone.
+              Are you sure you want to remove <strong>{taskName}</strong>? This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

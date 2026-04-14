@@ -14,7 +14,11 @@ interface BackButtonProps {
  * timetable → task detail → back returns to the timetable (not the task list).
  * Falls back to `fallbackHref` when there is no prior history (direct link open).
  */
-export function BackButton({ fallbackHref, children, className }: BackButtonProps) {
+export function BackButton({
+  fallbackHref,
+  children,
+  className,
+}: BackButtonProps) {
   const router = useRouter();
 
   function handleClick() {

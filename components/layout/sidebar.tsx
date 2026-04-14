@@ -106,7 +106,11 @@ function getOrgItems(orgId: string): NavItem[] {
 
 function getSettingsItems(orgId: string): NavItem[] {
   return [
-    { title: "Back to Org", url: `/orgs/${orgId}/timetable`, icon: ChevronLeft },
+    {
+      title: "Back to Org",
+      url: `/orgs/${orgId}/timetable`,
+      icon: ChevronLeft,
+    },
     {
       title: "Organization",
       url: `/orgs/${orgId}/settings/organization`,
@@ -176,7 +180,9 @@ export function AppSidebar() {
   const { orgId } = useParams<{ orgId?: string }>();
   const pathname = usePathname();
   const { toggleSidebar, isMobile, setOpenMobile } = useSidebar();
-  const closeSidebar = () => { if (isMobile) setOpenMobile(false); };
+  const closeSidebar = () => {
+    if (isMobile) setOpenMobile(false);
+  };
   const [parentOwnerStatus, setParentOwnerStatus] = useState<{
     orgId: string | null;
     isParentOwner: boolean;
@@ -228,7 +234,10 @@ export function AppSidebar() {
     <Sidebar collapsible="offcanvas">
       <SidebarHeader className="px-4 py-4">
         <div className="flex items-center justify-between">
-          <Link href="/" className="rounded-lg px-2 py-1 -mx-2 -my-1 hover:bg-primary/8 hover:ring-1 hover:ring-primary/30 transition-all">
+          <Link
+            href="/"
+            className="rounded-lg px-2 py-1 -mx-2 -my-1 hover:bg-primary/8 hover:ring-1 hover:ring-primary/30 transition-all"
+          >
             <Logo className="text-sidebar-foreground" />
           </Link>
           <button

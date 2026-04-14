@@ -10,6 +10,17 @@ datasource db {
 // ENUMS
 // ─────────────────────────────────────
 
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum InviteType {
+  MEMBER
+  FRANCHISE
+}
+
 enum MembershipStatus {
   ACTIVE
   RESTRICTED
@@ -94,7 +105,8 @@ model User {
 
   memberships               Membership[]
   ownedOrgs                 Organization[] @relation("OrgOwner")
-  receivedFranchiseInvites  FranchiseToken[] @relation("ReceivedFranchiseInvites")
+  sentInvites               Invite[]       @relation("SentInvites")
+  receivedInvites           Invite[]       @relation("ReceivedInvites")
 
   accounts      Account[]
   sessions      Session[]
@@ -136,6 +148,7 @@ model Organization {
   timetableSettings   TimetableSettings?
   templates           Template[]
   franchiseTokens     FranchiseToken[]
+  invites             Invite[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -432,15 +445,48 @@ model FranchiseToken {
   invitedEmail String
   usedByOrgId  String?  @unique
 
-  // In-app invite: links to an existing user account
-  recipientId  String?
-  recipient    User?    @relation("ReceivedFranchiseInvites", fields: [recipientId], references: [id], onDelete: SetNull)
-
   expiresAt    DateTime
-  usedAt       DateTime?
-  declinedAt   DateTime?
+  acceptedAt   DateTime?
 
   createdAt    DateTime @default(now())
+}
 
+// ─────────────────────────────────────
+// 14. INVITE
+// ─────────────────────────────────────
+
+model Invite {
+  id          String       @id @default(cuid())
+
+  orgId       String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  // Nullable so invite history is preserved if inviter's account is deleted
+  invitedById String?
+  invitedBy   User?        @relation("SentInvites", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  recipientId String
+  recipient   User         @relation("ReceivedInvites", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  type        InviteType
+  status      InviteStatus @default(PENDING)
+
+  // Snapshot fields — captured at creation so cards render without extra joins
+  orgName     String
+  inviterName String?
+
+  // Stores intent data for accept step (e.g. { roleIds: string[], workingDays: string[] })
+  metadata    Json?
+
+  expiresAt   DateTime?
+  seenAt      DateTime?
+  acceptedAt  DateTime?
+  declinedAt  DateTime?
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([orgId])
   @@index([recipientId])
+  @@index([invitedById])
 }

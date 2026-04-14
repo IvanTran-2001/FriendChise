@@ -31,11 +31,20 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 max-w-48" disabled={isPending}>
-          <span className="truncate max-w-28 sm:max-w-40">{activeOrg?.name ?? "Select Org"}</span>
-          {isPending
-            ? <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin opacity-50" />
-            : <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />}
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 max-w-48"
+          disabled={isPending}
+        >
+          <span className="truncate max-w-28 sm:max-w-40">
+            {activeOrg?.name ?? "Select Org"}
+          </span>
+          {isPending ? (
+            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin opacity-50" />
+          ) : (
+            <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-48">
@@ -45,7 +54,9 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
           orgs.map((org) => (
             <DropdownMenuItem
               key={org.id}
-              onSelect={() => startTransition(() => router.push(`/orgs/${org.id}/timetable`))}
+              onSelect={() =>
+                startTransition(() => router.push(`/orgs/${org.id}/timetable`))
+              }
             >
               {org.name}
             </DropdownMenuItem>

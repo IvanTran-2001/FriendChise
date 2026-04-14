@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { RolePicker } from "./role-picker";
 import { DAYS } from "../_constants";
 import {
-  createMembershipAction,
+  sendMemberInviteAction,
   updateMembershipAction,
 } from "@/app/actions/memberships";
 
@@ -33,7 +33,7 @@ interface MemberFormProps {
  * Create mode: shows an email field, working days toggles, and a role picker.
  * Edit mode: shows the member's user info (read-only), working days, and roles pre-filled.
  *
- * Calls `createMembershipAction` or `updateMembershipAction` via useTransition.
+ * Calls `sendMemberInviteAction` or `updateMembershipAction` via useTransition.
  */
 export function MemberForm({
   orgId,
@@ -71,7 +71,7 @@ export function MemberForm({
 
     startTransition(async () => {
       if (mode === "create") {
-        const result = await createMembershipAction(orgId, {
+        const result = await sendMemberInviteAction(orgId, {
           email,
           roleIds,
           workingDays,

@@ -266,26 +266,23 @@ export function TaskTable({
               className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden relative group"
             >
               {/* Color accent bar */}
-              <div className="h-1.5 w-full" style={{ backgroundColor: task.color }} />
+              <div
+                className="h-1.5 w-full"
+                style={{ backgroundColor: task.color }}
+              />
               <Link
                 href={`/orgs/${orgId}/tasks/${task.id}`}
                 className="block p-4 cursor-pointer"
               >
                 <div className="flex flex-col gap-3">
                   <div className="flex items-start gap-2">
-                    {task.eligibility.length > 0 && (
-                      <div className="flex items-center gap-0.5 mt-0.5 shrink-0">
-                        {task.eligibility.slice(0, 4).map((e) => (
-                          <span
-                            key={e.role.id}
-                            className="w-2.5 h-2.5 rounded-full shrink-0"
-                            style={{ backgroundColor: e.role.color ?? "#9ca3af" }}
-                            title={e.role.name}
-                          />
-                        ))}
-                      </div>
-                    )}
-                    <div className="font-semibold text-sm leading-snug">{task.name}</div>
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0 mt-0.5"
+                      style={{ backgroundColor: task.color }}
+                    />
+                    <div className="font-semibold text-sm leading-snug">
+                      {task.name}
+                    </div>
                   </div>
                   {task.description && (
                     <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
@@ -338,7 +335,10 @@ export function TaskTable({
                         <span className="sr-only">Task actions</span>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuContent
+                      align="end"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
@@ -350,7 +350,9 @@ export function TaskTable({
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push(`/orgs/${orgId}/tasks/new?duplicateFrom=${task.id}`);
+                          router.push(
+                            `/orgs/${orgId}/tasks/new?duplicateFrom=${task.id}`,
+                          );
                         }}
                       >
                         Duplicate
@@ -376,13 +378,21 @@ export function TaskTable({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/40">
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Title</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Title
+                </th>
                 <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   Description
                 </th>
-                <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Duration</th>
-                <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">People</th>
-                <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Role</th>
+                <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Duration
+                </th>
+                <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  People
+                </th>
+                <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Role
+                </th>
                 {canManageTasks && <th className="w-10" />}
               </tr>
             </thead>
@@ -401,18 +411,10 @@ export function TaskTable({
                 >
                   <td className="px-4 py-3 font-medium">
                     <div className="flex items-center gap-2">
-                      {task.eligibility.length > 0 && (
-                        <div className="flex items-center gap-0.5 shrink-0">
-                          {task.eligibility.slice(0, 4).map((e) => (
-                            <span
-                              key={e.role.id}
-                              className="w-2 h-2 rounded-full shrink-0"
-                              style={{ backgroundColor: e.role.color ?? "#9ca3af" }}
-                              title={e.role.name}
-                            />
-                          ))}
-                        </div>
-                      )}
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: task.color }}
+                      />
                       {task.name}
                     </div>
                   </td>
@@ -422,7 +424,9 @@ export function TaskTable({
                   <td className="hidden sm:table-cell px-4 py-3 tabular-nums">
                     {task.durationMin} min
                   </td>
-                  <td className="hidden sm:table-cell px-4 py-3 tabular-nums">{task.minPeople}</td>
+                  <td className="hidden sm:table-cell px-4 py-3 tabular-nums">
+                    {task.minPeople}
+                  </td>
                   <td className="hidden sm:table-cell px-4 py-3">
                     {task.eligibility.length === 0 ? (
                       <span className="text-muted-foreground">—</span>

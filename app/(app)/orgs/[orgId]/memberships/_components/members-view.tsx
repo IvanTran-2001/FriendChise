@@ -104,7 +104,11 @@ function StatusBadge({ status }: { status: "ACTIVE" | "RESTRICTED" }) {
   );
 }
 
-function RolesBadge({ roles }: { roles: { id: string; name: string; color: string }[] }) {
+function RolesBadge({
+  roles,
+}: {
+  roles: { id: string; name: string; color: string }[];
+}) {
   if (roles.length === 0)
     return <span className="text-xs text-muted-foreground">No role</span>;
   return (
@@ -274,7 +278,11 @@ function CardGrid({
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
       {members.map((m) => {
-        const roles = m.memberRoles.map(({ role }) => ({ id: role.id, name: role.name, color: role.color }));
+        const roles = m.memberRoles.map(({ role }) => ({
+          id: role.id,
+          name: role.name,
+          color: role.color,
+        }));
         return (
           <Link
             key={m.userId}
@@ -326,7 +334,11 @@ function MemberList({
   return (
     <ul className="flex flex-col divide-y rounded-xl border bg-card overflow-hidden shadow-sm">
       {members.map((m) => {
-        const roles = m.memberRoles.map(({ role }) => ({ id: role.id, name: role.name, color: role.color }));
+        const roles = m.memberRoles.map(({ role }) => ({
+          id: role.id,
+          name: role.name,
+          color: role.color,
+        }));
         return (
           <li
             key={m.userId}

@@ -279,20 +279,20 @@ function DeleteOrgSection({
           Type &ldquo;{orgName}&rdquo; to confirm
         </label>
         <div className="flex flex-wrap items-center gap-2">
-        <Input
-          value={confirmName}
-          onChange={(e) => setConfirmName(e.target.value)}
-          placeholder={orgName}
-          className="flex-1 min-w-0 sm:max-w-xs"
-        />
-        <Button
-          variant="destructive"
-          size="sm"
-          disabled={!confirmed || isPending}
-          onClick={handleDelete}
-        >
-          {isPending ? "Deleting…" : "Delete Org"}
-        </Button>
+          <Input
+            value={confirmName}
+            onChange={(e) => setConfirmName(e.target.value)}
+            placeholder={orgName}
+            className="flex-1 min-w-0 sm:max-w-xs"
+          />
+          <Button
+            variant="destructive"
+            size="sm"
+            disabled={!confirmed || isPending}
+            onClick={handleDelete}
+          >
+            {isPending ? "Deleting…" : "Delete Org"}
+          </Button>
         </div>
       </div>
 

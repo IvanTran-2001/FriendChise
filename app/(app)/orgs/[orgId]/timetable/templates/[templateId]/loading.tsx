@@ -2,7 +2,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function TemplateEditorLoading() {
   return (
-    <div className="flex flex-col gap-4" style={{ height: "calc(100dvh - 148px)" }}>
+    <div
+      className="flex flex-col gap-4"
+      style={{ height: "calc(100dvh - 148px)" }}
+    >
       {/* Toolbar */}
       <div className="-mx-4 -mt-4 mb-0 border-b bg-card px-4 py-2 flex items-center justify-between gap-2 sm:-mx-6 sm:-mt-6 sm:px-6">
         <Skeleton className="h-5 w-24 rounded" />
@@ -15,10 +18,16 @@ export default function TemplateEditorLoading() {
       {/* Grid area */}
       <div className="flex gap-4 flex-1 min-h-0">
         <div className="flex-1 rounded-lg border bg-card overflow-hidden flex flex-col">
-          <div className="grid border-b" style={{ gridTemplateColumns: `48px repeat(7, 1fr)` }}>
+          <div
+            className="grid border-b"
+            style={{ gridTemplateColumns: `48px repeat(7, 1fr)` }}
+          >
             <div className="border-r" />
             {Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className="flex flex-col items-center py-2 gap-1 border-r last:border-r-0">
+              <div
+                key={i}
+                className="flex flex-col items-center py-2 gap-1 border-r last:border-r-0"
+              >
                 <Skeleton className="h-2.5 w-6 rounded" />
               </div>
             ))}
@@ -34,7 +43,10 @@ export default function TemplateEditorLoading() {
                   </div>
                 ))}
               </div>
-              <div className="flex-1 grid" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
+              <div
+                className="flex-1 grid"
+                style={{ gridTemplateColumns: "repeat(7, 1fr)" }}
+              >
                 {Array.from({ length: 7 }).map((_, col) => (
                   <div key={col} className="border-r last:border-r-0 relative">
                     {col % 2 === 0 && (

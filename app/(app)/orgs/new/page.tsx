@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -248,9 +248,15 @@ function CreateOrgForm({ onSwitch }: { onSwitch: () => void }) {
 
 // ─── Join Franchise Form ─────────────────────────────────────────────────────
 
-function JoinFranchiseForm({ onSwitch }: { onSwitch: () => void }) {
+function JoinFranchiseForm({
+  onSwitch,
+  initialToken = "",
+}: {
+  onSwitch: () => void;
+  initialToken?: string;
+}) {
   const router = useRouter();
-  const [token, setToken] = useState("");
+  const [token, setToken] = useState(initialToken);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const schedule = useScheduleState();
@@ -268,7 +274,8 @@ function JoinFranchiseForm({ onSwitch }: { onSwitch: () => void }) {
         setError(result.error);
         return;
       }
-      router.push(`/orgs/${result.orgId}/timetable`);    } catch {
+      router.push(`/orgs/${result.orgId}/timetable`);
+    } catch {
       setError("Something went wrong");
     } finally {
       setLoading(false);
@@ -277,21 +284,23 @@ function JoinFranchiseForm({ onSwitch }: { onSwitch: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium" htmlFor="token">
-          Invite Link / Token <span className="text-destructive">*</span>
-        </label>
-        <Input
-          id="token"
-          placeholder="Paste your invite link or token"
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
-          required
-        />
-        <p className="text-xs text-muted-foreground">
-          Tokens expire after 1 hour and can only be used once.
-        </p>
-      </div>
+      {!initialToken && (
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium" htmlFor="token">
+            Invite Link / Token <span className="text-destructive">*</span>
+          </label>
+          <Input
+            id="token"
+            placeholder="Paste your invite link or token"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            required
+          />
+          <p className="text-xs text-muted-foreground">
+            Tokens expire after 1 hour and can only be used once.
+          </p>
+        </div>
+      )}
 
       <ScheduleFields {...schedule} />
 
@@ -320,7 +329,11 @@ function JoinFranchiseForm({ onSwitch }: { onSwitch: () => void }) {
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function NewOrgPage() {
-  const [mode, setMode] = useState<"create" | "join">("create");
+  const searchParams = useSearchParams();
+  const initialToken = searchParams.get("token") ?? "";
+  const [mode, setMode] = useState<"create" | "join">(
+    initialToken ? "join" : "create",
+  );
   const { setOverride } = useBreadcrumbOverride();
 
   useEffect(() => {
@@ -342,7 +355,10 @@ export default function NewOrgPage() {
       {mode === "create" ? (
         <CreateOrgForm onSwitch={() => setMode("join")} />
       ) : (
-        <JoinFranchiseForm onSwitch={() => setMode("create")} />
+        <JoinFranchiseForm
+          onSwitch={() => setMode("create")}
+          initialToken={initialToken}
+        />
       )}
     </div>
   );

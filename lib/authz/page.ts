@@ -39,7 +39,7 @@ export async function requireOrgMemberPage(
   if (!userId) redirect("/signin");
 
   const membership = await getOrgMembership(orgId, userId);
-  if (!membership) redirect(redirectTo ?? `/orgs/${orgId}`);
+  if (!membership) redirect(redirectTo ?? `/?orgNotFound=1`);
 
   return { userId };
 }
