@@ -155,17 +155,35 @@ export function TimeGrid<
   // Auto-scroll to initialScrollMin on column set change
   const scrollRef = useRef<HTMLDivElement>(null);
   // Track pointer-down position so we can distinguish a click from a drag
-  const pointerDownPos = useRef<{ x: number; y: number; id: string } | null>(null);
+  const pointerDownPos = useRef<{ x: number; y: number; id: string } | null>(
+    null,
+  );
   useEffect(() => {
     if (!scrollRef.current) return;
     const scrollTo = Math.max(
       0,
       Math.floor(initialScrollMin / 60) * HOUR_HEIGHT - HOUR_HEIGHT / 2,
     );
-    scrollRef.current.scrollTop = scrollTo;
+    const el = scrollRef.current;
+    let rafId1: number | null = null;
+    let rafId2: number | null = null;
+    // Double-rAF: first tick lets React commit the layout, second tick lets
+    // the browser resolve flex heights (needed for fillHeight containers where
+    // scrollHeight isn't accurate after a single rAF).
+    rafId1 = requestAnimationFrame(() => {
+      rafId2 = requestAnimationFrame(() => {
+        if (scrollRef.current) {
+          el.scrollTop = scrollTo;
+        }
+      });
+    });
+    return () => {
+      if (rafId1 !== null) cancelAnimationFrame(rafId1);
+      if (rafId2 !== null) cancelAnimationFrame(rafId2);
+    };
     // Intentionally only runs when the column set changes (week/page nav)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [columns.join(",")]);
+  }, [columns.join(","), initialScrollMin]);
 
   function handleColumnDragOver(
     e: React.DragEvent<HTMLDivElement>,
@@ -206,227 +224,264 @@ export function TimeGrid<
 
   // Min px width per column so week view is horizontally scrollable on mobile
   const MIN_COL_WIDTH = 80;
-  const minGridWidth = columns.length > 1 ? `${14 * 4 + columns.length * MIN_COL_WIDTH}px` : undefined;
+  const minGridWidth =
+    columns.length > 1
+      ? `${14 * 4 + columns.length * MIN_COL_WIDTH}px`
+      : undefined;
 
   return (
     <div
       className={`rounded-xl border border-border overflow-hidden${fillHeight ? " flex flex-col flex-1 min-h-0" : ""}`}
     >
-      {/* Horizontal scroll wrapper */}
-      <div className="overflow-x-auto">
-      {/* Column headers */}
-      <div className="flex border-b border-border bg-card" style={minGridWidth ? { minWidth: minGridWidth } : undefined}>
-        <div className="w-14 shrink-0 border-r border-border" />
-        {columns.map((col) => (
-          <div
-            key={col}
-            className={`py-2 text-center text-sm border-r border-border last:border-r-0 ${columnHighlightClass?.(col) ?? "text-muted-foreground"}`}
-            style={{ minWidth: MIN_COL_WIDTH, flex: 1 }}
-          >
-            {renderColumnHeader(col)}
-          </div>
-        ))}
-      </div>
-
-      {/* Scrollable grid */}
+      {/* Horizontal scroll wrapper — must be flex-col so the inner flex-1 scrollable div gets height */}
       <div
-        ref={scrollRef}
-        className={
-          fillHeight
-            ? "overflow-y-auto bg-card flex-1 min-h-0"
-            : "overflow-y-auto bg-card"
-        }
-        style={fillHeight ? (minGridWidth ? { minWidth: minGridWidth } : undefined) : { height: "calc(100dvh - 220px)", ...(minGridWidth ? { minWidth: minGridWidth } : {}) }}
+        className={`overflow-x-auto${fillHeight ? " flex flex-col flex-1 min-h-0" : ""}`}
       >
-        <div className="flex" style={{ height: totalHeight, ...(minGridWidth ? { minWidth: minGridWidth } : {}) }}>
-          {/* Hour-label gutter */}
-          <div className="w-14 shrink-0 border-r border-border">
-            {hours.map((h) => (
-              <div
-                key={h}
-                style={{ height: HOUR_HEIGHT }}
-                className="flex items-start justify-end pr-2 pt-1 text-xs text-muted-foreground border-b border-border/50 select-none"
-              >
-                {`${h}:00`}
-              </div>
-            ))}
-          </div>
-
-          {/* Columns */}
-          {columns.map((col) => {
-            const colInstances = byColumn.get(col) ?? [];
-            const positioned = assignColumns(colInstances);
-            const isDragTarget = dragOver?.column === col;
-            const highlightClass = columnHighlightClass?.(col);
-
-            return (
-              <div
-                key={col}
-                className={`flex-1 relative border-r border-border last:border-r-0 transition-colors ${highlightClass ? "bg-primary/5" : ""} ${isDragTarget ? "bg-primary/10" : ""} ${selectedTaskId ? "cursor-crosshair" : ""}`}
-                style={{ height: totalHeight }}
-                onDragOver={(e) => handleColumnDragOver(e, col)}
-                onDragLeave={(e) => {
-                  if (!e.currentTarget.contains(e.relatedTarget as Node))
-                    onDragLeave();
-                }}
-                onDrop={(e) => handleColumnDrop(e, col)}
-                onClick={(e) => handleColumnClick(e, col)}
-              >
-                {/* Outside-hours shading */}
-                {openTimeMin !== undefined && openTimeMin > 0 && (
-                  <div
-                    className="absolute inset-x-0 bg-muted/40 pointer-events-none z-0"
-                    style={{ top: 0, height: (openTimeMin / 60) * HOUR_HEIGHT }}
-                  />
-                )}
-                {closeTimeMin !== undefined && closeTimeMin < 1440 && (
-                  <div
-                    className="absolute inset-x-0 bg-muted/40 pointer-events-none z-0"
-                    style={{ top: (closeTimeMin / 60) * HOUR_HEIGHT, height: totalHeight - (closeTimeMin / 60) * HOUR_HEIGHT }}
-                  />
-                )}
-                {/* Open/close boundary lines */}
-                {openTimeMin !== undefined && openTimeMin > 0 && (
-                  <div
-                    className="absolute inset-x-0 border-t-2 border-primary/40 pointer-events-none z-10"
-                    style={{ top: (openTimeMin / 60) * HOUR_HEIGHT }}
-                  />
-                )}
-                {closeTimeMin !== undefined && closeTimeMin < 1440 && (
-                  <div
-                    className="absolute inset-x-0 border-t-2 border-primary/40 pointer-events-none z-10"
-                    style={{ top: (closeTimeMin / 60) * HOUR_HEIGHT }}
-                  />
-                )}
-
-                {/* Hour lines */}
-                {hours.map((h) => (
-                  <div
-                    key={h}
-                    className="absolute inset-x-0 border-b border-border/40 pointer-events-none"
-                    style={{ top: h * HOUR_HEIGHT, height: HOUR_HEIGHT }}
-                  />
-                ))}
-
-                {/* Drop indicator */}
-                {isDragTarget && dragOver && (
-                  <div
-                    className="absolute inset-x-1 h-0.5 bg-primary z-10 pointer-events-none rounded"
-                    style={{ top: (dragOver.timeMin / 60) * HOUR_HEIGHT }}
-                  />
-                )}
-
-                {/* Task blocks */}
-                {positioned.map(
-                  ({ instance: inst, col: colSlot, totalCols }) => {
-                    const topPx = (inst.startTimeMin / 60) * HOUR_HEIGHT;
-                    const visibleDurationMin = Math.min(
-                      inst.task.durationMin,
-                      Math.max(0, 1440 - inst.startTimeMin),
-                    );
-                    const heightPx = Math.max(
-                      (visibleDurationMin / 60) * HOUR_HEIGHT,
-                      20,
-                    );
-                    const widthPct = 100 / totalCols;
-                    const leftPct = colSlot * widthPct;
-
-                    return (
-                      <div
-                        key={inst.id}
-                        draggable={draggable}
-                        onDragStart={
-                          draggable
-                            ? (e) => {
-                                const rect =
-                                  e.currentTarget.getBoundingClientRect();
-                                dragDataRef.current = {
-                                  type: "move",
-                                  instanceId: inst.id,
-                                  offsetMin:
-                                    ((e.clientY - rect.top) / HOUR_HEIGHT) * 60,
-                                };
-                                e.dataTransfer.effectAllowed = "move";
-                              }
-                            : undefined
-                        }
-                        onDragEnd={
-                          draggable
-                            ? () => {
-                                dragDataRef.current = null;
-                                onDragLeave();
-                              }
-                            : undefined
-                        }
-                        onPointerDown={(e) => {
-                          pointerDownPos.current = { x: e.clientX, y: e.clientY, id: inst.id };
-                        }}
-                        onClick={(e) => {
-                          if (!onBlockClick) return;
-                          const down = pointerDownPos.current;
-                          if (down && down.id === inst.id) {
-                            const dx = e.clientX - down.x;
-                            const dy = e.clientY - down.y;
-                            if (Math.sqrt(dx * dx + dy * dy) > 6) return;
-                          }
-                          e.stopPropagation();
-                          onBlockClick(inst);
-                        }}
-                        onKeyDown={
-                          onBlockClick
-                            ? (e) => {
-                                if (e.key !== "Enter" && e.key !== " ") return;
-                                if (e.key === " ") e.preventDefault();
-                                const down = pointerDownPos.current;
-                                if (down && down.id !== inst.id) return;
-                                e.stopPropagation();
-                                onBlockClick(inst);
-                              }
-                            : undefined
-                        }
-                        role={onBlockClick ? "button" : undefined}
-                        tabIndex={onBlockClick ? 0 : undefined}
-                        className={`absolute rounded-md overflow-hidden p-1.5 text-[11px] leading-snug bg-white border-2 border-primary/50 text-foreground shadow-sm hover:border-primary/80 hover:shadow transition-all select-none ${draggable ? "cursor-grab active:cursor-grabbing" : onBlockClick ? "cursor-pointer" : "cursor-default"}`}
-                        style={{
-                          top: topPx + 1,
-                          height: Math.max(heightPx - 2, 18),
-                          left: `${leftPct + 0.5}%`,
-                          width: `${widthPct - 1}%`,
-                          ...(blockColor?.(inst)
-                            ? {
-                                borderColor: blockColor(inst)!,
-                                backgroundColor: withAlpha(blockColor(inst)!, 0.094),
-                              }
-                            : {
-                                borderColor: "#9ca3af",
-                                backgroundColor: withAlpha("#9ca3af", 0.094),
-                              }),
-                        }}
-                      >
-                        {renderBlock(inst, heightPx)}
-                        {onBlockMenuClick && (
-                          <button
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onBlockMenuClick(inst);
-                            }}
-                            className="absolute top-0.5 right-0.5 flex items-center justify-center w-5 h-5 rounded bg-black/10 text-xs font-bold leading-none text-foreground hover:bg-black/25 transition-colors cursor-pointer"
-                            aria-label="Edit"
-                          >
-                            ···
-                          </button>
-                        )}
-                      </div>
-                    );
-                  },
-                )}
-              </div>
-            );
-          })}
+        {/* Column headers */}
+        <div
+          className="flex border-b border-border bg-card"
+          style={minGridWidth ? { minWidth: minGridWidth } : undefined}
+        >
+          <div className="w-14 shrink-0 border-r border-border" />
+          {columns.map((col) => (
+            <div
+              key={col}
+              className={`py-2 text-center text-sm border-r border-border last:border-r-0 ${columnHighlightClass?.(col) ?? "text-muted-foreground"}`}
+              style={{ minWidth: MIN_COL_WIDTH, flex: 1 }}
+            >
+              {renderColumnHeader(col)}
+            </div>
+          ))}
         </div>
-      </div>
-      </div> {/* end overflow-x-auto */}
+
+        {/* Scrollable grid */}
+        <div
+          ref={scrollRef}
+          className={
+            fillHeight
+              ? "overflow-y-auto bg-card flex-1 min-h-0"
+              : "overflow-y-auto bg-card"
+          }
+          style={
+            fillHeight
+              ? minGridWidth
+                ? { minWidth: minGridWidth }
+                : undefined
+              : {
+                  height: "calc(100dvh - 220px)",
+                  ...(minGridWidth ? { minWidth: minGridWidth } : {}),
+                }
+          }
+        >
+          <div
+            className="flex"
+            style={{
+              height: totalHeight,
+              ...(minGridWidth ? { minWidth: minGridWidth } : {}),
+            }}
+          >
+            {/* Hour-label gutter */}
+            <div className="w-14 shrink-0 border-r border-border">
+              {hours.map((h) => (
+                <div
+                  key={h}
+                  style={{ height: HOUR_HEIGHT }}
+                  className="flex items-start justify-end pr-2 pt-1 text-xs text-muted-foreground border-b border-border/50 select-none"
+                >
+                  {`${h}:00`}
+                </div>
+              ))}
+            </div>
+
+            {/* Columns */}
+            {columns.map((col) => {
+              const colInstances = byColumn.get(col) ?? [];
+              const positioned = assignColumns(colInstances);
+              const isDragTarget = dragOver?.column === col;
+              const highlightClass = columnHighlightClass?.(col);
+
+              return (
+                <div
+                  key={col}
+                  className={`flex-1 relative border-r border-border last:border-r-0 transition-colors ${highlightClass ? "bg-primary/5" : ""} ${isDragTarget ? "bg-primary/10" : ""} ${selectedTaskId ? "cursor-crosshair" : ""}`}
+                  style={{ height: totalHeight }}
+                  onDragOver={(e) => handleColumnDragOver(e, col)}
+                  onDragLeave={(e) => {
+                    if (!e.currentTarget.contains(e.relatedTarget as Node))
+                      onDragLeave();
+                  }}
+                  onDrop={(e) => handleColumnDrop(e, col)}
+                  onClick={(e) => handleColumnClick(e, col)}
+                >
+                  {/* Outside-hours shading */}
+                  {openTimeMin !== undefined && openTimeMin > 0 && (
+                    <div
+                      className="absolute inset-x-0 bg-muted/40 pointer-events-none z-0"
+                      style={{
+                        top: 0,
+                        height: (openTimeMin / 60) * HOUR_HEIGHT,
+                      }}
+                    />
+                  )}
+                  {closeTimeMin !== undefined && closeTimeMin < 1440 && (
+                    <div
+                      className="absolute inset-x-0 bg-muted/40 pointer-events-none z-0"
+                      style={{
+                        top: (closeTimeMin / 60) * HOUR_HEIGHT,
+                        height: totalHeight - (closeTimeMin / 60) * HOUR_HEIGHT,
+                      }}
+                    />
+                  )}
+                  {/* Open/close boundary lines */}
+                  {openTimeMin !== undefined && openTimeMin > 0 && (
+                    <div
+                      className="absolute inset-x-0 border-t-2 border-primary/40 pointer-events-none z-10"
+                      style={{ top: (openTimeMin / 60) * HOUR_HEIGHT }}
+                    />
+                  )}
+                  {closeTimeMin !== undefined && closeTimeMin < 1440 && (
+                    <div
+                      className="absolute inset-x-0 border-t-2 border-primary/40 pointer-events-none z-10"
+                      style={{ top: (closeTimeMin / 60) * HOUR_HEIGHT }}
+                    />
+                  )}
+
+                  {/* Hour lines */}
+                  {hours.map((h) => (
+                    <div
+                      key={h}
+                      className="absolute inset-x-0 border-b border-border/40 pointer-events-none"
+                      style={{ top: h * HOUR_HEIGHT, height: HOUR_HEIGHT }}
+                    />
+                  ))}
+
+                  {/* Drop indicator */}
+                  {isDragTarget && dragOver && (
+                    <div
+                      className="absolute inset-x-1 h-0.5 bg-primary z-10 pointer-events-none rounded"
+                      style={{ top: (dragOver.timeMin / 60) * HOUR_HEIGHT }}
+                    />
+                  )}
+
+                  {/* Task blocks */}
+                  {positioned.map(
+                    ({ instance: inst, col: colSlot, totalCols }) => {
+                      const topPx = (inst.startTimeMin / 60) * HOUR_HEIGHT;
+                      const visibleDurationMin = Math.min(
+                        inst.task.durationMin,
+                        Math.max(0, 1440 - inst.startTimeMin),
+                      );
+                      const heightPx = Math.max(
+                        (visibleDurationMin / 60) * HOUR_HEIGHT,
+                        20,
+                      );
+                      const widthPct = 100 / totalCols;
+                      const leftPct = colSlot * widthPct;
+
+                      return (
+                        <div
+                          key={inst.id}
+                          draggable={draggable}
+                          onDragStart={
+                            draggable
+                              ? (e) => {
+                                  const rect =
+                                    e.currentTarget.getBoundingClientRect();
+                                  dragDataRef.current = {
+                                    type: "move",
+                                    instanceId: inst.id,
+                                    offsetMin:
+                                      ((e.clientY - rect.top) / HOUR_HEIGHT) *
+                                      60,
+                                  };
+                                  e.dataTransfer.effectAllowed = "move";
+                                }
+                              : undefined
+                          }
+                          onDragEnd={
+                            draggable
+                              ? () => {
+                                  dragDataRef.current = null;
+                                  onDragLeave();
+                                }
+                              : undefined
+                          }
+                          onPointerDown={(e) => {
+                            pointerDownPos.current = {
+                              x: e.clientX,
+                              y: e.clientY,
+                              id: inst.id,
+                            };
+                          }}
+                          onClick={(e) => {
+                            if (!onBlockClick) return;
+                            const down = pointerDownPos.current;
+                            if (down && down.id === inst.id) {
+                              const dx = e.clientX - down.x;
+                              const dy = e.clientY - down.y;
+                              if (Math.sqrt(dx * dx + dy * dy) > 6) return;
+                            }
+                            e.stopPropagation();
+                            onBlockClick(inst);
+                          }}
+                          onKeyDown={
+                            onBlockClick
+                              ? (e) => {
+                                  if (e.key !== "Enter" && e.key !== " ")
+                                    return;
+                                  if (e.key === " ") e.preventDefault();
+                                  e.stopPropagation();
+                                  onBlockClick(inst);
+                                }
+                              : undefined
+                          }
+                          role={onBlockClick ? "button" : undefined}
+                          tabIndex={onBlockClick ? 0 : undefined}
+                          className={`absolute rounded-md overflow-hidden p-1.5 text-[11px] leading-snug bg-white border-2 border-primary/50 text-foreground shadow-sm hover:border-primary/80 hover:shadow transition-all select-none ${draggable ? "cursor-grab active:cursor-grabbing" : onBlockClick ? "cursor-pointer" : "cursor-default"}`}
+                          style={{
+                            top: topPx + 1,
+                            height: Math.max(heightPx - 2, 18),
+                            left: `${leftPct + 0.5}%`,
+                            width: `${widthPct - 1}%`,
+                            ...(blockColor?.(inst)
+                              ? {
+                                  borderColor: blockColor(inst)!,
+                                  backgroundColor: withAlpha(
+                                    blockColor(inst)!,
+                                    0.094,
+                                  ),
+                                }
+                              : {
+                                  borderColor: "#9ca3af",
+                                  backgroundColor: withAlpha("#9ca3af", 0.094),
+                                }),
+                          }}
+                        >
+                          {renderBlock(inst, heightPx)}
+                          {onBlockMenuClick && (
+                            <button
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onBlockMenuClick(inst);
+                              }}
+                              className="absolute top-0.5 right-0.5 flex items-center justify-center w-5 h-5 rounded bg-black/10 text-xs font-bold leading-none text-foreground hover:bg-black/25 transition-colors cursor-pointer"
+                              aria-label="Edit"
+                            >
+                              ···
+                            </button>
+                          )}
+                        </div>
+                      );
+                    },
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>{" "}
+      {/* end overflow-x-auto */}
     </div>
   );
 }

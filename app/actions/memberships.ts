@@ -1,9 +1,5 @@
 "use server";
 
-/**
- * Server Actions for membership management.
- */
-
 import { PermissionAction } from "@prisma/client";
 import { requireOrgPermissionAction } from "@/lib/authz";
 import {
@@ -11,15 +7,13 @@ import {
   updateMembership,
   setMembershipStatus,
 } from "@/lib/services/memberships";
+import { createMemberInvite } from "@/lib/services/invites";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { ROLE_KEYS } from "@/lib/rbac";
+import { auth } from "@/auth";
+import { sendMemberInviteSchema } from "@/lib/validators/membership";
 
-/**
- * Adds a new member to an org by email, with working days and one or more roles.
- * Used by the create-membership form via useTransition.
- */
-export async function createMembershipAction(
+export async function sendMemberInviteAction(
   orgId: string,
   data: { email: string; roleIds: string[]; workingDays: string[] },
 ): Promise<{ ok: true } | { ok: false; error: string; field?: string }> {
@@ -29,59 +23,50 @@ export async function createMembershipAction(
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const email = data.email.trim().toLowerCase();
-  if (!email) return { ok: false, error: "Email is required", field: "email" };
-  if (data.roleIds.length === 0)
-    return {
-      ok: false,
-      error: "At least one role is required",
-      field: "roles",
-    };
+  const session = await auth();
+  const invitedById = session?.user?.id ?? null;
 
-  const user = await prisma.user.findUnique({
+  const parsed = sendMemberInviteSchema.safeParse(data);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const field =
+      issue.path[0] === "email"
+        ? "email"
+        : issue.path[0] === "roleIds"
+          ? "roles"
+          : undefined;
+    return { ok: false, error: issue.message, field };
+  }
+
+  const { email: rawEmail, roleIds, workingDays } = parsed.data;
+  const email = rawEmail.trim().toLowerCase();
+
+  const recipient = await prisma.user.findUnique({
     where: { email },
     select: { id: true },
   });
-  if (!user)
+  if (!recipient)
     return {
       ok: false,
       error: "No user found with that email address",
       field: "email",
     };
 
-  const validRoles = await prisma.role.findMany({
-    where: { id: { in: data.roleIds }, orgId },
-    select: { id: true, key: true },
-  });
-  if (validRoles.length !== data.roleIds.length)
-    return { ok: false, error: "One or more roles not found", field: "roles" };
-  if (validRoles.some((r) => r.key === ROLE_KEYS.OWNER))
-    return { ok: false, error: "Cannot assign the owner role", field: "roles" };
-
-  try {
-    await prisma.$transaction(async (tx) => {
-      const existing = await tx.membership.findUnique({
-        where: { userId_orgId: { userId: user.id, orgId } },
-      });
-      if (existing) throw new Error("CONFLICT");
-
-      const m = await tx.membership.create({
-        data: { orgId, userId: user.id, workingDays: data.workingDays },
-      });
-      await Promise.all(
-        data.roleIds.map((roleId) =>
-          tx.memberRole.create({ data: { membershipId: m.id, roleId } }),
-        ),
-      );
-    });
-  } catch (e) {
-    if (e instanceof Error && e.message === "CONFLICT")
-      return {
-        ok: false,
-        error: "This user is already a member",
-        field: "email",
-      };
-    throw e;
+  const result = await createMemberInvite(
+    orgId,
+    invitedById,
+    recipient.id,
+    roleIds,
+    workingDays,
+  );
+  if (!result.ok) {
+    const field =
+      result.code === "CONFLICT"
+        ? "email"
+        : result.code === "INVALID"
+          ? "roles"
+          : undefined;
+    return { ok: false, error: result.error, field };
   }
 
   revalidatePath(`/orgs/${orgId}/memberships`);

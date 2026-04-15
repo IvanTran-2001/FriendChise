@@ -1,27 +1,9 @@
-/*
-  Warnings:
+-- CreateEnum
+CREATE TYPE "InviteStatus" AS ENUM ('PENDING', 'ACCEPTED', 'DECLINED');
 
-  - You are about to drop the column `createdAt` on the `Membership` table. All the data in the column will be lost.
-  - You are about to drop the column `roleId` on the `Membership` table. All the data in the column will be lost.
-  - You are about to drop the column `ownerUserId` on the `Organization` table. All the data in the column will be lost.
-  - You are about to drop the column `title` on the `Organization` table. All the data in the column will be lost.
-  - You are about to drop the column `title` on the `Role` table. All the data in the column will be lost.
-  - You are about to drop the column `peopleRequired` on the `Task` table. All the data in the column will be lost.
-  - You are about to drop the column `title` on the `Task` table. All the data in the column will be lost.
-  - You are about to drop the column `createdAt` on the `TaskEligibility` table. All the data in the column will be lost.
-  - You are about to drop the column `updatedAt` on the `TaskEligibility` table. All the data in the column will be lost.
-  - You are about to drop the `RolePermission` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `TaskInstance` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `TaskInstanceAssignee` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `TimetableTemplate` table. If the table is not empty, all the data it contains will be lost.
-  - A unique constraint covering the columns `[userId,orgId]` on the table `Membership` will be added. If there are existing duplicate values, this will fail.
-  - A unique constraint covering the columns `[orgId,name]` on the table `Task` will be added. If there are existing duplicate values, this will fail.
-  - Added the required column `name` to the `Organization` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `ownerId` to the `Organization` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `name` to the `Role` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `name` to the `Task` table without a default value. This is not possible if the table is not empty.
+-- CreateEnum
+CREATE TYPE "InviteType" AS ENUM ('MEMBER', 'FRANCHISE');
 
-*/
 -- CreateEnum
 CREATE TYPE "MembershipStatus" AS ENUM ('ACTIVE', 'RESTRICTED');
 
@@ -34,96 +16,99 @@ CREATE TYPE "EntryStatus" AS ENUM ('TODO', 'IN_PROGRESS', 'DONE', 'SKIPPED', 'CA
 -- CreateEnum
 CREATE TYPE "ViewType" AS ENUM ('DAILY', 'WEEKLY');
 
--- DropForeignKey
-ALTER TABLE "Membership" DROP CONSTRAINT "Membership_roleId_fkey";
+-- CreateTable
+CREATE TABLE "Account" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "provider" TEXT NOT NULL,
+    "providerAccountId" TEXT NOT NULL,
+    "refresh_token" TEXT,
+    "access_token" TEXT,
+    "expires_at" INTEGER,
+    "token_type" TEXT,
+    "scope" TEXT,
+    "id_token" TEXT,
+    "session_state" TEXT,
 
--- DropForeignKey
-ALTER TABLE "Organization" DROP CONSTRAINT "Organization_ownerUserId_fkey";
+    CONSTRAINT "Account_pkey" PRIMARY KEY ("id")
+);
 
--- DropForeignKey
-ALTER TABLE "RolePermission" DROP CONSTRAINT "RolePermission_roleId_fkey";
+-- CreateTable
+CREATE TABLE "Session" (
+    "id" TEXT NOT NULL,
+    "sessionToken" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "expires" TIMESTAMP(3) NOT NULL,
 
--- DropForeignKey
-ALTER TABLE "TaskInstance" DROP CONSTRAINT "TaskInstance_orgId_fkey";
+    CONSTRAINT "Session_pkey" PRIMARY KEY ("id")
+);
 
--- DropForeignKey
-ALTER TABLE "TaskInstance" DROP CONSTRAINT "TaskInstance_taskId_fkey";
+-- CreateTable
+CREATE TABLE "VerificationToken" (
+    "identifier" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "expires" TIMESTAMP(3) NOT NULL
+);
 
--- DropForeignKey
-ALTER TABLE "TaskInstance" DROP CONSTRAINT "TaskInstance_templateId_fkey";
+-- CreateTable
+CREATE TABLE "User" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "emailVerified" TIMESTAMP(3),
+    "name" TEXT,
+    "image" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
--- DropForeignKey
-ALTER TABLE "TaskInstanceAssignee" DROP CONSTRAINT "TaskInstanceAssignee_membershipId_fkey";
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
 
--- DropForeignKey
-ALTER TABLE "TaskInstanceAssignee" DROP CONSTRAINT "TaskInstanceAssignee_taskInstanceId_fkey";
+-- CreateTable
+CREATE TABLE "Organization" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "image" TEXT,
+    "ownerId" TEXT NOT NULL,
+    "parentId" TEXT,
+    "address" TEXT,
+    "operatingDays" TEXT[],
+    "openTimeMin" INTEGER,
+    "closeTimeMin" INTEGER,
+    "timezone" TEXT NOT NULL DEFAULT 'Australia/Sydney',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
--- DropForeignKey
-ALTER TABLE "TimetableTemplate" DROP CONSTRAINT "TimetableTemplate_orgId_fkey";
+    CONSTRAINT "Organization_pkey" PRIMARY KEY ("id")
+);
 
--- DropIndex
-DROP INDEX "Membership_orgId_userId_key";
+-- CreateTable
+CREATE TABLE "Membership" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "orgId" TEXT NOT NULL,
+    "workingDays" TEXT[],
+    "status" "MembershipStatus" NOT NULL DEFAULT 'ACTIVE',
+    "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
--- DropIndex
-DROP INDEX "Organization_ownerUserId_idx";
+    CONSTRAINT "Membership_pkey" PRIMARY KEY ("id")
+);
 
--- DropIndex
-DROP INDEX "Task_orgId_title_key";
+-- CreateTable
+CREATE TABLE "Role" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "color" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "orgId" TEXT NOT NULL,
+    "isDeletable" BOOLEAN NOT NULL DEFAULT true,
+    "isDefault" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
--- AlterTable
-ALTER TABLE "Membership" DROP COLUMN "createdAt",
-DROP COLUMN "roleId",
-ADD COLUMN     "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-ADD COLUMN     "status" "MembershipStatus" NOT NULL DEFAULT 'ACTIVE',
-ADD COLUMN     "workingDays" TEXT[];
-
--- AlterTable
-ALTER TABLE "Organization" DROP COLUMN "ownerUserId",
-DROP COLUMN "title",
-ADD COLUMN     "address" TEXT,
-ADD COLUMN     "image" TEXT,
-ADD COLUMN     "name" TEXT NOT NULL,
-ADD COLUMN     "ownerId" TEXT NOT NULL,
-ADD COLUMN     "parentId" TEXT;
-
--- AlterTable
-ALTER TABLE "Role" DROP COLUMN "title",
-ADD COLUMN     "color" TEXT,
-ADD COLUMN     "isDefault" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "isDeletable" BOOLEAN NOT NULL DEFAULT true,
-ADD COLUMN     "name" TEXT NOT NULL;
-
--- AlterTable
-ALTER TABLE "Task" DROP COLUMN "peopleRequired",
-DROP COLUMN "title",
-ADD COLUMN     "color" TEXT,
-ADD COLUMN     "maxPeople" INTEGER,
-ADD COLUMN     "minPeople" INTEGER NOT NULL DEFAULT 1,
-ADD COLUMN     "name" TEXT NOT NULL,
-ADD COLUMN     "priority" INTEGER NOT NULL DEFAULT 0,
-ALTER COLUMN "durationMin" SET DEFAULT 60;
-
--- AlterTable
-ALTER TABLE "TaskEligibility" DROP COLUMN "createdAt",
-DROP COLUMN "updatedAt";
-
--- DropTable
-DROP TABLE "RolePermission";
-
--- DropTable
-DROP TABLE "TaskInstance";
-
--- DropTable
-DROP TABLE "TaskInstanceAssignee";
-
--- DropTable
-DROP TABLE "TimetableTemplate";
-
--- DropEnum
-DROP TYPE "OrgPermission";
-
--- DropEnum
-DROP TYPE "TaskInstanceStatus";
+    CONSTRAINT "Role_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "Permission" (
@@ -142,6 +127,35 @@ CREATE TABLE "MemberRole" (
     "assignedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "MemberRole_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Task" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "color" TEXT NOT NULL,
+    "orgId" TEXT NOT NULL,
+    "durationMin" INTEGER NOT NULL DEFAULT 60,
+    "minPeople" INTEGER NOT NULL DEFAULT 1,
+    "maxPeople" INTEGER,
+    "priority" INTEGER NOT NULL DEFAULT 0,
+    "preferredStartTimeMin" INTEGER,
+    "minWaitDays" INTEGER,
+    "maxWaitDays" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Task_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TaskEligibility" (
+    "id" TEXT NOT NULL,
+    "taskId" TEXT NOT NULL,
+    "roleId" TEXT NOT NULL,
+
+    CONSTRAINT "TaskEligibility_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -233,11 +247,70 @@ CREATE TABLE "FranchiseToken" (
     "invitedEmail" TEXT NOT NULL,
     "usedByOrgId" TEXT,
     "expiresAt" TIMESTAMP(3) NOT NULL,
-    "usedAt" TIMESTAMP(3),
+    "acceptedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "FranchiseToken_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateTable
+CREATE TABLE "Invite" (
+    "id" TEXT NOT NULL,
+    "orgId" TEXT NOT NULL,
+    "invitedById" TEXT,
+    "recipientId" TEXT NOT NULL,
+    "type" "InviteType" NOT NULL,
+    "status" "InviteStatus" NOT NULL DEFAULT 'PENDING',
+    "expiresAt" TIMESTAMP(3),
+    "acceptedAt" TIMESTAMP(3),
+    "declinedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Invite_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX "Account_userId_idx" ON "Account"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Account_provider_providerAccountId_key" ON "Account"("provider", "providerAccountId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Session_sessionToken_key" ON "Session"("sessionToken");
+
+-- CreateIndex
+CREATE INDEX "Session_userId_idx" ON "Session"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "VerificationToken_token_key" ON "VerificationToken"("token");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "VerificationToken_identifier_token_key" ON "VerificationToken"("identifier", "token");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE INDEX "Organization_ownerId_idx" ON "Organization"("ownerId");
+
+-- CreateIndex
+CREATE INDEX "Organization_parentId_idx" ON "Organization"("parentId");
+
+-- CreateIndex
+CREATE INDEX "Membership_orgId_idx" ON "Membership"("orgId");
+
+-- CreateIndex
+CREATE INDEX "Membership_userId_idx" ON "Membership"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Membership_userId_orgId_key" ON "Membership"("userId", "orgId");
+
+-- CreateIndex
+CREATE INDEX "Role_orgId_idx" ON "Role"("orgId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Role_orgId_key_key" ON "Role"("orgId", "key");
 
 -- CreateIndex
 CREATE INDEX "Permission_roleId_idx" ON "Permission"("roleId");
@@ -253,6 +326,21 @@ CREATE INDEX "MemberRole_roleId_idx" ON "MemberRole"("roleId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "MemberRole_membershipId_roleId_key" ON "MemberRole"("membershipId", "roleId");
+
+-- CreateIndex
+CREATE INDEX "Task_orgId_idx" ON "Task"("orgId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Task_orgId_name_key" ON "Task"("orgId", "name");
+
+-- CreateIndex
+CREATE INDEX "TaskEligibility_taskId_idx" ON "TaskEligibility"("taskId");
+
+-- CreateIndex
+CREATE INDEX "TaskEligibility_roleId_idx" ON "TaskEligibility"("roleId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TaskEligibility_taskId_roleId_key" ON "TaskEligibility"("taskId", "roleId");
 
 -- CreateIndex
 CREATE INDEX "TimetableEntry_orgId_idx" ON "TimetableEntry"("orgId");
@@ -291,22 +379,34 @@ CREATE UNIQUE INDEX "FranchiseToken_token_key" ON "FranchiseToken"("token");
 CREATE UNIQUE INDEX "FranchiseToken_usedByOrgId_key" ON "FranchiseToken"("usedByOrgId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Membership_userId_orgId_key" ON "Membership"("userId", "orgId");
+CREATE INDEX "Invite_orgId_idx" ON "Invite"("orgId");
 
 -- CreateIndex
-CREATE INDEX "Organization_ownerId_idx" ON "Organization"("ownerId");
+CREATE INDEX "Invite_recipientId_idx" ON "Invite"("recipientId");
 
 -- CreateIndex
-CREATE INDEX "Organization_parentId_idx" ON "Organization"("parentId");
+CREATE INDEX "Invite_invitedById_idx" ON "Invite"("invitedById");
 
--- CreateIndex
-CREATE UNIQUE INDEX "Task_orgId_name_key" ON "Task"("orgId", "name");
+-- AddForeignKey
+ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Organization" ADD CONSTRAINT "Organization_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Organization" ADD CONSTRAINT "Organization_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "Organization"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Membership" ADD CONSTRAINT "Membership_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Membership" ADD CONSTRAINT "Membership_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Role" ADD CONSTRAINT "Role_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Permission" ADD CONSTRAINT "Permission_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -316,6 +416,15 @@ ALTER TABLE "MemberRole" ADD CONSTRAINT "MemberRole_membershipId_fkey" FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE "MemberRole" ADD CONSTRAINT "MemberRole_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Task" ADD CONSTRAINT "Task_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TaskEligibility" ADD CONSTRAINT "TaskEligibility_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TaskEligibility" ADD CONSTRAINT "TaskEligibility_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "TimetableEntry" ADD CONSTRAINT "TimetableEntry_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -339,7 +448,7 @@ ALTER TABLE "Template" ADD CONSTRAINT "Template_orgId_fkey" FOREIGN KEY ("orgId"
 ALTER TABLE "TemplateEntry" ADD CONSTRAINT "TemplateEntry_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "Template"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "TemplateEntry" ADD CONSTRAINT "TemplateEntry_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "Task"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "TemplateEntry" ADD CONSTRAINT "TemplateEntry_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "TemplateEntryAssignee" ADD CONSTRAINT "TemplateEntryAssignee_templateEntryId_fkey" FOREIGN KEY ("templateEntryId") REFERENCES "TemplateEntry"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -349,3 +458,12 @@ ALTER TABLE "TemplateEntryAssignee" ADD CONSTRAINT "TemplateEntryAssignee_member
 
 -- AddForeignKey
 ALTER TABLE "FranchiseToken" ADD CONSTRAINT "FranchiseToken_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Invite" ADD CONSTRAINT "Invite_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Invite" ADD CONSTRAINT "Invite_invitedById_fkey" FOREIGN KEY ("invitedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Invite" ADD CONSTRAINT "Invite_recipientId_fkey" FOREIGN KEY ("recipientId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

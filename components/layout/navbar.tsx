@@ -4,8 +4,16 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { OrgSwitcher } from "@/components/layout/org-switcher";
-import { NavbarSidebarTrigger, NavbarLogo, NavbarLogoSpacer } from "@/components/layout/navbar-sidebar-trigger";
-import { Bell } from "lucide-react";
+import {
+  NavbarSidebarTrigger,
+  NavbarLogo,
+  NavbarLogoSpacer,
+} from "@/components/layout/navbar-sidebar-trigger";
+import { NotificationPanel } from "@/components/layout/notification-panel";
+import {
+  getInvitesForUser,
+  getUnseenInviteCount,
+} from "@/lib/services/invites";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +54,16 @@ export const NavBar = async () => {
         })
     : [];
 
+  const [invites, unseenCount] = user?.id
+    ? await Promise.all([
+        getInvitesForUser(user.id),
+        getUnseenInviteCount(user.id),
+      ]).catch((error) => {
+        console.error("Failed to load invites for navbar", error);
+        return [[], 0] as [never[], number];
+      })
+    : [[], 0];
+
   return (
     <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4">
       {/* Left: sidebar toggle, app title, org switcher */}
@@ -60,18 +78,8 @@ export const NavBar = async () => {
 
       {/* Right: notifications and user menu */}
       <div className="flex items-center gap-2">
-        {/* Notification bell — badge count is hardcoded at 0 until notifications are implemented */}
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Notifications"
-          className="relative h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent"
-        >
-          <Bell className="h-4 w-4" />
-          <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center px-0.5 leading-none">
-            0
-          </span>
-        </Button>
+        {/* Notification bell */}
+        <NotificationPanel invites={invites} unseenCount={unseenCount} />
 
         {/* User avatar — only rendered when a user is signed in */}
         {user && (

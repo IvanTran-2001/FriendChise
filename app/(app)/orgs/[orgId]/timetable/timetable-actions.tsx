@@ -32,7 +32,12 @@ export function TimetableActions({
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={openDialog} className="shrink-0">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={openDialog}
+        className="shrink-0"
+      >
         Apply Template
       </Button>
       <Button variant="outline" size="sm" asChild className="shrink-0">

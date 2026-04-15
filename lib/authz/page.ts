@@ -28,7 +28,7 @@ export async function requireUserPage({
 
 /**
  * - Not signed in  → redirects to /signin
- * - Not a member   → redirects to redirectTo (default: /)
+ * - Not a member   → redirects to redirectTo (default: /?orgNotFound=1)
  * - Otherwise      → returns { userId }
  */
 export async function requireOrgMemberPage(
@@ -39,7 +39,7 @@ export async function requireOrgMemberPage(
   if (!userId) redirect("/signin");
 
   const membership = await getOrgMembership(orgId, userId);
-  if (!membership) redirect(redirectTo ?? `/orgs/${orgId}`);
+  if (!membership) redirect(redirectTo ?? `/?orgNotFound=1`);
 
   return { userId };
 }

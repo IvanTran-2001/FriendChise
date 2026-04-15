@@ -35,7 +35,15 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, LayoutList, MoreHorizontal, Plus, X } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  LayoutList,
+  MoreHorizontal,
+  Plus,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -269,7 +277,7 @@ function CalendarEditPopup({
       }}
     >
       <DialogContent className="w-72 p-4 gap-3" showCloseButton={false}>
-<DialogHeader>
+        <DialogHeader>
           <DialogTitle>{instance.task.title}</DialogTitle>
         </DialogHeader>
 
@@ -381,7 +389,13 @@ function CalendarEditPopup({
               Delete
             </Button>
           )}
-          <Button size="sm" variant="ghost" onClick={onClose} disabled={isSaving} className="h-7">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onClose}
+            disabled={isSaving}
+            className="h-7"
+          >
             Cancel
           </Button>
         </div>
@@ -448,6 +462,7 @@ function CalendarView({
   const [editingInstance, setEditingInstance] =
     useState<ClientTimetableInstance | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const hasPanel = !!availableTasks;
 
@@ -492,92 +507,117 @@ function CalendarView({
 
   return (
     <>
-      <div className={`relative flex gap-4${fillHeight ? " flex-1 min-h-0" : ""}${isDropPending ? " opacity-50 pointer-events-none" : ""} transition-opacity duration-150`}>
-        <TimeGrid
-          columns={days}
-          instances={instances}
-          getColumnKey={(inst) => inst.date}
-          renderColumnHeader={(dayStr) => {
-            const d = new Date(dayStr + "T00:00:00Z");
-            const today = dayStr === todayStr;
-            return (
-              <>
-                <div
-                  className={`text-[10px] font-semibold tracking-widest uppercase ${
-                    today ? "text-primary" : "text-muted-foreground"
-                  }`}
-                >
-                  {getDayName(dayStr)}
-                </div>
-                <div className="flex justify-center mt-1.5">
+      <div
+        className={`flex gap-4${fillHeight ? " flex-1 min-h-0" : ""}${isDropPending ? " opacity-50 pointer-events-none" : ""} transition-opacity duration-150`}
+      >
+        <div
+          className={`relative${fillHeight ? " flex-1 min-h-0 flex flex-col" : " flex-1"}`}
+        >
+          {instances.length === 0 && !isDragging && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/90 rounded-xl">
+              <div className="flex flex-col items-center gap-3 text-center">
+                <CalendarDays className="h-10 w-10 text-muted-foreground/40" />
+                <p className="text-2xl font-semibold text-foreground">
+                  {span === "day" ? "No tasks today" : "No tasks this week"}
+                </p>
+                {hasPanel && (
+                  <p className="text-sm text-muted-foreground">
+                    {isMobile
+                      ? "Tap Tasks to add one"
+                      : "Drag a task from the panel to get started"}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          <TimeGrid
+            columns={days}
+            instances={instances}
+            getColumnKey={(inst) => inst.date}
+            renderColumnHeader={(dayStr) => {
+              const d = new Date(dayStr + "T00:00:00Z");
+              const today = dayStr === todayStr;
+              return (
+                <>
                   <div
-                    className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold leading-none transition-colors ${
-                      today
-                        ? "bg-primary text-primary-foreground"
-                        : "text-foreground"
+                    className={`text-[10px] font-semibold tracking-widest uppercase ${
+                      today ? "text-primary" : "text-muted-foreground"
                     }`}
                   >
-                    {d.getUTCDate()}
+                    {getDayName(dayStr)}
                   </div>
-                </div>
-              </>
-            );
-          }}
-          renderBlock={(inst, heightPx) => {
-            const assigneeNames = inst.assignees
-              .map((a) => a.membership.user.name?.split(" ")[0] ?? "?")
-              .join(", ");
-            return (
-              <>
-                <div className="text-[10px] text-muted-foreground font-mono leading-none mb-0.5">
-                  {minToHHMM(inst.startTimeMin)}
-                </div>
-                <Link
-                  href={`/orgs/${orgId}/tasks/${inst.taskId}?ref=timetable`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="font-semibold truncate block hover:underline"
-                >
-                  {inst.task.title}
-                </Link>
-                {heightPx >= 44 && (
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDotClass(effStatus(inst))}`}
-                    />
-                    <span className="truncate text-[10px] text-muted-foreground">
-                      {STATUS_LABELS[effStatus(inst)]}
-                    </span>
+                  <div className="flex justify-center mt-1.5">
+                    <div
+                      className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold leading-none transition-colors ${
+                        today
+                          ? "bg-primary text-primary-foreground"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {d.getUTCDate()}
+                    </div>
                   </div>
-                )}
-                {heightPx >= 60 && assigneeNames && (
-                  <div className="truncate text-[10px] text-muted-foreground mt-0.5">
-                    {assigneeNames}
+                </>
+              );
+            }}
+            renderBlock={(inst, heightPx) => {
+              const assigneeNames = inst.assignees
+                .map((a) => a.membership.user.name?.split(" ")[0] ?? "?")
+                .join(", ");
+              return (
+                <>
+                  <div className="text-[10px] text-muted-foreground font-mono leading-none mb-0.5">
+                    {minToHHMM(inst.startTimeMin)}
                   </div>
-                )}
-              </>
-            );
-          }}
-          dragDataRef={dragDataRef}
-          onDragOver={(col, timeMin) => setDragOver({ column: col, timeMin })}
-          onDrop={handleDrop}
-          onDragLeave={() => setDragOver(null)}
-          dragOver={dragOver}
-          onBlockMenuClick={memberships ? setEditingInstance : undefined}
-          onBlockClick={(inst) =>
-            router.push(`/orgs/${orgId}/tasks/${inst.taskId}?ref=timetable`)
-          }
-          draggable={hasPanel}
-          initialScrollMin={initialScrollMin}
-          fillHeight={fillHeight}
-          columnHighlightClass={(dayStr) =>
-            dayStr === todayStr ? "bg-primary/[0.04] text-foreground" : undefined
-          }
-          blockColor={(inst) => inst.taskColor ?? undefined}
-          openTimeMin={openTimeMin}
-          closeTimeMin={closeTimeMin}
-          selectedTaskId={isMobile ? selectedTaskId : null}
-          onTapPlace={isMobile ? handleTapPlace : undefined}
-        />
+                  <Link
+                    href={`/orgs/${orgId}/tasks/${inst.taskId}?ref=timetable`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="font-semibold truncate block hover:underline"
+                  >
+                    {inst.task.title}
+                  </Link>
+                  {heightPx >= 44 && (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDotClass(effStatus(inst))}`}
+                      />
+                      <span className="truncate text-[10px] text-muted-foreground">
+                        {STATUS_LABELS[effStatus(inst)]}
+                      </span>
+                    </div>
+                  )}
+                  {heightPx >= 60 && assigneeNames && (
+                    <div className="truncate text-[10px] text-muted-foreground mt-0.5">
+                      {assigneeNames}
+                    </div>
+                  )}
+                </>
+              );
+            }}
+            dragDataRef={dragDataRef}
+            onDragOver={(col, timeMin) => setDragOver({ column: col, timeMin })}
+            onDrop={handleDrop}
+            onDragLeave={() => setDragOver(null)}
+            dragOver={dragOver}
+            onBlockMenuClick={memberships ? setEditingInstance : undefined}
+            onBlockClick={(inst) =>
+              router.push(`/orgs/${orgId}/tasks/${inst.taskId}?ref=timetable`)
+            }
+            draggable={hasPanel}
+            initialScrollMin={initialScrollMin}
+            fillHeight={fillHeight}
+            columnHighlightClass={(dayStr) =>
+              dayStr === todayStr
+                ? "bg-primary/[0.04] text-foreground"
+                : undefined
+            }
+            blockColor={(inst) => inst.taskColor ?? undefined}
+            openTimeMin={openTimeMin}
+            closeTimeMin={closeTimeMin}
+            selectedTaskId={isMobile ? selectedTaskId : null}
+            onTapPlace={isMobile ? handleTapPlace : undefined}
+          />
+        </div>
         {hasPanel && !isMobile && (
           <TaskPanel
             tasks={availableTasks}
@@ -585,10 +625,12 @@ function CalendarView({
             onDragStart={(taskId, e) => {
               dragDataRef.current = { type: "task", taskId };
               e.dataTransfer.effectAllowed = "copy";
+              setIsDragging(true);
             }}
             onDragEnd={() => {
               dragDataRef.current = null;
               setDragOver(null);
+              setIsDragging(false);
             }}
           />
         )}
@@ -621,7 +663,11 @@ function CalendarView({
           <Sheet open={taskPanelOpen} onOpenChange={setTaskPanelOpen}>
             <SheetContent
               side={isLandscape ? "right" : "bottom"}
-              className={isLandscape ? "w-64 p-0 flex flex-col" : "h-[55vh] p-0 flex flex-col"}
+              className={
+                isLandscape
+                  ? "w-64 p-0 flex flex-col"
+                  : "h-[55vh] p-0 flex flex-col"
+              }
             >
               <SheetHeader className="px-4 pt-4 pb-2 border-b shrink-0">
                 <SheetTitle>Tasks</SheetTitle>
@@ -639,11 +685,13 @@ function CalendarView({
                 onDragStart={(taskId, e) => {
                   dragDataRef.current = { type: "task", taskId };
                   e.dataTransfer.effectAllowed = "copy";
+                  setIsDragging(true);
                 }}
                 onDragEnd={() => {
                   dragDataRef.current = null;
                   setDragOver(null);
                   setTaskPanelOpen(false);
+                  setIsDragging(false);
                 }}
               />
             </SheetContent>
@@ -706,6 +754,19 @@ function SimpleView({
       : Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const byDate = groupBy(instances, (inst) => inst.date);
 
+  if (instances.length === 0) {
+    return (
+      <div className="flex items-center justify-center rounded-xl border bg-card py-24">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <CalendarDays className="h-10 w-10 text-muted-foreground/40" />
+          <p className="text-2xl font-semibold text-foreground">
+            {span === "day" ? "No tasks today" : "No tasks this week"}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="flex flex-col gap-4">
@@ -716,7 +777,10 @@ function SimpleView({
           const dayLabel = `${getDayName(dayStr)}, ${getMonthName(d.getUTCMonth())} ${d.getUTCDate()}`;
 
           return (
-            <div key={dayStr} className={`rounded-xl border shadow-sm overflow-hidden ${today ? "border-primary/40 bg-card ring-1 ring-primary/20" : "bg-card"}`}>
+            <div
+              key={dayStr}
+              className={`rounded-xl border shadow-sm overflow-hidden ${today ? "border-primary/40 bg-card ring-1 ring-primary/20" : "bg-card"}`}
+            >
               <div
                 className={`px-4 py-2.5 flex items-center gap-2 font-semibold text-sm border-b ${today ? "bg-primary/8 text-primary border-primary/20" : "bg-muted/20"}`}
               >
@@ -883,7 +947,8 @@ export function TimetableClient({
   const effectiveDayStr = dayStr ?? todayStr;
   const router = useRouter();
   const [isNavPending, startNavTransition] = useTransition();
-  const navigate = (href: string) => startNavTransition(() => router.push(href));
+  const navigate = (href: string) =>
+    startNavTransition(() => router.push(href));
 
   const makeHref = (
     w: string,
@@ -938,7 +1003,9 @@ export function TimetableClient({
         >
           Today
         </Button>
-        <div className={`h-4 w-px bg-border shrink-0 transition-opacity duration-200${isOnToday ? " opacity-0" : ""}`} />
+        <div
+          className={`h-4 w-px bg-border shrink-0 transition-opacity duration-200${isOnToday ? " opacity-0" : ""}`}
+        />
         <div className="flex items-center gap-0.5 flex-1 justify-center">
           <Button
             variant="ghost"
@@ -949,7 +1016,9 @@ export function TimetableClient({
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className={`text-sm font-medium min-w-52 text-center transition-opacity duration-150${isNavPending ? " opacity-50" : ""}`}>
+          <span
+            className={`text-sm font-medium min-w-52 text-center transition-opacity duration-150${isNavPending ? " opacity-50" : ""}`}
+          >
             {navLabel}
           </span>
           <Button
@@ -964,7 +1033,9 @@ export function TimetableClient({
         </div>
       </div>
 
-      <div className={`transition-opacity duration-150${isNavPending ? " opacity-40 pointer-events-none" : ""}${fillHeight ? " flex-1 min-h-0 flex flex-col" : ""}`}>
+      <div
+        className={`transition-opacity duration-150${isNavPending ? " opacity-40 pointer-events-none" : ""}${fillHeight ? " flex-1 min-h-0 flex flex-col" : ""}`}
+      >
         {mode === "calendar" ? (
           <CalendarView
             instances={instances}

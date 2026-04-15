@@ -14,9 +14,7 @@ export function NavbarSidebarTrigger() {
   const isOpen = isMobile ? openMobile : open;
   if (isOpen) return null;
   return (
-    <SidebarTrigger
-      className="transition-all duration-200 ease-in-out opacity-100 translate-x-0"
-    />
+    <SidebarTrigger className="transition-all duration-200 ease-in-out opacity-100 translate-x-0" />
   );
 }
 

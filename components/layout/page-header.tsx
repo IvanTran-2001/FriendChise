@@ -40,9 +40,7 @@ interface BreadcrumbItem {
 
 /** Returns true when a segment looks like a DB id rather than a known keyword. */
 function looksLikeId(seg: string): boolean {
-  return (
-    seg.length > 8 && /^[a-z0-9]+$/i.test(seg) && !(seg in SEGMENT_LABELS)
-  );
+  return seg.length > 8 && /^[a-z0-9]+$/i.test(seg) && !(seg in SEGMENT_LABELS);
 }
 
 /** Builds a static breadcrumb list from a pathname, using loading placeholders for IDs. */
@@ -51,7 +49,8 @@ function buildCrumbs(pathname: string): BreadcrumbItem[] {
 
   const orgMatch = pathname.match(/^\/orgs\/([^/]+)(\/.*)?$/);
   if (!orgMatch || orgMatch[1] === "new") {
-    if (pathname === "/orgs/new") breadcrumbs.push({ label: "Create Organization" });
+    if (pathname === "/orgs/new")
+      breadcrumbs.push({ label: "Create Organization" });
     return breadcrumbs;
   }
 

@@ -1,4 +1,9 @@
-import { PrismaClient, PermissionAction, EntryStatus } from "@prisma/client";
+import {
+  PrismaClient,
+  PermissionAction,
+  EntryStatus,
+  InviteType,
+} from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { ROLE_KEYS } from "@/lib/rbac";
 import { localToUTC } from "@/lib/date-utils";
@@ -6,29 +11,59 @@ import { localToUTC } from "@/lib/date-utils";
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
-/** Converts an "HH:MM" string to total minutes from midnight. */
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+
 function timeToMin(hhmm: string): number {
   const [h, m] = hhmm.split(":").map(Number);
   return h * 60 + m;
 }
 
-const OWNER_PERMISSIONS = Object.values(PermissionAction);
+const ALL_OWNER_PERMISSIONS = Object.values(PermissionAction);
 
 /**
- * Main seed function.
+ * Returns UTC-aware timetable entry helpers scoped to a given IANA timezone.
+ * All timetable entries use these so stored UTC times reflect org local time.
  *
- * Wipes all org-scoped data (keeping User/Account rows so OAuth sessions
- * survive a re-seed) then recreates:
- *   - 8 users (Ivan, Jordan, Casey, Riley, Morgan, Alex, Taylor, Sam)
- *   - 3 orgs (Donut Shop A, Coffee House B, Bakery C)
- *   - 4 roles per org (Owner + Default Member system roles + 2 custom roles)
- *   - 5 members per org with role assignments
- *   - 6 task definitions per org with role eligibility
- *   - 1 timetable template per org
- *   - ~14 historical + 2 upcoming timetable entries per org
+ * To change an org timezone: update the tz arg and the org record.
  */
-async function main() {
-  // ── 1. Clean existing org/task data (preserve User & auth records) ─────────
+function makeDateUtils(tz: string) {
+  const todayLocal = new Date().toLocaleDateString("en-CA", { timeZone: tz });
+  const [ty, tm, td] = todayLocal.split("-").map(Number);
+
+  function localDateForOffset(offsetDays: number): string {
+    const d = new Date(Date.UTC(ty, tm - 1, td + offsetDays));
+    return d.toISOString().slice(0, 10);
+  }
+
+  function utcEntry(
+    offsetDays: number,
+    localHHMM: string,
+    durationMin: number,
+  ) {
+    const { utcDate, utcStartTimeMin } = localToUTC(
+      localDateForOffset(offsetDays),
+      timeToMin(localHHMM),
+      tz,
+    );
+    return {
+      date: utcDate,
+      startTimeMin: utcStartTimeMin,
+      endTimeMin: Math.min(utcStartTimeMin + durationMin, 1440),
+    };
+  }
+
+  return { utcEntry };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. CLEAN
+//
+// Add new models here (in child-before-parent order) as the schema grows.
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function cleanDatabase() {
   await prisma.timetableEntryAssignee.deleteMany();
   await prisma.templateEntryAssignee.deleteMany();
   await prisma.timetableEntry.deleteMany();
@@ -39,13 +74,23 @@ async function main() {
   await prisma.permission.deleteMany();
   await prisma.memberRole.deleteMany();
   await prisma.membership.deleteMany();
+  await prisma.invite.deleteMany();
   await prisma.role.deleteMany();
   await prisma.franchiseToken.deleteMany();
   await prisma.timetableSettings.deleteMany();
+  // Clear self-referential FK before deleting orgs
   await prisma.$executeRaw`UPDATE "Organization" SET "parentId" = NULL WHERE "parentId" IS NOT NULL`;
   await prisma.organization.deleteMany();
+}
 
-  // ── 2. Users (upsert — keeps existing OAuth accounts intact) ──────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// 2. USERS
+//
+// Upsert-only — keeps existing OAuth sessions alive across re-seeds.
+// To add a user: add an upsert, destructure it, and include it in the return.
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function seedUsers() {
   const [ivan, jordan, casey, riley, morgan, alex, taylor, sam] =
     await Promise.all([
       prisma.user.upsert({
@@ -90,44 +135,21 @@ async function main() {
       }),
     ]);
 
-  // ── 3. Date helpers ────────────────────────────────────────────────────────
-  const ORG_TZ = "Australia/Sydney";
-  const todayLocal = new Date().toLocaleDateString("en-CA", {
-    timeZone: ORG_TZ,
-  });
-  const [ty, tm, td] = todayLocal.split("-").map(Number);
+  return { ivan, jordan, casey, riley, morgan, alex, taylor, sam };
+}
 
-  /** Returns the local YYYY-MM-DD string for `offsetDays` from today in `ORG_TZ`. */
-  const localDateForOffset = (offsetDays: number): string => {
-    const d = new Date(Date.UTC(ty, tm - 1, td + offsetDays));
-    return d.toISOString().slice(0, 10);
-  };
+type Users = Awaited<ReturnType<typeof seedUsers>>;
 
-  /**
-   * Returns UTC-stored `{ date, startTimeMin, endTimeMin }` for a seed entry.
-   * Converts a local wall-clock time (relative to `ORG_TZ`) to absolute UTC.
-   */
-  const utcEntry = (
-    offsetDays: number,
-    localHHMM: string,
-    durationMin: number,
-  ) => {
-    const { utcDate, utcStartTimeMin } = localToUTC(
-      localDateForOffset(offsetDays),
-      timeToMin(localHHMM),
-      ORG_TZ,
-    );
-    return {
-      date: utcDate,
-      startTimeMin: utcStartTimeMin,
-      endTimeMin: Math.min(utcStartTimeMin + durationMin, 1440),
-    };
-  };
+// ─────────────────────────────────────────────────────────────────────────────
+// 3. ORG 1 — Donut Shop A
+//    Owner: Ivan  |  Members: Jordan, Casey, Riley, Alex
+// ─────────────────────────────────────────────────────────────────────────────
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // ORG 1: Donut Shop A  (Ivan owns · Jordan + Casey work)
-  // ──────────────────────────────────────────────────────────────────────────
-  const org1 = await prisma.organization.create({
+async function seedOrg1(users: Users) {
+  const { ivan, jordan, casey, riley, alex } = users;
+  const { utcEntry } = makeDateUtils("Australia/Sydney");
+
+  const org = await prisma.organization.create({
     data: {
       name: "Donut Shop A",
       ownerId: ivan.id,
@@ -138,10 +160,10 @@ async function main() {
     },
   });
 
-  const [o1Owner, o1Worker, o1Fryer, o1Counter] = await Promise.all([
+  const [roleOwner, roleWorker, roleFryer, roleCounter] = await Promise.all([
     prisma.role.create({
       data: {
-        orgId: org1.id,
+        orgId: org.id,
         name: "Owner",
         key: ROLE_KEYS.OWNER,
         color: "#ef4444",
@@ -151,7 +173,7 @@ async function main() {
     }),
     prisma.role.create({
       data: {
-        orgId: org1.id,
+        orgId: org.id,
         name: "Default Member",
         key: ROLE_KEYS.DEFAULT_MEMBER,
         color: "#6b7280",
@@ -161,7 +183,7 @@ async function main() {
     }),
     prisma.role.create({
       data: {
-        orgId: org1.id,
+        orgId: org.id,
         name: "Fryer Operator",
         key: "fryer_op",
         color: "#F97316",
@@ -171,7 +193,7 @@ async function main() {
     }),
     prisma.role.create({
       data: {
-        orgId: org1.id,
+        orgId: org.id,
         name: "Counter Staff",
         key: "counter_staff",
         color: "#06B6D4",
@@ -182,50 +204,50 @@ async function main() {
   ]);
 
   await prisma.permission.createMany({
-    data: OWNER_PERMISSIONS.map((action) => ({ roleId: o1Owner.id, action })),
-    skipDuplicates: true,
-  });
-  await prisma.permission.createMany({
     data: [
-      { roleId: o1Worker.id, action: PermissionAction.VIEW_TIMETABLE },
-      { roleId: o1Fryer.id, action: PermissionAction.VIEW_TIMETABLE },
-      { roleId: o1Counter.id, action: PermissionAction.VIEW_TIMETABLE },
+      ...ALL_OWNER_PERMISSIONS.map((action) => ({
+        roleId: roleOwner.id,
+        action,
+      })),
+      { roleId: roleWorker.id, action: PermissionAction.VIEW_TIMETABLE },
+      { roleId: roleFryer.id, action: PermissionAction.VIEW_TIMETABLE },
+      { roleId: roleCounter.id, action: PermissionAction.VIEW_TIMETABLE },
     ],
     skipDuplicates: true,
   });
 
-  const [o1Ivan, o1Jordan, o1Casey, o1Riley, o1Alex] = await Promise.all([
+  const [mIvan, mJordan, mCasey, mRiley, mAlex] = await Promise.all([
     prisma.membership.create({
       data: {
-        orgId: org1.id,
+        orgId: org.id,
         userId: ivan.id,
         workingDays: ["mon", "tue", "wed", "thu", "fri"],
       },
     }),
     prisma.membership.create({
       data: {
-        orgId: org1.id,
+        orgId: org.id,
         userId: jordan.id,
         workingDays: ["mon", "tue", "wed", "thu", "fri"],
       },
     }),
     prisma.membership.create({
       data: {
-        orgId: org1.id,
+        orgId: org.id,
         userId: casey.id,
         workingDays: ["tue", "wed", "thu", "fri", "sat"],
       },
     }),
     prisma.membership.create({
       data: {
-        orgId: org1.id,
+        orgId: org.id,
         userId: riley.id,
         workingDays: ["mon", "wed", "fri", "sat"],
       },
     }),
     prisma.membership.create({
       data: {
-        orgId: org1.id,
+        orgId: org.id,
         userId: alex.id,
         workingDays: ["tue", "thu", "sat", "sun"],
       },
@@ -234,25 +256,25 @@ async function main() {
 
   await prisma.memberRole.createMany({
     data: [
-      { membershipId: o1Ivan.id, roleId: o1Owner.id },
-      { membershipId: o1Jordan.id, roleId: o1Worker.id },
-      { membershipId: o1Jordan.id, roleId: o1Counter.id },
-      { membershipId: o1Casey.id, roleId: o1Worker.id },
-      { membershipId: o1Casey.id, roleId: o1Fryer.id },
-      { membershipId: o1Riley.id, roleId: o1Worker.id },
-      { membershipId: o1Alex.id, roleId: o1Worker.id },
-      { membershipId: o1Alex.id, roleId: o1Fryer.id },
+      { membershipId: mIvan.id, roleId: roleOwner.id },
+      { membershipId: mJordan.id, roleId: roleWorker.id },
+      { membershipId: mJordan.id, roleId: roleCounter.id },
+      { membershipId: mCasey.id, roleId: roleWorker.id },
+      { membershipId: mCasey.id, roleId: roleFryer.id },
+      { membershipId: mRiley.id, roleId: roleWorker.id },
+      { membershipId: mAlex.id, roleId: roleWorker.id },
+      { membershipId: mAlex.id, roleId: roleFryer.id },
     ],
   });
 
-  const [o1Task1, o1Task2, o1Task3, o1Task4, o1Task5, o1Task6] =
+  const [tOpen, tIceCream, tClose, tFry, tRestock, tQuality] =
     await Promise.all([
       prisma.task.create({
         data: {
-          orgId: org1.id,
+          orgId: org.id,
           name: "Open shop checklist",
-          description: "Turn on lights, start fryer, prep counter.",
           color: "#F59E0B",
+          description: "Turn on lights, start fryer, prep counter.",
           durationMin: 30,
           preferredStartTimeMin: timeToMin("06:00"),
           minPeople: 1,
@@ -262,10 +284,10 @@ async function main() {
       }),
       prisma.task.create({
         data: {
-          orgId: org1.id,
+          orgId: org.id,
           name: "Clean ice cream machine",
-          description: "Full sanitize cycle.",
           color: "#3B82F6",
+          description: "Full sanitize cycle.",
           durationMin: 45,
           preferredStartTimeMin: timeToMin("14:00"),
           minPeople: 1,
@@ -275,10 +297,10 @@ async function main() {
       }),
       prisma.task.create({
         data: {
-          orgId: org1.id,
+          orgId: org.id,
           name: "Close shop checklist",
-          description: "Trash, mop, lock up, end of day report.",
           color: "#8B5CF6",
+          description: "Trash, mop, lock up, end of day report.",
           durationMin: 40,
           preferredStartTimeMin: timeToMin("17:00"),
           minPeople: 1,
@@ -288,10 +310,10 @@ async function main() {
       }),
       prisma.task.create({
         data: {
-          orgId: org1.id,
+          orgId: org.id,
           name: "Fry donut batches",
-          description: "Prep and fry fresh donut batches for the day.",
           color: "#EF4444",
+          description: "Prep and fry fresh donut batches for the day.",
           durationMin: 60,
           preferredStartTimeMin: timeToMin("08:00"),
           minPeople: 1,
@@ -301,10 +323,10 @@ async function main() {
       }),
       prisma.task.create({
         data: {
-          orgId: org1.id,
+          orgId: org.id,
           name: "Restock supplies",
-          description: "Check and restock napkins, boxes, and toppings.",
           color: "#22C55E",
+          description: "Check and restock napkins, boxes, and toppings.",
           durationMin: 30,
           preferredStartTimeMin: timeToMin("11:00"),
           minPeople: 1,
@@ -314,10 +336,10 @@ async function main() {
       }),
       prisma.task.create({
         data: {
-          orgId: org1.id,
+          orgId: org.id,
           name: "Quality check",
-          description: "Inspect product quality and presentation standards.",
           color: "#A855F7",
+          description: "Inspect product quality and presentation standards.",
           durationMin: 20,
           preferredStartTimeMin: timeToMin("10:00"),
           minPeople: 1,
@@ -329,40 +351,40 @@ async function main() {
 
   await prisma.taskEligibility.createMany({
     data: [
-      ...[o1Task1, o1Task2, o1Task3, o1Task4, o1Task5, o1Task6].map((t) => ({
+      ...[tOpen, tIceCream, tClose, tFry, tRestock, tQuality].map((t) => ({
         taskId: t.id,
-        roleId: o1Worker.id,
+        roleId: roleWorker.id,
       })),
-      { taskId: o1Task4.id, roleId: o1Fryer.id },
-      { taskId: o1Task5.id, roleId: o1Counter.id },
-      { taskId: o1Task6.id, roleId: o1Fryer.id },
+      { taskId: tFry.id, roleId: roleFryer.id },
+      { taskId: tRestock.id, roleId: roleCounter.id },
+      { taskId: tQuality.id, roleId: roleFryer.id },
     ],
     skipDuplicates: true,
   });
 
-  const o1Template = await prisma.template.create({
-    data: { orgId: org1.id, name: "Week 1", cycleLengthDays: 7 },
+  const template = await prisma.template.create({
+    data: { orgId: org.id, name: "Week 1", cycleLengthDays: 7 },
   });
 
   await prisma.templateEntry.createMany({
     data: [
       {
-        templateId: o1Template.id,
-        taskId: o1Task1.id,
+        templateId: template.id,
+        taskId: tOpen.id,
         dayIndex: 0,
         startTimeMin: timeToMin("06:00"),
         endTimeMin: timeToMin("06:30"),
       },
       {
-        templateId: o1Template.id,
-        taskId: o1Task2.id,
+        templateId: template.id,
+        taskId: tIceCream.id,
         dayIndex: 2,
         startTimeMin: timeToMin("14:00"),
         endTimeMin: timeToMin("14:45"),
       },
       {
-        templateId: o1Template.id,
-        taskId: o1Task3.id,
+        templateId: template.id,
+        taskId: tClose.id,
         dayIndex: 6,
         startTimeMin: timeToMin("17:00"),
         endTimeMin: timeToMin("17:40"),
@@ -370,197 +392,205 @@ async function main() {
     ],
   });
 
-  // Live timetable entries — Org 1 (past month + tomorrow)
   await Promise.all([
-    // ── past entries (DONE / SKIPPED) ──
+    // Past
     prisma.timetableEntry.create({
       data: {
-        orgId: org1.id,
-        taskId: o1Task1.id,
-        taskName: o1Task1.name,
-        taskDescription: o1Task1.description,
+        orgId: org.id,
+        taskId: tOpen.id,
+        taskName: tOpen.name,
+        taskDescription: tOpen.description,
         durationMin: 30,
         ...utcEntry(-28, "06:00", 30),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o1Jordan.id }] },
+        assignees: { create: [{ membershipId: mJordan.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org1.id,
-        taskId: o1Task2.id,
-        taskName: o1Task2.name,
-        taskDescription: o1Task2.description,
+        orgId: org.id,
+        taskId: tIceCream.id,
+        taskName: tIceCream.name,
+        taskDescription: tIceCream.description,
         durationMin: 45,
         ...utcEntry(-26, "14:00", 45),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o1Casey.id }] },
+        assignees: { create: [{ membershipId: mCasey.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org1.id,
-        taskId: o1Task3.id,
-        taskName: o1Task3.name,
-        taskDescription: o1Task3.description,
+        orgId: org.id,
+        taskId: tClose.id,
+        taskName: tClose.name,
+        taskDescription: tClose.description,
         durationMin: 40,
         ...utcEntry(-24, "17:00", 40),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o1Jordan.id }] },
+        assignees: { create: [{ membershipId: mJordan.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org1.id,
-        taskId: o1Task1.id,
-        taskName: o1Task1.name,
-        taskDescription: o1Task1.description,
+        orgId: org.id,
+        taskId: tOpen.id,
+        taskName: tOpen.name,
+        taskDescription: tOpen.description,
         durationMin: 30,
         ...utcEntry(-21, "06:00", 30),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o1Casey.id }] },
+        assignees: { create: [{ membershipId: mCasey.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org1.id,
-        taskId: o1Task2.id,
-        taskName: o1Task2.name,
-        taskDescription: o1Task2.description,
+        orgId: org.id,
+        taskId: tIceCream.id,
+        taskName: tIceCream.name,
+        taskDescription: tIceCream.description,
         durationMin: 45,
         ...utcEntry(-19, "14:00", 45),
         status: EntryStatus.SKIPPED,
-        assignees: { create: [{ membershipId: o1Jordan.id }] },
+        assignees: { create: [{ membershipId: mJordan.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org1.id,
-        taskId: o1Task3.id,
-        taskName: o1Task3.name,
-        taskDescription: o1Task3.description,
+        orgId: org.id,
+        taskId: tClose.id,
+        taskName: tClose.name,
+        taskDescription: tClose.description,
         durationMin: 40,
         ...utcEntry(-17, "17:00", 40),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o1Casey.id }] },
+        assignees: { create: [{ membershipId: mCasey.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org1.id,
-        taskId: o1Task1.id,
-        taskName: o1Task1.name,
-        taskDescription: o1Task1.description,
+        orgId: org.id,
+        taskId: tOpen.id,
+        taskName: tOpen.name,
+        taskDescription: tOpen.description,
         durationMin: 30,
         ...utcEntry(-14, "06:00", 30),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o1Jordan.id }] },
+        assignees: { create: [{ membershipId: mJordan.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org1.id,
-        taskId: o1Task2.id,
-        taskName: o1Task2.name,
-        taskDescription: o1Task2.description,
+        orgId: org.id,
+        taskId: tIceCream.id,
+        taskName: tIceCream.name,
+        taskDescription: tIceCream.description,
         durationMin: 45,
         ...utcEntry(-12, "14:00", 45),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o1Casey.id }] },
+        assignees: { create: [{ membershipId: mCasey.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org1.id,
-        taskId: o1Task3.id,
-        taskName: o1Task3.name,
-        taskDescription: o1Task3.description,
+        orgId: org.id,
+        taskId: tClose.id,
+        taskName: tClose.name,
+        taskDescription: tClose.description,
         durationMin: 40,
         ...utcEntry(-10, "17:00", 40),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o1Jordan.id }] },
+        assignees: { create: [{ membershipId: mJordan.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org1.id,
-        taskId: o1Task1.id,
-        taskName: o1Task1.name,
-        taskDescription: o1Task1.description,
+        orgId: org.id,
+        taskId: tOpen.id,
+        taskName: tOpen.name,
+        taskDescription: tOpen.description,
         durationMin: 30,
         ...utcEntry(-7, "06:00", 30),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o1Casey.id }] },
+        assignees: { create: [{ membershipId: mCasey.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org1.id,
-        taskId: o1Task2.id,
-        taskName: o1Task2.name,
-        taskDescription: o1Task2.description,
+        orgId: org.id,
+        taskId: tIceCream.id,
+        taskName: tIceCream.name,
+        taskDescription: tIceCream.description,
         durationMin: 45,
         ...utcEntry(-5, "14:00", 45),
         status: EntryStatus.SKIPPED,
-        assignees: { create: [{ membershipId: o1Jordan.id }] },
+        assignees: { create: [{ membershipId: mJordan.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org1.id,
-        taskId: o1Task3.id,
-        taskName: o1Task3.name,
-        taskDescription: o1Task3.description,
+        orgId: org.id,
+        taskId: tClose.id,
+        taskName: tClose.name,
+        taskDescription: tClose.description,
         durationMin: 40,
         ...utcEntry(-3, "17:00", 40),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o1Casey.id }] },
+        assignees: { create: [{ membershipId: mCasey.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org1.id,
-        taskId: o1Task1.id,
-        taskName: o1Task1.name,
-        taskDescription: o1Task1.description,
+        orgId: org.id,
+        taskId: tOpen.id,
+        taskName: tOpen.name,
+        taskDescription: tOpen.description,
         durationMin: 30,
         ...utcEntry(-1, "06:00", 30),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o1Jordan.id }] },
+        assignees: { create: [{ membershipId: mJordan.id }] },
       },
     }),
-    // ── today ──
+    // Today
     prisma.timetableEntry.create({
       data: {
-        orgId: org1.id,
-        taskId: o1Task2.id,
-        taskName: o1Task2.name,
-        taskDescription: o1Task2.description,
+        orgId: org.id,
+        taskId: tIceCream.id,
+        taskName: tIceCream.name,
+        taskDescription: tIceCream.description,
         durationMin: 45,
         ...utcEntry(0, "14:00", 45),
         status: EntryStatus.IN_PROGRESS,
-        assignees: { create: [{ membershipId: o1Casey.id }] },
+        assignees: { create: [{ membershipId: mCasey.id }] },
       },
     }),
-    // ── tomorrow ──
+    // Tomorrow
     prisma.timetableEntry.create({
       data: {
-        orgId: org1.id,
-        taskId: o1Task3.id,
-        taskName: o1Task3.name,
-        taskDescription: o1Task3.description,
+        orgId: org.id,
+        taskId: tClose.id,
+        taskName: tClose.name,
+        taskDescription: tClose.description,
         durationMin: 40,
         ...utcEntry(1, "17:00", 40),
         status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: o1Jordan.id }] },
+        assignees: { create: [{ membershipId: mJordan.id }] },
       },
     }),
   ]);
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // ORG 2: Coffee House B  (Ivan owns · Riley + Morgan work)
-  // ──────────────────────────────────────────────────────────────────────────
-  const org2 = await prisma.organization.create({
+  return { org, roles: { roleOwner, roleWorker, roleFryer, roleCounter } };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. ORG 2 — Coffee House B
+//    Owner: Ivan  |  Members: Riley, Morgan, Jordan, Taylor
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function seedOrg2(users: Users) {
+  const { ivan, riley, morgan, jordan, taylor } = users;
+  const { utcEntry } = makeDateUtils("Australia/Sydney");
+
+  const org = await prisma.organization.create({
     data: {
       name: "Coffee House B",
       ownerId: ivan.id,
@@ -571,95 +601,96 @@ async function main() {
     },
   });
 
-  const [o2Owner, o2Barista, o2HeadBarista, o2Kitchen] = await Promise.all([
-    prisma.role.create({
-      data: {
-        orgId: org2.id,
-        name: "Owner",
-        key: ROLE_KEYS.OWNER,
-        color: "#ef4444",
-        isDeletable: false,
-        isDefault: false,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org2.id,
-        name: "Barista",
-        key: ROLE_KEYS.DEFAULT_MEMBER,
-        color: "#6b7280",
-        isDeletable: false,
-        isDefault: true,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org2.id,
-        name: "Head Barista",
-        key: "head_barista",
-        color: "#0EA5E9",
-        isDeletable: true,
-        isDefault: false,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org2.id,
-        name: "Kitchen Hand",
-        key: "kitchen_hand",
-        color: "#84CC16",
-        isDeletable: true,
-        isDefault: false,
-      },
-    }),
-  ]);
+  const [roleOwner, roleBarista, roleHeadBarista, roleKitchen] =
+    await Promise.all([
+      prisma.role.create({
+        data: {
+          orgId: org.id,
+          name: "Owner",
+          key: ROLE_KEYS.OWNER,
+          color: "#ef4444",
+          isDeletable: false,
+          isDefault: false,
+        },
+      }),
+      prisma.role.create({
+        data: {
+          orgId: org.id,
+          name: "Barista",
+          key: ROLE_KEYS.DEFAULT_MEMBER,
+          color: "#6b7280",
+          isDeletable: false,
+          isDefault: true,
+        },
+      }),
+      prisma.role.create({
+        data: {
+          orgId: org.id,
+          name: "Head Barista",
+          key: "head_barista",
+          color: "#0EA5E9",
+          isDeletable: true,
+          isDefault: false,
+        },
+      }),
+      prisma.role.create({
+        data: {
+          orgId: org.id,
+          name: "Kitchen Hand",
+          key: "kitchen_hand",
+          color: "#84CC16",
+          isDeletable: true,
+          isDefault: false,
+        },
+      }),
+    ]);
 
   await prisma.permission.createMany({
-    data: OWNER_PERMISSIONS.map((action) => ({ roleId: o2Owner.id, action })),
-    skipDuplicates: true,
-  });
-  await prisma.permission.createMany({
     data: [
-      { roleId: o2Barista.id, action: PermissionAction.VIEW_TIMETABLE },
-      { roleId: o2HeadBarista.id, action: PermissionAction.VIEW_TIMETABLE },
-      { roleId: o2HeadBarista.id, action: PermissionAction.MANAGE_TIMETABLE },
-      { roleId: o2Kitchen.id, action: PermissionAction.VIEW_TIMETABLE },
+      ...ALL_OWNER_PERMISSIONS.map((action) => ({
+        roleId: roleOwner.id,
+        action,
+      })),
+      { roleId: roleBarista.id, action: PermissionAction.VIEW_TIMETABLE },
+      { roleId: roleHeadBarista.id, action: PermissionAction.VIEW_TIMETABLE },
+      { roleId: roleHeadBarista.id, action: PermissionAction.MANAGE_TIMETABLE },
+      { roleId: roleKitchen.id, action: PermissionAction.VIEW_TIMETABLE },
     ],
     skipDuplicates: true,
   });
 
-  const [o2Ivan, o2Riley, o2Morgan, o2Jordan, o2Taylor] = await Promise.all([
+  const [mIvan, mRiley, mMorgan, mJordan, mTaylor] = await Promise.all([
     prisma.membership.create({
       data: {
-        orgId: org2.id,
+        orgId: org.id,
         userId: ivan.id,
         workingDays: ["mon", "tue", "wed", "thu", "fri"],
       },
     }),
     prisma.membership.create({
       data: {
-        orgId: org2.id,
+        orgId: org.id,
         userId: riley.id,
         workingDays: ["mon", "wed", "fri"],
       },
     }),
     prisma.membership.create({
       data: {
-        orgId: org2.id,
+        orgId: org.id,
         userId: morgan.id,
         workingDays: ["tue", "thu", "sat"],
       },
     }),
     prisma.membership.create({
       data: {
-        orgId: org2.id,
+        orgId: org.id,
         userId: jordan.id,
         workingDays: ["mon", "tue", "wed"],
       },
     }),
     prisma.membership.create({
       data: {
-        orgId: org2.id,
+        orgId: org.id,
         userId: taylor.id,
         workingDays: ["wed", "thu", "fri", "sat"],
       },
@@ -668,135 +699,133 @@ async function main() {
 
   await prisma.memberRole.createMany({
     data: [
-      { membershipId: o2Ivan.id, roleId: o2Owner.id },
-      { membershipId: o2Riley.id, roleId: o2Barista.id },
-      { membershipId: o2Riley.id, roleId: o2HeadBarista.id },
-      { membershipId: o2Morgan.id, roleId: o2Barista.id },
-      { membershipId: o2Jordan.id, roleId: o2Barista.id },
-      { membershipId: o2Taylor.id, roleId: o2Barista.id },
-      { membershipId: o2Taylor.id, roleId: o2Kitchen.id },
+      { membershipId: mIvan.id, roleId: roleOwner.id },
+      { membershipId: mRiley.id, roleId: roleBarista.id },
+      { membershipId: mRiley.id, roleId: roleHeadBarista.id },
+      { membershipId: mMorgan.id, roleId: roleBarista.id },
+      { membershipId: mJordan.id, roleId: roleBarista.id },
+      { membershipId: mTaylor.id, roleId: roleBarista.id },
+      { membershipId: mTaylor.id, roleId: roleKitchen.id },
     ],
   });
 
-  const [o2Task1, o2Task2, o2Task3, o2Task4, o2Task5, o2Task6] =
-    await Promise.all([
-      prisma.task.create({
-        data: {
-          orgId: org2.id,
-          name: "Open cafe checklist",
-          description: "Unlock, start espresso machine, fill condiments.",
-          color: "#F97316",
-          durationMin: 20,
-          preferredStartTimeMin: timeToMin("07:00"),
-          minPeople: 1,
-          minWaitDays: 0,
-          maxWaitDays: 1,
-        },
-      }),
-      prisma.task.create({
-        data: {
-          orgId: org2.id,
-          name: "Clean espresso machine",
-          description: "Backflush, descale group heads, clean steam wand.",
-          color: "#14B8A6",
-          durationMin: 30,
-          preferredStartTimeMin: timeToMin("15:00"),
-          minPeople: 1,
-          minWaitDays: 1,
-          maxWaitDays: 2,
-        },
-      }),
-      prisma.task.create({
-        data: {
-          orgId: org2.id,
-          name: "Close cafe checklist",
-          description: "Cash up, wipe down, lock up.",
-          color: "#6366F1",
-          durationMin: 25,
-          preferredStartTimeMin: timeToMin("16:30"),
-          minPeople: 1,
-          minWaitDays: 0,
-          maxWaitDays: 1,
-        },
-      }),
-      prisma.task.create({
-        data: {
-          orgId: org2.id,
-          name: "Milk restocking",
-          description:
-            "Check fridge levels and restock milk from cold storage.",
-          color: "#0891B2",
-          durationMin: 15,
-          preferredStartTimeMin: timeToMin("09:00"),
-          minPeople: 1,
-          minWaitDays: 0,
-          maxWaitDays: 1,
-        },
-      }),
-      prisma.task.create({
-        data: {
-          orgId: org2.id,
-          name: "Coffee bean preparation",
-          description: "Grind beans, calibrate grinder, prep portafilters.",
-          color: "#7C3AED",
-          durationMin: 20,
-          preferredStartTimeMin: timeToMin("06:30"),
-          minPeople: 1,
-          minWaitDays: 0,
-          maxWaitDays: 1,
-        },
-      }),
-      prisma.task.create({
-        data: {
-          orgId: org2.id,
-          name: "Customer area cleaning",
-          description: "Wipe tables, restock sugar and napkins, sweep floor.",
-          color: "#059669",
-          durationMin: 30,
-          preferredStartTimeMin: timeToMin("12:00"),
-          minPeople: 1,
-          minWaitDays: 0,
-          maxWaitDays: 2,
-        },
-      }),
-    ]);
+  const [tOpen, tMachine, tClose, tMilk, tBeans, tClean] = await Promise.all([
+    prisma.task.create({
+      data: {
+        orgId: org.id,
+        name: "Open cafe checklist",
+        color: "#F97316",
+        description: "Unlock, start espresso machine, fill condiments.",
+        durationMin: 20,
+        preferredStartTimeMin: timeToMin("07:00"),
+        minPeople: 1,
+        minWaitDays: 0,
+        maxWaitDays: 1,
+      },
+    }),
+    prisma.task.create({
+      data: {
+        orgId: org.id,
+        name: "Clean espresso machine",
+        color: "#14B8A6",
+        description: "Backflush, descale group heads, clean steam wand.",
+        durationMin: 30,
+        preferredStartTimeMin: timeToMin("15:00"),
+        minPeople: 1,
+        minWaitDays: 1,
+        maxWaitDays: 2,
+      },
+    }),
+    prisma.task.create({
+      data: {
+        orgId: org.id,
+        name: "Close cafe checklist",
+        color: "#6366F1",
+        description: "Cash up, wipe down, lock up.",
+        durationMin: 25,
+        preferredStartTimeMin: timeToMin("16:30"),
+        minPeople: 1,
+        minWaitDays: 0,
+        maxWaitDays: 1,
+      },
+    }),
+    prisma.task.create({
+      data: {
+        orgId: org.id,
+        name: "Milk restocking",
+        color: "#0891B2",
+        description: "Check fridge levels and restock milk from cold storage.",
+        durationMin: 15,
+        preferredStartTimeMin: timeToMin("09:00"),
+        minPeople: 1,
+        minWaitDays: 0,
+        maxWaitDays: 1,
+      },
+    }),
+    prisma.task.create({
+      data: {
+        orgId: org.id,
+        name: "Coffee bean preparation",
+        color: "#7C3AED",
+        description: "Grind beans, calibrate grinder, prep portafilters.",
+        durationMin: 20,
+        preferredStartTimeMin: timeToMin("06:30"),
+        minPeople: 1,
+        minWaitDays: 0,
+        maxWaitDays: 1,
+      },
+    }),
+    prisma.task.create({
+      data: {
+        orgId: org.id,
+        name: "Customer area cleaning",
+        color: "#059669",
+        description: "Wipe tables, restock sugar and napkins, sweep floor.",
+        durationMin: 30,
+        preferredStartTimeMin: timeToMin("12:00"),
+        minPeople: 1,
+        minWaitDays: 0,
+        maxWaitDays: 2,
+      },
+    }),
+  ]);
 
   await prisma.taskEligibility.createMany({
     data: [
-      ...[o2Task1, o2Task2, o2Task3, o2Task4, o2Task5, o2Task6].map((t) => ({
+      ...[tOpen, tMachine, tClose, tMilk, tBeans, tClean].map((t) => ({
         taskId: t.id,
-        roleId: o2Barista.id,
+        roleId: roleBarista.id,
       })),
-      { taskId: o2Task4.id, roleId: o2Kitchen.id },
-      { taskId: o2Task5.id, roleId: o2HeadBarista.id },
-      { taskId: o2Task6.id, roleId: o2Kitchen.id },
+      { taskId: tMilk.id, roleId: roleKitchen.id },
+      { taskId: tBeans.id, roleId: roleHeadBarista.id },
+      { taskId: tClean.id, roleId: roleKitchen.id },
     ],
     skipDuplicates: true,
   });
 
-  const o2Template = await prisma.template.create({
-    data: { orgId: org2.id, name: "Standard Week", cycleLengthDays: 7 },
+  const template = await prisma.template.create({
+    data: { orgId: org.id, name: "Standard Week", cycleLengthDays: 7 },
   });
 
   await prisma.templateEntry.createMany({
     data: [
       {
-        templateId: o2Template.id,
-        taskId: o2Task1.id,
+        templateId: template.id,
+        taskId: tOpen.id,
         dayIndex: 0,
         startTimeMin: timeToMin("07:00"),
         endTimeMin: timeToMin("07:20"),
       },
       {
-        templateId: o2Template.id,
-        taskId: o2Task2.id,
+        templateId: template.id,
+        taskId: tMachine.id,
         dayIndex: 3,
         startTimeMin: timeToMin("15:00"),
         endTimeMin: timeToMin("15:30"),
       },
       {
-        templateId: o2Template.id,
-        taskId: o2Task3.id,
+        templateId: template.id,
+        taskId: tClose.id,
         dayIndex: 4,
         startTimeMin: timeToMin("16:30"),
         endTimeMin: timeToMin("16:55"),
@@ -804,197 +833,208 @@ async function main() {
     ],
   });
 
-  // Live timetable entries — Org 2 (past month + tomorrow)
   await Promise.all([
-    // ── past entries ──
+    // Past
     prisma.timetableEntry.create({
       data: {
-        orgId: org2.id,
-        taskId: o2Task1.id,
-        taskName: o2Task1.name,
-        taskDescription: o2Task1.description,
+        orgId: org.id,
+        taskId: tOpen.id,
+        taskName: tOpen.name,
+        taskDescription: tOpen.description,
         durationMin: 20,
         ...utcEntry(-29, "07:00", 20),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o2Riley.id }] },
+        assignees: { create: [{ membershipId: mRiley.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org2.id,
-        taskId: o2Task2.id,
-        taskName: o2Task2.name,
-        taskDescription: o2Task2.description,
+        orgId: org.id,
+        taskId: tMachine.id,
+        taskName: tMachine.name,
+        taskDescription: tMachine.description,
         durationMin: 30,
         ...utcEntry(-27, "15:00", 30),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o2Morgan.id }] },
+        assignees: { create: [{ membershipId: mMorgan.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org2.id,
-        taskId: o2Task3.id,
-        taskName: o2Task3.name,
-        taskDescription: o2Task3.description,
+        orgId: org.id,
+        taskId: tClose.id,
+        taskName: tClose.name,
+        taskDescription: tClose.description,
         durationMin: 25,
         ...utcEntry(-25, "16:30", 25),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o2Riley.id }] },
+        assignees: { create: [{ membershipId: mRiley.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org2.id,
-        taskId: o2Task1.id,
-        taskName: o2Task1.name,
-        taskDescription: o2Task1.description,
+        orgId: org.id,
+        taskId: tOpen.id,
+        taskName: tOpen.name,
+        taskDescription: tOpen.description,
         durationMin: 20,
         ...utcEntry(-22, "07:00", 20),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o2Morgan.id }] },
+        assignees: { create: [{ membershipId: mMorgan.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org2.id,
-        taskId: o2Task2.id,
-        taskName: o2Task2.name,
-        taskDescription: o2Task2.description,
+        orgId: org.id,
+        taskId: tMachine.id,
+        taskName: tMachine.name,
+        taskDescription: tMachine.description,
         durationMin: 30,
         ...utcEntry(-20, "15:00", 30),
         status: EntryStatus.SKIPPED,
-        assignees: { create: [{ membershipId: o2Riley.id }] },
+        assignees: { create: [{ membershipId: mRiley.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org2.id,
-        taskId: o2Task3.id,
-        taskName: o2Task3.name,
-        taskDescription: o2Task3.description,
+        orgId: org.id,
+        taskId: tClose.id,
+        taskName: tClose.name,
+        taskDescription: tClose.description,
         durationMin: 25,
         ...utcEntry(-18, "16:30", 25),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o2Morgan.id }] },
+        assignees: { create: [{ membershipId: mMorgan.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org2.id,
-        taskId: o2Task1.id,
-        taskName: o2Task1.name,
-        taskDescription: o2Task1.description,
+        orgId: org.id,
+        taskId: tOpen.id,
+        taskName: tOpen.name,
+        taskDescription: tOpen.description,
         durationMin: 20,
         ...utcEntry(-15, "07:00", 20),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o2Riley.id }] },
+        assignees: { create: [{ membershipId: mRiley.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org2.id,
-        taskId: o2Task2.id,
-        taskName: o2Task2.name,
-        taskDescription: o2Task2.description,
+        orgId: org.id,
+        taskId: tMachine.id,
+        taskName: tMachine.name,
+        taskDescription: tMachine.description,
         durationMin: 30,
         ...utcEntry(-13, "15:00", 30),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o2Morgan.id }] },
+        assignees: { create: [{ membershipId: mMorgan.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org2.id,
-        taskId: o2Task3.id,
-        taskName: o2Task3.name,
-        taskDescription: o2Task3.description,
+        orgId: org.id,
+        taskId: tClose.id,
+        taskName: tClose.name,
+        taskDescription: tClose.description,
         durationMin: 25,
         ...utcEntry(-11, "16:30", 25),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o2Riley.id }] },
+        assignees: { create: [{ membershipId: mRiley.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org2.id,
-        taskId: o2Task1.id,
-        taskName: o2Task1.name,
-        taskDescription: o2Task1.description,
+        orgId: org.id,
+        taskId: tOpen.id,
+        taskName: tOpen.name,
+        taskDescription: tOpen.description,
         durationMin: 20,
         ...utcEntry(-8, "07:00", 20),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o2Morgan.id }] },
+        assignees: { create: [{ membershipId: mMorgan.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org2.id,
-        taskId: o2Task2.id,
-        taskName: o2Task2.name,
-        taskDescription: o2Task2.description,
+        orgId: org.id,
+        taskId: tMachine.id,
+        taskName: tMachine.name,
+        taskDescription: tMachine.description,
         durationMin: 30,
         ...utcEntry(-6, "15:00", 30),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o2Riley.id }] },
+        assignees: { create: [{ membershipId: mRiley.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org2.id,
-        taskId: o2Task3.id,
-        taskName: o2Task3.name,
-        taskDescription: o2Task3.description,
+        orgId: org.id,
+        taskId: tClose.id,
+        taskName: tClose.name,
+        taskDescription: tClose.description,
         durationMin: 25,
         ...utcEntry(-4, "16:30", 25),
         status: EntryStatus.SKIPPED,
-        assignees: { create: [{ membershipId: o2Morgan.id }] },
+        assignees: { create: [{ membershipId: mMorgan.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org2.id,
-        taskId: o2Task1.id,
-        taskName: o2Task1.name,
-        taskDescription: o2Task1.description,
+        orgId: org.id,
+        taskId: tOpen.id,
+        taskName: tOpen.name,
+        taskDescription: tOpen.description,
         durationMin: 20,
         ...utcEntry(-2, "07:00", 20),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o2Riley.id }] },
+        assignees: { create: [{ membershipId: mRiley.id }] },
       },
     }),
-    // ── today ──
+    // Today
     prisma.timetableEntry.create({
       data: {
-        orgId: org2.id,
-        taskId: o2Task2.id,
-        taskName: o2Task2.name,
-        taskDescription: o2Task2.description,
+        orgId: org.id,
+        taskId: tMachine.id,
+        taskName: tMachine.name,
+        taskDescription: tMachine.description,
         durationMin: 30,
         ...utcEntry(0, "15:00", 30),
         status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: o2Morgan.id }] },
+        assignees: { create: [{ membershipId: mMorgan.id }] },
       },
     }),
-    // ── tomorrow ──
+    // Tomorrow
     prisma.timetableEntry.create({
       data: {
-        orgId: org2.id,
-        taskId: o2Task3.id,
-        taskName: o2Task3.name,
-        taskDescription: o2Task3.description,
+        orgId: org.id,
+        taskId: tClose.id,
+        taskName: tClose.name,
+        taskDescription: tClose.description,
         durationMin: 25,
         ...utcEntry(1, "16:30", 25),
         status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: o2Riley.id }] },
+        assignees: { create: [{ membershipId: mRiley.id }] },
       },
     }),
   ]);
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // ORG 3: Bakery C  (Jordan owns · Casey + Riley work)
-  // ──────────────────────────────────────────────────────────────────────────
-  const org3 = await prisma.organization.create({
+  return {
+    org,
+    roles: { roleOwner, roleBarista, roleHeadBarista, roleKitchen },
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. ORG 3 — Bakery C
+//    Owner: Jordan  |  Members: Casey, Riley, Morgan, Sam
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function seedOrg3(users: Users) {
+  const { jordan, casey, riley, morgan, sam } = users;
+  const { utcEntry } = makeDateUtils("Australia/Sydney");
+
+  const org = await prisma.organization.create({
     data: {
       name: "Bakery C",
       ownerId: jordan.id,
@@ -1005,10 +1045,10 @@ async function main() {
     },
   });
 
-  const [o3Owner, o3Baker, o3HeadBaker, o3Pastry] = await Promise.all([
+  const [roleOwner, roleBaker, roleHeadBaker, rolePastry] = await Promise.all([
     prisma.role.create({
       data: {
-        orgId: org3.id,
+        orgId: org.id,
         name: "Owner",
         key: ROLE_KEYS.OWNER,
         color: "#ef4444",
@@ -1018,7 +1058,7 @@ async function main() {
     }),
     prisma.role.create({
       data: {
-        orgId: org3.id,
+        orgId: org.id,
         name: "Baker",
         key: ROLE_KEYS.DEFAULT_MEMBER,
         color: "#6b7280",
@@ -1028,7 +1068,7 @@ async function main() {
     }),
     prisma.role.create({
       data: {
-        orgId: org3.id,
+        orgId: org.id,
         name: "Head Baker",
         key: "head_baker",
         color: "#D97706",
@@ -1038,7 +1078,7 @@ async function main() {
     }),
     prisma.role.create({
       data: {
-        orgId: org3.id,
+        orgId: org.id,
         name: "Pastry Chef",
         key: "pastry_chef",
         color: "#EC4899",
@@ -1049,51 +1089,51 @@ async function main() {
   ]);
 
   await prisma.permission.createMany({
-    data: OWNER_PERMISSIONS.map((action) => ({ roleId: o3Owner.id, action })),
-    skipDuplicates: true,
-  });
-  await prisma.permission.createMany({
     data: [
-      { roleId: o3Baker.id, action: PermissionAction.VIEW_TIMETABLE },
-      { roleId: o3HeadBaker.id, action: PermissionAction.VIEW_TIMETABLE },
-      { roleId: o3HeadBaker.id, action: PermissionAction.MANAGE_TIMETABLE },
-      { roleId: o3Pastry.id, action: PermissionAction.VIEW_TIMETABLE },
+      ...ALL_OWNER_PERMISSIONS.map((action) => ({
+        roleId: roleOwner.id,
+        action,
+      })),
+      { roleId: roleBaker.id, action: PermissionAction.VIEW_TIMETABLE },
+      { roleId: roleHeadBaker.id, action: PermissionAction.VIEW_TIMETABLE },
+      { roleId: roleHeadBaker.id, action: PermissionAction.MANAGE_TIMETABLE },
+      { roleId: rolePastry.id, action: PermissionAction.VIEW_TIMETABLE },
     ],
     skipDuplicates: true,
   });
 
-  const [o3Jordan, o3Casey, o3Riley, o3Morgan, o3Sam] = await Promise.all([
+  const [mJordan, mCasey, mRiley, mMorgan, mSam] = await Promise.all([
     prisma.membership.create({
       data: {
-        orgId: org3.id,
+        orgId: org.id,
         userId: jordan.id,
         workingDays: ["mon", "tue", "wed", "thu", "fri", "sat"],
       },
     }),
     prisma.membership.create({
       data: {
-        orgId: org3.id,
+        orgId: org.id,
         userId: casey.id,
         workingDays: ["mon", "wed", "fri", "sat"],
       },
     }),
     prisma.membership.create({
       data: {
-        orgId: org3.id,
+        orgId: org.id,
         userId: riley.id,
         workingDays: ["tue", "thu", "sat"],
       },
     }),
     prisma.membership.create({
       data: {
-        orgId: org3.id,
+        orgId: org.id,
         userId: morgan.id,
         workingDays: ["mon", "tue", "wed", "thu"],
       },
     }),
     prisma.membership.create({
       data: {
-        orgId: org3.id,
+        orgId: org.id,
         userId: sam.id,
         workingDays: ["wed", "thu", "fri", "sat"],
       },
@@ -1102,26 +1142,26 @@ async function main() {
 
   await prisma.memberRole.createMany({
     data: [
-      { membershipId: o3Jordan.id, roleId: o3Owner.id },
-      { membershipId: o3Jordan.id, roleId: o3HeadBaker.id },
-      { membershipId: o3Casey.id, roleId: o3Baker.id },
-      { membershipId: o3Casey.id, roleId: o3Pastry.id },
-      { membershipId: o3Riley.id, roleId: o3Baker.id },
-      { membershipId: o3Morgan.id, roleId: o3Baker.id },
-      { membershipId: o3Morgan.id, roleId: o3HeadBaker.id },
-      { membershipId: o3Sam.id, roleId: o3Baker.id },
-      { membershipId: o3Sam.id, roleId: o3Pastry.id },
+      { membershipId: mJordan.id, roleId: roleOwner.id },
+      { membershipId: mJordan.id, roleId: roleHeadBaker.id },
+      { membershipId: mCasey.id, roleId: roleBaker.id },
+      { membershipId: mCasey.id, roleId: rolePastry.id },
+      { membershipId: mRiley.id, roleId: roleBaker.id },
+      { membershipId: mMorgan.id, roleId: roleBaker.id },
+      { membershipId: mMorgan.id, roleId: roleHeadBaker.id },
+      { membershipId: mSam.id, roleId: roleBaker.id },
+      { membershipId: mSam.id, roleId: rolePastry.id },
     ],
   });
 
-  const [o3Task1, o3Task2, o3Task3, o3Task4, o3Task5, o3Task6] =
-    await Promise.all([
+  const [tPrep, tBread, tCleanup, tPastry, tWindow, tStock] = await Promise.all(
+    [
       prisma.task.create({
         data: {
-          orgId: org3.id,
+          orgId: org.id,
           name: "Morning prep",
-          description: "Preheat ovens, prep dough, set up station.",
           color: "#F59E0B",
+          description: "Preheat ovens, prep dough, set up station.",
           durationMin: 45,
           preferredStartTimeMin: timeToMin("05:00"),
           minPeople: 1,
@@ -1131,10 +1171,10 @@ async function main() {
       }),
       prisma.task.create({
         data: {
-          orgId: org3.id,
+          orgId: org.id,
           name: "Bread baking",
-          description: "Score and bake loaves for the day.",
           color: "#10B981",
+          description: "Score and bake loaves for the day.",
           durationMin: 90,
           preferredStartTimeMin: timeToMin("06:00"),
           minPeople: 2,
@@ -1144,10 +1184,10 @@ async function main() {
       }),
       prisma.task.create({
         data: {
-          orgId: org3.id,
+          orgId: org.id,
           name: "Evening cleanup",
-          description: "Clean ovens, sweep floor, store remaining stock.",
           color: "#8B5CF6",
+          description: "Clean ovens, sweep floor, store remaining stock.",
           durationMin: 40,
           preferredStartTimeMin: timeToMin("13:00"),
           minPeople: 1,
@@ -1157,11 +1197,11 @@ async function main() {
       }),
       prisma.task.create({
         data: {
-          orgId: org3.id,
+          orgId: org.id,
           name: "Pastry preparation",
+          color: "#F472B6",
           description:
             "Prepare croissants, danish, and daily pastry selection.",
-          color: "#F472B6",
           durationMin: 60,
           preferredStartTimeMin: timeToMin("05:30"),
           minPeople: 1,
@@ -1171,10 +1211,10 @@ async function main() {
       }),
       prisma.task.create({
         data: {
-          orgId: org3.id,
+          orgId: org.id,
           name: "Window display setup",
-          description: "Arrange today's baked goods in the shop window.",
           color: "#34D399",
+          description: "Arrange today's baked goods in the shop window.",
           durationMin: 20,
           preferredStartTimeMin: timeToMin("08:00"),
           minPeople: 1,
@@ -1184,11 +1224,11 @@ async function main() {
       }),
       prisma.task.create({
         data: {
-          orgId: org3.id,
+          orgId: org.id,
           name: "Stock count",
+          color: "#60A5FA",
           description:
             "Audit flour, yeast, butter and other ingredient levels.",
-          color: "#60A5FA",
           durationMin: 30,
           preferredStartTimeMin: timeToMin("13:00"),
           minPeople: 1,
@@ -1196,44 +1236,45 @@ async function main() {
           maxWaitDays: 7,
         },
       }),
-    ]);
+    ],
+  );
 
   await prisma.taskEligibility.createMany({
     data: [
-      ...[o3Task1, o3Task2, o3Task3, o3Task4, o3Task5, o3Task6].map((t) => ({
+      ...[tPrep, tBread, tCleanup, tPastry, tWindow, tStock].map((t) => ({
         taskId: t.id,
-        roleId: o3Baker.id,
+        roleId: roleBaker.id,
       })),
-      { taskId: o3Task4.id, roleId: o3Pastry.id },
-      { taskId: o3Task5.id, roleId: o3HeadBaker.id },
-      { taskId: o3Task6.id, roleId: o3HeadBaker.id },
+      { taskId: tPastry.id, roleId: rolePastry.id },
+      { taskId: tWindow.id, roleId: roleHeadBaker.id },
+      { taskId: tStock.id, roleId: roleHeadBaker.id },
     ],
     skipDuplicates: true,
   });
 
-  const o3Template = await prisma.template.create({
-    data: { orgId: org3.id, name: "5-Day Rotation", cycleLengthDays: 5 },
+  const template = await prisma.template.create({
+    data: { orgId: org.id, name: "5-Day Rotation", cycleLengthDays: 5 },
   });
 
   await prisma.templateEntry.createMany({
     data: [
       {
-        templateId: o3Template.id,
-        taskId: o3Task1.id,
+        templateId: template.id,
+        taskId: tPrep.id,
         dayIndex: 0,
         startTimeMin: timeToMin("05:00"),
         endTimeMin: timeToMin("05:45"),
       },
       {
-        templateId: o3Template.id,
-        taskId: o3Task2.id,
+        templateId: template.id,
+        taskId: tBread.id,
         dayIndex: 0,
         startTimeMin: timeToMin("06:00"),
         endTimeMin: timeToMin("07:30"),
       },
       {
-        templateId: o3Template.id,
-        taskId: o3Task3.id,
+        templateId: template.id,
+        taskId: tCleanup.id,
         dayIndex: 4,
         startTimeMin: timeToMin("13:00"),
         endTimeMin: timeToMin("13:40"),
@@ -1241,241 +1282,280 @@ async function main() {
     ],
   });
 
-  // Live timetable entries — Org 3 (past month + tomorrow)
   await Promise.all([
-    // ── past entries ──
+    // Past
     prisma.timetableEntry.create({
       data: {
-        orgId: org3.id,
-        taskId: o3Task1.id,
-        taskName: o3Task1.name,
-        taskDescription: o3Task1.description,
+        orgId: org.id,
+        taskId: tPrep.id,
+        taskName: tPrep.name,
+        taskDescription: tPrep.description,
         durationMin: 45,
         ...utcEntry(-30, "05:00", 45),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o3Casey.id }] },
+        assignees: { create: [{ membershipId: mCasey.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org3.id,
-        taskId: o3Task2.id,
-        taskName: o3Task2.name,
-        taskDescription: o3Task2.description,
+        orgId: org.id,
+        taskId: tBread.id,
+        taskName: tBread.name,
+        taskDescription: tBread.description,
         durationMin: 90,
         ...utcEntry(-30, "06:00", 90),
         status: EntryStatus.DONE,
         assignees: {
-          create: [{ membershipId: o3Casey.id }, { membershipId: o3Jordan.id }],
+          create: [{ membershipId: mCasey.id }, { membershipId: mJordan.id }],
         },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org3.id,
-        taskId: o3Task3.id,
-        taskName: o3Task3.name,
-        taskDescription: o3Task3.description,
+        orgId: org.id,
+        taskId: tCleanup.id,
+        taskName: tCleanup.name,
+        taskDescription: tCleanup.description,
         durationMin: 40,
         ...utcEntry(-27, "13:00", 40),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o3Riley.id }] },
+        assignees: { create: [{ membershipId: mRiley.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org3.id,
-        taskId: o3Task1.id,
-        taskName: o3Task1.name,
-        taskDescription: o3Task1.description,
+        orgId: org.id,
+        taskId: tPrep.id,
+        taskName: tPrep.name,
+        taskDescription: tPrep.description,
         durationMin: 45,
         ...utcEntry(-25, "05:00", 45),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o3Jordan.id }] },
+        assignees: { create: [{ membershipId: mJordan.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org3.id,
-        taskId: o3Task2.id,
-        taskName: o3Task2.name,
-        taskDescription: o3Task2.description,
+        orgId: org.id,
+        taskId: tBread.id,
+        taskName: tBread.name,
+        taskDescription: tBread.description,
         durationMin: 90,
         ...utcEntry(-23, "06:00", 90),
         status: EntryStatus.SKIPPED,
-        assignees: { create: [{ membershipId: o3Casey.id }] },
+        assignees: { create: [{ membershipId: mCasey.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org3.id,
-        taskId: o3Task3.id,
-        taskName: o3Task3.name,
-        taskDescription: o3Task3.description,
+        orgId: org.id,
+        taskId: tCleanup.id,
+        taskName: tCleanup.name,
+        taskDescription: tCleanup.description,
         durationMin: 40,
         ...utcEntry(-21, "13:00", 40),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o3Riley.id }] },
+        assignees: { create: [{ membershipId: mRiley.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org3.id,
-        taskId: o3Task1.id,
-        taskName: o3Task1.name,
-        taskDescription: o3Task1.description,
+        orgId: org.id,
+        taskId: tPrep.id,
+        taskName: tPrep.name,
+        taskDescription: tPrep.description,
         durationMin: 45,
         ...utcEntry(-18, "05:00", 45),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o3Casey.id }] },
+        assignees: { create: [{ membershipId: mCasey.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org3.id,
-        taskId: o3Task2.id,
-        taskName: o3Task2.name,
-        taskDescription: o3Task2.description,
+        orgId: org.id,
+        taskId: tBread.id,
+        taskName: tBread.name,
+        taskDescription: tBread.description,
         durationMin: 90,
         ...utcEntry(-16, "06:00", 90),
         status: EntryStatus.DONE,
         assignees: {
-          create: [{ membershipId: o3Casey.id }, { membershipId: o3Jordan.id }],
+          create: [{ membershipId: mCasey.id }, { membershipId: mJordan.id }],
         },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org3.id,
-        taskId: o3Task3.id,
-        taskName: o3Task3.name,
-        taskDescription: o3Task3.description,
+        orgId: org.id,
+        taskId: tCleanup.id,
+        taskName: tCleanup.name,
+        taskDescription: tCleanup.description,
         durationMin: 40,
         ...utcEntry(-14, "13:00", 40),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o3Riley.id }] },
+        assignees: { create: [{ membershipId: mRiley.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org3.id,
-        taskId: o3Task1.id,
-        taskName: o3Task1.name,
-        taskDescription: o3Task1.description,
+        orgId: org.id,
+        taskId: tPrep.id,
+        taskName: tPrep.name,
+        taskDescription: tPrep.description,
         durationMin: 45,
         ...utcEntry(-11, "05:00", 45),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o3Jordan.id }] },
+        assignees: { create: [{ membershipId: mJordan.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org3.id,
-        taskId: o3Task2.id,
-        taskName: o3Task2.name,
-        taskDescription: o3Task2.description,
+        orgId: org.id,
+        taskId: tBread.id,
+        taskName: tBread.name,
+        taskDescription: tBread.description,
         durationMin: 90,
         ...utcEntry(-9, "06:00", 90),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o3Casey.id }] },
+        assignees: { create: [{ membershipId: mCasey.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org3.id,
-        taskId: o3Task3.id,
-        taskName: o3Task3.name,
-        taskDescription: o3Task3.description,
+        orgId: org.id,
+        taskId: tCleanup.id,
+        taskName: tCleanup.name,
+        taskDescription: tCleanup.description,
         durationMin: 40,
         ...utcEntry(-7, "13:00", 40),
         status: EntryStatus.SKIPPED,
-        assignees: { create: [{ membershipId: o3Riley.id }] },
+        assignees: { create: [{ membershipId: mRiley.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org3.id,
-        taskId: o3Task1.id,
-        taskName: o3Task1.name,
-        taskDescription: o3Task1.description,
+        orgId: org.id,
+        taskId: tPrep.id,
+        taskName: tPrep.name,
+        taskDescription: tPrep.description,
         durationMin: 45,
         ...utcEntry(-5, "05:00", 45),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o3Casey.id }] },
+        assignees: { create: [{ membershipId: mCasey.id }] },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org3.id,
-        taskId: o3Task2.id,
-        taskName: o3Task2.name,
-        taskDescription: o3Task2.description,
+        orgId: org.id,
+        taskId: tBread.id,
+        taskName: tBread.name,
+        taskDescription: tBread.description,
         durationMin: 90,
         ...utcEntry(-3, "06:00", 90),
         status: EntryStatus.DONE,
         assignees: {
-          create: [{ membershipId: o3Casey.id }, { membershipId: o3Jordan.id }],
+          create: [{ membershipId: mCasey.id }, { membershipId: mJordan.id }],
         },
       },
     }),
     prisma.timetableEntry.create({
       data: {
-        orgId: org3.id,
-        taskId: o3Task3.id,
-        taskName: o3Task3.name,
-        taskDescription: o3Task3.description,
+        orgId: org.id,
+        taskId: tCleanup.id,
+        taskName: tCleanup.name,
+        taskDescription: tCleanup.description,
         durationMin: 40,
         ...utcEntry(-1, "13:00", 40),
         status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: o3Riley.id }] },
+        assignees: { create: [{ membershipId: mRiley.id }] },
       },
     }),
-    // ── today ──
+    // Today
     prisma.timetableEntry.create({
       data: {
-        orgId: org3.id,
-        taskId: o3Task1.id,
-        taskName: o3Task1.name,
-        taskDescription: o3Task1.description,
+        orgId: org.id,
+        taskId: tPrep.id,
+        taskName: tPrep.name,
+        taskDescription: tPrep.description,
         durationMin: 45,
         ...utcEntry(0, "05:00", 45),
         status: EntryStatus.IN_PROGRESS,
-        assignees: { create: [{ membershipId: o3Jordan.id }] },
+        assignees: { create: [{ membershipId: mJordan.id }] },
       },
     }),
-    // ── tomorrow ──
+    // Tomorrow
     prisma.timetableEntry.create({
       data: {
-        orgId: org3.id,
-        taskId: o3Task2.id,
-        taskName: o3Task2.name,
-        taskDescription: o3Task2.description,
+        orgId: org.id,
+        taskId: tBread.id,
+        taskName: tBread.name,
+        taskDescription: tBread.description,
         durationMin: 90,
         ...utcEntry(1, "06:00", 90),
         status: EntryStatus.TODO,
         assignees: {
-          create: [{ membershipId: o3Casey.id }, { membershipId: o3Jordan.id }],
+          create: [{ membershipId: mCasey.id }, { membershipId: mJordan.id }],
         },
       },
     }),
   ]);
 
-  console.log("Seeded successfully:");
-  console.log({
-    users: {
-      ivan: ivan.id,
-      jordan: jordan.id,
-      casey: casey.id,
-      riley: riley.id,
-      morgan: morgan.id,
-      alex: alex.id,
-      taylor: taylor.id,
-      sam: sam.id,
-    },
+  return { org, roles: { roleOwner, roleBaker, roleHeadBaker, rolePastry } };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. INVITES — Test data for notification panel
+//
+// Ivan (main dev account) is not a member of Bakery C, so a pending invite
+// from Jordan is realistic. Add more rows here to test other edge cases.
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function seedInvites(
+  users: Users,
+  org3: Awaited<ReturnType<typeof seedOrg3>>,
+) {
+  await prisma.invite.createMany({
+    data: [
+      // Pending — Ivan invited to join Bakery C by Jordan
+      {
+        orgId: org3.org.id,
+        invitedById: users.jordan.id,
+        recipientId: users.ivan.id,
+        type: InviteType.MEMBER,
+        orgName: "Bakery C",
+        inviterName: "Jordan",
+        metadata: {
+          roleIds: [org3.roles.roleBaker.id],
+          workingDays: ["mon", "wed", "fri"],
+        },
+      },
+    ],
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function main() {
+  await cleanDatabase();
+  const users = await seedUsers();
+
+  // Orgs are independent — seed in parallel
+  const [org1, org2, org3] = await Promise.all([
+    seedOrg1(users),
+    seedOrg2(users),
+    seedOrg3(users),
+  ]);
+
+  await seedInvites(users, org3);
+
+  console.log("Seeded successfully:", {
+    users: Object.fromEntries(Object.entries(users).map(([k, v]) => [k, v.id])),
     orgs: {
-      "Donut Shop A": org1.id,
-      "Coffee House B": org2.id,
-      "Bakery C": org3.id,
+      "Donut Shop A": org1.org.id,
+      "Coffee House B": org2.org.id,
+      "Bakery C": org3.org.id,
     },
   });
 }
@@ -1485,6 +1565,4 @@ main()
     console.error("Seed failed:", e);
     process.exit(1);
   })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .finally(() => prisma.$disconnect());

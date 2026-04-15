@@ -23,7 +23,10 @@ export default function TasksLoading() {
           ))}
         </div>
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-6 px-4 py-3 border-b last:border-b-0">
+          <div
+            key={i}
+            className="flex items-center gap-6 px-4 py-3 border-b last:border-b-0"
+          >
             <Skeleton className="h-4 w-40 rounded" />
             <Skeleton className="h-4 w-16 rounded" />
             <Skeleton className="h-4 w-20 rounded" />

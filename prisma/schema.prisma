@@ -3,12 +3,23 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
 }
 
 // ─────────────────────────────────────
 // ENUMS
 // ─────────────────────────────────────
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum InviteType {
+  MEMBER
+  FRANCHISE
+}
 
 enum MembershipStatus {
   ACTIVE
@@ -92,8 +103,10 @@ model User {
   name          String?
   image         String?
 
-  memberships   Membership[]
-  ownedOrgs     Organization[] @relation("OrgOwner")
+  memberships               Membership[]
+  ownedOrgs                 Organization[] @relation("OrgOwner")
+  sentInvites               Invite[]       @relation("SentInvites")
+  receivedInvites           Invite[]       @relation("ReceivedInvites")
 
   accounts      Account[]
   sessions      Session[]
@@ -135,6 +148,7 @@ model Organization {
   timetableSettings   TimetableSettings?
   templates           Template[]
   franchiseTokens     FranchiseToken[]
+  invites             Invite[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -432,7 +446,47 @@ model FranchiseToken {
   usedByOrgId  String?  @unique
 
   expiresAt    DateTime
-  usedAt       DateTime?
+  acceptedAt   DateTime?
 
   createdAt    DateTime @default(now())
+}
+
+// ─────────────────────────────────────
+// 14. INVITE
+// ─────────────────────────────────────
+
+model Invite {
+  id          String       @id @default(cuid())
+
+  orgId       String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  // Nullable so invite history is preserved if inviter's account is deleted
+  invitedById String?
+  invitedBy   User?        @relation("SentInvites", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  recipientId String
+  recipient   User         @relation("ReceivedInvites", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  type        InviteType
+  status      InviteStatus @default(PENDING)
+
+  // Snapshot fields — captured at creation so cards render without extra joins
+  orgName     String
+  inviterName String?
+
+  // Stores intent data for accept step (e.g. { roleIds: string[], workingDays: string[] })
+  metadata    Json?
+
+  expiresAt   DateTime?
+  seenAt      DateTime?
+  acceptedAt  DateTime?
+  declinedAt  DateTime?
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([orgId])
+  @@index([recipientId])
+  @@index([invitedById])
 }

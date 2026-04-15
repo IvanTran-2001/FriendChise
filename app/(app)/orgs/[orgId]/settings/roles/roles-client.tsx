@@ -164,7 +164,10 @@ export function RolesClient({ orgId, roles }: Props) {
           {roles.map((role, i) => (
             <tr
               key={role.id}
-              className={cn("hover:bg-primary/5 transition-colors", i < roles.length - 1 ? "border-b" : "")}
+              className={cn(
+                "hover:bg-primary/5 transition-colors",
+                i < roles.length - 1 ? "border-b" : "",
+              )}
             >
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
@@ -189,12 +192,14 @@ export function RolesClient({ orgId, roles }: Props) {
                 <div className="sm:hidden mt-1 flex flex-wrap gap-1">
                   {role.permissions.length > 0 && (
                     <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                      {role.permissions.length} permission{role.permissions.length !== 1 ? "s" : ""}
+                      {role.permissions.length} permission
+                      {role.permissions.length !== 1 ? "s" : ""}
                     </span>
                   )}
                   {role.eligibleFor.length > 0 && (
                     <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                      {role.eligibleFor.length} task{role.eligibleFor.length !== 1 ? "s" : ""}
+                      {role.eligibleFor.length} task
+                      {role.eligibleFor.length !== 1 ? "s" : ""}
                     </span>
                   )}
                 </div>

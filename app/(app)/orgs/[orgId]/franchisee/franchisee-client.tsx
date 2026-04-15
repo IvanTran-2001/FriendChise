@@ -36,7 +36,7 @@ type Token = {
   token: string;
   invitedEmail: string;
   expiresAt: Date;
-  usedAt: Date | null;
+  acceptedAt: Date | null;
   usedByOrgId: string | null;
 };
 
@@ -49,7 +49,9 @@ function FranchiseeActions({
   orgId: string;
   franchisee: Franchisee;
 }) {
-  const [mode, setMode] = useState<"closed" | "menu" | "delete" | "changeOwner">("closed");
+  const [mode, setMode] = useState<
+    "closed" | "menu" | "delete" | "changeOwner"
+  >("closed");
   const [newOwnerEmail, setNewOwnerEmail] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -64,16 +66,26 @@ function FranchiseeActions({
   const handleDelete = () => {
     startTransition(async () => {
       const res = await removeFranchisee(orgId, franchisee.id);
-      if (res.ok) { reset(); router.refresh(); }
-      else setError(res.error);
+      if (res.ok) {
+        reset();
+        router.refresh();
+      } else setError(res.error);
     });
   };
 
   const handleChangeOwner = () => {
+    const trimmedEmail = newOwnerEmail.trim();
+    if (!trimmedEmail || isPending) return;
     startTransition(async () => {
-      const res = await changeFranchiseeOwner(orgId, franchisee.id, newOwnerEmail);
-      if (res.ok) { reset(); router.refresh(); }
-      else setError(res.error);
+      const res = await changeFranchiseeOwner(
+        orgId,
+        franchisee.id,
+        trimmedEmail,
+      );
+      if (res.ok) {
+        reset();
+        router.refresh();
+      } else setError(res.error);
     });
   };
 
@@ -119,16 +131,28 @@ function FranchiseeActions({
             <DialogTitle>Delete franchisee</DialogTitle>
             <DialogDescription>
               This will permanently delete{" "}
-              <span className="font-medium text-foreground">{franchisee.name}</span>{" "}
+              <span className="font-medium text-foreground">
+                {franchisee.name}
+              </span>{" "}
               and all its data. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           {error && <p className="text-xs text-destructive">{error}</p>}
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={reset} disabled={isPending}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={reset}
+              disabled={isPending}
+            >
               Cancel
             </Button>
-            <Button variant="destructive" size="sm" onClick={handleDelete} disabled={isPending}>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDelete}
+              disabled={isPending}
+            >
               {isPending ? "Deleting…" : "Delete"}
             </Button>
           </DialogFooter>
@@ -142,7 +166,10 @@ function FranchiseeActions({
             <DialogTitle>Change Owner</DialogTitle>
             <DialogDescription>
               Enter the email of the new owner for{" "}
-              <span className="font-medium text-foreground">{franchisee.name}</span>.
+              <span className="font-medium text-foreground">
+                {franchisee.name}
+              </span>
+              .
             </DialogDescription>
           </DialogHeader>
           <Input
@@ -150,14 +177,25 @@ function FranchiseeActions({
             value={newOwnerEmail}
             onChange={(e) => setNewOwnerEmail(e.target.value)}
             className="h-8 text-sm"
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.repeat) handleChangeOwner(); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.repeat) handleChangeOwner();
+            }}
           />
           {error && <p className="text-xs text-destructive">{error}</p>}
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={reset} disabled={isPending}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={reset}
+              disabled={isPending}
+            >
               Cancel
             </Button>
-            <Button size="sm" onClick={handleChangeOwner} disabled={isPending || !newOwnerEmail.trim()}>
+            <Button
+              size="sm"
+              onClick={handleChangeOwner}
+              disabled={isPending || !newOwnerEmail.trim()}
+            >
               {isPending ? "Saving…" : "Confirm"}
             </Button>
           </DialogFooter>
@@ -172,7 +210,10 @@ function TokenActions({ orgId, token }: { orgId: string; token: Token }) {
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const reset = () => { setMode("closed"); setError(""); };
+  const reset = () => {
+    setMode("closed");
+    setError("");
+  };
 
   const handleDelete = () => {
     startTransition(async () => {
@@ -233,15 +274,28 @@ function TokenActions({ orgId, token }: { orgId: string; token: Token }) {
             <DialogTitle>Delete token</DialogTitle>
             <DialogDescription>
               Delete the invite token for{" "}
-              <span className="font-medium text-foreground">{token.invitedEmail}</span>?
+              <span className="font-medium text-foreground">
+                {token.invitedEmail}
+              </span>
+              ?
             </DialogDescription>
           </DialogHeader>
           {error && <p className="text-xs text-destructive">{error}</p>}
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={reset} disabled={isPending}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={reset}
+              disabled={isPending}
+            >
               Cancel
             </Button>
-            <Button variant="destructive" size="sm" onClick={handleDelete} disabled={isPending}>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDelete}
+              disabled={isPending}
+            >
               {isPending ? "Deleting…" : "Delete"}
             </Button>
           </DialogFooter>
@@ -287,9 +341,15 @@ export function FranchiseeClient({
             <thead className="bg-muted/50 text-muted-foreground">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Name</th>
-                <th className="hidden sm:table-cell text-left px-4 py-2 font-medium">Location</th>
-                <th className="hidden sm:table-cell text-left px-4 py-2 font-medium">Owner</th>
-                <th className="hidden sm:table-cell text-left px-4 py-2 font-medium">Created</th>
+                <th className="hidden sm:table-cell text-left px-4 py-2 font-medium">
+                  Location
+                </th>
+                <th className="hidden sm:table-cell text-left px-4 py-2 font-medium">
+                  Owner
+                </th>
+                <th className="hidden sm:table-cell text-left px-4 py-2 font-medium">
+                  Created
+                </th>
                 <th className="px-4 py-2" />
               </tr>
             </thead>
@@ -371,8 +431,12 @@ export function FranchiseeClient({
             <thead className="bg-muted/50 text-muted-foreground">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Email</th>
-                <th className="hidden sm:table-cell text-left px-4 py-2 font-medium">Token</th>
-                <th className="hidden sm:table-cell text-left px-4 py-2 font-medium">Expires</th>
+                <th className="hidden sm:table-cell text-left px-4 py-2 font-medium">
+                  Token
+                </th>
+                <th className="hidden sm:table-cell text-left px-4 py-2 font-medium">
+                  Expires
+                </th>
                 <th className="text-left px-4 py-2 font-medium">Status</th>
                 <th className="px-4 py-2" />
               </tr>
@@ -390,13 +454,15 @@ export function FranchiseeClient({
               ) : (
                 tokens.map((t) => {
                   const expired = new Date(t.expiresAt) < new Date();
-                  const used = !!t.usedAt;
+                  const used = !!t.acceptedAt;
                   return (
                     <tr key={t.id} className="border-t hover:bg-muted/30">
                       <td className="px-4 py-2">
                         <div>{t.invitedEmail}</div>
                         <div className="sm:hidden text-xs text-muted-foreground">
-                          {new Date(t.expiresAt).toLocaleDateString("en-AU", { timeZone: "UTC" })}
+                          {new Date(t.expiresAt).toLocaleDateString("en-AU", {
+                            timeZone: "UTC",
+                          })}
                         </div>
                       </td>
                       <td className="hidden sm:table-cell px-4 py-2 font-mono text-xs text-muted-foreground truncate max-w-45">

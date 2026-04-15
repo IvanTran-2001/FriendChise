@@ -17,7 +17,13 @@
 
 import { revalidatePath } from "next/cache";
 import { requireParentOrgOwnerAction } from "@/lib/authz";
-import { prisma } from "@/lib/prisma";
+import {
+  createFranchiseToken,
+  deleteFranchiseToken as deleteFranchiseTokenService,
+  extendFranchiseToken as extendFranchiseTokenService,
+  removeFranchisee as removeFranchiseeService,
+  changeFranchiseeOwner as changeFranchiseeOwnerService,
+} from "@/lib/services/franchise";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -29,21 +35,8 @@ export async function generateFranchiseToken(
   const authz = await requireParentOrgOwnerAction(orgId);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const trimmed = email.trim().toLowerCase();
-  if (!trimmed) return { ok: false, error: "Email is required" };
-
-  const user = await prisma.user.findUnique({
-    where: { email: trimmed },
-    select: { id: true },
-  });
-  if (!user) return { ok: false, error: "No account found with that email" };
-
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7);
-
-  await prisma.franchiseToken.create({
-    data: { orgId, invitedEmail: trimmed, expiresAt },
-  });
+  const result = await createFranchiseToken(orgId, email, authz.userId);
+  if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/franchisee`);
   return { ok: true };
@@ -57,13 +50,9 @@ export async function deleteFranchiseToken(
   const authz = await requireParentOrgOwnerAction(orgId);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const token = await prisma.franchiseToken.findFirst({
-    where: { id: tokenId, orgId },
-    select: { id: true },
-  });
-  if (!token) return { ok: false, error: "Token not found" };
+  const result = await deleteFranchiseTokenService(orgId, tokenId);
+  if (!result.ok) return { ok: false, error: result.error };
 
-  await prisma.franchiseToken.delete({ where: { id: tokenId } });
   revalidatePath(`/orgs/${orgId}/franchisee`);
   return { ok: true };
 }
@@ -77,21 +66,8 @@ export async function extendFranchiseToken(
   const authz = await requireParentOrgOwnerAction(orgId);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const token = await prisma.franchiseToken.findFirst({
-    where: { id: tokenId, orgId },
-    select: { id: true, expiresAt: true },
-  });
-  if (!token) return { ok: false, error: "Token not found" };
-
-  const now = new Date();
-  const base = token.expiresAt > now ? token.expiresAt : now;
-  const newExpiry = new Date(base);
-  newExpiry.setDate(newExpiry.getDate() + 1);
-
-  await prisma.franchiseToken.update({
-    where: { id: tokenId },
-    data: { expiresAt: newExpiry },
-  });
+  const result = await extendFranchiseTokenService(orgId, tokenId);
+  if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/franchisee`);
   return { ok: true };
@@ -109,10 +85,8 @@ export async function removeFranchisee(
   const authz = await requireParentOrgOwnerAction(orgId);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const { count } = await prisma.organization.deleteMany({
-    where: { id: childOrgId, parentId: orgId },
-  });
-  if (count === 0) return { ok: false, error: "Franchisee not found" };
+  const result = await removeFranchiseeService(orgId, childOrgId);
+  if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/franchisee`);
   return { ok: true };
@@ -132,68 +106,12 @@ export async function changeFranchiseeOwner(
   const authz = await requireParentOrgOwnerAction(orgId);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const newOwner = await prisma.user.findUnique({
-    where: { email: newOwnerEmail.trim().toLowerCase() },
-    select: { id: true },
-  });
-  if (!newOwner) return { ok: false, error: "User not found" };
-
-  try {
-    await prisma.$transaction(async (tx) => {
-      // Read child inside the transaction so ownerId and parentId are current
-      const child = await tx.organization.findFirst({
-        where: { id: childOrgId, parentId: orgId },
-        select: { id: true, ownerId: true },
-      });
-      if (!child) throw new Error("Franchisee not found");
-
-      const ownerRole = await tx.role.findFirst({
-        where: { orgId: childOrgId, key: "owner" },
-        select: { id: true },
-      });
-      if (!ownerRole) throw new Error("Owner role not found");
-
-      const oldMembership = await tx.membership.findFirst({
-        where: { orgId: childOrgId, userId: child.ownerId },
-        select: { id: true },
-      });
-      if (oldMembership) {
-        await tx.memberRole.deleteMany({
-          where: { membershipId: oldMembership.id, roleId: ownerRole.id },
-        });
-      }
-
-      const newMembership = await tx.membership.upsert({
-        where: { userId_orgId: { userId: newOwner.id, orgId: childOrgId } },
-        create: { orgId: childOrgId, userId: newOwner.id, workingDays: [] },
-        update: {},
-      });
-
-      await tx.memberRole.upsert({
-        where: {
-          membershipId_roleId: {
-            membershipId: newMembership.id,
-            roleId: ownerRole.id,
-          },
-        },
-        create: { membershipId: newMembership.id, roleId: ownerRole.id },
-        update: {},
-      });
-
-      // Include parentId in the where clause so we never update an org that
-      // has been reparented between the child read and this write
-      const { count } = await tx.organization.updateMany({
-        where: { id: childOrgId, parentId: orgId },
-        data: { ownerId: newOwner.id },
-      });
-      if (count === 0) throw new Error("Franchisee not found");
-    });
-  } catch (err) {
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "Failed to change owner",
-    };
-  }
+  const result = await changeFranchiseeOwnerService(
+    orgId,
+    childOrgId,
+    newOwnerEmail,
+  );
+  if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/franchisee`);
   return { ok: true };

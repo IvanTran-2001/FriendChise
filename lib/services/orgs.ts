@@ -196,7 +196,20 @@ export async function joinFranchise(
     // Mark the token as consumed so it cannot be reused.
     await tx.franchiseToken.update({
       where: { id: token.id },
-      data: { usedByOrgId: org.id, usedAt: new Date() },
+      data: { usedByOrgId: org.id, acceptedAt: new Date() },
+    });
+
+    // Mark the corresponding FRANCHISE invite as accepted so the notification
+    // resolves and no longer shows Join / Decline buttons.
+    await tx.invite.updateMany({
+      where: {
+        orgId: token.orgId,
+        recipientId: userId,
+        type: "FRANCHISE",
+        status: "PENDING",
+        metadata: { path: ["token"], equals: token.token },
+      },
+      data: { status: "ACCEPTED", acceptedAt: new Date() },
     });
 
     return { org, clonedRoles, membership };

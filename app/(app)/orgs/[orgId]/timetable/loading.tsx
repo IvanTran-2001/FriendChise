@@ -2,7 +2,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function TimetableLoading() {
   return (
-    <div className="flex flex-col gap-4" style={{ height: "calc(100dvh - 148px)" }}>
+    <div
+      className="flex flex-col gap-4"
+      style={{ height: "calc(100dvh - 148px)" }}
+    >
       {/* Toolbar skeleton */}
       <div className="-mx-4 -mt-4 mb-0 border-b bg-card px-4 py-2 flex items-center justify-between gap-2 sm:-mx-6 sm:-mt-6 sm:px-6">
         <div className="flex items-center gap-2">
@@ -22,7 +25,10 @@ export default function TimetableLoading() {
           {/* Column headers */}
           <div className="grid grid-cols-7 border-b">
             {Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className="flex flex-col items-center py-2 gap-1 border-r last:border-r-0">
+              <div
+                key={i}
+                className="flex flex-col items-center py-2 gap-1 border-r last:border-r-0"
+              >
                 <Skeleton className="h-2.5 w-6 rounded" />
                 <Skeleton className="h-7 w-7 rounded-full" />
               </div>
@@ -33,7 +39,10 @@ export default function TimetableLoading() {
             <div className="flex h-full">
               <div className="w-12 shrink-0 flex flex-col">
                 {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="flex-1 border-b flex items-start pt-1 px-1">
+                  <div
+                    key={i}
+                    className="flex-1 border-b flex items-start pt-1 px-1"
+                  >
                     <Skeleton className="h-2.5 w-7 rounded" />
                   </div>
                 ))}

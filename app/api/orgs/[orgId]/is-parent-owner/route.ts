@@ -31,7 +31,10 @@ export async function GET(
       select: { id: true },
     });
     if (ownedParent) {
-      return NextResponse.json({ isParentOwner: false, parentOrgId: ownedParent.id });
+      return NextResponse.json({
+        isParentOwner: false,
+        parentOrgId: ownedParent.id,
+      });
     }
   }
 
