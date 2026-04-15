@@ -256,14 +256,12 @@ function JoinFranchiseForm({
   initialToken?: string;
 }) {
   const router = useRouter();
-  const [token, setToken] = useState(initialToken);
+  const [manualToken, setManualToken] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const schedule = useScheduleState();
 
-  useEffect(() => {
-    setToken(initialToken);
-  }, [initialToken]);
+  const effectiveToken = initialToken || manualToken;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -271,7 +269,7 @@ function JoinFranchiseForm({
     setLoading(true);
     try {
       const result = await joinFranchise({
-        token,
+        token: effectiveToken,
         ...buildSchedulePayload(schedule),
       });
       if (!result.ok) {
@@ -296,8 +294,8 @@ function JoinFranchiseForm({
           <Input
             id="token"
             placeholder="Paste your invite link or token"
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
+            value={manualToken}
+            onChange={(e) => setManualToken(e.target.value)}
             required
           />
           <p className="text-xs text-muted-foreground">
@@ -333,21 +331,24 @@ function JoinFranchiseForm({
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function NewOrgPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialToken = searchParams.get("token") ?? "";
-  const [mode, setMode] = useState<"create" | "join">(
-    initialToken ? "join" : "create",
-  );
+  const mode = initialToken ? "join" : "create";
   const { setOverride } = useBreadcrumbOverride();
-
-  useEffect(() => {
-    setMode(initialToken ? "join" : "create");
-  }, [initialToken]);
 
   useEffect(() => {
     setOverride(mode === "join" ? "Join Franchise" : "Create Organization");
     return () => setOverride(null);
   }, [mode, setOverride]);
+
+  function switchToJoin() {
+    router.push("/orgs/new?token=");
+  }
+
+  function switchToCreate() {
+    router.push("/orgs/new");
+  }
 
   return (
     <div className="max-w-md mx-auto mt-12 pb-16">
@@ -361,10 +362,10 @@ export default function NewOrgPage() {
       </p>
 
       {mode === "create" ? (
-        <CreateOrgForm onSwitch={() => setMode("join")} />
+        <CreateOrgForm onSwitch={switchToJoin} />
       ) : (
         <JoinFranchiseForm
-          onSwitch={() => setMode("create")}
+          onSwitch={switchToCreate}
           initialToken={initialToken}
         />
       )}

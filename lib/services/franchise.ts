@@ -272,6 +272,13 @@ export async function createFranchiseToken(
     }),
   ]);
 
+  if (!org)
+    return {
+      ok: false,
+      error: "Organization not found",
+      code: "NOT_FOUND",
+    };
+
   const franchiseToken = await prisma.franchiseToken.create({
     data: { orgId, invitedEmail: trimmed, expiresAt },
     select: { token: true },

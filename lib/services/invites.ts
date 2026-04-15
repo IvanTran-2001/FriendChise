@@ -141,17 +141,32 @@ export async function createMemberInvite(
       code: "CONFLICT",
     };
 
-  await prisma.invite.create({
-    data: {
-      orgId,
-      invitedById,
-      recipientId,
-      type: InviteType.MEMBER,
-      orgName: org.name,
-      inviterName: inviter?.name ?? null,
-      metadata: { roleIds, workingDays },
-    },
-  });
+  try {
+    await prisma.invite.create({
+      data: {
+        orgId,
+        invitedById,
+        recipientId,
+        type: InviteType.MEMBER,
+        orgName: org.name,
+        inviterName: inviter?.name ?? null,
+        metadata: { roleIds, workingDays },
+      },
+    });
+  } catch (e) {
+    // Handle DB-level unique constraint violation (concurrent request race condition)
+    if (e && typeof e === "object" && "code" in e) {
+      const prismaCode = (e as { code?: string }).code;
+      if (prismaCode === "P2002") {
+        return {
+          ok: false,
+          error: "This user already has a pending invite",
+          code: "CONFLICT",
+        };
+      }
+    }
+    throw e;
+  }
 
   return { ok: true, data: null };
 }
