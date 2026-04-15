@@ -1,5 +1,21 @@
 "use client";
 
+/**
+ * Notification bell and invite panel.
+ *
+ * On desktop: renders as a Popover anchored to the bell button.
+ * On mobile:  renders as a bottom Sheet (full-width drawer).
+ *
+ * The bell badge displays the count of unseen invites passed in from the
+ * NavBar server component. When the panel first opens, all unseen invites
+ * are marked as seen via `markInvitesSeenAction` so the badge clears.
+ *
+ * Each invite is rendered as an `InviteCard` that shows:
+ * - Inviter initials avatar, org name, relative timestamp
+ * - Accept / Decline buttons for PENDING invites
+ * - A read-only history state for ACCEPTED / DECLINED invites
+ */
+
 import { useState, useTransition } from "react";
 import { Bell, Check, X, Building2, Users, History } from "lucide-react";
 import { useRouter } from "next/navigation";

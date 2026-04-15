@@ -66,6 +66,7 @@ Provider: PostgreSQL (Supabase), managed via Prisma ORM.
 | `TemplateEntry`          | One time slot in a `Template` — which task, which day index, start/end times.                                                         |
 | `TemplateEntryAssignee`  | Pre-assigns a `Membership` to a `TemplateEntry`.                                                                                      |
 | `FranchiseToken`         | One-time invite token issued by a parent org for a franchisee to join.                                                                |
+| `Invite`                 | A member or franchise invite sent to a `User`. Carries a status (`PENDING`/`ACCEPTED`/`DECLINED`), snapshot fields for the org name and inviter name, and a JSON `metadata` blob with the roleIds/workingDays pre-filled for the accept step. Visible in the notification panel. |
 
 ### Enums
 
@@ -74,6 +75,8 @@ Provider: PostgreSQL (Supabase), managed via Prisma ORM.
 | `PermissionAction` | `MANAGE_MEMBERS`, `MANAGE_ROLES`, `MANAGE_TIMETABLE`, `MANAGE_TASKS`, `MANAGE_SETTINGS`, `VIEW_TIMETABLE` |
 | `EntryStatus`      | `TODO`, `IN_PROGRESS`, `DONE`, `SKIPPED`, `CANCELLED`                                                     |
 | `MembershipStatus` | `ACTIVE`, `RESTRICTED`                                                                                    |
+| `InviteStatus`     | `PENDING`, `ACCEPTED`, `DECLINED`                                                                         |
+| `InviteType`       | `MEMBER`, `FRANCHISE`                                                                                     |
 | `ViewType`         | `DAILY`, `WEEKLY`                                                                                         |
 
 ### Migrations
@@ -91,19 +94,12 @@ pnpm seed
 
 #### Migration history
 
-| Migration                                               | Description                                                  |
-| ------------------------------------------------------- | ------------------------------------------------------------ |
-| `20260310032753_init`                                   | Initial schema                                               |
-| `20260311073626_add_timestamps`                         | Add `createdAt`/`updatedAt` to all models                    |
-| `20260312054457_add_nextauth_models`                    | Add Auth.js `Account`, `Session`, `VerificationToken` models |
-| `20260312083202_add_role_key`                           | Add stable `key` field to `Role`                             |
-| `20260313020753_add_email_verified`                     | Add `emailVerified` to `User`                                |
-| `20260319000001_rename_taskcycle_to_timetable_template` | Rename TaskCycle → Template throughout                       |
-| `20260323020149_add_org_timezone`                       | Add `timezone` field to `Organization`                       |
-| `20260326075645_new_schema`                             | Major schema restructure                                     |
-| `20260327101836_add_org_operating_days`                 | Add `operatingDays` array to `Organization`                  |
-| `20260328013902_fix_template_entry_task_cascade`        | Fix cascade delete on `TemplateEntry` → `Task`               |
-| `20260409102531_require_colors`                         | Make `Role.color` and `Task.color` non-nullable              |
+| Migration                               | Description                                                                              |
+| --------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `20260414033638_init`                   | Full initial schema — all models, enums, indexes                                         |
+| `20260414035009_add_invite_metadata`    | Add `metadata` JSON field to `Invite` for storing roleIds/workingDays for the accept step |
+| `20260414045652_add_invite_snapshots`   | Add snapshot fields (`orgName`, `inviterName`) to `Invite` so cards render without joins |
+| `20260415021658_invite_pending_unique`  | Partial unique index on `Invite(orgId, recipientId, type)` where `status = 'PENDING'` — DB-level guard against duplicate pending invites |
 
 ## Authentication
 
@@ -363,6 +359,17 @@ Server Actions call `revalidatePath` to invalidate the Next.js cache so server-r
 
 All `/orgs/[orgId]/*` pages are guarded by at least `requireOrgMemberPage` — users not in the org are redirected.
 
+## Notification System
+
+In-app notifications are implemented via the `Invite` model and a bell icon in the navbar.
+
+- The `NavBar` server component fetches all visible invites and an unseen count for the session user on every render.
+- **Visibility window**: `PENDING` invites are always shown; `ACCEPTED`/`DECLINED` invites are shown for 7 days after being handled, then disappear naturally.
+- **Unseen badge**: the bell shows a red count badge for invites where `seenAt IS NULL`. Clicking the bell calls `markInvitesSeenAction` to clear it.
+- **Panel**: a `Popover` on desktop, a bottom `Sheet` on mobile (`useIsMobile` hook).
+- **Invite types**: `MEMBER` (org membership invite) and `FRANCHISE` (franchise join invite). Each type shows different actions in the `InviteCard`.
+- Snapshot fields (`orgName`, `inviterName`) are captured at invite creation so the card renders without additional DB joins.
+
 ## Franchise System
 
 A parent org can spawn franchisee orgs using a one-time invite token flow:
@@ -436,8 +443,16 @@ All orgs also have Owner and Default Member system roles. Members can hold multi
 
 Users: Ivan, Jordan, Casey, Riley, Morgan, Alex, Taylor, Sam.
 
+## Docs
+
+The `docs/` folder contains long-form documentation that doesn't belong in this README:
+
+| File                          | Description                        |
+| ----------------------------- | ---------------------------------- |
+| `smoke-test-2026-04-15.md`    | Manual smoke test report — 87 tests across all feature areas, run against production on 2026-04-15 |
+
 ## Status
 
 Work in progress. Fully implemented: service layer, REST API, auth, member management (list, view, edit, restrict, delete), task management (list, view, create, edit with color), timetable view (calendar + simple, task links), timetable templates, org settings, role management (list, create, edit, delete, task eligibility, color), franchise management, required colors on tasks and roles, async breadcrumbs with name resolution.
 
-Not yet started: schedule generation (automatic cycle-based rotation), worker "Today" checklist, completion stats, timetable/notification settings pages.
+Not yet started: schedule generation (automatic cycle-based rotation), worker "Today" checklist, completion stats, timetable/notification settings pages, real-time notification refresh, acceptance notification back to inviter.

@@ -1,5 +1,20 @@
 "use client";
 
+/**
+ * Breadcrumb override context.
+ *
+ * Some pages (e.g. /orgs/new) render dynamic content that can't be inferred
+ * from the URL alone. This context lets a client component push a custom
+ * label that `PageHeader` will display instead of the URL-derived breadcrumb.
+ *
+ * Usage (in a client page component):
+ *   const { setOverride } = useBreadcrumbOverride();
+ *   useEffect(() => {
+ *     setOverride("Join Franchise");
+ *     return () => setOverride(null);
+ *   }, []);
+ */
+
 import { createContext, useContext, useState, useCallback } from "react";
 
 interface BreadcrumbContextValue {
