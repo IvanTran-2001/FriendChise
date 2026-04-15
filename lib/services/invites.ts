@@ -311,24 +311,34 @@ export async function declineFranchiseInvite(
 
   const meta = invite.metadata as { token?: string } | null;
 
-  await prisma.$transaction(async (tx) => {
-    const updated = await tx.invite.updateMany({
-      where: { id: inviteId, status: "PENDING" },
-      data: { status: "DECLINED", declinedAt: new Date() },
-    });
-
-    if (updated.count === 0) {
-      return;
-    }
-
-    // Expire the franchise token so it can no longer be used
-    if (meta?.token) {
-      await tx.franchiseToken.updateMany({
-        where: { token: meta.token, orgId: invite.orgId },
-        data: { expiresAt: new Date() },
+  try {
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.invite.updateMany({
+        where: { id: inviteId, status: "PENDING" },
+        data: { status: "DECLINED", declinedAt: new Date() },
       });
-    }
-  });
+
+      if (updated.count === 0) {
+        throw new Error("ALREADY_HANDLED");
+      }
+
+      // Expire the franchise token so it can no longer be used
+      if (meta?.token) {
+        await tx.franchiseToken.updateMany({
+          where: { token: meta.token, orgId: invite.orgId },
+          data: { expiresAt: new Date() },
+        });
+      }
+    });
+  } catch (e) {
+    if (e instanceof Error && e.message === "ALREADY_HANDLED")
+      return {
+        ok: false,
+        error: "This invite has already been handled",
+        code: "CONFLICT",
+      };
+    throw e;
+  }
 
   return { ok: true, data: null };
 }

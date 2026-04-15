@@ -279,29 +279,31 @@ export async function createFranchiseToken(
       code: "NOT_FOUND",
     };
 
-  const franchiseToken = await prisma.franchiseToken.create({
-    data: { orgId, invitedEmail: trimmed, expiresAt },
-    select: { token: true },
-  });
+  await prisma.$transaction(async (tx) => {
+    const franchiseToken = await tx.franchiseToken.create({
+      data: { orgId, invitedEmail: trimmed, expiresAt },
+      select: { token: true },
+    });
 
-  if (existingInvite) {
-    await prisma.invite.update({
-      where: { id: existingInvite.id },
-      data: { metadata: { token: franchiseToken.token } },
-    });
-  } else {
-    await prisma.invite.create({
-      data: {
-        orgId,
-        invitedById: inviterId,
-        recipientId: user.id,
-        type: InviteType.FRANCHISE,
-        orgName: org?.name ?? "",
-        inviterName: inviter?.name ?? null,
-        metadata: { token: franchiseToken.token },
-      },
-    });
-  }
+    if (existingInvite) {
+      await tx.invite.update({
+        where: { id: existingInvite.id },
+        data: { metadata: { token: franchiseToken.token } },
+      });
+    } else {
+      await tx.invite.create({
+        data: {
+          orgId,
+          invitedById: inviterId,
+          recipientId: user.id,
+          type: InviteType.FRANCHISE,
+          orgName: org?.name ?? "",
+          inviterName: inviter?.name ?? null,
+          metadata: { token: franchiseToken.token },
+        },
+      });
+    }
+  });
 
   return { ok: true, data: undefined };
 }

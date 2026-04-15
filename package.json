@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build --no-turbopack",
+    "build": "prisma generate && next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "seed": "prisma db seed"
@@ -17,8 +17,6 @@
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.4.2",
     "@radix-ui/react-alert-dialog": "^1.1.15",
-    "@supabase/ssr": "^0.10.2",
-    "@supabase/supabase-js": "^2.103.0",
     "@vvo/tzdb": "^6.198.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

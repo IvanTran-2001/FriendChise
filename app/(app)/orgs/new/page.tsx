@@ -333,8 +333,9 @@ function JoinFranchiseForm({
 export default function NewOrgPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const hasTokenParam = searchParams.has("token");
   const initialToken = searchParams.get("token") ?? "";
-  const mode = initialToken ? "join" : "create";
+  const mode = hasTokenParam ? "join" : "create";
   const { setOverride } = useBreadcrumbOverride();
 
   useEffect(() => {
