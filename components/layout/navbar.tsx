@@ -56,9 +56,12 @@ export const NavBar = async () => {
 
   const [invites, unseenCount] = user?.id
     ? await Promise.all([
-        getInvitesForUser(user.id).catch(() => []),
-        getUnseenInviteCount(user.id).catch(() => 0),
-      ])
+        getInvitesForUser(user.id),
+        getUnseenInviteCount(user.id),
+      ]).catch((error) => {
+        console.error("Failed to load invites for navbar", error);
+        return [[], 0] as [never[], number];
+      })
     : [[], 0];
 
   return (

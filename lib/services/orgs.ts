@@ -207,6 +207,7 @@ export async function joinFranchise(
         recipientId: userId,
         type: "FRANCHISE",
         status: "PENDING",
+        metadata: { path: ["token"], equals: token.token },
       },
       data: { status: "ACCEPTED", acceptedAt: new Date() },
     });

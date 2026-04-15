@@ -165,14 +165,22 @@ export function TimeGrid<
       Math.floor(initialScrollMin / 60) * HOUR_HEIGHT - HOUR_HEIGHT / 2,
     );
     const el = scrollRef.current;
+    let rafId1: number | null = null;
+    let rafId2: number | null = null;
     // Double-rAF: first tick lets React commit the layout, second tick lets
     // the browser resolve flex heights (needed for fillHeight containers where
     // scrollHeight isn't accurate after a single rAF).
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        el.scrollTop = scrollTo;
+    rafId1 = requestAnimationFrame(() => {
+      rafId2 = requestAnimationFrame(() => {
+        if (scrollRef.current) {
+          el.scrollTop = scrollTo;
+        }
       });
     });
+    return () => {
+      if (rafId1 !== null) cancelAnimationFrame(rafId1);
+      if (rafId2 !== null) cancelAnimationFrame(rafId2);
+    };
     // Intentionally only runs when the column set changes (week/page nav)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columns.join(","), initialScrollMin]);
@@ -422,8 +430,6 @@ export function TimeGrid<
                                   if (e.key !== "Enter" && e.key !== " ")
                                     return;
                                   if (e.key === " ") e.preventDefault();
-                                  const down = pointerDownPos.current;
-                                  if (down && down.id !== inst.id) return;
                                   e.stopPropagation();
                                   onBlockClick(inst);
                                 }

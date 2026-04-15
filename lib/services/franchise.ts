@@ -252,7 +252,7 @@ export async function createFranchiseToken(
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
-  const [org, inviter, franchiseToken] = await Promise.all([
+  const [org, inviter, existingInvite] = await Promise.all([
     prisma.organization.findUnique({
       where: { id: orgId },
       select: { name: true },
@@ -261,22 +261,28 @@ export async function createFranchiseToken(
       where: { id: inviterId },
       select: { name: true },
     }),
-    prisma.franchiseToken.create({
-      data: { orgId, invitedEmail: trimmed, expiresAt },
-      select: { token: true },
+    prisma.invite.findFirst({
+      where: {
+        orgId,
+        recipientId: user.id,
+        type: InviteType.FRANCHISE,
+        status: "PENDING",
+      },
+      select: { id: true },
     }),
   ]);
 
-  const existingInvite = await prisma.invite.findFirst({
-    where: {
-      orgId,
-      recipientId: user.id,
-      type: InviteType.FRANCHISE,
-      status: "PENDING",
-    },
-    select: { id: true },
+  const franchiseToken = await prisma.franchiseToken.create({
+    data: { orgId, invitedEmail: trimmed, expiresAt },
+    select: { token: true },
   });
-  if (!existingInvite) {
+
+  if (existingInvite) {
+    await prisma.invite.update({
+      where: { id: existingInvite.id },
+      data: { metadata: { token: franchiseToken.token } },
+    });
+  } else {
     await prisma.invite.create({
       data: {
         orgId,
@@ -300,11 +306,22 @@ export async function deleteFranchiseToken(
 ): Promise<ServiceResult<void>> {
   const token = await prisma.franchiseToken.findFirst({
     where: { id: tokenId, orgId },
-    select: { id: true },
+    select: { id: true, token: true },
   });
   if (!token) return { ok: false, error: "Token not found", code: "NOT_FOUND" };
 
-  await prisma.franchiseToken.delete({ where: { id: tokenId } });
+  await prisma.$transaction(async (tx) => {
+    await tx.franchiseToken.delete({ where: { id: tokenId } });
+    await tx.invite.deleteMany({
+      where: {
+        orgId,
+        type: InviteType.FRANCHISE,
+        status: "PENDING",
+        metadata: { path: ["token"], equals: token.token },
+      },
+    });
+  });
+
   return { ok: true, data: undefined };
 }
 

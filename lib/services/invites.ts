@@ -57,10 +57,21 @@ export async function getInvitesForUser(userId: string): Promise<InviteItem[]> {
 /**
  * Returns the count of unseen (unread) invites for a user.
  * Used for the notification badge on the bell icon.
+ * Applies the same visibility filter as getInvitesForUser.
  */
 export async function getUnseenInviteCount(userId: string): Promise<number> {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
   return prisma.invite.count({
-    where: { recipientId: userId, seenAt: null },
+    where: {
+      recipientId: userId,
+      seenAt: null,
+      OR: [
+        { status: "PENDING" },
+        { status: "ACCEPTED", acceptedAt: { gte: sevenDaysAgo } },
+        { status: "DECLINED", declinedAt: { gte: sevenDaysAgo } },
+      ],
+    },
   });
 }
 
@@ -182,17 +193,31 @@ export async function acceptMemberInvite(
       });
       if (updated.count === 0) throw new Error("ALREADY_HANDLED");
 
-      const m = await tx.membership.create({
-        data: {
+      const validRoleIds = meta?.roleIds?.length
+        ? (
+            await tx.role.findMany({
+              where: {
+                id: { in: meta.roleIds },
+                orgId: invite.orgId,
+              },
+              select: { id: true },
+            })
+          ).map((r) => r.id)
+        : [];
+
+      const m = await tx.membership.upsert({
+        where: { userId_orgId: { userId, orgId: invite.orgId } },
+        create: {
           orgId: invite.orgId,
           userId,
           workingDays: meta?.workingDays ?? [],
         },
+        update: {},
       });
 
-      if (meta?.roleIds?.length) {
+      if (validRoleIds.length) {
         await tx.memberRole.createMany({
-          data: meta.roleIds.map((roleId) => ({ membershipId: m.id, roleId })),
+          data: validRoleIds.map((roleId) => ({ membershipId: m.id, roleId })),
           skipDuplicates: true,
         });
       }
@@ -204,6 +229,16 @@ export async function acceptMemberInvite(
         error: "This invite has already been handled",
         code: "CONFLICT",
       };
+    // Handle Prisma constraint errors
+    if (e && typeof e === "object" && "code" in e) {
+      const prismaCode = (e as { code?: string }).code;
+      if (prismaCode === "P2002" || prismaCode === "P2003")
+        return {
+          ok: false,
+          error: "Membership or role conflict",
+          code: "CONFLICT",
+        };
+    }
     throw e;
   }
 
@@ -262,10 +297,14 @@ export async function declineFranchiseInvite(
   const meta = invite.metadata as { token?: string } | null;
 
   await prisma.$transaction(async (tx) => {
-    await tx.invite.update({
-      where: { id: inviteId },
+    const updated = await tx.invite.updateMany({
+      where: { id: inviteId, status: "PENDING" },
       data: { status: "DECLINED", declinedAt: new Date() },
     });
+
+    if (updated.count === 0) {
+      return;
+    }
 
     // Expire the franchise token so it can no longer be used
     if (meta?.token) {

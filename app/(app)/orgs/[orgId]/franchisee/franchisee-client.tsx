@@ -74,11 +74,13 @@ function FranchiseeActions({
   };
 
   const handleChangeOwner = () => {
+    const trimmedEmail = newOwnerEmail.trim();
+    if (!trimmedEmail || isPending) return;
     startTransition(async () => {
       const res = await changeFranchiseeOwner(
         orgId,
         franchisee.id,
-        newOwnerEmail,
+        trimmedEmail,
       );
       if (res.ok) {
         reset();

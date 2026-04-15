@@ -261,6 +261,10 @@ function JoinFranchiseForm({
   const [loading, setLoading] = useState(false);
   const schedule = useScheduleState();
 
+  useEffect(() => {
+    setToken(initialToken);
+  }, [initialToken]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -335,6 +339,10 @@ export default function NewOrgPage() {
     initialToken ? "join" : "create",
   );
   const { setOverride } = useBreadcrumbOverride();
+
+  useEffect(() => {
+    setMode(initialToken ? "join" : "create");
+  }, [initialToken]);
 
   useEffect(() => {
     setOverride(mode === "join" ? "Join Franchise" : "Create Organization");

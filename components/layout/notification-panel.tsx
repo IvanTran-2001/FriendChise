@@ -157,6 +157,10 @@ function InviteCard({
               onClick={() => {
                 const token =
                   (invite.metadata as { token?: string } | null)?.token ?? "";
+                if (!token || typeof token !== "string") {
+                  toast.error("Invalid invite token");
+                  return;
+                }
                 router.push(`/orgs/new?token=${token}`);
               }}
               disabled={isPending}
@@ -249,10 +253,10 @@ function NotificationList({
 
       {/* Footer */}
       <div className="border-t px-4 py-2.5">
-        <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <History className="size-3" />
           History
-        </button>
+        </div>
       </div>
     </div>
   );
@@ -269,10 +273,11 @@ export function NotificationPanel({
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
-  function handleOpen(next: boolean) {
+  async function handleOpen(next: boolean) {
     setOpen(next);
     if (next && unseenCount > 0) {
-      markInvitesSeenAction();
+      await markInvitesSeenAction();
+      router.refresh();
     }
   }
 
