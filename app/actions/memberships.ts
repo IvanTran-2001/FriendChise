@@ -38,8 +38,18 @@ export async function sendMemberInviteAction(
     return { ok: false, error: issue.message, field };
   }
 
-  const { email: rawEmail, roleIds, workingDays } = parsed.data;
+  const { email: rawEmail, workingDays } = parsed.data;
+  let { roleIds } = parsed.data;
   const email = rawEmail.trim().toLowerCase();
+
+  // If no roles selected, fall back to the org's default member role.
+  if (roleIds.length === 0) {
+    const defaultRole = await prisma.role.findFirst({
+      where: { orgId, isDefault: true },
+      select: { id: true },
+    });
+    if (defaultRole) roleIds = [defaultRole.id];
+  }
 
   const recipient = await prisma.user.findUnique({
     where: { email },
