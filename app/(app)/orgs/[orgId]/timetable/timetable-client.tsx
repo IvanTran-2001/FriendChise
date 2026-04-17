@@ -306,6 +306,171 @@ function CalendarEditPopup({
     });
   }
 
+  const isMobile = useIsMobile();
+
+  const popupContent = (
+    <div className="flex flex-col gap-3 p-4">
+      {/* Status — always shown first so it's the primary action (#76) */}
+      <div className="flex flex-col gap-1">
+        <label className="text-xs text-muted-foreground font-medium">
+          Status
+        </label>
+        <select
+          value={status}
+          onChange={(e) =>
+            setStatus(e.target.value as ClientTimetableInstance["status"])
+          }
+          className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          autoFocus
+        >
+          <option value="TODO">To Do</option>
+          <option value="IN_PROGRESS">In Progress</option>
+          <option value="DONE">Done</option>
+          <option value="SKIPPED">Skipped</option>
+        </select>
+      </div>
+
+      {canManage && (
+        <>
+          {/* Date picker (#70) */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-muted-foreground font-medium">
+              Date
+            </label>
+            <Input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="h-8 w-full text-sm"
+            />
+          </div>
+
+          {/* Time */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-muted-foreground font-medium">
+              Start time
+            </label>
+            <Input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="h-8 w-32 text-sm"
+            />
+            <p className="text-xs text-muted-foreground">
+              {startTime} → {endMin == null ? "--:--" : minToHHMM(endMin)} ·{" "}
+              {instance.task.durationMin} min
+            </p>
+          </div>
+        </>
+      )}
+
+      {canManage && (
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs text-muted-foreground font-medium">
+            Assign
+          </label>
+          {localAssignees.length === 0 && (
+            <span className="text-xs text-muted-foreground italic">
+              No one assigned
+            </span>
+          )}
+          <div className="flex flex-col gap-1">
+            {localAssignees.map((a) => (
+              <div
+                key={a.membership.id}
+                className="flex items-center justify-between rounded bg-muted/50 px-2 py-1 text-xs"
+              >
+                <span>{a.membership.user.name ?? "Unknown"}</span>
+                <button
+                  onClick={() => handleRemoveAssignee(a.membership.id)}
+                  className="text-muted-foreground hover:text-destructive ml-2"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+          {available.length > 0 && (
+            <div className="flex gap-1 items-center mt-0.5">
+              <select
+                value={effectiveAddId}
+                onChange={(e) => setAddMembershipId(e.target.value)}
+                className="flex-1 border rounded px-2 py-1 text-xs bg-background"
+              >
+                {available.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.user.name ?? "Unknown"}
+                  </option>
+                ))}
+              </select>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleAddAssignee}
+                className="h-7 w-7 p-0"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="flex gap-2 pt-1 border-t">
+        <Button
+          size="sm"
+          onClick={handleSave}
+          disabled={(canManage && parsedStart == null) || isSaving}
+          className="flex-1 h-7"
+        >
+          {isSaving ? "Saving…" : "Save"}
+        </Button>
+        {canManage && (
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={isSaving}
+            className="h-7"
+          >
+            Delete
+          </Button>
+        )}
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onClose}
+          disabled={isSaving}
+          className="h-7"
+        >
+          Cancel
+        </Button>
+      </div>
+      {error && <p className="text-xs text-destructive mt-2">{error}</p>}
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <Sheet
+        open={open}
+        onOpenChange={(o) => {
+          if (!o) onClose();
+        }}
+      >
+        <SheetContent
+          side="bottom"
+          className="h-[calc(100dvh-4rem)] p-0 flex flex-col rounded-t-2xl overflow-hidden"
+        >
+          <SheetHeader className="px-4 pt-4 pb-2 border-b shrink-0">
+            <SheetTitle>{instance.task.title}</SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto">{popupContent}</div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
   return (
     <Dialog
       open={open}
@@ -313,148 +478,11 @@ function CalendarEditPopup({
         if (!o) onClose();
       }}
     >
-      <DialogContent className="w-72 p-4 gap-3" showCloseButton={false}>
-        <DialogHeader>
+      <DialogContent className="w-72 p-0 gap-0 overflow-hidden" showCloseButton={false}>
+        <DialogHeader className="px-4 pt-4 pb-2">
           <DialogTitle>{instance.task.title}</DialogTitle>
         </DialogHeader>
-
-        {/* Status — always shown first so it's the primary action (#76) */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground font-medium">
-            Status
-          </label>
-          <select
-            value={status}
-            onChange={(e) =>
-              setStatus(e.target.value as ClientTimetableInstance["status"])
-            }
-            className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-            autoFocus
-          >
-            <option value="TODO">To Do</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="DONE">Done</option>
-            <option value="SKIPPED">Skipped</option>
-          </select>
-        </div>
-
-        {canManage && (
-          <>
-            {/* Date picker (#70) */}
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground font-medium">
-                Date
-              </label>
-              <Input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="h-8 w-full text-sm"
-              />
-            </div>
-
-            {/* Time */}
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground font-medium">
-                Start time
-              </label>
-              <Input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="h-8 w-32 text-sm"
-              />
-              <p className="text-xs text-muted-foreground">
-                {startTime} → {endMin == null ? "--:--" : minToHHMM(endMin)} ·{" "}
-                {instance.task.durationMin} min
-              </p>
-            </div>
-          </>
-        )}
-
-        {canManage && (
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-muted-foreground font-medium">
-              Assign
-            </label>
-            {localAssignees.length === 0 && (
-              <span className="text-xs text-muted-foreground italic">
-                No one assigned
-              </span>
-            )}
-            <div className="flex flex-col gap-1">
-              {localAssignees.map((a) => (
-                <div
-                  key={a.membership.id}
-                  className="flex items-center justify-between rounded bg-muted/50 px-2 py-1 text-xs"
-                >
-                  <span>{a.membership.user.name ?? "Unknown"}</span>
-                  <button
-                    onClick={() => handleRemoveAssignee(a.membership.id)}
-                    className="text-muted-foreground hover:text-destructive ml-2"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-            {available.length > 0 && (
-              <div className="flex gap-1 items-center mt-0.5">
-                <select
-                  value={effectiveAddId}
-                  onChange={(e) => setAddMembershipId(e.target.value)}
-                  className="flex-1 border rounded px-2 py-1 text-xs bg-background"
-                >
-                  {available.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.user.name ?? "Unknown"}
-                    </option>
-                  ))}
-                </select>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleAddAssignee}
-                  className="h-7 w-7 p-0"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="flex gap-2 pt-1 border-t">
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={(canManage && parsedStart == null) || isSaving}
-            className="flex-1 h-7"
-          >
-            {isSaving ? "Saving…" : "Save"}
-          </Button>
-          {canManage && (
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isSaving}
-              className="h-7"
-            >
-              Delete
-            </Button>
-          )}
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onClose}
-            disabled={isSaving}
-            className="h-7"
-          >
-            Cancel
-          </Button>
-        </div>
-        {error && <p className="text-xs text-destructive mt-2">{error}</p>}
+        {popupContent}
       </DialogContent>
     </Dialog>
   );
@@ -501,10 +529,26 @@ function CalendarView({
   const router = useRouter();
   const [isDropPending, startT] = useTransition();
 
-  const days =
+  const allDays =
     span === "day" && dayStr
       ? [dayStr]
       : Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+  // Adaptive column count for week span on mobile (#99)
+  const visibleDays = (() => {
+    if (span === "day" || allDays.length === 1) return allDays;
+    const colCount = windowWidth < 480 ? 1 : windowWidth < 768 ? 3 : 7;
+    if (colCount >= 7) return allDays;
+    // Centre the visible window on the active day (dayStr or today)
+    const anchor = dayStr ?? todayStr;
+    const anchorIdx = allDays.indexOf(anchor);
+    const centre = anchorIdx >= 0 ? anchorIdx : 0;
+    const half = Math.floor(colCount / 2);
+    const start = Math.max(0, Math.min(centre - half, allDays.length - colCount));
+    return allDays.slice(start, start + colCount);
+  })();
+
+  const days = visibleDays;
 
   type DragData =
     | { type: "task"; taskId: string }
@@ -553,8 +597,14 @@ function CalendarView({
   const isMobile = useIsMobile();
   const [taskPanelOpen, setTaskPanelOpen] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1024,
+  );
   useEffect(() => {
-    const update = () => setIsLandscape(window.innerWidth > window.innerHeight);
+    const update = () => {
+      setIsLandscape(window.innerWidth > window.innerHeight);
+      setWindowWidth(window.innerWidth);
+    };
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
