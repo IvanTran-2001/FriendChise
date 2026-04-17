@@ -46,6 +46,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { deleteTaskAction } from "@/app/actions/tasks";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -96,10 +97,27 @@ export function TaskTable({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState<SortOption>("name-asc");
+  const [sortRaw, setSortRaw] = usePersistedState<SortOption>("tasks:sort", "name-asc");
+  // Validate persisted sort value against SORT_OPTIONS
+  const sort = SORT_OPTIONS.find((o) => o.value === sortRaw)
+    ? sortRaw
+    : "name-asc";
+  const setSort = (value: SortOption) => {
+    // Sanitize updates to only accept values present in SORT_OPTIONS
+    if (SORT_OPTIONS.find((o) => o.value === value)) {
+      setSortRaw(value);
+    }
+  };
   const [filterRoleId, setFilterRoleId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
-  const [view, setView] = useState<"list" | "card">("list");
+  const [viewRaw, setViewRaw] = usePersistedState<"list" | "card">("tasks:view", "list");
+  // Validate persisted view value
+  const view = viewRaw === "list" || viewRaw === "card" ? viewRaw : "list";
+  const setView = (value: "list" | "card") => {
+    if (value === "list" || value === "card") {
+      setViewRaw(value);
+    }
+  };
 
   // Filter by search and role
   let visible = tasks.filter((t) =>

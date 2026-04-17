@@ -24,8 +24,17 @@ export function TimetableViewPicker({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  // Navigate to href using startTransition
-  const navigate = (href: string) => startTransition(() => router.push(href));
+  // Navigate to href using startTransition; also persist the chosen mode/span.
+  const navigate = (href: string, meta?: { mode?: string; span?: string }) =>
+    startTransition(() => {
+      if (meta) {
+        try {
+          if (meta.mode) localStorage.setItem("timetable:mode", meta.mode);
+          if (meta.span) localStorage.setItem("timetable:span", meta.span);
+        } catch { /* ignore */ }
+      }
+      router.push(href);
+    });
 
   const segmentBase = "px-3 py-1 transition-colors cursor-pointer select-none";
   const activeClass = "bg-primary text-primary-foreground";
@@ -44,7 +53,7 @@ export function TimetableViewPicker({
       {/* Day / Week */}
       <div className="flex rounded-md overflow-hidden border text-sm font-medium">
         <button
-          onClick={() => navigate(dayHref)}
+          onClick={() => navigate(dayHref, { span: "day" })}
           aria-current={span === "day" ? "page" : undefined}
           className={cn(
             segmentBase,
@@ -54,7 +63,7 @@ export function TimetableViewPicker({
           Day
         </button>
         <button
-          onClick={() => navigate(weekHref)}
+          onClick={() => navigate(weekHref, { span: "week" })}
           aria-current={span === "week" ? "page" : undefined}
           className={cn(
             segmentBase,
@@ -69,7 +78,7 @@ export function TimetableViewPicker({
       {/* Calendar / Simple */}
       <div className="flex rounded-md overflow-hidden border text-sm font-medium">
         <button
-          onClick={() => navigate(calendarHref)}
+          onClick={() => navigate(calendarHref, { mode: "calendar" })}
           aria-current={mode === "calendar" ? "page" : undefined}
           className={cn(
             segmentBase,
@@ -79,7 +88,7 @@ export function TimetableViewPicker({
           Calendar
         </button>
         <button
-          onClick={() => navigate(simpleHref)}
+          onClick={() => navigate(simpleHref, { mode: "simple" })}
           aria-current={mode === "simple" ? "page" : undefined}
           className={cn(
             segmentBase,
