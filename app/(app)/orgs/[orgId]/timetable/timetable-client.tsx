@@ -528,6 +528,9 @@ function CalendarView({
   }
   const router = useRouter();
   const [isDropPending, startT] = useTransition();
+  const [windowWidth, setWindowWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1024,
+  );
 
   const allDays =
     span === "day" && dayStr
@@ -597,9 +600,6 @@ function CalendarView({
   const isMobile = useIsMobile();
   const [taskPanelOpen, setTaskPanelOpen] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
-  const [windowWidth, setWindowWidth] = useState(
-    typeof window !== "undefined" ? window.innerWidth : 1024,
-  );
   useEffect(() => {
     const update = () => {
       setIsLandscape(window.innerWidth > window.innerHeight);
