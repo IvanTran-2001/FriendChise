@@ -117,6 +117,43 @@ export default async function TimetablePage({
     );
   }
 
+  // Role-based visibility (#72): if the member does not hold MANAGE_TIMETABLE
+  // or VIEW_TIMETABLE, only show tasks that are either unassigned to any role
+  // or assigned to at least one of the member's roles.
+  const canViewAll = canManageTimetable || (currentMembership
+    ? await memberHasPermission(currentMembership.id, orgId, PermissionAction.VIEW_TIMETABLE)
+    : false);
+
+  if (!canViewAll && currentMembership) {
+    // Gather all role IDs that the current member holds.
+    const memberRoleRows = await prisma.memberRole.findMany({
+      where: { membershipId: currentMembership.id },
+      select: { roleId: true },
+    });
+    const memberRoleIds = new Set(memberRoleRows.map((r) => r.roleId));
+
+    // Tasks with NO eligibility rows are visible to everyone.
+    // Tasks WITH eligibility rows are only visible if the member has ≥1 matching role.
+    const eligibilities = await prisma.taskEligibility.findMany({
+      where: { task: { orgId } },
+      select: { taskId: true, roleId: true },
+    });
+    const taskEligMap = new Map<string, Set<string>>();
+    for (const e of eligibilities) {
+      if (!taskEligMap.has(e.taskId)) taskEligMap.set(e.taskId, new Set());
+      taskEligMap.get(e.taskId)!.add(e.roleId);
+    }
+
+    filteredInstances = filteredInstances.filter((inst) => {
+      const roles = taskEligMap.get(inst.taskId);
+      if (!roles || roles.size === 0) return true; // open task — visible to all
+      for (const roleId of roles) {
+        if (memberRoleIds.has(roleId)) return true;
+      }
+      return false;
+    });
+  }
+
   // Map taskId → role color (use filtered role when active, else first eligible)
   const taskRoleColorMap = new Map(
     tasks.map((t) => {
