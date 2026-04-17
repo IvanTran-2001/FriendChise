@@ -149,6 +149,19 @@ function statusDotClass(status: string): string {
   }
 }
 
+function statusRowClass(status: string): string {
+  switch (status) {
+    case "IN_PROGRESS":
+      return "border-l-2 border-l-amber-400";
+    case "DONE":
+      return "border-l-2 border-l-green-500";
+    case "SKIPPED":
+      return "border-l-2 border-l-red-400";
+    default:
+      return "border-l-2 border-l-transparent";
+  }
+}
+
 // ---------------------------------------------------------------------------
 // CalendarEditPopup
 // ---------------------------------------------------------------------------
@@ -173,6 +186,7 @@ interface CalendarEditPopupProps {
   open: boolean;
   onClose: () => void;
   onRefresh: () => void;
+  router: ReturnType<typeof useRouter>;
 }
 
 function CalendarEditPopup({
@@ -183,8 +197,10 @@ function CalendarEditPopup({
   open,
   onClose,
   onRefresh,
+  router,
 }: CalendarEditPopupProps) {
   const [startTime, setStartTime] = useState(minToHHMM(instance.startTimeMin));
+  const [date, setDate] = useState(instance.date);
   const [status, setStatus] = useState<ClientTimetableInstance["status"]>(
     instance.status,
   );
@@ -211,6 +227,7 @@ function CalendarEditPopup({
           : await updateTimetableEntryAction(orgId, instance.id, {
               startTimeMin: parsedStart,
               status,
+              dateStr: date !== instance.date ? date : undefined,
             })
         : await updateTimetableEntryStatusAction(orgId, instance.id, status);
       if (!result.ok) {
@@ -218,7 +235,27 @@ function CalendarEditPopup({
         return;
       }
       onClose();
-      onRefresh();
+
+      // If the date has changed, navigate to the week containing the new date
+      if (date !== instance.date) {
+        const params = new URLSearchParams(window.location.search);
+        const currentMode = params.get("mode") || "calendar";
+        const currentSpan = params.get("span") || "week";
+        const roleId = params.get("roleId");
+
+        const newParams = new URLSearchParams({
+          week: date,
+          mode: currentMode,
+          span: currentSpan,
+        });
+        if (roleId) newParams.set("roleId", roleId);
+        if (currentSpan === "day") newParams.set("day", date);
+
+        router.push(`/orgs/${orgId}/timetable?${newParams.toString()}`);
+      } else {
+        // Only refresh if the date has NOT changed
+        onRefresh();
+      }
     });
   }
 
@@ -281,26 +318,9 @@ function CalendarEditPopup({
           <DialogTitle>{instance.task.title}</DialogTitle>
         </DialogHeader>
 
-        {canManage && (
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted-foreground font-medium">
-              Start time
-            </label>
-            <Input
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              className="h-8 w-32 text-sm"
-            />
-            <p className="text-xs text-muted-foreground">
-              {startTime} → {endMin == null ? "--:--" : minToHHMM(endMin)} ·{" "}
-              {instance.task.durationMin} min
-            </p>
-          </div>
-        )}
-
+        {/* Status — always shown first so it's the primary action (#76) */}
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground font-weight">
+          <label className="text-xs text-muted-foreground font-medium">
             Status
           </label>
           <select
@@ -309,6 +329,7 @@ function CalendarEditPopup({
               setStatus(e.target.value as ClientTimetableInstance["status"])
             }
             className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            autoFocus
           >
             <option value="TODO">To Do</option>
             <option value="IN_PROGRESS">In Progress</option>
@@ -316,6 +337,40 @@ function CalendarEditPopup({
             <option value="SKIPPED">Skipped</option>
           </select>
         </div>
+
+        {canManage && (
+          <>
+            {/* Date picker (#70) */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground font-medium">
+                Date
+              </label>
+              <Input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="h-8 w-full text-sm"
+              />
+            </div>
+
+            {/* Time */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground font-medium">
+                Start time
+              </label>
+              <Input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="h-8 w-32 text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                {startTime} → {endMin == null ? "--:--" : minToHHMM(endMin)} ·{" "}
+                {instance.task.durationMin} min
+              </p>
+            </div>
+          </>
+        )}
 
         {canManage && (
           <div className="flex flex-col gap-1.5">
@@ -521,11 +576,19 @@ function CalendarView({
                   {span === "day" ? "No tasks today" : "No tasks this week"}
                 </p>
                 {hasPanel && (
-                  <p className="text-sm text-muted-foreground">
-                    {isMobile
-                      ? "Tap Tasks to add one"
-                      : "Drag a task from the panel to get started"}
-                  </p>
+                  isMobile ? (
+                    <button
+                      onClick={() => setTaskPanelOpen(true)}
+                      className="flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-md px-4 py-2.5 text-sm font-medium active:scale-95 transition-transform"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add task
+                    </button>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Drag a task from the panel to get started
+                    </p>
+                  )
                 )}
               </div>
             </div>
@@ -666,7 +729,7 @@ function CalendarView({
               className={
                 isLandscape
                   ? "w-64 p-0 flex flex-col"
-                  : "h-[55vh] p-0 flex flex-col"
+                  : "h-[80dvh] p-0 flex flex-col"
               }
             >
               <SheetHeader className="px-4 pt-4 pb-2 border-b shrink-0">
@@ -708,6 +771,7 @@ function CalendarView({
           open={true}
           onClose={() => setEditingInstance(null)}
           onRefresh={() => router.refresh()}
+          router={router}
         />
       )}
     </>
@@ -834,7 +898,7 @@ function SimpleView({
                           onClick={() =>
                             memberships && setEditingInstance(inst)
                           }
-                          className={`hover:bg-primary/5 active:bg-primary/10 transition-colors ${memberships ? "cursor-pointer" : ""}`}
+                          className={`hover:bg-primary/5 active:bg-primary/10 transition-colors ${memberships ? "cursor-pointer" : ""} ${statusRowClass(effStatus(inst))}`}
                         >
                           <td className="px-3 py-2 text-muted-foreground">
                             {idx + 1}
@@ -901,6 +965,7 @@ function SimpleView({
           open={true}
           onClose={() => setEditingInstance(null)}
           onRefresh={() => router.refresh()}
+          router={router}
         />
       )}
     </>
