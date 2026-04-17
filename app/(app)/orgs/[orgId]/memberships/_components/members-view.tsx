@@ -23,6 +23,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronDown, LayoutGrid, List, Search } from "lucide-react";
@@ -139,7 +140,7 @@ export function MembersView({
   orgId: string;
   canManage: boolean;
 }) {
-  const [view, setView] = useState<"card" | "list">("card");
+  const [view, setView] = usePersistedState<"card" | "list">("members:view", "card");
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
 
