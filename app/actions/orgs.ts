@@ -123,6 +123,9 @@ export async function transferOrgOwnership(
 
   try {
     await transferOrgOwnershipService(orgId, userId, parsed.data.newOwnerId);
+    // Revalidate the org's own pages as well as the root layout so both the
+    // outgoing and incoming owner see updated sidebar state immediately.
+    revalidatePath(`/orgs/${orgId}`, "layout");
     revalidatePath("/", "layout");
     redirect("/");
   } catch (err) {
