@@ -320,35 +320,6 @@ function NotificationList({
     </div>
   );
 }
-        </button>
-      </div>
-
-      {/* Scrollable list */}
-      <div className="flex-1 overflow-y-auto divide-y divide-border/60">
-        {visible.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full py-12 gap-2 text-muted-foreground">
-            <Bell className="size-8 opacity-20" />
-            <p className="text-sm">
-              {onlyUnread ? "No unread notifications" : "No notifications"}
-            </p>
-          </div>
-        ) : (
-          visible.map((invite) => (
-            <InviteCard key={invite.id} invite={invite} onAction={onAction} />
-          ))
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="border-t px-4 py-2.5">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <History className="size-3" />
-          History
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function NotificationPanel({
   invites,
