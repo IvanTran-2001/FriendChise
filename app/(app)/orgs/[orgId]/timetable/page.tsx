@@ -17,6 +17,7 @@ import { TimetableClient } from "./timetable-client";
 import { TimetableViewPicker } from "./timetable-view-picker";
 import { TimetableActions } from "./timetable-actions";
 import { RoleFilterButton } from "./role-filter-button";
+import { TimetablePrefRedirect } from "./timetable-pref-redirect";
 import { toLocalDateStr, getMondayDateStr } from "@/lib/date-utils";
 
 export default async function TimetablePage({
@@ -180,6 +181,7 @@ export default async function TimetablePage({
           </div>
         )}
       </Toolbar>
+      <TimetablePrefRedirect orgId={orgId} />
       <TimetableClient
         orgId={orgId}
         instances={coloredInstances}

@@ -46,6 +46,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { deleteTaskAction } from "@/app/actions/tasks";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -96,10 +97,10 @@ export function TaskTable({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState<SortOption>("name-asc");
+  const [sort, setSort] = usePersistedState<SortOption>("tasks:sort", "name-asc");
   const [filterRoleId, setFilterRoleId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
-  const [view, setView] = useState<"list" | "card">("list");
+  const [view, setView] = usePersistedState<"list" | "card">("tasks:view", "list");
 
   // Filter by search and role
   let visible = tasks.filter((t) =>

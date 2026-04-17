@@ -19,7 +19,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarInset>
           <NavBar />
           <PageHeader />
-          <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
+          <main className="flex-1 min-h-0 overflow-auto p-4 sm:p-6">{children}</main>
         </SidebarInset>
       </BreadcrumbProvider>
     </SidebarProvider>

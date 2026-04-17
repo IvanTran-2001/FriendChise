@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarDays, LayoutGrid, List, Plus } from "lucide-react";
@@ -22,7 +23,7 @@ interface TemplatesClientProps {
 
 export function TemplatesClient({ orgId, templates }: TemplatesClientProps) {
   const router = useRouter();
-  const [view, setView] = useState<"card" | "list">("card");
+  const [view, setView] = usePersistedState<"card" | "list">("templates:view", "card");
 
   const viewToggle = (
     <div className="flex items-center rounded-md border overflow-hidden">

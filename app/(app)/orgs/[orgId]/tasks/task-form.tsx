@@ -229,6 +229,93 @@ function EligibilityPanel(props: EligibilityPanelProps) {
   );
 }
 
+// ─── Duration picker ──────────────────────────────────────────────────────────
+
+/**
+ * Hours + minutes selects that submit a single hidden `name` input
+ * containing the total minutes (as a string number).
+ */
+function DurationPicker({
+  defaultValueMin,
+  name,
+  error,
+}: {
+  defaultValueMin: number;
+  name: string;
+  error: string | null;
+}) {
+  const [hours, setHours] = useState(Math.floor(defaultValueMin / 60));
+  const [minutes, setMinutes] = useState(defaultValueMin % 60);
+  const totalMin = hours * 60 + minutes;
+
+  return (
+    <div className="flex items-center gap-2">
+      <input type="hidden" name={name} value={totalMin} />
+      <select
+        value={hours}
+        onChange={(e) => setHours(Number(e.target.value))}
+        className="h-9 rounded-md border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+        aria-label="Hours"
+        aria-invalid={!!error}
+      >
+        {Array.from({ length: 24 }, (_, i) => (
+          <option key={i} value={i}>{i}h</option>
+        ))}
+      </select>
+      <select
+        value={minutes}
+        onChange={(e) => setMinutes(Number(e.target.value))}
+        className="h-9 rounded-md border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+        aria-label="Minutes"
+        aria-invalid={!!error}
+      >
+        {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
+          <option key={m} value={m}>{m}m</option>
+        ))}
+      </select>
+      <span className="text-xs text-muted-foreground">{totalMin} min total</span>
+    </div>
+  );
+}
+
+/**
+ * A `type="time"` input that submits minutes-since-midnight (or empty string
+ * if the field is cleared) as the hidden `name` input.
+ */
+function StartTimePicker({
+  defaultValueMin,
+  name,
+  error,
+}: {
+  defaultValueMin: number | null;
+  name: string;
+  error: string | null;
+}) {
+  const toHHMM = (min: number) => {
+    const h = Math.floor(min / 60).toString().padStart(2, "0");
+    const m = (min % 60).toString().padStart(2, "0");
+    return `${h}:${m}`;
+  };
+  const [value, setValue] = useState(
+    defaultValueMin != null ? toHHMM(defaultValueMin) : "",
+  );
+  const valueMin = value ? value.split(":").reduce((h, m, i) => h + Number(m) * (i === 0 ? 60 : 1), 0) : "";
+
+  return (
+    <>
+      <input type="hidden" name={name} value={valueMin} />
+      <Input
+        id={name}
+        type="time"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        aria-invalid={!!error}
+        className="w-40"
+      />
+    </>
+  );
+}
+
 // ─── Main form ────────────────────────────────────────────────────────────────
 
 /**
@@ -396,21 +483,12 @@ export function TaskForm(props: TaskFormProps) {
 
         <div className="flex flex-col gap-1.5">
           <label htmlFor="durationMin" className="text-sm font-medium">
-            Duration (minutes) <span className="text-destructive">*</span>
+            Duration <span className="text-destructive">*</span>
           </label>
-          <Input
-            id="durationMin"
+          <DurationPicker
+            defaultValueMin={dv?.durationMin ?? 30}
             name="durationMin"
-            type="number"
-            required
-            min={1}
-            max={1440}
-            placeholder="e.g. 60"
-            defaultValue={dv?.durationMin}
-            aria-invalid={!!err("durationMin")}
-            aria-describedby={
-              err("durationMin") ? "durationMin-error" : undefined
-            }
+            error={err("durationMin")}
           />
           {err("durationMin") && (
             <p id="durationMin-error" className="text-xs text-destructive">
@@ -420,32 +498,16 @@ export function TaskForm(props: TaskFormProps) {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="preferredStartTimeMin"
-            className="text-sm font-medium"
-          >
-            Preferred start time (minutes since midnight)
+          <label htmlFor="preferredStartTimeMin" className="text-sm font-medium">
+            Preferred start time
           </label>
-          <Input
-            id="preferredStartTimeMin"
+          <StartTimePicker
+            defaultValueMin={dv?.preferredStartTimeMin ?? null}
             name="preferredStartTimeMin"
-            type="number"
-            min={0}
-            max={1439}
-            placeholder="e.g. 480 = 8:00 am"
-            defaultValue={dv?.preferredStartTimeMin ?? undefined}
-            aria-invalid={!!err("preferredStartTimeMin")}
-            aria-describedby={
-              err("preferredStartTimeMin")
-                ? "preferredStartTimeMin-error"
-                : undefined
-            }
+            error={err("preferredStartTimeMin")}
           />
           {err("preferredStartTimeMin") && (
-            <p
-              id="preferredStartTimeMin-error"
-              className="text-xs text-destructive"
-            >
+            <p id="preferredStartTimeMin-error" className="text-xs text-destructive">
               {err("preferredStartTimeMin")}
             </p>
           )}
