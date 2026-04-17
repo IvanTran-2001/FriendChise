@@ -245,18 +245,25 @@ function DurationPicker({
   error: string | null;
 }) {
   const [hours, setHours] = useState(Math.floor(defaultValueMin / 60));
-  const [minutes, setMinutes] = useState(defaultValueMin % 60);
+  // Snap minutes to nearest 5-minute step to match select options
+  const [minutes, setMinutes] = useState(() => {
+    const rawMinutes = defaultValueMin % 60;
+    const snapped = Math.round(rawMinutes / 5) * 5;
+    return Math.max(0, Math.min(55, snapped));
+  });
   const totalMin = hours * 60 + minutes;
 
   return (
     <div className="flex items-center gap-2">
       <input type="hidden" name={name} value={totalMin} />
       <select
+        id={name}
         value={hours}
         onChange={(e) => setHours(Number(e.target.value))}
         className="h-9 rounded-md border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
         aria-label="Hours"
         aria-invalid={!!error}
+        aria-describedby={error ? `${name}-error` : undefined}
       >
         {Array.from({ length: 24 }, (_, i) => (
           <option key={i} value={i}>{i}h</option>
@@ -268,6 +275,7 @@ function DurationPicker({
         className="h-9 rounded-md border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
         aria-label="Minutes"
         aria-invalid={!!error}
+        aria-describedby={error ? `${name}-error` : undefined}
       >
         {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
           <option key={m} value={m}>{m}m</option>
@@ -310,6 +318,7 @@ function StartTimePicker({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         aria-invalid={!!error}
+        aria-describedby={error ? `${name}-error` : undefined}
         className="w-40"
       />
     </>

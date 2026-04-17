@@ -15,8 +15,8 @@ export function TimetablePrefRedirect({ orgId }: { orgId: string }) {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Only redirect if neither mode nor span is currently set
-    if (searchParams.has("mode") || searchParams.has("span")) return;
+    const hasMode = searchParams.has("mode");
+    const hasSpan = searchParams.has("span");
 
     let storedMode: string | null = null;
     let storedSpan: string | null = null;
@@ -25,16 +25,23 @@ export function TimetablePrefRedirect({ orgId }: { orgId: string }) {
       storedSpan = localStorage.getItem("timetable:span");
     } catch { /* ignore */ }
 
-    if (!storedMode && !storedSpan) return;
-
     const params = new URLSearchParams(searchParams.toString());
-    if (storedMode === "simple" || storedMode === "calendar") {
+    let changed = false;
+
+    // Only apply stored mode if mode param not already set
+    if (!hasMode && (storedMode === "simple" || storedMode === "calendar")) {
       params.set("mode", storedMode);
+      changed = true;
     }
-    if (storedSpan === "day" || storedSpan === "week") {
+    // Only apply stored span if span param not already set
+    if (!hasSpan && (storedSpan === "day" || storedSpan === "week")) {
       params.set("span", storedSpan);
+      changed = true;
     }
-    router.replace(`/orgs/${orgId}/timetable?${params.toString()}`);
+
+    if (changed) {
+      router.replace(`/orgs/${orgId}/timetable?${params.toString()}`);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
