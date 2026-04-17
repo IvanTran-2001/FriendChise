@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RolePicker } from "./role-picker";
@@ -62,7 +63,6 @@ export function MemberForm({
   function handleSubmit() {
     const next: Record<string, string> = {};
     if (mode === "create" && !email.trim()) next.email = "Email is required";
-    if (roleIds.length === 0) next.roles = "At least one role is required";
     if (Object.keys(next).length > 0) {
       setErrors(next);
       return;
@@ -94,7 +94,8 @@ export function MemberForm({
           setErrors({ _: result.error });
           return;
         }
-        router.refresh();
+        toast.success(`${name ?? "Member"} updated.`);
+        router.push(`/orgs/${orgId}/memberships/${userId}`);
       }
     });
   }
@@ -171,9 +172,7 @@ export function MemberForm({
 
       {/* Roles */}
       <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium">
-          Roles <span className="text-destructive">*</span>
-        </label>
+        <label className="text-sm font-medium">Roles</label>
         <RolePicker
           allRoles={allRoles}
           selectedIds={roleIds}

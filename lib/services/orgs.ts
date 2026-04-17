@@ -24,8 +24,10 @@ import {
  *  from the enum so it stays in sync whenever the schema adds new actions. */
 const ownerPermissions = Object.values(PermissionAction);
 
-/** Permissions granted to the default Member role on a fresh org. */
-const memberPermissions: PermissionAction[] = [PermissionAction.VIEW_TIMETABLE];
+/** Permissions granted to the default Member role on a fresh org.
+ *  Intentionally empty — admins assign permissions explicitly via Roles.
+ */
+const memberPermissions: PermissionAction[] = [];
 
 /**
  * Creates the default Owner + Member roles for a brand-new standalone org
@@ -70,8 +72,13 @@ async function bootstrapRoles(tx: Tx, orgId: string, userId: string) {
     data: { orgId, userId, workingDays: [] },
   });
 
-  await tx.memberRole.create({
-    data: { membershipId: membership.id, roleId: ownerRole.id },
+  // Creator receives both Owner (for permissions) and Default Member
+  // (so they appear in the members list like everyone else).
+  await tx.memberRole.createMany({
+    data: [
+      { membershipId: membership.id, roleId: ownerRole.id },
+      { membershipId: membership.id, roleId: memberRole.id },
+    ],
   });
 
   return { ownerRole, memberRole, membership };

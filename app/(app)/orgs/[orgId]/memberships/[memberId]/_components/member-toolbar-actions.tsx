@@ -2,16 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,8 +27,9 @@ interface MemberToolbarActionsProps {
 }
 
 /**
- * Actions dropdown for toolbar on the member detail and edit pages.
- * Handles Restrict/Unrestrict and Delete with confirmation dialogs.
+ * Inline action buttons shown in the toolbar on the member detail and edit
+ * pages. Replaces the previous "Actions" dropdown with explicit buttons for
+ * Restrict/Unrestrict and Delete so actions are immediately discoverable.
  */
 export function MemberToolbarActions({
   orgId,
@@ -77,30 +70,25 @@ export function MemberToolbarActions({
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            disabled={isPending}
-          >
-            Actions <ChevronDown className="h-3.5 w-3.5" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setRestrictOpen(true)}>
-            {isRestricted ? "Unrestrict" : "Restrict"}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onSelect={() => setDeleteOpen(true)}
-            className="text-destructive focus:text-destructive"
-          >
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex items-center gap-2 ml-auto">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isPending}
+          onClick={() => setRestrictOpen(true)}
+        >
+          {isRestricted ? "Unrestrict" : "Restrict"}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isPending}
+          onClick={() => setDeleteOpen(true)}
+          className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+        >
+          Delete
+        </Button>
+      </div>
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>

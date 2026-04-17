@@ -126,7 +126,7 @@ export function RoleForm({ orgId, role, tasks }: RoleFormProps) {
             checked={useColor}
             onChange={(e) => setUseColor(e.target.checked)}
             disabled={isPending}
-            className="h-4 w-4 rounded"
+            className="h-4 w-4 rounded accent-primary border border-input bg-background cursor-pointer"
           />
           Use custom color
         </label>
@@ -155,7 +155,7 @@ export function RoleForm({ orgId, role, tasks }: RoleFormProps) {
                 checked={permissions.includes(action)}
                 onChange={() => togglePermission(action)}
                 disabled={isPending}
-                className="h-4 w-4 rounded"
+                className="h-4 w-4 rounded accent-primary border border-input bg-background cursor-pointer shrink-0"
               />
               {formatPermissionLabel(action)}
             </label>
