@@ -249,6 +249,7 @@ function CalendarEditPopup({
           span: currentSpan,
         });
         if (roleId) newParams.set("roleId", roleId);
+        if (currentSpan === "day") newParams.set("day", date);
 
         router.push(`/orgs/${orgId}/timetable?${newParams.toString()}`);
       } else {
