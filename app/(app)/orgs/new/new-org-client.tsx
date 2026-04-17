@@ -362,14 +362,16 @@ export default function NewOrgPage() {
           : "Join an existing franchise using your invite token. Your org name and role structure will be set up automatically."}
       </p>
 
-      {mode === "create" ? (
-        <CreateOrgForm onSwitch={switchToJoin} />
-      ) : (
-        <JoinFranchiseForm
-          onSwitch={switchToCreate}
-          initialToken={initialToken}
-        />
-      )}
+      <div className="rounded-xl border bg-card p-6 shadow-sm">
+        {mode === "create" ? (
+          <CreateOrgForm onSwitch={switchToJoin} />
+        ) : (
+          <JoinFranchiseForm
+            onSwitch={switchToCreate}
+            initialToken={initialToken}
+          />
+        )}
+      </div>
     </div>
   );
 }
