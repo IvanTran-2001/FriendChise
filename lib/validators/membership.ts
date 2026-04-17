@@ -14,7 +14,7 @@ export const deleteMembershipSchema = z.object({
 
 export const sendMemberInviteSchema = z.object({
   email: z.string().email("Invalid email address").min(1, "Email is required"),
-  roleIds: z.array(z.string().cuid()).min(1, "At least one role is required"),
+  roleIds: z.array(z.string().cuid()).default([]),
   workingDays: z.array(
     z.enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]),
   ),

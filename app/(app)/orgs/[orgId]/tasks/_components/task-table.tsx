@@ -407,7 +407,7 @@ export function TaskTable({
                     if (e.target !== e.currentTarget) return;
                     router.push(`/orgs/${orgId}/tasks/${task.id}`);
                   }}
-                  className="border-b last:border-0 hover:bg-primary/5 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                  className="border-b last:border-0 hover:bg-primary/5 active:bg-muted cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                 >
                   <td className="px-4 py-3 font-medium">
                     <div className="flex items-center gap-2">
