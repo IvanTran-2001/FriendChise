@@ -299,16 +299,21 @@ export async function acceptMemberInvite(
 
   // Notify the inviter that their invite was accepted.
   if (invite.invitedById) {
-    const acceptingUser = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { name: true },
-    });
-    await prisma.notification.create({
-      data: {
-        userId: invite.invitedById,
-        message: `${acceptingUser?.name ?? "Someone"} accepted your invitation to ${invite.orgName}.`,
-      },
-    });
+    try {
+      const acceptingUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true },
+      });
+      await prisma.notification.create({
+        data: {
+          userId: invite.invitedById,
+          message: `${acceptingUser?.name ?? "Someone"} accepted your invitation to ${invite.orgName}.`,
+        },
+      });
+    } catch (error) {
+      // Log the error but don't fail the invite acceptance
+      console.error("Failed to create notification for invite acceptance:", error);
+    }
   }
 
   return { ok: true, data: null };

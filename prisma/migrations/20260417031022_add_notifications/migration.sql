@@ -1,6 +1,3 @@
--- DropIndex
-DROP INDEX "invite_pending_unique";
-
 -- CreateTable
 CREATE TABLE "Notification" (
     "id" TEXT NOT NULL,
@@ -17,3 +14,8 @@ CREATE INDEX "Notification_userId_idx" ON "Notification"("userId");
 
 -- AddForeignKey
 ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- Recreate partial unique index for pending invites
+-- This index ensures that a user cannot have multiple pending invites for the same org and type
+-- Note: This is a raw SQL index that prisma migrate may attempt to drop in future migrations
+CREATE UNIQUE INDEX "invite_pending_unique" ON "Invite"("orgId", "recipientId", "type") WHERE "status" = 'PENDING';
