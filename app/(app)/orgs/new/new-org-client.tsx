@@ -58,7 +58,7 @@ function ScheduleFields({
 
   return (
     <>
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex flex-col gap-1.5 flex-1">
           <label className="text-sm font-medium" htmlFor="timezone">
             Time Zone
@@ -82,7 +82,7 @@ function ScheduleFields({
         </div>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex flex-col gap-1.5 flex-1">
           <label className="text-sm font-medium" htmlFor="openTime">
             Start Time

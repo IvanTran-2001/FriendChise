@@ -22,6 +22,7 @@ import {
   useState,
   useRef,
 } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   createTaskAction,
@@ -248,6 +249,7 @@ function EligibilityPanel(props: EligibilityPanelProps) {
  */
 export function TaskForm(props: TaskFormProps) {
   const isEdit = props.mode === "edit";
+  const router = useRouter();
 
   const dv = isEdit ? props.defaultValues : null;
 
@@ -294,9 +296,10 @@ export function TaskForm(props: TaskFormProps) {
         .join("\n");
       toast.error(messages || "Something went wrong");
     } else if (isEdit) {
-      toast.success("Task saved");
+      toast.success("Task saved.");
+      router.push(`/orgs/${props.orgId}/tasks/${props.taskId}`);
     }
-  }, [state, isEdit]);
+  }, [state, isEdit, router, props]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
