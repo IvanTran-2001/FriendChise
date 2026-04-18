@@ -47,10 +47,21 @@ export default async function TimetablePage({
   const todayStr = toLocalDateStr(new Date(), orgTz);
 
   // `anchor` is the centre of the visible window. Default to today.
-  const anchor =
-    anchorParam && /^\d{4}-\d{2}-\d{2}$/.test(anchorParam)
-      ? anchorParam
-      : todayStr;
+  // Validate that anchorParam is a semantically valid date.
+  let anchor = todayStr;
+  if (anchorParam && /^\d{4}-\d{2}-\d{2}$/.test(anchorParam)) {
+    const [year, month, day] = anchorParam.split("-").map(Number);
+    const utcTime = Date.UTC(year, month - 1, day);
+    const d = new Date(utcTime);
+    // Round-trip check: ensure the parsed date components match the original
+    if (
+      d.getUTCFullYear() === year &&
+      d.getUTCMonth() === month - 1 &&
+      d.getUTCDate() === day
+    ) {
+      anchor = anchorParam;
+    }
+  }
 
   // Fetch 13 days centred on anchor (anchor-6 … anchor+6).
   // 9 days (±4) would be enough for sub-week modes (max half=3), but week

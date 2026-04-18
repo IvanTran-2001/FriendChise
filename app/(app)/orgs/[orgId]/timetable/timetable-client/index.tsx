@@ -97,14 +97,21 @@ export function TimetableClient({
   // Track the actual column count reported by CalendarView (ResizeObserver).
   const [navColCount, setNavColCount] = useState(7);
 
+  // Compute effective column count: SimpleView never updates navColCount,
+  // so derive it from mode and span.
+  const effectiveColCount =
+    mode === "simple" && span === "day" ? 1
+    : mode === "simple" && span === "week" ? 7
+    : navColCount;
+
   const makeHref = (a: string, m: string) => {
     const p = new URLSearchParams({ anchor: a, mode: m, span });
     if (roleId) p.set("roleId", roleId);
     return `/orgs/${orgId}/timetable?${p.toString()}`;
   };
 
-  // Nav depends on the column count reported by CalendarView.
-  const half = Math.floor(navColCount / 2);
+  // Nav depends on the effective column count.
+  const half = Math.floor(effectiveColCount / 2);
   let prevHref: string;
   let nextHref: string;
   let todayHref: string;
@@ -113,7 +120,7 @@ export function TimetableClient({
   let isOnToday: boolean;
   let navLabel: string;
 
-  if (navColCount >= 7) {
+  if (effectiveColCount >= 7) {
     // ── Week mode: fixed Mon–Sun window ──────────────────────────────────
     // Always snap to Monday so the visible range is exactly Mon–Sun.
     const weekMon = getMondayOf(anchor);
@@ -128,12 +135,12 @@ export function TimetableClient({
     // ── Sub-week mode: anchor-centred window ─────────────────────────────
     visStart = addDays(anchor, -half);
     visEnd = addDays(anchor, half);
-    prevHref = makeHref(addDays(anchor, -navColCount), mode);
-    nextHref = makeHref(addDays(anchor, navColCount), mode);
+    prevHref = makeHref(addDays(anchor, -effectiveColCount), mode);
+    nextHref = makeHref(addDays(anchor, effectiveColCount), mode);
     todayHref = makeHref(todayStr, mode);
     isOnToday = todayStr >= visStart && todayStr <= visEnd;
     navLabel =
-      navColCount === 1
+      effectiveColCount === 1
         ? (() => {
             const d = new Date(anchor + "T00:00:00Z");
             return `${getDayName(anchor)}, ${getMonthName(d.getUTCMonth())} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
@@ -199,7 +206,7 @@ export function TimetableClient({
       </div>
 
       <div
-        className={`bg-white rounded-xl transition-opacity duration-150${isNavPending ? " opacity-40 pointer-events-none" : ""}${fillHeight ? " flex-1 min-h-0 flex flex-col" : ""}`}
+        className={`bg-background rounded-xl transition-opacity duration-150${isNavPending ? " opacity-40 pointer-events-none" : ""}${fillHeight ? " flex-1 min-h-0 flex flex-col" : ""}`}
       >
         {mode === "calendar" ? (
           <CalendarView

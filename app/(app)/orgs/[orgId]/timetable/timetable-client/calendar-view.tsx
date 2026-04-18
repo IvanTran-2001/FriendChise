@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CalendarDays, LayoutList, Plus, X } from "lucide-react";
+import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Sheet,
@@ -139,20 +140,30 @@ export function CalendarView({
   const hasPanel = !!availableTasks;
 
   let initialScrollMin = openTimeMin;
+  const visibleSet = new Set(visibleDays);
   for (const inst of instances) {
-    if (inst.startTimeMin < initialScrollMin)
+    if (
+      visibleSet.has(inst.date) &&
+      inst.startTimeMin < initialScrollMin
+    ) {
       initialScrollMin = inst.startTimeMin;
+    }
   }
 
   function handleDrop(col: string, timeMin: number, data: DragData) {
     startT(async () => {
+      let result;
       if (data.type === "task") {
-        await createTimetableEntryAction(orgId, data.taskId, col, timeMin);
+        result = await createTimetableEntryAction(orgId, data.taskId, col, timeMin);
       } else {
-        await updateTimetableEntryAction(orgId, data.instanceId, {
+        result = await updateTimetableEntryAction(orgId, data.instanceId, {
           startTimeMin: timeMin,
           dateStr: col,
         });
+      }
+      if (!result.ok) {
+        toast.error(result.error ?? "Something went wrong");
+        return;
       }
       router.refresh();
     });
@@ -160,7 +171,11 @@ export function CalendarView({
 
   function handleTapPlace(col: string, timeMin: number, taskId: string) {
     startT(async () => {
-      await createTimetableEntryAction(orgId, taskId, col, timeMin);
+      const result = await createTimetableEntryAction(orgId, taskId, col, timeMin);
+      if (!result.ok) {
+        toast.error(result.error ?? "Something went wrong");
+        return;
+      }
       setSelectedTaskId(null);
       setTaskPanelOpen(false);
       router.refresh();

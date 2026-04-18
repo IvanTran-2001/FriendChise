@@ -110,12 +110,11 @@ export function CalendarEditPopup({
         const roleId = params.get("roleId");
 
         const newParams = new URLSearchParams({
-          week: date,
+          anchor: date,
           mode: currentMode,
           span: currentSpan,
         });
         if (roleId) newParams.set("roleId", roleId);
-        if (currentSpan === "day") newParams.set("day", date);
 
         router.push(`/orgs/${orgId}/timetable?${newParams.toString()}`);
       } else {
@@ -146,13 +145,15 @@ export function CalendarEditPopup({
         instance.id,
         effectiveAddId,
       );
-      if (r.ok) {
-        setLocalAssignees((p) => [
-          ...p,
-          { id: `opt-${effectiveAddId}`, membership },
-        ]);
-        onRefresh();
+      if (!r.ok) {
+        setError(r.error ?? "Failed to add assignee");
+        return;
       }
+      setLocalAssignees((p) => [
+        ...p,
+        { id: `opt-${effectiveAddId}`, membership },
+      ]);
+      onRefresh();
     });
   }
 
@@ -163,12 +164,14 @@ export function CalendarEditPopup({
         instance.id,
         membershipId,
       );
-      if (r.ok) {
-        setLocalAssignees((p) =>
-          p.filter((a) => a.membership.id !== membershipId),
-        );
-        onRefresh();
+      if (!r.ok) {
+        setError(r.error ?? "Failed to remove assignee");
+        return;
       }
+      setLocalAssignees((p) =>
+        p.filter((a) => a.membership.id !== membershipId),
+      );
+      onRefresh();
     });
   }
 

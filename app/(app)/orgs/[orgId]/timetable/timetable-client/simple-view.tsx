@@ -11,7 +11,7 @@ import {
   groupBy,
   minTo12h,
 } from "../_shared/grid-utils";
-import { STATUS_LABELS, statusDotClass, statusRowClass } from "./helpers";
+import { STATUS_LABELS, statusDotClass, statusRowClass, getMondayOf } from "./helpers";
 import { CalendarEditPopup } from "./calendar-edit-popup";
 import type { ClientTimetableInstance, ClientMembership } from "./types";
 
@@ -23,7 +23,7 @@ interface SimpleViewProps {
   instances: ClientTimetableInstance[];
   /** Centre of the 13-day window. */
   anchor: string;
-  /** "day" shows only the anchor day; "week" shows Mon-Sun of anchor's week. */
+  /** "day" shows only the anchor day; "week" shows Mon–Sun anchored to the week's Monday. */
   span?: "day" | "week";
   todayStr: string;
   canManage: boolean;
@@ -52,7 +52,10 @@ export function SimpleView({
   const days =
     span === "day"
       ? [anchor]
-      : Array.from({ length: 7 }, (_, i) => addDays(anchor, i - 3));
+      : (() => {
+          const weekStart = getMondayOf(anchor);
+          return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+        })();
   const visibleSet = new Set(days);
   const visibleInstances = instances.filter((inst) =>
     visibleSet.has(inst.date),
