@@ -491,36 +491,84 @@ export async function getWeekTimetableInstances(
   weekStart: string,
 ): Promise<WeekTimetableInstance[]> {
   const raw = await getTimetableEntries(orgId, orgTz, weekStart);
-  return raw.map((inst) => {
-    const { localDateStr: date, localStartTimeMin } = utcToLocal(
-      inst.date,
-      inst.startTimeMin,
-      orgTz,
-    );
-    const startMs = inst.date.getTime() + inst.startTimeMin * 60_000;
-    const endMs = inst.date.getTime() + inst.endTimeMin * 60_000;
-    return {
-      id: inst.id,
-      taskId: inst.taskId,
-      date,
-      startTimeMin: localStartTimeMin,
-      taskColor: inst.taskColor,
-      status: inst.status as WeekTimetableInstance["status"],
-      scheduledStartAt: new Date(startMs).toISOString(),
-      scheduledEndAt: new Date(endMs).toISOString(),
-      task: {
-        id: inst.task.id,
-        title: inst.task.name,
-        durationMin: inst.task.durationMin,
-        preferredStartTimeMin: inst.task.preferredStartTimeMin,
-      },
-      assignees: inst.assignees.map((a) => ({
-        id: a.id,
-        membership: {
-          id: a.membership.id,
-          user: { id: a.membership.user.id, name: a.membership.user.name },
+  return raw.map((inst) => mapInstance(inst, orgTz));
+}
+
+/**
+ * Fetches and maps timetable entries for an arbitrary date range.
+ * Always fetches `numDays` days starting from `startDate` (YYYY-MM-DD).
+ * Used by the adaptive calendar view which centers on an anchor date and
+ * needs data for `anchor ± floor(numDays/2)` without any week-boundary
+ * snapping — 9 days covers any colCount ≤ 7 (max half = 3).
+ */
+export async function getRangeTimetableInstances(
+  orgId: string,
+  orgTz: string,
+  startDate: string,
+  numDays: number,
+): Promise<WeekTimetableInstance[]> {
+  const MS_DAY = 86_400_000;
+  const startUtcMs = localMidnightUTC(startDate, orgTz);
+  const endUtcMs = localMidnightUTC(addCalendarDays(startDate, numDays), orgTz);
+
+  const queryFrom = new Date(Math.floor(startUtcMs / MS_DAY) * MS_DAY - MS_DAY);
+  const queryTo = new Date(Math.floor(endUtcMs / MS_DAY) * MS_DAY + MS_DAY * 2);
+
+  const rows = await prisma.timetableEntry.findMany({
+    where: { orgId, date: { gte: queryFrom, lt: queryTo } },
+    include: {
+      task: true,
+      assignees: {
+        include: {
+          membership: {
+            include: { user: { select: { id: true, name: true } } },
+          },
         },
-      })),
-    };
+      },
+    },
+    orderBy: { startTimeMin: "asc" },
   });
+
+  return rows
+    .filter((row) => {
+      const utcMs = row.date.getTime() + row.startTimeMin * 60_000;
+      return utcMs >= startUtcMs && utcMs < endUtcMs;
+    })
+    .map((inst) => mapInstance(inst, orgTz));
+}
+
+function mapInstance(
+  inst: TimetableInstance,
+  orgTz: string,
+): WeekTimetableInstance {
+  const { localDateStr: date, localStartTimeMin } = utcToLocal(
+    inst.date,
+    inst.startTimeMin,
+    orgTz,
+  );
+  const startMs = inst.date.getTime() + inst.startTimeMin * 60_000;
+  const endMs = inst.date.getTime() + inst.endTimeMin * 60_000;
+  return {
+    id: inst.id,
+    taskId: inst.taskId,
+    date,
+    startTimeMin: localStartTimeMin,
+    taskColor: inst.taskColor,
+    status: inst.status as WeekTimetableInstance["status"],
+    scheduledStartAt: new Date(startMs).toISOString(),
+    scheduledEndAt: new Date(endMs).toISOString(),
+    task: {
+      id: inst.task.id,
+      title: inst.task.name,
+      durationMin: inst.task.durationMin,
+      preferredStartTimeMin: inst.task.preferredStartTimeMin,
+    },
+    assignees: inst.assignees.map((a) => ({
+      id: a.id,
+      membership: {
+        id: a.membership.id,
+        user: { id: a.membership.user.id, name: a.membership.user.name },
+      },
+    })),
+  };
 }

@@ -267,7 +267,9 @@ function DurationPicker({
         aria-describedby={error ? `${name}-error` : undefined}
       >
         {Array.from({ length: 24 }, (_, i) => (
-          <option key={i} value={i}>{i}h</option>
+          <option key={i} value={i}>
+            {i}h
+          </option>
         ))}
       </select>
       <select
@@ -279,10 +281,14 @@ function DurationPicker({
         aria-describedby={error ? `${name}-error` : undefined}
       >
         {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
-          <option key={m} value={m}>{m}m</option>
+          <option key={m} value={m}>
+            {m}m
+          </option>
         ))}
       </select>
-      <span className="text-xs text-muted-foreground">{totalMin} min total</span>
+      <span className="text-xs text-muted-foreground">
+        {totalMin} min total
+      </span>
     </div>
   );
 }
@@ -301,14 +307,20 @@ function StartTimePicker({
   error: string | null;
 }) {
   const toHHMM = (min: number) => {
-    const h = Math.floor(min / 60).toString().padStart(2, "0");
+    const h = Math.floor(min / 60)
+      .toString()
+      .padStart(2, "0");
     const m = (min % 60).toString().padStart(2, "0");
     return `${h}:${m}`;
   };
   const [value, setValue] = useState(
     defaultValueMin != null ? toHHMM(defaultValueMin) : "",
   );
-  const valueMin = value ? value.split(":").reduce((h, m, i) => h + Number(m) * (i === 0 ? 60 : 1), 0) : "";
+  const valueMin = value
+    ? value
+        .split(":")
+        .reduce((h, m, i) => h + Number(m) * (i === 0 ? 60 : 1), 0)
+    : "";
 
   return (
     <>
@@ -510,7 +522,10 @@ export function TaskForm(props: TaskFormProps) {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="preferredStartTimeMin" className="text-sm font-medium">
+          <label
+            htmlFor="preferredStartTimeMin"
+            className="text-sm font-medium"
+          >
             Preferred start time
           </label>
           <StartTimePicker
@@ -519,7 +534,10 @@ export function TaskForm(props: TaskFormProps) {
             error={err("preferredStartTimeMin")}
           />
           {err("preferredStartTimeMin") && (
-            <p id="preferredStartTimeMin-error" className="text-xs text-destructive">
+            <p
+              id="preferredStartTimeMin-error"
+              className="text-xs text-destructive"
+            >
               {err("preferredStartTimeMin")}
             </p>
           )}

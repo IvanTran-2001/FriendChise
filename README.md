@@ -49,23 +49,23 @@ Provider: PostgreSQL (Supabase), managed via Prisma ORM.
 
 ### Models
 
-| Model                    | Description                                                                                                                           |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `Organization`           | Top-level tenant. Owns all other resources. Supports franchise hierarchy via `parentId`.                                              |
-| `User`                   | Auth account, identified by email. Linked to orgs via `Membership`.                                                                   |
-| `Membership`             | Links a `User` to an `Organization`. Tracks `workingDays` and `status` (ACTIVE / RESTRICTED).                                         |
-| `Role`                   | Org-scoped role (e.g. Owner, Worker) with a required `name`, `color` (hex), and stable `key`. System roles have `isDeletable: false`. |
-| `Permission`             | Grants a `PermissionAction` enum value to a `Role`. One row per action per role.                                                      |
-| `MemberRole`             | Many-to-many junction between `Membership` and `Role`. A member can hold multiple roles.                                              |
-| `Task`                   | Reusable task definition (name, required `color` hex, duration, recurrence constraints, eligibility by role).                         |
-| `TaskEligibility`        | Links a `Task` to a `Role`, defining which roles can be assigned to it.                                                               |
-| `TimetableEntry`         | A scheduled task occurrence with date, start/end times, status, and assignees.                                                        |
-| `TimetableEntryAssignee` | Links a `Membership` to a `TimetableEntry` (many-to-many).                                                                            |
-| `TimetableSettings`      | Per-org timetable display preferences (view type, start day, slot duration).                                                          |
-| `Template`               | A reusable schedule template with a `cycleLengthDays`. Contains `TemplateEntry` rows.                                                 |
-| `TemplateEntry`          | One time slot in a `Template` — which task, which day index, start/end times.                                                         |
-| `TemplateEntryAssignee`  | Pre-assigns a `Membership` to a `TemplateEntry`.                                                                                      |
-| `FranchiseToken`         | One-time invite token issued by a parent org for a franchisee to join.                                                                |
+| Model                    | Description                                                                                                                                                                                                                                                                      |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Organization`           | Top-level tenant. Owns all other resources. Supports franchise hierarchy via `parentId`.                                                                                                                                                                                         |
+| `User`                   | Auth account, identified by email. Linked to orgs via `Membership`.                                                                                                                                                                                                              |
+| `Membership`             | Links a `User` to an `Organization`. Tracks `workingDays` and `status` (ACTIVE / RESTRICTED).                                                                                                                                                                                    |
+| `Role`                   | Org-scoped role (e.g. Owner, Worker) with a required `name`, `color` (hex), and stable `key`. System roles have `isDeletable: false`.                                                                                                                                            |
+| `Permission`             | Grants a `PermissionAction` enum value to a `Role`. One row per action per role.                                                                                                                                                                                                 |
+| `MemberRole`             | Many-to-many junction between `Membership` and `Role`. A member can hold multiple roles.                                                                                                                                                                                         |
+| `Task`                   | Reusable task definition (name, required `color` hex, duration, recurrence constraints, eligibility by role).                                                                                                                                                                    |
+| `TaskEligibility`        | Links a `Task` to a `Role`, defining which roles can be assigned to it.                                                                                                                                                                                                          |
+| `TimetableEntry`         | A scheduled task occurrence with date, start/end times, status, and assignees.                                                                                                                                                                                                   |
+| `TimetableEntryAssignee` | Links a `Membership` to a `TimetableEntry` (many-to-many).                                                                                                                                                                                                                       |
+| `TimetableSettings`      | Per-org timetable display preferences (view type, start day, slot duration).                                                                                                                                                                                                     |
+| `Template`               | A reusable schedule template with a `cycleLengthDays`. Contains `TemplateEntry` rows.                                                                                                                                                                                            |
+| `TemplateEntry`          | One time slot in a `Template` — which task, which day index, start/end times.                                                                                                                                                                                                    |
+| `TemplateEntryAssignee`  | Pre-assigns a `Membership` to a `TemplateEntry`.                                                                                                                                                                                                                                 |
+| `FranchiseToken`         | One-time invite token issued by a parent org for a franchisee to join.                                                                                                                                                                                                           |
 | `Invite`                 | A member or franchise invite sent to a `User`. Carries a status (`PENDING`/`ACCEPTED`/`DECLINED`), snapshot fields for the org name and inviter name, and a JSON `metadata` blob with the roleIds/workingDays pre-filled for the accept step. Visible in the notification panel. |
 
 ### Enums
@@ -94,12 +94,12 @@ pnpm seed
 
 #### Migration history
 
-| Migration                               | Description                                                                              |
-| --------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `20260414033638_init`                   | Full initial schema — all models, enums, indexes                                         |
-| `20260414035009_add_invite_metadata`    | Add `metadata` JSON field to `Invite` for storing roleIds/workingDays for the accept step |
-| `20260414045652_add_invite_snapshots`   | Add snapshot fields (`orgName`, `inviterName`) to `Invite` so cards render without joins |
-| `20260415021658_invite_pending_unique`  | Partial unique index on `Invite(orgId, recipientId, type)` where `status = 'PENDING'` — DB-level guard against duplicate pending invites |
+| Migration                              | Description                                                                                                                              |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `20260414033638_init`                  | Full initial schema — all models, enums, indexes                                                                                         |
+| `20260414035009_add_invite_metadata`   | Add `metadata` JSON field to `Invite` for storing roleIds/workingDays for the accept step                                                |
+| `20260414045652_add_invite_snapshots`  | Add snapshot fields (`orgName`, `inviterName`) to `Invite` so cards render without joins                                                 |
+| `20260415021658_invite_pending_unique` | Partial unique index on `Invite(orgId, recipientId, type)` where `status = 'PENDING'` — DB-level guard against duplicate pending invites |
 
 ## Authentication
 
@@ -447,9 +447,9 @@ Users: Ivan, Jordan, Casey, Riley, Morgan, Alex, Taylor, Sam.
 
 The `docs/` folder contains long-form documentation that doesn't belong in this README:
 
-| File                          | Description                        |
-| ----------------------------- | ---------------------------------- |
-| `smoke-test-2026-04-15.md`    | Manual smoke test report — 87 tests across all feature areas, run against production on 2026-04-15 |
+| File                       | Description                                                                                        |
+| -------------------------- | -------------------------------------------------------------------------------------------------- |
+| `smoke-test-2026-04-15.md` | Manual smoke test report — 87 tests across all feature areas, run against production on 2026-04-15 |
 
 ## Status
 

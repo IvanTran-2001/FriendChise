@@ -5,20 +5,19 @@
 import { PermissionAction } from "@prisma/client";
 import { requireOrgMemberPage } from "@/lib/authz";
 import { getOrgMembership, memberHasPermission } from "@/lib/authz/_shared";
-import { getWeekTimetableInstances } from "@/lib/services/timetable-entries";
+import { getRangeTimetableInstances } from "@/lib/services/timetable-entries";
 import { getTimetableTemplates } from "@/lib/services/templates";
 import { getOrgTimetableMeta } from "@/lib/services/orgs";
 import { getTasks } from "@/lib/services/tasks";
 import { getMemberships } from "@/lib/services/memberships";
 import { getRoles } from "@/lib/services/roles";
 import { prisma } from "@/lib/prisma";
-import { Toolbar } from "@/components/layout/toolbar";
 import { TimetableClient } from "./timetable-client";
 import { TimetableViewPicker } from "./timetable-view-picker";
 import { TimetableActions } from "./timetable-actions";
 import { RoleFilterButton } from "./role-filter-button";
 import { TimetablePrefRedirect } from "./timetable-pref-redirect";
-import { toLocalDateStr, getMondayDateStr } from "@/lib/date-utils";
+import { toLocalDateStr, addCalendarDays } from "@/lib/date-utils";
 
 export default async function TimetablePage({
   params,
@@ -26,22 +25,20 @@ export default async function TimetablePage({
 }: {
   params: Promise<{ orgId: string }>;
   searchParams: Promise<{
-    week?: string | string[];
+    anchor?: string | string[];
     mode?: string | string[];
-    roleId?: string | string[];
     span?: string | string[];
-    day?: string | string[];
+    roleId?: string | string[];
   }>;
 }) {
   const { orgId } = await params;
   const first = (value: string | string[] | undefined) =>
     Array.isArray(value) ? value[0] : value;
   const rawSearchParams = await searchParams;
-  const weekParam = first(rawSearchParams.week);
+  const anchorParam = first(rawSearchParams.anchor);
   const modeParam = first(rawSearchParams.mode);
-  const rawRoleId = first(rawSearchParams.roleId) ?? null;
   const spanParam = first(rawSearchParams.span);
-  const dayParam = first(rawSearchParams.day);
+  const rawRoleId = first(rawSearchParams.roleId) ?? null;
 
   const { userId } = await requireOrgMemberPage(orgId);
 
@@ -49,19 +46,32 @@ export default async function TimetablePage({
   const orgTz = orgMeta?.timezone ?? "UTC";
   const todayStr = toLocalDateStr(new Date(), orgTz);
 
-  const weekStart =
-    weekParam && /^\d{4}-\d{2}-\d{2}$/.test(weekParam)
-      ? getMondayDateStr(weekParam, orgTz)
-      : getMondayDateStr(toLocalDateStr(new Date(), orgTz), orgTz);
+  // `anchor` is the centre of the visible window. Default to today.
+  // Validate that anchorParam is a semantically valid date.
+  let anchor = todayStr;
+  if (anchorParam && /^\d{4}-\d{2}-\d{2}$/.test(anchorParam)) {
+    const [year, month, day] = anchorParam.split("-").map(Number);
+    const utcTime = Date.UTC(year, month - 1, day);
+    const d = new Date(utcTime);
+    // Round-trip check: ensure the parsed date components match the original
+    if (
+      d.getUTCFullYear() === year &&
+      d.getUTCMonth() === month - 1 &&
+      d.getUTCDate() === day
+    ) {
+      anchor = anchorParam;
+    }
+  }
+
+  // Fetch 13 days centred on anchor (anchor-6 … anchor+6).
+  // 9 days (±4) would be enough for sub-week modes (max half=3), but week
+  // mode always shows Mon–Sun of the anchor's week. In the worst case the
+  // anchor is a Monday, so Sunday (the last visible day) is anchor+6 — just
+  // outside a ±4 window. ±6 guarantees the full Mon–Sun is always loaded.
+  const rangeStart = addCalendarDays(anchor, -6);
 
   const mode = modeParam === "simple" ? "simple" : "calendar";
   const span = spanParam === "day" ? "day" : "week";
-  const dayStr =
-    dayParam && /^\d{4}-\d{2}-\d{2}$/.test(dayParam)
-      ? dayParam
-      : span === "day" && weekStart
-        ? weekStart
-        : todayStr;
   const [
     instances,
     templates,
@@ -70,7 +80,7 @@ export default async function TimetablePage({
     currentMembership,
     orgRoles,
   ] = await Promise.all([
-    getWeekTimetableInstances(orgId, orgTz, weekStart),
+    getRangeTimetableInstances(orgId, orgTz, rangeStart, 13),
     getTimetableTemplates(orgId),
     getTasks(orgId),
     getMemberships(orgId),
@@ -121,9 +131,15 @@ export default async function TimetablePage({
   // Role-based visibility (#72): if the member does not hold MANAGE_TIMETABLE
   // or VIEW_TIMETABLE, only show tasks that are either unassigned to any role
   // or assigned to at least one of the member's roles.
-  const canViewAll = canManageTimetable || (currentMembership
-    ? await memberHasPermission(currentMembership.id, orgId, PermissionAction.VIEW_TIMETABLE)
-    : false);
+  const canViewAll =
+    canManageTimetable ||
+    (currentMembership
+      ? await memberHasPermission(
+          currentMembership.id,
+          orgId,
+          PermissionAction.VIEW_TIMETABLE,
+        )
+      : false);
 
   if (!canViewAll && currentMembership) {
     // Gather all role IDs that the current member holds.
@@ -170,64 +186,23 @@ export default async function TimetablePage({
     taskColor: taskRoleColorMap.get(inst.taskId) ?? null,
   }));
 
-  const timetableHref = (m: string, s = span, d = dayStr) => {
-    const params = new URLSearchParams({
-      week: weekStart,
-      mode: m,
-      span: s,
-      day: d,
-    });
+  const timetableHref = (m: string, s = span) => {
+    const params = new URLSearchParams({ anchor, mode: m, span: s });
     if (rawRoleId) params.set("roleId", rawRoleId);
     return `/orgs/${orgId}/timetable?${params.toString()}`;
   };
 
   return (
     <div className="flex flex-col" style={{ height: "calc(100dvh - 148px)" }}>
-      <Toolbar>
-        <div className="flex flex-wrap items-center gap-2 flex-1">
-          {/* Role filter */}
-          <RoleFilterButton
-            roles={filterRoles}
-            weekStart={weekStart}
-            mode={mode}
-            selectedRoleId={rawRoleId}
-            orgId={orgId}
-          />
-
-          {/* Day/Week + Calendar/Simple pickers */}
-          <TimetableViewPicker
-            mode={mode}
-            span={span}
-            calendarHref={timetableHref("calendar")}
-            simpleHref={timetableHref("simple")}
-            dayHref={timetableHref(mode, "day", weekStart)}
-            weekHref={timetableHref(mode, "week", weekStart)}
-          />
-        </div>
-        {canManageTimetable && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <TimetableActions
-              orgId={orgId}
-              templates={templates.map((t) => ({
-                id: t.id,
-                name: t.name,
-                cycleLengthDays: t.cycleLengthDays,
-              }))}
-              weekStart={weekStart}
-            />
-          </div>
-        )}
-      </Toolbar>
       <TimetablePrefRedirect orgId={orgId} />
       <TimetableClient
         orgId={orgId}
         instances={coloredInstances}
-        weekStart={weekStart}
+        anchor={anchor}
         openTimeMin={orgMeta?.openTimeMin ?? 360}
         closeTimeMin={orgMeta?.closeTimeMin ?? 1320}
         mode={mode}
         span={span}
-        dayStr={dayStr}
         fillHeight
         todayStr={todayStr}
         roleId={rawRoleId}
@@ -250,7 +225,37 @@ export default async function TimetablePage({
             : undefined
         }
         memberships={clientMemberships}
-      />
+      >
+        {/* Role filter */}
+        <RoleFilterButton
+          roles={filterRoles}
+          anchor={anchor}
+          mode={mode}
+          span={span}
+          selectedRoleId={rawRoleId}
+          orgId={orgId}
+        />
+        {/* Calendar/Simple + Day/Week pickers */}
+        <TimetableViewPicker
+          mode={mode}
+          span={span}
+          calendarHref={timetableHref("calendar")}
+          simpleHref={timetableHref("simple")}
+          dayHref={timetableHref(mode, "day")}
+          weekHref={timetableHref(mode, "week")}
+        />
+        {canManageTimetable && (
+          <TimetableActions
+            orgId={orgId}
+            templates={templates.map((t) => ({
+              id: t.id,
+              name: t.name,
+              cycleLengthDays: t.cycleLengthDays,
+            }))}
+            anchor={anchor}
+          />
+        )}
+      </TimetableClient>
     </div>
   );
 }

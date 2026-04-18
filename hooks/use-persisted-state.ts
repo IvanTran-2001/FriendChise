@@ -27,7 +27,7 @@ export function usePersistedState<T>(
     } catch {
       // Ignore parse errors
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once after mount
 
   // Write to localStorage when state changes

@@ -8,11 +8,7 @@ import { UnauthorizedToast } from "./unauthorized-toast";
  * redirect that appends ?unauthorized=1 shows feedback regardless of which
  * sub-page the user lands on.
  */
-export default function OrgLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function OrgLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Suspense>

@@ -1,11 +1,35 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { DM_Sans, DM_Serif_Display, JetBrains_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "sonner";
 import "./globals.css";
 
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const dmSerifDisplay = DM_Serif_Display({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-heading",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "FriendChise",
   description: "Franchise management made simple.",
+};
+
+export const viewport: Viewport = {
+  viewportFit: "cover",
 };
 
 /**
@@ -26,18 +50,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className="antialiased"
+        className={`${dmSans.variable} ${dmSerifDisplay.variable} ${jetbrainsMono.variable} antialiased`}
         suppressHydrationWarning
-        style={
-          {
-            "--font-sans":
-              "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-            "--font-logo":
-              "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-            "--font-mono":
-              "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace",
-          } as React.CSSProperties
-        }
       >
         <TooltipProvider>
           {children}

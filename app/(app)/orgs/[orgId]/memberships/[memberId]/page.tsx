@@ -54,7 +54,7 @@ const MemberDetailPage = async ({
           ← Members
         </Link>
         {canManage && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 ml-auto">
             <Button asChild size="sm" variant="outline">
               <Link href={`/orgs/${orgId}/memberships/${memberId}/edit`}>
                 Edit

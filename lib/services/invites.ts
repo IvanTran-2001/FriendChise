@@ -312,7 +312,10 @@ export async function acceptMemberInvite(
       });
     } catch (error) {
       // Log the error but don't fail the invite acceptance
-      console.error("Failed to create notification for invite acceptance:", error);
+      console.error(
+        "Failed to create notification for invite acceptance:",
+        error,
+      );
     }
   }
 

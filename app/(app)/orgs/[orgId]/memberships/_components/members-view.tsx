@@ -30,6 +30,7 @@ import { ChevronDown, LayoutGrid, List, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -140,7 +141,10 @@ export function MembersView({
   orgId: string;
   canManage: boolean;
 }) {
-  const [view, setView] = usePersistedState<"card" | "list">("members:view", "card");
+  const [view, setView] = usePersistedState<"card" | "list">(
+    "members:view",
+    "card",
+  );
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
 
@@ -186,36 +190,15 @@ export function MembersView({
               className="pl-7 h-8 w-full"
             />
           </div>
-          <div className="flex items-center rounded-md border overflow-hidden shrink-0">
-            <button
-              type="button"
-              onClick={() => setView("list")}
-              className={cn(
-                "p-1.5 transition-colors",
-                view === "list"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted",
-              )}
-              aria-label="List view"
-              aria-pressed={view === "list"}
-            >
-              <List className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setView("card")}
-              className={cn(
-                "p-1.5 transition-colors",
-                view === "card"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted",
-              )}
-              aria-label="Card view"
-              aria-pressed={view === "card"}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-          </div>
+          <SegmentedControl
+            size="sm"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "list", label: <List className="h-4 w-4" /> },
+              { value: "card", label: <LayoutGrid className="h-4 w-4" /> },
+            ]}
+          />
         </div>
 
         {/* Row 2: role filter + add member */}

@@ -23,11 +23,18 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronDown, LayoutGrid, List, MoreHorizontal } from "lucide-react";
+import {
+  ChevronDown,
+  LayoutGrid,
+  List,
+  MoreHorizontal,
+  ListTodo,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Toolbar } from "@/components/layout/toolbar";
 import {
   DropdownMenu,
@@ -97,7 +104,10 @@ export function TaskTable({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState("");
-  const [sortRaw, setSortRaw] = usePersistedState<SortOption>("tasks:sort", "name-asc");
+  const [sortRaw, setSortRaw] = usePersistedState<SortOption>(
+    "tasks:sort",
+    "name-asc",
+  );
   // Validate persisted sort value against SORT_OPTIONS
   const sort = SORT_OPTIONS.find((o) => o.value === sortRaw)
     ? sortRaw
@@ -110,7 +120,10 @@ export function TaskTable({
   };
   const [filterRoleId, setFilterRoleId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
-  const [viewRaw, setViewRaw] = usePersistedState<"list" | "card">("tasks:view", "list");
+  const [viewRaw, setViewRaw] = usePersistedState<"list" | "card">(
+    "tasks:view",
+    "list",
+  );
   // Validate persisted view value
   const view = viewRaw === "list" || viewRaw === "card" ? viewRaw : "list";
   const setView = (value: "list" | "card") => {
@@ -177,36 +190,15 @@ export function TaskTable({
             onChange={(e) => setSearch(e.target.value)}
             className="flex-1 h-8"
           />
-          <div className="flex items-center rounded-md border overflow-hidden shrink-0">
-            <button
-              type="button"
-              onClick={() => setView("list")}
-              aria-label="List view"
-              aria-pressed={view === "list"}
-              className={cn(
-                "p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                view === "list"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted",
-              )}
-            >
-              <List className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setView("card")}
-              aria-label="Card view"
-              aria-pressed={view === "card"}
-              className={cn(
-                "p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                view === "card"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted",
-              )}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-          </div>
+          <SegmentedControl
+            size="sm"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "list", label: <List className="h-4 w-4" /> },
+              { value: "card", label: <LayoutGrid className="h-4 w-4" /> },
+            ]}
+          />
         </div>
 
         {/* Row 2: sort + role filter + create */}
@@ -271,11 +263,24 @@ export function TaskTable({
       </Toolbar>
 
       {visible.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {tasks.length === 0
-            ? "No tasks yet."
-            : "No tasks match your filters."}
-        </p>
+        <div className="flex items-center justify-center border py-24">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <ListTodo className="h-10 w-10 text-muted-foreground/40" />
+            <p className="text-2xl font-semibold text-foreground">
+              {tasks.length === 0
+                ? "No tasks yet"
+                : "No tasks match your filters"}
+            </p>
+            {tasks.length === 0 && canManageTasks && (
+              <a
+                href={`/orgs/${orgId}/tasks/new`}
+                className="text-sm text-primary hover:underline"
+              >
+                Create your first task
+              </a>
+            )}
+          </div>
+        </div>
       ) : view === "card" ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((task) => (

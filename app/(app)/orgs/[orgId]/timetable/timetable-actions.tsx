@@ -11,7 +11,7 @@ import {
 interface TimetableActionsProps {
   orgId: string;
   templates: TemplateOption[];
-  weekStart: string;
+  anchor: string;
 }
 
 /**
@@ -20,7 +20,7 @@ interface TimetableActionsProps {
 export function TimetableActions({
   orgId,
   templates,
-  weekStart,
+  anchor,
 }: TimetableActionsProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogKey, setDialogKey] = useState(0);
@@ -50,7 +50,7 @@ export function TimetableActions({
         onOpenChange={setDialogOpen}
         orgId={orgId}
         templates={templates}
-        defaultStartDate={weekStart}
+        defaultStartDate={anchor}
       />
     </>
   );

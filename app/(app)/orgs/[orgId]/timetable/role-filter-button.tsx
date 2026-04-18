@@ -27,8 +27,10 @@ import {
 interface RoleFilterButtonProps {
   /** All roles for the org to populate the dropdown. */
   roles: { id: string; name: string; color: string | null }[];
-  /** Current week start (YYYY-MM-DD) — preserved in the generated hrefs. */
-  weekStart: string;
+  /** Current anchor date (YYYY-MM-DD) — preserved in the generated hrefs. */
+  anchor: string;
+  /** Current span ("day" | "week") — preserved in the generated hrefs. */
+  span: string;
   /** Current view mode ("calendar" | "simple") — preserved in the generated hrefs. */
   mode: string;
   /** The currently active role filter ID, or `null` for no filter. */
@@ -38,19 +40,21 @@ interface RoleFilterButtonProps {
 
 function makeHref(
   orgId: string,
-  weekStart: string,
+  anchor: string,
   mode: string,
+  span: string,
   roleId: string | null,
 ) {
-  const params = new URLSearchParams({ week: weekStart, mode });
+  const params = new URLSearchParams({ anchor, mode, span });
   if (roleId) params.set("roleId", roleId);
   return `/orgs/${orgId}/timetable?${params.toString()}`;
 }
 
 export function RoleFilterButton({
   roles,
-  weekStart,
+  anchor,
   mode,
+  span,
   selectedRoleId,
   orgId,
 }: RoleFilterButtonProps) {
@@ -76,8 +80,9 @@ export function RoleFilterButton({
             <Link
               href={makeHref(
                 orgId,
-                weekStart,
+                anchor,
                 mode,
+                span,
                 role.id === selectedRoleId ? null : role.id,
               )}
             >
@@ -90,7 +95,7 @@ export function RoleFilterButton({
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href={makeHref(orgId, weekStart, mode, null)}>
+              <Link href={makeHref(orgId, anchor, mode, span, null)}>
                 Clear filter
               </Link>
             </DropdownMenuItem>

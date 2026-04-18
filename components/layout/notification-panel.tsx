@@ -55,7 +55,11 @@ function formatRelativeTime(date: Date): string {
   return `${days}d ago`;
 }
 
-function NotificationCard({ notification }: { notification: NotificationItem }) {
+function NotificationCard({
+  notification,
+}: {
+  notification: NotificationItem;
+}) {
   return (
     <div
       className={cn(
@@ -270,7 +274,11 @@ function NotificationList({
   const merged: AnyItem[] = [
     ...visibleInvites.map((i) => ({ kind: "invite" as const, data: i })),
     ...visibleNotifs.map((n) => ({ kind: "notif" as const, data: n })),
-  ].sort((a, b) => new Date(b.data.createdAt).getTime() - new Date(a.data.createdAt).getTime());
+  ].sort(
+    (a, b) =>
+      new Date(b.data.createdAt).getTime() -
+      new Date(a.data.createdAt).getTime(),
+  );
 
   return (
     <div className="flex flex-col h-full">
@@ -302,9 +310,16 @@ function NotificationList({
         ) : (
           merged.map((item) =>
             item.kind === "notif" ? (
-              <NotificationCard key={`n-${item.data.id}`} notification={item.data} />
+              <NotificationCard
+                key={`n-${item.data.id}`}
+                notification={item.data}
+              />
             ) : (
-              <InviteCard key={`i-${item.data.id}`} invite={item.data} onAction={onAction} />
+              <InviteCard
+                key={`i-${item.data.id}`}
+                invite={item.data}
+                onAction={onAction}
+              />
             ),
           )
         )}
@@ -371,15 +386,19 @@ export function NotificationPanel({
       <Sheet open={open} onOpenChange={handleOpen}>
         <SheetTrigger asChild>{BellButton}</SheetTrigger>
         <SheetContent
-          side="top"
-          className="h-[85dvh] p-0 flex flex-col rounded-b-2xl"
+          side="bottom"
+          className="data-[side=bottom]:h-[calc(100dvh-4rem)] p-0 flex flex-col rounded-t-2xl"
         >
           <SheetHeader className="sr-only">
             <SheetTitle>Notifications</SheetTitle>
           </SheetHeader>
           {/* Drag handle */}
           <div className="w-10 h-1 rounded-full bg-muted-foreground/20 mx-auto mt-3 mb-0 shrink-0" />
-          <NotificationList invites={invites} notifications={notifications} onAction={handleAction} />
+          <NotificationList
+            invites={invites}
+            notifications={notifications}
+            onAction={handleAction}
+          />
         </SheetContent>
       </Sheet>
     );
@@ -393,7 +412,11 @@ export function NotificationPanel({
         sideOffset={8}
         className="w-95 h-120 p-0 flex flex-col overflow-hidden shadow-xl"
       >
-        <NotificationList invites={invites} notifications={notifications} onAction={handleAction} />
+        <NotificationList
+          invites={invites}
+          notifications={notifications}
+          onAction={handleAction}
+        />
       </PopoverContent>
     </Popover>
   );

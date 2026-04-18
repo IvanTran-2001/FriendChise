@@ -250,7 +250,7 @@ export function AppSidebar() {
           <button
             onClick={toggleSidebar}
             aria-label="Close sidebar"
-            className="rounded-md p-1.5 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+            className="cursor-pointer rounded-md p-1.5 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
           >
             <PanelLeftClose className="h-4 w-4" />
           </button>
@@ -281,7 +281,10 @@ export function AppSidebar() {
                           <span>{item.title}</span>
                         </>
                       ) : (
-                        <Link href={item.url} onClick={() => handleNavClick(item.url)}>
+                        <Link
+                          href={item.url}
+                          onClick={() => handleNavClick(item.url)}
+                        >
                           <item.icon />
                           <span>{item.title}</span>
                         </Link>
@@ -372,7 +375,10 @@ export function AppSidebar() {
               {footerItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActiveItem(item.url)}>
-                    <Link href={item.url} onClick={() => handleNavClick(item.url)}>
+                    <Link
+                      href={item.url}
+                      onClick={() => handleNavClick(item.url)}
+                    >
                       <item.icon />
                       <span>{item.title}</span>
                     </Link>

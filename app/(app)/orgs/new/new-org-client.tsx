@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { TimezoneSelect } from "@/components/ui/timezone-select";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { createOrg, joinFranchise } from "@/app/actions/orgs";
 import { useBreadcrumbOverride } from "@/components/layout/breadcrumb-context";
 
@@ -50,12 +51,6 @@ function ScheduleFields({
   days: DayKey[];
   setDays: (v: DayKey[]) => void;
 }) {
-  function toggleDay(day: DayKey) {
-    setDays(
-      days.includes(day) ? days.filter((d) => d !== day) : [...days, day],
-    );
-  }
-
   return (
     <>
       <div className="flex flex-col sm:flex-row gap-3">
@@ -109,26 +104,13 @@ function ScheduleFields({
 
       <div className="flex flex-col gap-1.5">
         <span className="text-sm font-medium">Operating Days</span>
-        <div className="flex gap-2 flex-wrap">
-          {ALL_DAYS.map(({ key, label }) => {
-            const active = days.includes(key);
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => toggleDay(key)}
-                className={[
-                  "px-3 py-1.5 rounded-md text-sm font-medium border transition-colors cursor-pointer",
-                  active
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background text-muted-foreground border-border hover:border-primary/50",
-                ].join(" ")}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
+        <SegmentedControl
+          options={ALL_DAYS.map(({ key, label }) => ({ value: key, label }))}
+          value={days}
+          onChange={setDays}
+          multiple
+          variant="pills"
+        />
       </div>
     </>
   );
@@ -362,14 +344,16 @@ export default function NewOrgPage() {
           : "Join an existing franchise using your invite token. Your org name and role structure will be set up automatically."}
       </p>
 
-      {mode === "create" ? (
-        <CreateOrgForm onSwitch={switchToJoin} />
-      ) : (
-        <JoinFranchiseForm
-          onSwitch={switchToCreate}
-          initialToken={initialToken}
-        />
-      )}
+      <div className="rounded-xl border bg-card p-6 shadow-sm">
+        {mode === "create" ? (
+          <CreateOrgForm onSwitch={switchToJoin} />
+        ) : (
+          <JoinFranchiseForm
+            onSwitch={switchToCreate}
+            initialToken={initialToken}
+          />
+        )}
+      </div>
     </div>
   );
 }

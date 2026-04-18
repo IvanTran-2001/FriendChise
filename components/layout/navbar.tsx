@@ -69,77 +69,87 @@ export const NavBar = async () => {
     : [[], 0, [], 0];
 
   return (
-    <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4">
-      {/* Left: sidebar toggle, app title, org switcher */}
-      <div className="flex items-center gap-2 min-w-0">
-        <NavbarSidebarTrigger />
-        <span className="hidden sm:contents">
-          <NavbarLogo />
-          <NavbarLogoSpacer />
-        </span>
-        <OrgSwitcher orgs={orgs} />
-      </div>
+    <header
+      className="sticky top-0 z-20 min-h-14 border-b border-border bg-card flex items-end justify-between px-4 pb-0"
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+    >
+      {/* inner row always 3.5rem (h-14) tall */}
+      <div className="flex w-full items-center justify-between h-14">
+        {/* Left: sidebar toggle, app title, org switcher */}
+        <div className="flex items-center gap-2 min-w-0">
+          <NavbarSidebarTrigger />
+          <span className="hidden sm:contents">
+            <NavbarLogo />
+            <NavbarLogoSpacer />
+          </span>
+          <OrgSwitcher orgs={orgs} />
+        </div>
 
-      {/* Right: notifications and user menu */}
-      <div className="flex items-center gap-2">
-        {/* Notification bell */}
-        <NotificationPanel invites={invites} unseenCount={unseenCount + unseenNotifCount} notifications={notifications} />
+        {/* Right: notifications and user menu */}
+        <div className="flex items-center gap-2">
+          {/* Notification bell */}
+          <NotificationPanel
+            invites={invites}
+            unseenCount={unseenCount + unseenNotifCount}
+            notifications={notifications}
+          />
 
-        {/* User avatar — only rendered when a user is signed in */}
-        {user && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              {/* Shows profile image if available, otherwise falls back to first initial */}
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Open user menu"
-                className="h-9 w-9 rounded-full bg-primary hover:bg-primary/90 overflow-hidden p-0 flex items-center justify-center"
-              >
-                {user.image ? (
-                  <Image
-                    src={user.image}
-                    alt={user.name ?? "User"}
-                    width={36}
-                    height={36}
-                    className="rounded-full object-cover"
-                  />
-                ) : (
-                  <span className="text-sm font-semibold text-primary-foreground">
-                    {user.name?.[0]?.toUpperCase() ?? "?"}
-                  </span>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>{user.name ?? "Profile"}</DropdownMenuLabel>
-              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal -mt-2 truncate">
-                {user.email}
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/profile">Profile</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings/account">Account Settings</Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {/* Sign out uses a server action so no client JS is needed */}
-              <form
-                action={async () => {
-                  "use server";
-                  await signOut({ redirectTo: "/signin" });
-                }}
-              >
+          {/* User avatar — only rendered when a user is signed in */}
+          {user && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                {/* Shows profile image if available, otherwise falls back to first initial */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Open user menu"
+                  className="h-9 w-9 rounded-full bg-primary hover:bg-primary/90 overflow-hidden p-0 flex items-center justify-center"
+                >
+                  {user.image ? (
+                    <Image
+                      src={user.image}
+                      alt={user.name ?? "User"}
+                      width={36}
+                      height={36}
+                      className="rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-sm font-semibold text-primary-foreground">
+                      {user.name?.[0]?.toUpperCase() ?? "?"}
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>{user.name ?? "Profile"}</DropdownMenuLabel>
+                <DropdownMenuLabel className="text-xs text-muted-foreground font-normal -mt-2 truncate">
+                  {user.email}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <button type="submit" className="w-full text-left">
-                    Sign out
-                  </button>
+                  <Link href="/profile">Profile</Link>
                 </DropdownMenuItem>
-              </form>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+                <DropdownMenuItem asChild>
+                  <Link href="/settings/account">Account Settings</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {/* Sign out uses a server action so no client JS is needed */}
+                <form
+                  action={async () => {
+                    "use server";
+                    await signOut({ redirectTo: "/signin" });
+                  }}
+                >
+                  <DropdownMenuItem asChild>
+                    <button type="submit" className="w-full text-left">
+                      Sign out
+                    </button>
+                  </DropdownMenuItem>
+                </form>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </div>
     </header>
   );

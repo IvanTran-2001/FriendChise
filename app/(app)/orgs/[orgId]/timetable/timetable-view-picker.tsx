@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 
 interface TimetableViewPickerProps {
   mode: "calendar" | "simple";
@@ -24,81 +25,49 @@ export function TimetableViewPicker({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  // Navigate to href using startTransition; also persist the chosen mode/span.
   const navigate = (href: string, meta?: { mode?: string; span?: string }) =>
     startTransition(() => {
       if (meta) {
         try {
           if (meta.mode) localStorage.setItem("timetable:mode", meta.mode);
           if (meta.span) localStorage.setItem("timetable:span", meta.span);
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
       router.push(href);
     });
-
-  const segmentBase = "px-3 py-1 transition-colors cursor-pointer select-none";
-  const activeClass = "bg-primary text-primary-foreground";
-  const inactiveClass = cn(
-    "text-muted-foreground",
-    isPending ? "opacity-40" : "hover:bg-muted",
-  );
 
   return (
     <div
       className={cn(
         "flex items-center gap-2",
-        isPending && "pointer-events-none",
+        isPending && "pointer-events-none opacity-50",
       )}
     >
       {/* Day / Week */}
-      <div className="flex rounded-md overflow-hidden border text-sm font-medium">
-        <button
-          onClick={() => navigate(dayHref, { span: "day" })}
-          aria-current={span === "day" ? "page" : undefined}
-          className={cn(
-            segmentBase,
-            span === "day" ? activeClass : inactiveClass,
-          )}
-        >
-          Day
-        </button>
-        <button
-          onClick={() => navigate(weekHref, { span: "week" })}
-          aria-current={span === "week" ? "page" : undefined}
-          className={cn(
-            segmentBase,
-            "border-l",
-            span === "week" ? activeClass : inactiveClass,
-          )}
-        >
-          Week
-        </button>
-      </div>
+      <SegmentedControl
+        options={[
+          { label: "Day", value: "day" },
+          { label: "Week", value: "week" },
+        ]}
+        value={span}
+        onChange={(v) =>
+          navigate(v === "day" ? dayHref : weekHref, { span: v })
+        }
+      />
 
       {/* Calendar / Simple */}
-      <div className="flex rounded-md overflow-hidden border text-sm font-medium">
-        <button
-          onClick={() => navigate(calendarHref, { mode: "calendar" })}
-          aria-current={mode === "calendar" ? "page" : undefined}
-          className={cn(
-            segmentBase,
-            mode === "calendar" ? activeClass : inactiveClass,
-          )}
-        >
-          Calendar
-        </button>
-        <button
-          onClick={() => navigate(simpleHref, { mode: "simple" })}
-          aria-current={mode === "simple" ? "page" : undefined}
-          className={cn(
-            segmentBase,
-            "border-l",
-            mode === "simple" ? activeClass : inactiveClass,
-          )}
-        >
-          Simple
-        </button>
-      </div>
+      <SegmentedControl
+        options={[
+          { label: "Calendar", value: "calendar" },
+          { label: "Simple", value: "simple" },
+        ]}
+        value={mode}
+        onChange={(v) =>
+          navigate(v === "calendar" ? calendarHref : simpleHref, { mode: v })
+        }
+      />
     </div>
   );
 }

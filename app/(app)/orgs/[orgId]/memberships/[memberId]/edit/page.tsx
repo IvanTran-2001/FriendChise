@@ -36,12 +36,14 @@ const EditMemberPage = async ({
         >
           ← {membership.user.name ?? "Member"}
         </Link>
-        <MemberToolbarActions
-          orgId={orgId}
-          userId={memberId}
-          memberName={membership.user.name}
-          status={membership.status as "ACTIVE" | "RESTRICTED"}
-        />
+        <div className="ml-auto flex items-center gap-2">
+          <MemberToolbarActions
+            orgId={orgId}
+            userId={memberId}
+            memberName={membership.user.name}
+            status={membership.status as "ACTIVE" | "RESTRICTED"}
+          />
+        </div>
       </Toolbar>
 
       <div className="max-w-lg mx-auto">

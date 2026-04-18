@@ -23,17 +23,18 @@ export function TimetablePrefRedirect({ orgId }: { orgId: string }) {
     try {
       storedMode = localStorage.getItem("timetable:mode");
       storedSpan = localStorage.getItem("timetable:span");
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     const params = new URLSearchParams(searchParams.toString());
     let changed = false;
 
-    // Only apply stored mode if mode param not already set
     if (!hasMode && (storedMode === "simple" || storedMode === "calendar")) {
       params.set("mode", storedMode);
       changed = true;
     }
-    // Only apply stored span if span param not already set
+
     if (!hasSpan && (storedSpan === "day" || storedSpan === "week")) {
       params.set("span", storedSpan);
       changed = true;
@@ -42,7 +43,7 @@ export function TimetablePrefRedirect({ orgId }: { orgId: string }) {
     if (changed) {
       router.replace(`/orgs/${orgId}/timetable?${params.toString()}`);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return null;

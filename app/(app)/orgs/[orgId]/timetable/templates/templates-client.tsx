@@ -7,6 +7,7 @@ import { CalendarDays, LayoutGrid, List, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Toolbar } from "@/components/layout/toolbar";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 
 type Template = {
   id: string;
@@ -22,39 +23,21 @@ interface TemplatesClientProps {
 
 export function TemplatesClient({ orgId, templates }: TemplatesClientProps) {
   const router = useRouter();
-  const [view, setView] = usePersistedState<"card" | "list">("templates:view", "card");
+  const [view, setView] = usePersistedState<"card" | "list">(
+    "templates:view",
+    "card",
+  );
 
   const viewToggle = (
-    <div className="flex items-center rounded-md border overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setView("list")}
-        aria-label="List view"
-        aria-pressed={view === "list"}
-        className={cn(
-          "p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary",
-          view === "list"
-            ? "bg-primary text-primary-foreground"
-            : "text-muted-foreground hover:bg-muted",
-        )}
-      >
-        <List className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        onClick={() => setView("card")}
-        aria-label="Card view"
-        aria-pressed={view === "card"}
-        className={cn(
-          "p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary",
-          view === "card"
-            ? "bg-primary text-primary-foreground"
-            : "text-muted-foreground hover:bg-muted",
-        )}
-      >
-        <LayoutGrid className="h-4 w-4" />
-      </button>
-    </div>
+    <SegmentedControl
+      size="sm"
+      value={view}
+      onChange={setView}
+      options={[
+        { value: "list", label: <List className="h-4 w-4" /> },
+        { value: "card", label: <LayoutGrid className="h-4 w-4" /> },
+      ]}
+    />
   );
 
   if (templates.length === 0) {
