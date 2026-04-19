@@ -1,3 +1,18 @@
+/**
+ * Authenticated app shell layout.
+ *
+ * Scroll containment strategy:
+ * - `h-dvh` on `SidebarProvider` constrains the layout to the viewport so the body never scrolls.
+ * - `overflow-hidden` on `SidebarInset` scopes clipping to the right-hand column only
+ *   (sidebar is unaffected), preventing navbar items from being clipped at high zoom levels.
+ * - `<main>` (`overflow-auto flex-1 min-h-0`) is the actual scroll container.
+ *
+ * Fixed-toolbar pattern for child pages:
+ * Wrap content in `<div className="flex flex-col h-full">`. Place `<Toolbar>` at the top
+ * (static), then a `<div className="flex-1 overflow-auto -mx-4 sm:-mx-6 …">` for the
+ * scrollable list. Negative horizontal margins cancel `<main>`'s padding so the list
+ * extends edge-to-edge; padding is re-applied inside the div.
+ */
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/sidebar";
 import { NavBar } from "@/components/layout/navbar";
