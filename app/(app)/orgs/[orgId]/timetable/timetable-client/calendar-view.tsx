@@ -13,10 +13,19 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import {
   createTimetableEntryAction,
   updateTimetableEntryAction,
-} from "@/app/actions/timetable-entries";
-import { TimeGrid } from "../_shared/time-grid";
+} from "@/app/actions/timetable-entries";import { TimeGrid } from "../_shared/time-grid";
 import { TaskPanel } from "../_shared/task-panel";
 import { addDays, getDayName, minToHHMM } from "../_shared/grid-utils";
 import { STATUS_LABELS, statusDotClass, getMondayOf } from "./helpers";
@@ -137,6 +146,11 @@ export function CalendarView({
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
+  type PendingDrop =
+    | { kind: "drop"; col: string; timeMin: number; data: DragData }
+    | { kind: "tap"; col: string; timeMin: number; taskId: string };
+  const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
+
   const hasPanel = !!availableTasks;
 
   let initialScrollMin = openTimeMin;
@@ -150,7 +164,7 @@ export function CalendarView({
     }
   }
 
-  function handleDrop(col: string, timeMin: number, data: DragData) {
+  function executeDrop(col: string, timeMin: number, data: DragData) {
     startT(async () => {
       let result;
       if (data.type === "task") {
@@ -169,7 +183,15 @@ export function CalendarView({
     });
   }
 
-  function handleTapPlace(col: string, timeMin: number, taskId: string) {
+  function handleDrop(col: string, timeMin: number, data: DragData) {
+    if (col < todayStr) {
+      setPendingDrop({ kind: "drop", col, timeMin, data });
+      return;
+    }
+    executeDrop(col, timeMin, data);
+  }
+
+  function executeTap(col: string, timeMin: number, taskId: string) {
     startT(async () => {
       const result = await createTimetableEntryAction(orgId, taskId, col, timeMin);
       if (!result.ok) {
@@ -180,6 +202,14 @@ export function CalendarView({
       setTaskPanelOpen(false);
       router.refresh();
     });
+  }
+
+  function handleTapPlace(col: string, timeMin: number, taskId: string) {
+    if (col < todayStr) {
+      setPendingDrop({ kind: "tap", col, timeMin, taskId });
+      return;
+    }
+    executeTap(col, timeMin, taskId);
   }
 
   const isMobile = useIsMobile();
@@ -433,6 +463,44 @@ export function CalendarView({
           router={router}
         />
       )}
+
+      <AlertDialog
+        open={!!pendingDrop}
+        onOpenChange={(open) => { if (!open) setPendingDrop(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Drop on a past date?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDrop && (
+                <>
+                  <strong>{pendingDrop.col}</strong> is in the past. Are you
+                  sure you want to place a task here?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingDrop(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!pendingDrop) return;
+                const p = pendingDrop;
+                setPendingDrop(null);
+                if (p.kind === "drop") {
+                  executeDrop(p.col, p.timeMin, p.data);
+                } else {
+                  executeTap(p.col, p.timeMin, p.taskId);
+                }
+              }}
+            >
+              Place Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
