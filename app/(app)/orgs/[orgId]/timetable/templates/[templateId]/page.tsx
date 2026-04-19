@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { requireOrgPermissionPage } from "@/lib/authz";
 import { getTimetableTemplate } from "@/lib/services/templates";
+import { getTasks } from "@/lib/services/tasks";
 import { prisma } from "@/lib/prisma";
 import { Toolbar } from "@/components/layout/toolbar";
 import {
@@ -24,17 +25,13 @@ export default async function TemplateEditorPage({
     redirectTo: `/orgs/${orgId}/timetable`,
   });
 
-  const [template, org, rawTasks, rawMemberships] = await Promise.all([
+  const [template, org, tasks, rawMemberships] = await Promise.all([
     getTimetableTemplate(orgId, templateId),
     prisma.organization.findUnique({
       where: { id: orgId },
       select: { openTimeMin: true, closeTimeMin: true },
     }),
-    prisma.task.findMany({
-      where: { orgId },
-      select: { id: true, name: true, durationMin: true },
-      orderBy: { name: "asc" },
-    }),
+    getTasks(orgId),
     prisma.membership.findMany({
       where: { orgId },
       select: { id: true, user: { select: { id: true, name: true } } },
@@ -44,10 +41,16 @@ export default async function TemplateEditorPage({
 
   if (!template) notFound();
 
+  // Build taskId → role color map (first eligible role, same as timetable page)
+  const taskRoleColorMap = new Map(
+    tasks.map((t) => [t.id, t.eligibility[0]?.role?.color ?? null]),
+  );
+
   const instances: ClientTemplateInstance[] = template.entries.map((inst) => ({
     id: inst.id,
     dayIndex: inst.dayIndex,
     startTimeMin: inst.startTimeMin!,
+    taskColor: taskRoleColorMap.get(inst.task.id) ?? null,
     task: {
       id: inst.task.id,
       name: inst.task.name,
@@ -65,11 +68,18 @@ export default async function TemplateEditorPage({
     })),
   }));
 
-  const availableTasks: ClientTask[] = rawTasks;
+  const availableTasks: ClientTask[] = tasks.map((t) => ({
+    id: t.id,
+    name: t.name,
+    durationMin: t.durationMin,
+    color: t.color,
+    roleColor: t.eligibility[0]?.role?.color ?? null,
+    roleName: t.eligibility[0]?.role?.name ?? null,
+  }));
   const memberships: ClientMembership[] = rawMemberships;
 
   return (
-    <div className="flex flex-col" style={{ height: "calc(100dvh - 148px)" }}>
+      <div className="flex flex-col" style={{ height: "calc(100dvh - 148px)", minHeight: "600px" }}>
       <Toolbar>
         <Link
           href={`/orgs/${orgId}/timetable/templates`}
