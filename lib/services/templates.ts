@@ -486,7 +486,7 @@ export async function renameTemplate(
     return { ok: true, data: null };
   } catch (error) {
     if (
-      error instanceof PrismaClientKnownRequestError &&
+      error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
       return {
@@ -551,7 +551,7 @@ export async function duplicateTemplate(
       return { ok: true, data: { id: copy.id } };
     } catch (error) {
       if (
-        error instanceof PrismaClientKnownRequestError &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === "P2002"
       ) {
         // Name collision, retry with next suffix

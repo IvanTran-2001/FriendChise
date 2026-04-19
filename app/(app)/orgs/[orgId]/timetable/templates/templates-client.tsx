@@ -78,7 +78,10 @@ function TemplateMenu({
   const [renameName, setRenameName] = useState(template.name);
   const [renameError, setRenameError] = useState<string | null>(null);
 
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
+
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   function handleRename() {
     setRenameName(template.name);
@@ -104,11 +107,11 @@ function TemplateMenu({
   }
 
   function handleDuplicate() {
+    setDuplicateError(null);
     startT(async () => {
       const result = await duplicateTemplateAction(orgId, template.id);
       if (!result.ok) {
-        setRenameError(result.error ?? "Failed to duplicate");
-        setRenameOpen(true);
+        setDuplicateError(result.error ?? "Failed to duplicate");
         return;
       }
       router.refresh();
@@ -116,12 +119,11 @@ function TemplateMenu({
   }
 
   function confirmDelete() {
+    setDeleteError(null);
     startT(async () => {
       const result = await deleteTemplateAction(orgId, template.id);
       if (!result.ok) {
-        setRenameError(result.error ?? "Failed to delete");
-        setDeleteOpen(false);
-        setRenameOpen(true);
+        setDeleteError(result.error ?? "Failed to delete");
         return;
       }
       router.refresh();
@@ -153,7 +155,10 @@ function TemplateMenu({
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            onClick={() => setDeleteOpen(true)}
+            onClick={() => {
+              setDeleteError(null);
+              setDeleteOpen(true);
+            }}
             className="text-destructive focus:text-destructive"
           >
             <Trash2 className="h-3.5 w-3.5 mr-2" />
@@ -161,6 +166,13 @@ function TemplateMenu({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Duplicate error display */}
+      {duplicateError && (
+        <div className="absolute top-12 right-0 z-50 bg-destructive text-destructive-foreground text-xs px-3 py-2 rounded-md shadow-lg max-w-xs">
+          {duplicateError}
+        </div>
+      )}
 
       {/* Rename dialog */}
       <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
@@ -201,6 +213,9 @@ function TemplateMenu({
               action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteError && (
+            <p className="text-xs text-destructive px-6">{deleteError}</p>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
