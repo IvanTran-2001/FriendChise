@@ -1,5 +1,27 @@
 "use client";
 
+/**
+ * @file template-editor-client.tsx
+ * Client root for the timetable template editor page.
+ *
+ * Supports two view modes (persisted in localStorage via `usePersistedState`):
+ * - **Calendar** — drag-and-drop time grid using `TimeGrid`. Tasks are dragged from
+ *   the `TaskPanel` sidebar (desktop) or a bottom Sheet (mobile). Entries can be
+ *   repositioned by dragging. Column count adapts to container width via ResizeObserver.
+ * - **Simple** — day-by-day table sorted by start time. Clicking a row opens
+ *   the `EditPopup` to adjust start time and assignees.
+ *
+ * Navigation controls:
+ * - Day / Week span selector — switches between viewing one day or multiple days at once.
+ * - Prev / Next / Start buttons — pages through the template cycle.
+ * - +/- cycle buttons — extend or shrink `cycleLengthDays`; shrinking is blocked by the
+ *   service layer if entries exist beyond the new length.
+ *
+ * `EditPopup` is an inline floating dialog that lets users adjust the start time and
+ * assignees of any template entry. Changes commit immediately via server actions with
+ * `router.refresh()` to sync server state.
+ */
+
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, LayoutList, Minus, MoreHorizontal, Plus, X } from "lucide-react";
