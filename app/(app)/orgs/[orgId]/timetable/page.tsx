@@ -193,7 +193,7 @@ export default async function TimetablePage({
   };
 
   return (
-    <div className="flex flex-col" style={{ height: "calc(100dvh - 148px)" }}>
+    <div className="flex flex-col" style={{ height: "calc(100dvh - 148px)", minHeight: "500px" }}>
       <TimetablePrefRedirect orgId={orgId} />
       <TimetableClient
         orgId={orgId}
