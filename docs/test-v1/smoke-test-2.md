@@ -11,13 +11,13 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Fixed from Round 1 | 34 |
-| 🔴 Still broken | 1 |
-| 🆕 New issues found | 0 |
+| ✅ Fixed from Round 1 | 29 |
+| 🔴 Still broken | 2 |
+| 🆕 New issues found | 4 |
 
 ---
 
-## ✅ Fixed Since V1 (34)
+## ✅ Fixed Since V1 (29)
 
 | V1 # | Issue | GitHub Issue |
 |------|-------|--------------|
@@ -50,30 +50,32 @@
 | 27 | Transfer requires restart to see franchisee button | [#88](https://github.com/IvanTran-2001/FriendChise/issues/88) |
 | 30 | Restrict settings subroutes at layout level (catch-all guard) | [#62](https://github.com/IvanTran-2001/FriendChise/issues/62) |
 | 31 | Add route guards for templates + franchise pages | [#63](https://github.com/IvanTran-2001/FriendChise/issues/63), [#64](https://github.com/IvanTran-2001/FriendChise/issues/64) |
-| N1 | Mobile notification panel: top gap, touch bottom, scrollable | [#97](https://github.com/IvanTran-2001/FriendChise/issues/97) |
-| N2 | Mobile add-task popup: open from top, touch bottom, scrollable | [#98](https://github.com/IvanTran-2001/FriendChise/issues/98) |
-| N3 | Timetable calendar adapts column count to screen width (7 → 3 → 1) | [#99](https://github.com/IvanTran-2001/FriendChise/issues/99) |
-| N4 | Member detail toolbar actions (Edit, Restrict, Delete) on the right | [#100](https://github.com/IvanTran-2001/FriendChise/issues/100) |
-| N5 | Timetable templates very incomplete — needs to match timetable features | [#93](https://github.com/IvanTran-2001/FriendChise/issues/93) |
 
 ---
 
-## 🔴 Still Broken from V1 (1)
+## 🔴 Still Broken from V1 (2)
 
 | V1 # | Issue | GitHub Issue |
-|------|-------|--------------|
+|------|-------|______________|
+| 28 | Timetable templates very incomplete — needs to match timetable features | [#93](https://github.com/IvanTran-2001/FriendChise/issues/93) |
 | 29 | Warn before applying template to past dates | [#94](https://github.com/IvanTran-2001/FriendChise/issues/94) |
 
 ---
 
-## 🆕 New Issues Found (0)
+## 🆕 New Issues Found (4)
 
-All new issues found during this round have since been resolved — see the Fixed table above.
+| # | Issue | Type | Device | GitHub Issue |
+|---|-------|------|--------|______________|
+| 1 | Mobile notification panel should have top gap, touch bottom, be scrollable | Bug | Mobile | [#97](https://github.com/IvanTran-2001/FriendChise/issues/97) |
+| 2 | Mobile add-task popup should open from top with gap, touch bottom, be scrollable | Bug | Mobile | [#98](https://github.com/IvanTran-2001/FriendChise/issues/98) |
+| 3 | Timetable calendar should reduce visible columns as screen narrows (7 → 3 → 1) | Enhancement | Mobile | [#99](https://github.com/IvanTran-2001/FriendChise/issues/99) |
+| 4 | Member detail toolbar actions (Edit, Restrict, Delete) should be on the right | Bug | All | [#100](https://github.com/IvanTran-2001/FriendChise/issues/100) |
 
 ---
 
 ## Next Steps
 
-1. Fix the 1 remaining V1 issue (#94 — warn before applying template to past dates)
-2. Re-run full test on mobile + desktop
-3. Move to functional / regression testing
+1. Fix the 2 remaining V1 issues (#93, #94)
+2. Address the 4 new issues (#97–#100)
+3. Re-run full test on mobile + desktop
+4. Move to functional / regression testing
