@@ -343,9 +343,14 @@ export function TemplateEditorClient({
     return () => window.removeEventListener("resize", update);
   }, []);
 
+  // ── Filter visible instances ──────────────────────────────────────────
+  const visibleInstances = instances.filter((inst) =>
+    visibleDays.includes(inst.dayIndex),
+  );
+
   // ── Scroll anchor ─────────────────────────────────────────────────────
   let initialScrollMin = openTimeMin;
-  for (const inst of instances) {
+  for (const inst of visibleInstances) {
     if (inst.startTimeMin < initialScrollMin)
       initialScrollMin = inst.startTimeMin;
   }
@@ -423,10 +428,6 @@ export function TemplateEditorClient({
       router.refresh();
     });
   }
-
-  const visibleInstances = instances.filter((inst) =>
-    visibleDays.includes(inst.dayIndex),
-  );
 
   return (
     <div
@@ -780,4 +781,3 @@ export function TemplateEditorClient({
     </div>
   );
 }
-
