@@ -3,6 +3,7 @@
  * Service functions for reading and mutating timetable templates and their entries.
  */
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import type { ServiceResult } from "./types";
 import {
   localMidnightUTC,
@@ -474,14 +475,28 @@ export async function renameTemplate(
   const trimmed = name.trim();
   if (!trimmed) return { ok: false, error: "Name is required", code: "INVALID" };
 
-  const updated = await prisma.template.updateMany({
-    where: { id: templateId, orgId },
-    data: { name: trimmed },
-  });
-  if (updated.count === 0)
-    return { ok: false, error: "Template not found", code: "NOT_FOUND" };
+  try {
+    const updated = await prisma.template.updateMany({
+      where: { id: templateId, orgId },
+      data: { name: trimmed },
+    });
+    if (updated.count === 0)
+      return { ok: false, error: "Template not found", code: "NOT_FOUND" };
 
-  return { ok: true, data: null };
+    return { ok: true, data: null };
+  } catch (error) {
+    if (
+      error instanceof PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return {
+        ok: false,
+        error: "A template with that name already exists",
+        code: "INVALID",
+      };
+    }
+    throw error;
+  }
 }
 
 /**
@@ -504,38 +519,61 @@ export async function duplicateTemplate(
     return { ok: false, error: "Template not found", code: "NOT_FOUND" };
 
   const baseName = `Copy of ${template.name}`;
-  // Resolve name collision: try "Copy of X", "Copy of X (2)", "Copy of X (3)", …
-  let candidateName = baseName;
-  let suffix = 2;
-  while (
-    await prisma.template.findFirst({ where: { orgId, name: candidateName } })
-  ) {
-    candidateName = `${baseName} (${suffix++})`;
+  const maxRetries = 5;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    // Generate candidate name
+    const candidateName = attempt === 0 ? baseName : `${baseName} (${attempt + 1})`;
+
+    try {
+      const copy = await prisma.template.create({
+        data: {
+          orgId,
+          name: candidateName,
+          cycleLengthDays: template.cycleLengthDays,
+          entries: {
+            create: template.entries.map((e) => ({
+              taskId: e.taskId,
+              dayIndex: e.dayIndex,
+              startTimeMin: e.startTimeMin,
+              endTimeMin: e.endTimeMin,
+              priority: e.priority,
+              durationMin: e.durationMin,
+              assignees: {
+                create: e.assignees.map((a) => ({ membershipId: a.membershipId })),
+              },
+            })),
+          },
+        },
+        select: { id: true },
+      });
+
+      return { ok: true, data: { id: copy.id } };
+    } catch (error) {
+      if (
+        error instanceof PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        // Name collision, retry with next suffix
+        if (attempt === maxRetries - 1) {
+          return {
+            ok: false,
+            error: "A template with that name already exists",
+            code: "INVALID",
+          };
+        }
+        continue;
+      }
+      throw error;
+    }
   }
 
-  const copy = await prisma.template.create({
-    data: {
-      orgId,
-      name: candidateName,
-      cycleLengthDays: template.cycleLengthDays,
-      entries: {
-        create: template.entries.map((e) => ({
-          taskId: e.taskId,
-          dayIndex: e.dayIndex,
-          startTimeMin: e.startTimeMin,
-          endTimeMin: e.endTimeMin,
-          priority: e.priority,
-          durationMin: e.durationMin,
-          assignees: {
-            create: e.assignees.map((a) => ({ membershipId: a.membershipId })),
-          },
-        })),
-      },
-    },
-    select: { id: true },
-  });
-
-  return { ok: true, data: { id: copy.id } };
+  // Should never reach here, but TypeScript needs it
+  return {
+    ok: false,
+    error: "A template with that name already exists",
+    code: "INVALID",
+  };
 }
 
 /**

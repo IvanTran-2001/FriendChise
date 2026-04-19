@@ -72,7 +72,7 @@ function TemplateMenu({
   template: Template;
 }) {
   const router = useRouter();
-  const [, startT] = useTransition();
+  const [isPending, startT] = useTransition();
 
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameName, setRenameName] = useState(template.name);
@@ -87,12 +87,13 @@ function TemplateMenu({
   }
 
   function submitRename() {
-    if (!renameName.trim()) {
+    const trimmed = renameName.trim();
+    if (!trimmed) {
       setRenameError("Name is required");
       return;
     }
     startT(async () => {
-      const res = await renameTemplateAction(orgId, template.id, renameName);
+      const res = await renameTemplateAction(orgId, template.id, trimmed);
       if (!res.ok) {
         setRenameError(res.error ?? "Failed to rename");
         return;
@@ -104,14 +105,25 @@ function TemplateMenu({
 
   function handleDuplicate() {
     startT(async () => {
-      await duplicateTemplateAction(orgId, template.id);
+      const result = await duplicateTemplateAction(orgId, template.id);
+      if (!result.ok) {
+        setRenameError(result.error ?? "Failed to duplicate");
+        setRenameOpen(true);
+        return;
+      }
       router.refresh();
     });
   }
 
   function confirmDelete() {
     startT(async () => {
-      await deleteTemplateAction(orgId, template.id);
+      const result = await deleteTemplateAction(orgId, template.id);
+      if (!result.ok) {
+        setRenameError(result.error ?? "Failed to delete");
+        setDeleteOpen(false);
+        setRenameOpen(true);
+        return;
+      }
       router.refresh();
     });
   }
@@ -135,7 +147,7 @@ function TemplateMenu({
             <Pencil className="h-3.5 w-3.5 mr-2" />
             Rename
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleDuplicate}>
+          <DropdownMenuItem onClick={handleDuplicate} disabled={isPending}>
             <Copy className="h-3.5 w-3.5 mr-2" />
             Duplicate
           </DropdownMenuItem>
@@ -174,7 +186,7 @@ function TemplateMenu({
             <Button variant="outline" onClick={() => setRenameOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={submitRename}>Save</Button>
+            <Button onClick={submitRename} disabled={isPending}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -193,6 +205,7 @@ function TemplateMenu({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
+              disabled={isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
