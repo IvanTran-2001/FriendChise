@@ -253,6 +253,7 @@ export default async function TimetablePage({
               cycleLengthDays: t.cycleLengthDays,
             }))}
             anchor={anchor}
+            todayStr={todayStr}
           />
         )}
       </TimetableClient>

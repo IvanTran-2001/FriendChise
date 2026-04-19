@@ -43,6 +43,8 @@ interface ApplyTemplateDialogProps {
   templates: TemplateOption[];
   /** Pre-selected template id (from the timetable's current week start). */
   defaultStartDate: string;
+  /** Server-derived "today" date string (YYYY-MM-DD) in org timezone. */
+  todayStr: string;
 }
 
 const MONTH_NAMES = [
@@ -78,6 +80,7 @@ function ApplyTemplateForm({
   orgId,
   templates,
   defaultStartDate,
+  todayStr,
 }: Omit<ApplyTemplateDialogProps, "open">) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -141,7 +144,7 @@ function ApplyTemplateForm({
 
   function handleApply() {
     if (!selectedId || !startDate || cycleRepeats < 1) return;
-    if (startDate < new Date().toISOString().slice(0, 10) && !isSuppressed()) {
+    if (startDate < todayStr && !isSuppressed()) {
       setShowPastWarning(true);
       return;
     }
@@ -333,6 +336,7 @@ export function ApplyTemplateDialog({
   orgId,
   templates,
   defaultStartDate,
+  todayStr,
 }: ApplyTemplateDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -346,6 +350,7 @@ export function ApplyTemplateDialog({
             orgId={orgId}
             templates={templates}
             defaultStartDate={defaultStartDate}
+            todayStr={todayStr}
           />
         )}
       </DialogContent>

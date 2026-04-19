@@ -25,7 +25,8 @@ import {
 import {
   createTimetableEntryAction,
   updateTimetableEntryAction,
-} from "@/app/actions/timetable-entries";import { TimeGrid } from "../_shared/time-grid";
+} from "@/app/actions/timetable-entries";
+import { TimeGrid } from "../_shared/time-grid";
 import { TaskPanel } from "../_shared/task-panel";
 import { addDays, getDayName, minToHHMM } from "../_shared/grid-utils";
 import { STATUS_LABELS, statusDotClass, getMondayOf } from "./helpers";

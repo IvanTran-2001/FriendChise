@@ -39,6 +39,7 @@ All issues from Round 2 have been resolved.
 ## 🆕 New Issues Found (5)
 
 ### ✅ Tasks / 👥 Members
+
 | # | Issue | Type | Device | GitHub Issue |
 |---|-------|------|--------|--------------|
 | 1 | Task page toolbar buttons/components should be on the right | Bug | All | [#103](https://github.com/IvanTran-2001/FriendChise/issues/103) |
@@ -47,6 +48,7 @@ All issues from Round 2 have been resolved.
 | 5 | Member/task detail page: photo/avatar should appear at the top on mobile | Enhancement | Mobile | [#107](https://github.com/IvanTran-2001/FriendChise/issues/107) |
 
 ### 📱 NavBar / Sidebar
+
 | # | Issue | Type | Device | GitHub Issue |
 |---|-------|------|--------|--------------|
 | 2 | Mobile sidebar should auto-close when navigating between sections | Bug | Mobile | [#104](https://github.com/IvanTran-2001/FriendChise/issues/104) |
