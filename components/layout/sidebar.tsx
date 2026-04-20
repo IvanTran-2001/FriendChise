@@ -187,7 +187,12 @@ export function AppSidebar() {
   // Only close it when the destination is outside the current org context.
   const handleNavClick = (url: string) => {
     if (!isMobile) return;
-    if (orgId && url.startsWith(`/orgs/${orgId}`)) return;
+    if (orgId) {
+      const inSettings = pathname.startsWith(`/orgs/${orgId}/settings`);
+      const goingToSettings = url.startsWith(`/orgs/${orgId}/settings`);
+      // Keep sidebar open only when toggling between org ↔ settings
+      if (inSettings !== goingToSettings) return;
+    }
     setOpenMobile(false);
   };
   const [parentOwnerStatus, setParentOwnerStatus] = useState<{
