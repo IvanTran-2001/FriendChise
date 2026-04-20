@@ -425,7 +425,7 @@ export function TaskForm(props: TaskFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8 items-start"
+      className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-8 items-start"
     >
       {/* ── Left: task fields ─────────────────────────────────────────────── */}
       <div className="flex flex-col gap-5">

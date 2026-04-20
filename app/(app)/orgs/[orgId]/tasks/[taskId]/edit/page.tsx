@@ -32,9 +32,9 @@ const EditTaskPage = async ({
   const eligibleRoles = task.eligibility.map((e) => e.role);
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full max-w-2xl mx-auto">
       <h1 className="text-xl font-semibold mb-6">Edit Task</h1>
-      <div className="rounded-xl border bg-card p-6">
+      <div className="w-full rounded-xl border bg-card p-6">
         <TaskForm
           mode="edit"
           orgId={orgId}
