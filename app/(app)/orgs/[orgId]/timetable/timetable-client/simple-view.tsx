@@ -210,6 +210,7 @@ export function SimpleView({
           onClose={() => setEditingInstance(null)}
           onRefresh={() => router.refresh()}
           router={router}
+          todayStr={todayStr}
         />
       )}
     </>

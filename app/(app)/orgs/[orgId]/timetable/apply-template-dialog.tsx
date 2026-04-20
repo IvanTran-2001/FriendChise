@@ -43,6 +43,8 @@ interface ApplyTemplateDialogProps {
   templates: TemplateOption[];
   /** Pre-selected template id (from the timetable's current week start). */
   defaultStartDate: string;
+  /** Server-derived "today" date string (YYYY-MM-DD) in org timezone. */
+  todayStr: string;
 }
 
 const MONTH_NAMES = [
@@ -78,6 +80,7 @@ function ApplyTemplateForm({
   orgId,
   templates,
   defaultStartDate,
+  todayStr,
 }: Omit<ApplyTemplateDialogProps, "open">) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -87,6 +90,17 @@ function ApplyTemplateForm({
   const [cycleRepeats, setCycleRepeats] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [existingCount, setExistingCount] = useState<number>(0);
+  const [showPastWarning, setShowPastWarning] = useState(false);
+  const [suppressToday, setSuppressToday] = useState(false);
+
+  const SUPPRESS_KEY = "apply-template-past-warn-suppress";
+
+  function isSuppressed(): boolean {
+    if (typeof window === "undefined") return false;
+    const stored = localStorage.getItem(SUPPRESS_KEY);
+    if (!stored) return false;
+    return Date.now() < Number(stored);
+  }
 
   const selected = templates.find((t) => t.id === selectedId);
   const totalDays = selected ? selected.cycleLengthDays * cycleRepeats : 0;
@@ -108,8 +122,7 @@ function ApplyTemplateForm({
     };
   }, [orgId, startDate, totalDays]);
 
-  function handleApply() {
-    if (!selectedId || !startDate || cycleRepeats < 1) return;
+  function doApply() {
     setError(null);
     startTransition(async () => {
       const result = await applyTemplateAction(
@@ -120,12 +133,77 @@ function ApplyTemplateForm({
       );
       if (!result.ok) {
         setError(result.error ?? "Something went wrong");
+        setShowPastWarning(false);
         return;
       }
       onOpenChange(false);
       router.push(`/orgs/${orgId}/timetable?week=${startDate}`);
       router.refresh();
     });
+  }
+
+  function handleApply() {
+    if (!selectedId || !startDate || cycleRepeats < 1) return;
+    if (startDate < todayStr && !isSuppressed()) {
+      setShowPastWarning(true);
+      return;
+    }
+    doApply();
+  }
+
+  function handleConfirmPast() {
+    if (suppressToday) {
+      localStorage.setItem(SUPPRESS_KEY, String(Date.now() + 24 * 60 * 60 * 1000));
+    }
+    setShowPastWarning(false);
+    doApply();
+  }
+
+  if (showPastWarning) {
+    return (
+      <>
+        <div className="flex flex-col gap-4">
+          <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 flex gap-3">
+            <TriangleAlertIcon className="h-5 w-5 shrink-0 mt-0.5 text-destructive" />
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-medium text-destructive">Applying to past dates</p>
+              <p className="text-xs text-muted-foreground">
+                The start date <span className="font-medium">{startDate}</span> is in the past.
+                Applying a template will overwrite any existing entries in that range.
+              </p>
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-primary rounded"
+              checked={suppressToday}
+              onChange={(e) => setSuppressToday(e.target.checked)}
+            />
+            Don&apos;t warn me again for 24 hours
+          </label>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowPastWarning(false)}
+            disabled={isPending}
+          >
+            Go Back
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleConfirmPast}
+            disabled={isPending}
+          >
+            {isPending ? "Applying…" : "Apply Anyway"}
+          </Button>
+        </DialogFooter>
+      </>
+    );
   }
 
   return (
@@ -258,6 +336,7 @@ export function ApplyTemplateDialog({
   orgId,
   templates,
   defaultStartDate,
+  todayStr,
 }: ApplyTemplateDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -271,6 +350,7 @@ export function ApplyTemplateDialog({
             orgId={orgId}
             templates={templates}
             defaultStartDate={defaultStartDate}
+            todayStr={todayStr}
           />
         )}
       </DialogContent>

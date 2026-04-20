@@ -13,6 +13,16 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import {
   createTimetableEntryAction,
   updateTimetableEntryAction,
 } from "@/app/actions/timetable-entries";
@@ -137,6 +147,21 @@ export function CalendarView({
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
+  type PendingDrop =
+    | { kind: "drop"; col: string; timeMin: number; data: DragData }
+    | { kind: "tap"; col: string; timeMin: number; taskId: string };
+  const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
+  const [suppressDrop, setSuppressDrop] = useState(false);
+
+  const DROP_SUPPRESS_KEY = "timetable-past-drop-warn-suppress";
+
+  function isDropSuppressed(): boolean {
+    if (typeof window === "undefined") return false;
+    const stored = localStorage.getItem(DROP_SUPPRESS_KEY);
+    if (!stored) return false;
+    return Date.now() < Number(stored);
+  }
+
   const hasPanel = !!availableTasks;
 
   let initialScrollMin = openTimeMin;
@@ -150,7 +175,7 @@ export function CalendarView({
     }
   }
 
-  function handleDrop(col: string, timeMin: number, data: DragData) {
+  function executeDrop(col: string, timeMin: number, data: DragData) {
     startT(async () => {
       let result;
       if (data.type === "task") {
@@ -169,7 +194,15 @@ export function CalendarView({
     });
   }
 
-  function handleTapPlace(col: string, timeMin: number, taskId: string) {
+  function handleDrop(col: string, timeMin: number, data: DragData) {
+    if (col < todayStr && !isDropSuppressed()) {
+      setPendingDrop({ kind: "drop", col, timeMin, data });
+      return;
+    }
+    executeDrop(col, timeMin, data);
+  }
+
+  function executeTap(col: string, timeMin: number, taskId: string) {
     startT(async () => {
       const result = await createTimetableEntryAction(orgId, taskId, col, timeMin);
       if (!result.ok) {
@@ -180,6 +213,14 @@ export function CalendarView({
       setTaskPanelOpen(false);
       router.refresh();
     });
+  }
+
+  function handleTapPlace(col: string, timeMin: number, taskId: string) {
+    if (col < todayStr && !isDropSuppressed()) {
+      setPendingDrop({ kind: "tap", col, timeMin, taskId });
+      return;
+    }
+    executeTap(col, timeMin, taskId);
   }
 
   const isMobile = useIsMobile();
@@ -431,8 +472,60 @@ export function CalendarView({
           onClose={() => setEditingInstance(null)}
           onRefresh={() => router.refresh()}
           router={router}
+          todayStr={todayStr}
         />
       )}
+
+      <AlertDialog
+        open={!!pendingDrop}
+        onOpenChange={(open) => { if (!open) setPendingDrop(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Drop on a past date?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDrop && (
+                <>
+                  <strong>{pendingDrop.col}</strong> is in the past. Are you
+                  sure you want to place a task here?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <label className="flex items-center gap-2 text-sm cursor-pointer select-none px-1 pb-1">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-primary rounded"
+              checked={suppressDrop}
+              onChange={(e) => setSuppressDrop(e.target.checked)}
+            />
+            Don&apos;t warn me again for 24 hours
+          </label>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingDrop(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!pendingDrop) return;
+                if (suppressDrop) {
+                  localStorage.setItem(DROP_SUPPRESS_KEY, String(Date.now() + 24 * 60 * 60 * 1000));
+                }
+                const p = pendingDrop;
+                setPendingDrop(null);
+                setSuppressDrop(false);
+                if (p.kind === "drop") {
+                  executeDrop(p.col, p.timeMin, p.data);
+                } else {
+                  executeTap(p.col, p.timeMin, p.taskId);
+                }
+              }}
+            >
+              Place Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

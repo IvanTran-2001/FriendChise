@@ -12,6 +12,7 @@ interface TimetableActionsProps {
   orgId: string;
   templates: TemplateOption[];
   anchor: string;
+  todayStr: string;
 }
 
 /**
@@ -21,6 +22,7 @@ export function TimetableActions({
   orgId,
   templates,
   anchor,
+  todayStr,
 }: TimetableActionsProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogKey, setDialogKey] = useState(0);
@@ -51,6 +53,7 @@ export function TimetableActions({
         orgId={orgId}
         templates={templates}
         defaultStartDate={anchor}
+        todayStr={todayStr}
       />
     </>
   );

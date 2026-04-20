@@ -17,6 +17,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   updateTimetableEntryAction,
@@ -53,6 +63,7 @@ interface CalendarEditPopupProps {
   onClose: () => void;
   onRefresh: () => void;
   router: ReturnType<typeof useRouter>;
+  todayStr: string;
 }
 
 export function CalendarEditPopup({
@@ -64,6 +75,7 @@ export function CalendarEditPopup({
   onClose,
   onRefresh,
   router,
+  todayStr,
 }: CalendarEditPopupProps) {
   const [startTime, setStartTime] = useState(minToHHMM(instance.startTimeMin));
   const [date, setDate] = useState(instance.date);
@@ -74,6 +86,17 @@ export function CalendarEditPopup({
   const [addMembershipId, setAddMembershipId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSaving, startT] = useTransition();
+  const [showPastConfirm, setShowPastConfirm] = useState(false);
+  const [suppressSave, setSuppressSave] = useState(false);
+
+  const SUPPRESS_KEY = "timetable-past-edit-warn-suppress";
+
+  function isSuppressed(): boolean {
+    if (typeof window === "undefined") return false;
+    const stored = localStorage.getItem(SUPPRESS_KEY);
+    if (!stored) return false;
+    return Date.now() < Number(stored);
+  }
 
   const assignedIds = new Set(localAssignees.map((a) => a.membership.id));
   const available = memberships.filter((m) => !assignedIds.has(m.id));
@@ -86,6 +109,14 @@ export function CalendarEditPopup({
     parsedStart == null ? null : parsedStart + instance.task.durationMin;
 
   function handleSave() {
+    if (canManage && date < todayStr && !isSuppressed()) {
+      setShowPastConfirm(true);
+      return;
+    }
+    doSave();
+  }
+
+  function doSave() {
     startT(async () => {
       const result = canManage
         ? parsedStart == null
@@ -176,6 +207,49 @@ export function CalendarEditPopup({
   }
 
   const isMobile = useIsMobile();
+
+  const pastConfirmDialog = (
+    <AlertDialog
+      open={showPastConfirm}
+      onOpenChange={(open) => { if (!open) setShowPastConfirm(false); }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Save to a past date?</AlertDialogTitle>
+          <AlertDialogDescription>
+            <strong>{date}</strong> is in the past. Are you sure you want to
+            save this entry here?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <label className="flex items-center gap-2 text-sm cursor-pointer select-none px-1 pb-1">
+          <input
+            type="checkbox"
+            className="h-4 w-4 accent-primary rounded"
+            checked={suppressSave}
+            onChange={(e) => setSuppressSave(e.target.checked)}
+          />
+          Don&apos;t warn me again for 24 hours
+        </label>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setShowPastConfirm(false)}>
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              if (suppressSave) {
+                localStorage.setItem(SUPPRESS_KEY, String(Date.now() + 24 * 60 * 60 * 1000));
+              }
+              setShowPastConfirm(false);
+              setSuppressSave(false);
+              doSave();
+            }}
+          >
+            Save Anyway
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
 
   const popupContent = (
     <div className="flex flex-col gap-3 p-4">
@@ -321,41 +395,47 @@ export function CalendarEditPopup({
 
   if (isMobile) {
     return (
-      <Sheet
+      <>
+        <Sheet
+          open={open}
+          onOpenChange={(o) => {
+            if (!o) onClose();
+          }}
+        >
+          <SheetContent
+            side="bottom"
+            className="h-[calc(100dvh-4rem)] p-0 flex flex-col rounded-t-2xl overflow-hidden"
+          >
+            <SheetHeader className="px-4 pt-4 pb-2 border-b shrink-0">
+              <SheetTitle>{instance.task.title}</SheetTitle>
+            </SheetHeader>
+            <div className="flex-1 overflow-y-auto">{popupContent}</div>
+          </SheetContent>
+        </Sheet>
+        {pastConfirmDialog}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Dialog
         open={open}
         onOpenChange={(o) => {
           if (!o) onClose();
         }}
       >
-        <SheetContent
-          side="bottom"
-          className="h-[calc(100dvh-4rem)] p-0 flex flex-col rounded-t-2xl overflow-hidden"
+        <DialogContent
+          className="w-72 p-0 gap-0 overflow-hidden"
+          showCloseButton={false}
         >
-          <SheetHeader className="px-4 pt-4 pb-2 border-b shrink-0">
-            <SheetTitle>{instance.task.title}</SheetTitle>
-          </SheetHeader>
-          <div className="flex-1 overflow-y-auto">{popupContent}</div>
-        </SheetContent>
-      </Sheet>
-    );
-  }
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        if (!o) onClose();
-      }}
-    >
-      <DialogContent
-        className="w-72 p-0 gap-0 overflow-hidden"
-        showCloseButton={false}
-      >
-        <DialogHeader className="px-4 pt-4 pb-2">
-          <DialogTitle>{instance.task.title}</DialogTitle>
-        </DialogHeader>
-        {popupContent}
-      </DialogContent>
-    </Dialog>
+          <DialogHeader className="px-4 pt-4 pb-2">
+            <DialogTitle>{instance.task.title}</DialogTitle>
+          </DialogHeader>
+          {popupContent}
+        </DialogContent>
+      </Dialog>
+      {pastConfirmDialog}
+    </>
   );
 }
