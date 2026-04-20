@@ -190,11 +190,11 @@
 
 All 64 smoke tests pass across 4 rounds. No outstanding issues remain.
 
-| Round | Tests | Pass | Fail | New Issues |
-|-------|-------|------|------|------------|
-| Round 1 | 55 | 24 | 16 | — |
-| Round 2 | 55 | 55 | 0 | 4 new (#97–#100) |
-| Round 3 | 64 | 59 | 5 | 5 new (#103–#107) |
-| Round 4 | 64 | 64 | 0 | — |
+| Round | Tests | Pass | Partial | Fail | New Issues |
+|-------|-------|------|---------|------|------------|
+| Round 1 | 55 | 21 | 12 | 22 | — |
+| Round 2 | 55 | 55 | 0 | 0 | 4 new (#97–#100) |
+| Round 3 | 64 | 59 | 0 | 5 | 5 new (#103–#107) |
+| Round 4 | 64 | 64 | 0 | 0 | — |
 
 **V1 smoke testing complete. ✅ Ready for functional / regression testing.**

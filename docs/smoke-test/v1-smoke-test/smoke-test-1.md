@@ -15,12 +15,12 @@
 
 | Result | Count |
 |--------|-------|
-| ✅ PASS | 24 |
-| ⚠️ PARTIAL | 9 |
-| ❌ FAIL | 7 |
-| **Total** | **40** |
+| ✅ PASS | 21 |
+| ⚠️ PARTIAL | 12 |
+| ❌ FAIL | 22 |
+| **Total** | **55** |
 
-**Overall: ❌ FAIL — 7 items need attention**
+**Overall: ❌ FAIL — 22 items need attention**
 
 ---
 
