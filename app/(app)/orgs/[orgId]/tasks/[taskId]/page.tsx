@@ -79,11 +79,11 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
         )}
       </Toolbar>
 
-      <div className="max-w-4xl mx-auto flex flex-col gap-6">
+      <div className="w-full max-w-3xl mx-auto flex flex-col gap-6">
         <h1 className="text-2xl font-semibold">{task.name}</h1>
 
         {/* Detail card */}
-        <div className="rounded-lg border bg-card p-6 grid grid-cols-1 md:grid-cols-[1fr_200px] gap-8">
+        <div className="w-full rounded-lg border bg-card p-6 grid grid-cols-1 md:grid-cols-[1fr_200px] gap-8">
           {/* Left: task fields */}
           <dl className="flex flex-col gap-4">
             <div>
@@ -139,7 +139,7 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
           </dl>
 
           {/* Right: photo placeholder + created date */}
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 order-first md:order-last">
             <div className="rounded-md bg-muted aspect-square w-full flex items-center justify-center text-xs text-muted-foreground">
               Photo
             </div>

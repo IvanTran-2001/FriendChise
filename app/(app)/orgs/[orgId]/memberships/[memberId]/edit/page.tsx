@@ -46,7 +46,7 @@ const EditMemberPage = async ({
         </div>
       </Toolbar>
 
-      <div className="max-w-lg mx-auto">
+      <div className="w-full max-w-lg mx-auto">
         <MemberForm
           mode="edit"
           orgId={orgId}

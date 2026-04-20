@@ -70,8 +70,8 @@ const MemberDetailPage = async ({
         )}
       </Toolbar>
 
-      <div className="max-w-3xl mx-auto">
-        <div className="rounded-xl border bg-card p-6 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-8">
+      <div className="w-full max-w-3xl mx-auto">
+        <div className="w-full rounded-xl border bg-card p-6 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-8">
           <dl className="flex flex-col gap-5">
             <div>
               <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
@@ -153,7 +153,7 @@ const MemberDetailPage = async ({
             </div>
           </dl>
 
-          <div className="flex flex-col items-center gap-2 md:pt-1">
+          <div className="flex flex-col items-center gap-2 md:pt-1 order-first md:order-last">
             {user.image ? (
               <Image
                 src={user.image}

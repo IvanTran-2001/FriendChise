@@ -53,7 +53,7 @@ export function TaskViewActions({ orgId, taskId, taskName }: Props) {
 
   return (
     <>
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-2 shrink-0 ml-auto">
         <Button variant="outline" size="sm" asChild>
           <Link href={`/orgs/${orgId}/tasks/${taskId}/edit`}>
             <Pencil className="h-3.5 w-3.5 mr-1.5" />
