@@ -25,8 +25,10 @@ labels: bug
 - [ ] Desktop — Chrome
 - [ ] Desktop — Safari
 - [ ] Desktop — Firefox
-- [ ] iPhone — Safari
-- [ ] Android — Chrome
++- [ ] Desktop — Edge
+ - [ ] iPhone — Safari
+ - [ ] Android — Chrome
++- [ ] Other (please specify): ___
 
 ## Severity
 <!-- Pick one -->
