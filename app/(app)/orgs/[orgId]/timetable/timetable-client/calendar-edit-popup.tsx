@@ -182,7 +182,7 @@ export function CalendarEditPopup({
       }
       setLocalAssignees((p) => [
         ...p,
-        { id: `opt-${effectiveAddId}`, membership },
+        { id: `opt-${effectiveAddId}`, membership: { ...membership, botName: membership.botName ?? null } },
       ]);
       onRefresh();
     });

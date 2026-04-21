@@ -32,5 +32,13 @@ export const authConfig: NextAuthConfig = {
       }
       return isAuthed;
     },
+    async signIn({ user }) {
+      // Normalize email to lowercase before PrismaAdapter persists it
+      // This ensures case-insensitive lookups work reliably
+      if (user.email) {
+        user.email = user.email.toLowerCase();
+      }
+      return true;
+    },
   },
 };
