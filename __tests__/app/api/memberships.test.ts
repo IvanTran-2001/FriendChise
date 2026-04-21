@@ -127,7 +127,7 @@ describe("DELETE /api/orgs/[orgId]/memberships", () => {
       ok: false, error: "Not found", code: "NOT_FOUND",
     });
 
-    const res = await DELETE(makeReq("DELETE", { userId: validCuid }), { params });
+    const res = await DELETE(makeReq("DELETE", { membershipId: validCuid }), { params });
 
     expect(res.status).toBe(404);
     const body = await res.json();
@@ -138,7 +138,7 @@ describe("DELETE /api/orgs/[orgId]/memberships", () => {
     vi.mocked(requireOrgPermission).mockResolvedValue(permitted);
     vi.mocked(deleteMembership).mockResolvedValue({ ok: true, data: null });
 
-    const res = await DELETE(makeReq("DELETE", { userId: validCuid }), { params });
+    const res = await DELETE(makeReq("DELETE", { membershipId: validCuid }), { params });
 
     expect(res.status).toBe(200);
   });

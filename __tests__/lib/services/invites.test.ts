@@ -8,21 +8,29 @@ import {
   getUnseenNotificationCount,
   markNotificationsSeen,
   createMemberInvite,
+  acceptMemberInvite,
+  acceptBotSlotInvite,
+  declineMemberInvite,
+  declineBotSlotInvite,
+  declineFranchiseInvite,
 } from "@/lib/services/invites";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
+    $transaction: vi.fn(),
     invite: {
       findMany: vi.fn(),
       count: vi.fn(),
       updateMany: vi.fn(),
       findFirst: vi.fn(),
       create: vi.fn(),
+      findUnique: vi.fn(),
     },
     notification: {
       findMany: vi.fn(),
       count: vi.fn(),
       updateMany: vi.fn(),
+      create: vi.fn(),
     },
     organization: {
       findUnique: vi.fn(),
@@ -35,6 +43,15 @@ vi.mock("@/lib/prisma", () => ({
     },
     membership: {
       findUnique: vi.fn(),
+      upsert: vi.fn(),
+      update: vi.fn(),
+    },
+    memberRole: {
+      createMany: vi.fn(),
+      deleteMany: vi.fn(),
+    },
+    franchiseToken: {
+      updateMany: vi.fn(),
     },
   },
 }));
@@ -285,5 +302,410 @@ describe("createMemberInvite", () => {
     const result = await createMemberInvite("org-1", null, "user-recipient", ["role-1"], []);
 
     expect(result.ok).toBe(true);
+  });
+});
+
+// ─── acceptMemberInvite ───────────────────────────────────────────────────────
+
+describe("acceptMemberInvite", () => {
+  const pendingInvite = {
+    id: "inv-1",
+    recipientId: "user-1",
+    type: "MEMBER",
+    status: "PENDING",
+    expiresAt: null,
+    orgId: "org-1",
+    orgName: "Acme",
+    invitedById: "inviter-1",
+    metadata: { roleIds: ["role-1"], workingDays: ["MON"] },
+  };
+
+  beforeEach(() => {
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma));
+    vi.mocked(prisma.invite.updateMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.role.findMany).mockResolvedValue([{ id: "role-1" }] as any);
+    vi.mocked(prisma.membership.upsert).mockResolvedValue({ id: "mem-1" } as any);
+    vi.mocked(prisma.memberRole.createMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ name: "Alice" } as any);
+    vi.mocked(prisma.notification.create).mockResolvedValue({} as any);
+  });
+
+  it("accepts a pending invite and returns ok: true", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue(pendingInvite as any);
+
+    const result = await acceptMemberInvite("inv-1", "user-1");
+
+    expect(result).toEqual({ ok: true, data: null });
+    expect(prisma.membership.upsert).toHaveBeenCalled();
+  });
+
+  it("returns NOT_FOUND when invite does not exist", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue(null);
+
+    const result = await acceptMemberInvite("inv-bad", "user-1");
+
+    expect(result).toEqual({ ok: false, error: "Invite not found", code: "NOT_FOUND" });
+  });
+
+  it("returns NOT_FOUND when invite belongs to a different user", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue({
+      ...pendingInvite,
+      recipientId: "other-user",
+    } as any);
+
+    const result = await acceptMemberInvite("inv-1", "user-1");
+
+    expect(result).toEqual({ ok: false, error: "Invite not found", code: "NOT_FOUND" });
+  });
+
+  it("returns CONFLICT when invite is not pending", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue({
+      ...pendingInvite,
+      status: "ACCEPTED",
+    } as any);
+
+    const result = await acceptMemberInvite("inv-1", "user-1");
+
+    expect(result).toEqual({
+      ok: false,
+      error: "This invite is no longer pending",
+      code: "CONFLICT",
+    });
+  });
+
+  it("returns INVALID when invite has expired", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue({
+      ...pendingInvite,
+      expiresAt: new Date(Date.now() - 1000),
+    } as any);
+
+    const result = await acceptMemberInvite("inv-1", "user-1");
+
+    expect(result).toEqual({
+      ok: false,
+      error: "This invite has expired",
+      code: "INVALID",
+    });
+  });
+
+  it("returns CONFLICT when invite was already handled during transaction", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue(pendingInvite as any);
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
+      vi.mocked(prisma.invite.updateMany).mockResolvedValue({ count: 0 });
+      return fn(prisma);
+    });
+
+    const result = await acceptMemberInvite("inv-1", "user-1");
+
+    expect(result).toEqual({
+      ok: false,
+      error: "This invite has already been handled",
+      code: "CONFLICT",
+    });
+  });
+});
+
+// ─── declineMemberInvite ──────────────────────────────────────────────────────
+
+describe("declineMemberInvite", () => {
+  it("declines a pending invite and returns ok: true", async () => {
+    vi.mocked(prisma.invite.updateMany).mockResolvedValue({ count: 1 });
+
+    const result = await declineMemberInvite("inv-1", "user-1");
+
+    expect(result).toEqual({ ok: true, data: null });
+    expect(prisma.invite.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: "inv-1", recipientId: "user-1", status: "PENDING" }),
+        data: expect.objectContaining({ status: "DECLINED" }),
+      }),
+    );
+  });
+
+  it("returns NOT_FOUND when no matching pending invite", async () => {
+    vi.mocked(prisma.invite.updateMany).mockResolvedValue({ count: 0 });
+
+    const result = await declineMemberInvite("inv-bad", "user-1");
+
+    expect(result).toEqual({
+      ok: false,
+      error: "Invite not found or already handled",
+      code: "NOT_FOUND",
+    });
+  });
+});
+
+// ─── acceptBotSlotInvite ──────────────────────────────────────────────────────
+// Derived from scripts/test-accept-bot-slot.ts smoke test, rewritten as unit tests.
+
+describe("acceptBotSlotInvite", () => {
+  const botInvite = {
+    id: "inv-bot",
+    recipientId: "user-1",
+    type: "MEMBER",
+    status: "PENDING",
+    expiresAt: null,
+    orgId: "org-1",
+    orgName: "Acme",
+    invitedById: "inviter-1",
+    metadata: {
+      botMembershipId: "mem-bot",
+      roleIds: ["role-1"],
+      workingDays: ["MON", "TUE"],
+    },
+  };
+
+  beforeEach(() => {
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma));
+    vi.mocked(prisma.invite.updateMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.membership.findUnique).mockResolvedValue({
+      id: "mem-bot",
+      userId: null,
+    } as any);
+    vi.mocked(prisma.membership.update).mockResolvedValue({} as any);
+    vi.mocked(prisma.role.findMany).mockResolvedValue([{ id: "role-1" }] as any);
+    vi.mocked(prisma.memberRole.deleteMany).mockResolvedValue({ count: 0 });
+    vi.mocked(prisma.memberRole.createMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ name: "Alice" } as any);
+    vi.mocked(prisma.notification.create).mockResolvedValue({} as any);
+  });
+
+  it("slots the user into the bot membership in-place and returns ok: true", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue(botInvite as any);
+
+    const result = await acceptBotSlotInvite("inv-bot", "user-1");
+
+    expect(result).toEqual({ ok: true, data: null });
+    expect(prisma.membership.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "mem-bot" },
+        data: expect.objectContaining({ userId: "user-1", botName: null }),
+      }),
+    );
+  });
+
+  it("preserves the bot membership id (in-place replacement — no new row)", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue(botInvite as any);
+
+    await acceptBotSlotInvite("inv-bot", "user-1");
+
+    // membership.update must be called, NOT membership.create
+    expect(prisma.membership.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("replaces bot role assignments with invite roles", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue(botInvite as any);
+
+    await acceptBotSlotInvite("inv-bot", "user-1");
+
+    expect(prisma.memberRole.deleteMany).toHaveBeenCalledWith({ where: { membershipId: "mem-bot" } });
+    expect(prisma.memberRole.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([expect.objectContaining({ roleId: "role-1" })]),
+      }),
+    );
+  });
+
+  it("applies specified working days to the new member", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue(botInvite as any);
+
+    await acceptBotSlotInvite("inv-bot", "user-1");
+
+    expect(prisma.membership.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ workingDays: ["MON", "TUE"] }),
+      }),
+    );
+  });
+
+  it("returns NOT_FOUND when invite does not exist", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue(null);
+
+    const result = await acceptBotSlotInvite("inv-bad", "user-1");
+
+    expect(result).toEqual({ ok: false, error: "Invite not found", code: "NOT_FOUND" });
+  });
+
+  it("returns INVALID when metadata has no botMembershipId", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue({
+      ...botInvite,
+      metadata: { roleIds: ["role-1"] },
+    } as any);
+
+    const result = await acceptBotSlotInvite("inv-bot", "user-1");
+
+    expect(result).toEqual({
+      ok: false,
+      error: "Invalid bot-slot invite",
+      code: "INVALID",
+    });
+  });
+
+  it("returns CONFLICT when invite is not pending", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue({
+      ...botInvite,
+      status: "ACCEPTED",
+    } as any);
+
+    const result = await acceptBotSlotInvite("inv-bot", "user-1");
+
+    expect(result).toEqual({
+      ok: false,
+      error: "This invite is no longer pending",
+      code: "CONFLICT",
+    });
+  });
+
+  it("returns CONFLICT when bot slot is already occupied", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue(botInvite as any);
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
+      vi.mocked(prisma.invite.updateMany).mockResolvedValue({ count: 1 });
+      vi.mocked(prisma.membership.findUnique).mockResolvedValue({
+        id: "mem-bot",
+        userId: "another-user",
+      } as any);
+      return fn(prisma);
+    });
+
+    const result = await acceptBotSlotInvite("inv-bot", "user-1");
+
+    expect(result).toEqual({
+      ok: false,
+      error: "The bot slot was already filled by another user",
+      code: "CONFLICT",
+    });
+  });
+
+  it("returns CONFLICT when invite was already handled during transaction", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue(botInvite as any);
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
+      vi.mocked(prisma.invite.updateMany).mockResolvedValue({ count: 0 });
+      return fn(prisma);
+    });
+
+    const result = await acceptBotSlotInvite("inv-bot", "user-1");
+
+    expect(result).toEqual({
+      ok: false,
+      error: "This invite has already been handled",
+      code: "CONFLICT",
+    });
+  });
+
+  it("returns INVALID when invite has expired", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue({
+      ...botInvite,
+      expiresAt: new Date(Date.now() - 1000),
+    } as any);
+
+    const result = await acceptBotSlotInvite("inv-bot", "user-1");
+
+    expect(result).toEqual({
+      ok: false,
+      error: "This invite has expired",
+      code: "INVALID",
+    });
+  });
+});
+
+// ─── declineBotSlotInvite ─────────────────────────────────────────────────────
+
+describe("declineBotSlotInvite", () => {
+  it("declines a bot-slot invite and returns ok: true", async () => {
+    vi.mocked(prisma.invite.updateMany).mockResolvedValue({ count: 1 });
+
+    const result = await declineBotSlotInvite("inv-1", "user-1");
+
+    expect(result).toEqual({ ok: true, data: null });
+    expect(prisma.invite.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: "inv-1", recipientId: "user-1" }),
+        data: expect.objectContaining({ status: "DECLINED" }),
+      }),
+    );
+  });
+
+  it("returns NOT_FOUND when no matching invite exists", async () => {
+    vi.mocked(prisma.invite.updateMany).mockResolvedValue({ count: 0 });
+
+    const result = await declineBotSlotInvite("inv-bad", "user-1");
+
+    expect(result).toEqual({
+      ok: false,
+      error: "Invite not found or already handled",
+      code: "NOT_FOUND",
+    });
+  });
+});
+
+// ─── declineFranchiseInvite ───────────────────────────────────────────────────
+
+describe("declineFranchiseInvite", () => {
+  const franchiseInvite = {
+    id: "inv-fr",
+    recipientId: "user-1",
+    type: "FRANCHISE",
+    status: "PENDING",
+    orgId: "org-1",
+    metadata: { token: "tok-abc" },
+  };
+
+  beforeEach(() => {
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma));
+    vi.mocked(prisma.invite.updateMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.franchiseToken.updateMany).mockResolvedValue({ count: 1 });
+  });
+
+  it("declines a franchise invite and expires the token", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue(franchiseInvite as any);
+
+    const result = await declineFranchiseInvite("inv-fr", "user-1");
+
+    expect(result).toEqual({ ok: true, data: null });
+    expect(prisma.franchiseToken.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ token: "tok-abc", orgId: "org-1" }),
+        data: expect.objectContaining({ expiresAt: expect.any(Date) }),
+      }),
+    );
+  });
+
+  it("returns NOT_FOUND when invite does not exist", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue(null);
+
+    const result = await declineFranchiseInvite("inv-bad", "user-1");
+
+    expect(result).toEqual({ ok: false, error: "Invite not found", code: "NOT_FOUND" });
+  });
+
+  it("returns CONFLICT when invite is no longer pending", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue({
+      ...franchiseInvite,
+      status: "DECLINED",
+    } as any);
+
+    const result = await declineFranchiseInvite("inv-fr", "user-1");
+
+    expect(result).toEqual({
+      ok: false,
+      error: "This invite is no longer pending",
+      code: "CONFLICT",
+    });
+  });
+
+  it("returns CONFLICT when already handled during transaction", async () => {
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue(franchiseInvite as any);
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
+      vi.mocked(prisma.invite.updateMany).mockResolvedValue({ count: 0 });
+      return fn(prisma);
+    });
+
+    const result = await declineFranchiseInvite("inv-fr", "user-1");
+
+    expect(result).toEqual({
+      ok: false,
+      error: "This invite has already been handled",
+      code: "CONFLICT",
+    });
   });
 });

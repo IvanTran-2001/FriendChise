@@ -23,6 +23,7 @@ vi.mock("@/lib/prisma", () => ({
       create: vi.fn(),
       findMany: vi.fn(),
       findUnique: vi.fn(),
+      delete: vi.fn(),
       deleteMany: vi.fn(),
       updateMany: vi.fn(),
       update: vi.fn(),
@@ -33,6 +34,9 @@ vi.mock("@/lib/prisma", () => ({
     },
     organization: {
       findUnique: vi.fn(),
+    },
+    invite: {
+      updateMany: vi.fn(),
     },
     $transaction: vi.fn(),
   },
@@ -143,56 +147,52 @@ describe("createMembership", () => {
 
 describe("deleteMembership", () => {
   it("deletes membership and returns ok: true", async () => {
-    vi.mocked(prisma.organization.findUnique).mockResolvedValue({
-      ownerId: "owner-user",
-    } as any);
-    vi.mocked(prisma.membership.deleteMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.membership.findUnique).mockResolvedValue({ userId: "user-1" } as any);
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ownerId: "owner-user" } as any);
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma));
+    vi.mocked(prisma.membership.delete).mockResolvedValue({} as any);
 
-    const result = await deleteMembership("org-1", "user-1");
+    const result = await deleteMembership("org-1", "mem-1");
 
     expect(result).toEqual({ ok: true, data: null });
   });
 
+  it("returns NOT_FOUND when membership does not exist", async () => {
+    vi.mocked(prisma.membership.findUnique).mockResolvedValue(null);
+
+    const result = await deleteMembership("org-1", "mem-bad");
+
+    expect(result).toEqual({
+      ok: false,
+      error: "Membership not found",
+      code: "NOT_FOUND",
+    });
+    expect(prisma.organization.findUnique).not.toHaveBeenCalled();
+  });
+
   it("returns NOT_FOUND when org does not exist", async () => {
+    vi.mocked(prisma.membership.findUnique).mockResolvedValue({ userId: "user-1" } as any);
     vi.mocked(prisma.organization.findUnique).mockResolvedValue(null);
 
-    const result = await deleteMembership("org-1", "user-1");
+    const result = await deleteMembership("org-1", "mem-1");
 
     expect(result).toEqual({
       ok: false,
       error: "Org not found",
       code: "NOT_FOUND",
     });
-    expect(prisma.membership.deleteMany).not.toHaveBeenCalled();
   });
 
   it("returns INVALID when trying to remove the org owner", async () => {
-    vi.mocked(prisma.organization.findUnique).mockResolvedValue({
-      ownerId: "owner-user",
-    } as any);
+    vi.mocked(prisma.membership.findUnique).mockResolvedValue({ userId: "owner-user" } as any);
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ownerId: "owner-user" } as any);
 
-    const result = await deleteMembership("org-1", "owner-user");
+    const result = await deleteMembership("org-1", "mem-owner");
 
     expect(result).toEqual({
       ok: false,
       error: "Cannot remove the organization owner",
       code: "INVALID",
-    });
-    expect(prisma.membership.deleteMany).not.toHaveBeenCalled();
-  });
-
-  it("returns NOT_FOUND when membership does not exist", async () => {
-    vi.mocked(prisma.organization.findUnique).mockResolvedValue({
-      ownerId: "owner-user",
-    } as any);
-    vi.mocked(prisma.membership.deleteMany).mockResolvedValue({ count: 0 });
-
-    const result = await deleteMembership("org-1", "user-with-no-membership");
-
-    expect(result).toEqual({
-      ok: false,
-      error: "Membership not found",
-      code: "NOT_FOUND",
     });
   });
 });
@@ -228,12 +228,12 @@ describe("getMembershipDetail", () => {
     const detail = { ...mockMembership, user: { id: "user-1", name: "Alice" } };
     vi.mocked(prisma.membership.findUnique).mockResolvedValue(detail as any);
 
-    const result = await getMembershipDetail("org-1", "user-1");
+    const result = await getMembershipDetail("org-1", "mem-1");
 
     expect(result).toBe(detail);
     expect(prisma.membership.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { userId_orgId: { userId: "user-1", orgId: "org-1" } },
+        where: { id: "mem-1", orgId: "org-1" },
       }),
     );
   });
@@ -342,21 +342,22 @@ describe("updateMembership", () => {
 
 describe("setMembershipStatus", () => {
   it("returns ok: true on successful status update", async () => {
-    vi.mocked(prisma.membership.updateMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.membership.findUnique).mockResolvedValue({ id: "mem-1" } as any);
+    vi.mocked(prisma.membership.update).mockResolvedValue({} as any);
 
-    const result = await setMembershipStatus("org-1", "user-1", "RESTRICTED");
+    const result = await setMembershipStatus("org-1", "mem-1", "RESTRICTED");
 
     expect(result).toEqual({ ok: true, data: null });
-    expect(prisma.membership.updateMany).toHaveBeenCalledWith({
-      where: { userId: "user-1", orgId: "org-1" },
+    expect(prisma.membership.update).toHaveBeenCalledWith({
+      where: { id: "mem-1" },
       data: { status: "RESTRICTED" },
     });
   });
 
   it("returns NOT_FOUND when no membership matches", async () => {
-    vi.mocked(prisma.membership.updateMany).mockResolvedValue({ count: 0 });
+    vi.mocked(prisma.membership.findUnique).mockResolvedValue(null);
 
-    const result = await setMembershipStatus("org-1", "user-1", "ACTIVE");
+    const result = await setMembershipStatus("org-1", "mem-bad", "ACTIVE");
 
     expect(result).toEqual({
       ok: false,

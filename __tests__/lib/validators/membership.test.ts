@@ -55,17 +55,17 @@ describe("createMembershipSchema", () => {
 // ─── deleteMembershipSchema ───────────────────────────────────────────────────
 
 describe("deleteMembershipSchema", () => {
-  it("accepts a valid userId cuid", () => {
-    const result = deleteMembershipSchema.safeParse({ userId: validCuid });
+  it("accepts a valid membershipId cuid", () => {
+    const result = deleteMembershipSchema.safeParse({ membershipId: validCuid });
     expect(result.success).toBe(true);
   });
 
-  it("rejects non-cuid userId", () => {
-    const result = deleteMembershipSchema.safeParse({ userId: "not-a-cuid" });
+  it("rejects non-cuid membershipId", () => {
+    const result = deleteMembershipSchema.safeParse({ membershipId: "not-a-cuid" });
     expect(result.success).toBe(false);
   });
 
-  it("rejects missing userId", () => {
+  it("rejects missing membershipId", () => {
     const result = deleteMembershipSchema.safeParse({});
     expect(result.success).toBe(false);
   });
