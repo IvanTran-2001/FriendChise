@@ -38,7 +38,7 @@ export default async function OrgSettingsOrganizationPage({
   // Only needed for the transfer dropdown — skip the query for non-owners
   const transferableMembers = isParentOwner
     ? await prisma.membership.findMany({
-        where: { orgId, NOT: { userId } },
+        where: { orgId, NOT: { userId } }, userId: { not: null } },
         select: {
           id: true,
           user: { select: { id: true, name: true, email: true } },

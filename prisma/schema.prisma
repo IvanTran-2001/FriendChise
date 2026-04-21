@@ -165,14 +165,14 @@ model Organization {
 model Membership {
   id            String   @id @default(cuid())
 
-  // Null when isBot = true
+  // Null when this record represents a bot/placeholder (userId is null)
   userId        String?
   user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   orgId         String
   organization  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  // Populated when userId is null (bot/placeholder slot)
+  // Populated when userId is null (bot/placeholder slot). Exactly one of userId or botName must be non-null.
   botName       String?  // display name for the placeholder
 
   workingDays   String[] // ["mon", "tue", "wed"]

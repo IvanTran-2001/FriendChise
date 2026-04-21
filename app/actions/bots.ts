@@ -13,6 +13,7 @@ import {
   createBotSchema,
   memberToBotSchema,
   updateBotSchema,
+  inviteBotSlotSchema,
 } from "@/lib/validators/bot";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -32,23 +33,23 @@ export async function createBotAction(
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0].message };
 
-  let { roleId } = parsed.data;
+  let { roleIds } = parsed.data;
 
   // Fall back to the org's default role when none is selected
-  if (!roleId) {
+  if (roleIds.length === 0) {
     const defaultRole = await prisma.role.findFirst({
       where: { orgId, isDefault: true },
       select: { id: true },
     });
     if (!defaultRole)
       return { ok: false, error: "No default role found for this org" };
-    roleId = defaultRole.id;
+    roleIds = [defaultRole.id];
   }
 
-  const result = await createBot(orgId, { ...parsed.data, roleId });
+  const result = await createBot(orgId, { ...parsed.data, roleIds });
   if (!result.ok) return { ok: false, error: result.error };
 
-  revalidatePath(`/orgs/${orgId}/members`);
+  revalidatePath(`/orgs/${orgId}/memberships`);
   return { ok: true };
 }
 
@@ -65,7 +66,7 @@ export async function deleteBotAction(
   const result = await deleteBot(orgId, membershipId);
   if (!result.ok) return { ok: false, error: result.error };
 
-  revalidatePath(`/orgs/${orgId}/members`);
+  revalidatePath(`/orgs/${orgId}/memberships`);
   return { ok: true };
 }
 
@@ -86,7 +87,7 @@ export async function memberToBotAction(
   const result = await memberToBot(orgId, parsed.data);
   if (!result.ok) return { ok: false, error: result.error };
 
-  revalidatePath(`/orgs/${orgId}/members`);
+  revalidatePath(`/orgs/${orgId}/memberships`);
   return { ok: true };
 }
 
@@ -98,7 +99,7 @@ export async function memberToBotAction(
 export async function inviteBotSlotAction(
   orgId: string,
   membershipId: string,
-  data: { email: string },
+  data: unknown,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const authz = await requireOrgPermissionAction(
     orgId,
@@ -106,8 +107,11 @@ export async function inviteBotSlotAction(
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const email = data.email.trim().toLowerCase();
-  if (!email) return { ok: false, error: "Email is required" };
+  const parsed = inviteBotSlotSchema.safeParse(data);
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0].message };
+
+  const email = parsed.data.email.trim().toLowerCase();
 
   // Verify the membership is still a bot slot
   const membership = await prisma.membership.findUnique({

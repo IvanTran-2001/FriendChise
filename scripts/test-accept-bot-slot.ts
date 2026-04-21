@@ -22,7 +22,7 @@ function pass(msg: string) {
 
 function fail(msg: string): never {
   console.error(`  ✗  ${msg}`);
-  process.exit(1);
+  throw new Error(msg);
 }
 
 function assert(condition: boolean, msg: string) {
@@ -118,10 +118,15 @@ async function cleanup(orgId: string, userIds: string[]) {
 async function run() {
   console.log("\nacceptBotSlotInvite — smoke test\n");
 
-  const { org, inviter, realUser, role, botMembership, invite } =
-    await setup();
-
+  let org, inviter, realUser;
   try {
+    const setup_result = await setup();
+    org = setup_result.org;
+    inviter = setup_result.inviter;
+    realUser = setup_result.realUser;
+    const role = setup_result.role;
+    const botMembership = setup_result.botMembership;
+    const invite = setup_result.invite;
     // ── 1. Capture state before ────────────────────────────────────────────
     const membershipsBefore = await prisma.membership.findMany({
       where: { orgId: org.id },
@@ -200,8 +205,13 @@ async function run() {
     );
 
     console.log("\nAll assertions passed.\n");
+  } catch (e) {
+    console.error("\nTest failed:", e instanceof Error ? e.message : e);
+    throw e;
   } finally {
-    await cleanup(org.id, [inviter.id, realUser.id]);
+    if (org && inviter && realUser) {
+      await cleanup(org.id, [inviter.id, realUser.id]);
+    }
     await prisma.$disconnect();
   }
 }

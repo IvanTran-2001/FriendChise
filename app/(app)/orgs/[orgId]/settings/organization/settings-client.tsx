@@ -36,7 +36,7 @@ function timeToMin(value: string): number | undefined {
 
 interface TransferableMember {
   id: string;
-  user: { id: string; name: string | null; email: string | null };
+  user: { id: string; name: string | null; email: string } | null;
 }
 
 interface OrgData {
@@ -195,8 +195,8 @@ function TransferOwnershipSection({
         >
           <option value="">Select member</option>
           {members.map((m) => (
-            <option key={m.id} value={m.user.id}>
-              {m.user.name ?? m.user.email ?? m.user.id}
+            <option key={m.id} value={m.user?.id}>
+              {m.user?.name ?? m.user?.email ?? m.user?.id}
             </option>
           ))}
         </select>

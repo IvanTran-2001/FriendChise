@@ -47,6 +47,7 @@ export function NotificationList({
         <h2 className="text-sm font-semibold">Notifications</h2>
         <button
           onClick={() => setOnlyUnread((v) => !v)}
+          aria-pressed={onlyUnread}
           className={cn(
             "text-xs px-2 py-1 rounded-md font-medium transition-colors",
             onlyUnread

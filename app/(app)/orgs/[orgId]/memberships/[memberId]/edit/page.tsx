@@ -25,7 +25,9 @@ const EditMemberPage = async ({
 
   if (!membership) notFound();
 
-  const displayName = membership.user?.name ?? membership.botName ?? "Bot";
+  const displayName = membership.userId === null
+    ? (membership.botName ?? "Bot")
+    : (membership.user?.name ?? "Unknown user");
   const initialRoleIds = membership.memberRoles.map(({ role }) => role.id);
 
   return (

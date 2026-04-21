@@ -36,11 +36,9 @@ export function NotificationPanel({
 
   async function handleOpen(next: boolean) {
     setOpen(next);
-    if (next) {
+    if (next && unseenCount > 0) {
+      await markInvitesSeenAction();
       router.refresh();
-      if (unseenCount > 0) {
-        await markInvitesSeenAction();
-      }
     }
   }
 

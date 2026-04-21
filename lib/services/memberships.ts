@@ -91,19 +91,34 @@ export async function deleteMembership(
     };
   }
 
-  await prisma.$transaction([
-    // Cancel any lingering pending invites so the user can be re-invited later
-    prisma.invite.updateMany({
+  await prisma.$transaction(async (tx) => {
+    // Cancel any lingering pending MEMBER invites only if userId is non-null
+    if (membership.userId !== null) {
+      await tx.invite.updateMany({
+        where: {
+          orgId,
+          recipientId: membership.userId,
+          type: InviteType.MEMBER,
+          status: "PENDING",
+        },
+        data: { status: "DECLINED", declinedAt: new Date() },
+      });
+    }
+    // Cancel any pending BOT_SLOT invites pointing to this membership
+    await tx.invite.updateMany({
       where: {
         orgId,
-        recipientId: membership.userId ?? undefined,
         type: InviteType.MEMBER,
         status: "PENDING",
+        metadata: {
+          path: ["botMembershipId"],
+          equals: membershipId,
+        },
       },
       data: { status: "DECLINED", declinedAt: new Date() },
-    }),
-    prisma.membership.delete({ where: { id: membershipId } }),
-  ]);
+    });
+    await tx.membership.delete({ where: { id: membershipId } });
+  });
   return { ok: true, data: null };
 }
 

@@ -7,7 +7,7 @@ const workingDays = z.array(
 
 export const createBotSchema = z.object({
   botName: z.string().min(1, "Bot name is required").max(100),
-  roleId: z.string().cuid("Invalid role").optional().or(z.literal("")),
+  roleIds: z.array(z.string().cuid("Invalid role")).default([]),
   workingDays: workingDays.default([]),
 });
 
@@ -34,3 +34,9 @@ export const updateBotSchema = z.object({
 });
 
 export type UpdateBotInput = z.infer<typeof updateBotSchema>;
+
+export const inviteBotSlotSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
+export type InviteBotSlotInput = z.infer<typeof inviteBotSlotSchema>;

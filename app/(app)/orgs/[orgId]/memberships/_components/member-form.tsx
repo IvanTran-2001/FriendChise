@@ -54,10 +54,8 @@ export function MemberForm({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isInvitePending, startInviteTransition] = useTransition();
-  // email is used in create mode and for the member-to-bot conversion check
-  const [email, setEmail] = useState(
-    mode === "edit" && !isCurrentlyBot ? (initialEmail ?? "") : "",
-  );
+  // email is used in create mode only
+  const [email, setEmail] = useState(mode === "create" ? "" : "");
   // inviteEmail is only used in bot-edit mode's invite section
   const [inviteEmail, setInviteEmail] = useState("");
   // botName is used in create-bot mode AND in bot-edit mode (initialized to current name)
@@ -70,9 +68,7 @@ export function MemberForm({
   const [inviteErrors, setInviteErrors] = useState<Record<string, string>>({});
 
   // In create mode: empty email = creating a new bot
-  // In edit mode on a non-bot member: empty email = convert to bot
-  const isBot = email.trim() === "";
-  const isMemberToBot = mode === "edit" && !isCurrentlyBot && isBot;
+  const isBot = mode === "create" && email.trim() === "";
 
   function toggleDay(day: string) {
     setWorkingDays((prev) =>
@@ -84,8 +80,6 @@ export function MemberForm({
     const next: Record<string, string> = {};
     if (mode === "create" && isBot && !botName.trim())
       next.botName = "Name is required for a bot";
-    if (isMemberToBot && !botName.trim())
-      next.botName = "Bot name is required";
     if (Object.keys(next).length > 0) {
       setErrors(next);
       return;
@@ -97,7 +91,7 @@ export function MemberForm({
         if (isBot) {
           const result = await createBotAction(orgId, {
             botName: botName.trim(),
-            roleId: roleIds[0] ?? "",
+            roleIds,
             workingDays,
           });
           if (!result.ok) { setErrors({ _: result.error }); return; }
@@ -109,15 +103,6 @@ export function MemberForm({
             return;
           }
         }
-        router.push(`/orgs/${orgId}/memberships`);
-      } else if (isMemberToBot) {
-        // Editing a real member: convert them to a bot
-        const result = await memberToBotAction(orgId, {
-          membershipId: membershipId!,
-          overrideName: botName.trim() || undefined,
-        });
-        if (!result.ok) { setErrors({ _: result.error }); return; }
-        toast.success("Member converted to bot.");
         router.push(`/orgs/${orgId}/memberships`);
       } else {
         // Normal edit (non-bot): update working days and roles
@@ -328,58 +313,21 @@ export function MemberForm({
           )}
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-4">
-            {image ? (
-              <Image
-                src={image}
-                alt={name ?? "Member"}
-                width={56}
-                height={56}
-                className="rounded-full object-cover shrink-0"
-              />
-            ) : (
-              <div className="h-14 w-14 rounded-full bg-primary/10 text-primary font-semibold text-lg flex items-center justify-center shrink-0">
-                {initials}
-              </div>
-            )}
-            <p className="font-medium text-sm">{name ?? "Unnamed user"}</p>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium">Email</label>
-            <Input
-              type="email"
-              placeholder="member@example.com"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (e.target.value.trim()) setBotName("");
-              }}
+        <div className="flex items-center gap-4">
+          {image ? (
+            <Image
+              src={image}
+              alt={name ?? "Member"}
+              width={56}
+              height={56}
+              className="rounded-full object-cover shrink-0"
             />
-            <p className="text-xs text-muted-foreground">
-              Clear this field to convert the member into a bot placeholder.
-            </p>          </div>
-
-          {isMemberToBot && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">
-                Bot name <span className="text-destructive">*</span>
-              </label>
-              <Input
-                type="text"
-                placeholder={name ?? "e.g. Open Slot"}
-                value={botName}
-                onChange={(e) => setBotName(e.target.value)}
-              />
-              {errors.botName && (
-                <p className="text-xs text-destructive">{errors.botName}</p>
-              )}
-              <p className="text-xs text-amber-600 dark:text-amber-400">
-                Saving will remove this member&apos;s account link and convert them to a bot. This cannot be undone from this form.
-              </p>
+          ) : (
+            <div className="h-14 w-14 rounded-full bg-primary/10 text-primary font-semibold text-lg flex items-center justify-center shrink-0">
+              {initials}
             </div>
           )}
+          <p className="font-medium text-sm">{name ?? "Unnamed user"}</p>
         </div>
       )}
 
@@ -427,11 +375,9 @@ export function MemberForm({
         {isPending
           ? mode === "create"
             ? isBot ? "Adding…" : "Inviting…"
-            : isMemberToBot ? "Converting…"
             : "Saving…"
           : mode === "create"
             ? isBot ? "Add Bot" : "Invite"
-            : isMemberToBot ? "Convert to Bot"
             : "Save"}
       </Button>
     </div>

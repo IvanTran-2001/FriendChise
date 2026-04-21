@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma, InviteType } from "@prisma/client";
 import type { ServiceResult } from "./types";
 import type { MemberToBotInput, BotToMemberInput, UpdateBotInput } from "@/lib/validators/bot";
 import { ROLE_KEYS } from "@/lib/rbac";
@@ -27,16 +27,31 @@ type BotMembership = Prisma.MembershipGetPayload<{ select: typeof botSelect }>;
 
 export async function createBot(
   orgId: string,
-  data: { botName: string; roleId: string; workingDays?: string[] },
+  data: { botName: string; roleIds: string[]; workingDays?: string[] },
 ): Promise<ServiceResult<BotMembership>> {
-  const role = await prisma.role.findFirst({
-    where: { id: data.roleId, orgId },
-    select: { id: true },
-  });
-  if (!role) {
+  if (data.roleIds.length === 0) {
     return {
       ok: false,
-      error: "Invalid roleId: not found or does not belong to this org",
+      error: "At least one role is required",
+      code: "INVALID",
+    };
+  }
+
+  const validRoles = await prisma.role.findMany({
+    where: { id: { in: data.roleIds }, orgId },
+    select: { id: true, key: true },
+  });
+  if (validRoles.length !== data.roleIds.length) {
+    return {
+      ok: false,
+      error: "One or more roles not found or do not belong to this org",
+      code: "INVALID",
+    };
+  }
+  if (validRoles.some((r) => r.key === ROLE_KEYS.OWNER)) {
+    return {
+      ok: false,
+      error: "Cannot assign the owner role",
       code: "INVALID",
     };
   }
@@ -51,10 +66,12 @@ export async function createBot(
       },
       select: botSelect,
     });
-    await tx.memberRole.create({
-      data: { membershipId: m.id, roleId: data.roleId },
-    });
-    // Re-fetch to include the just-created memberRole in the return value
+    await Promise.all(
+      data.roleIds.map((roleId) =>
+        tx.memberRole.create({ data: { membershipId: m.id, roleId } }),
+      ),
+    );
+    // Re-fetch to include the just-created memberRoles in the return value
     return tx.membership.findUniqueOrThrow({
       where: { id: m.id },
       select: botSelect,
@@ -89,7 +106,22 @@ export async function deleteBot(
     };
   }
 
-  await prisma.membership.delete({ where: { id: membershipId } });
+  await prisma.$transaction([
+    // Cancel any pending BOT_SLOT invites pointing to this membership
+    prisma.invite.updateMany({
+      where: {
+        orgId,
+        type: InviteType.MEMBER,
+        status: "PENDING",
+        metadata: {
+          path: ["botMembershipId"],
+          equals: membershipId,
+        },
+      },
+      data: { status: "DECLINED", declinedAt: new Date() },
+    }),
+    prisma.membership.delete({ where: { id: membershipId } }),
+  ]);
   return { ok: true, data: null };
 }
 
