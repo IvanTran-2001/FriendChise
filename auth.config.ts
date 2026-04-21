@@ -1,5 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
+import { normalizeEmail } from "@/lib/utils";
 
 /**
  * Edge-compatible Auth.js config.
@@ -33,10 +34,10 @@ export const authConfig: NextAuthConfig = {
       return isAuthed;
     },
     async signIn({ user }) {
-      // Normalize email to lowercase before PrismaAdapter persists it
+      // Normalize email (trim + lowercase) before PrismaAdapter persists it
       // This ensures case-insensitive lookups work reliably
       if (user.email) {
-        user.email = user.email.toLowerCase();
+        user.email = normalizeEmail(user.email);
       }
       return true;
     },

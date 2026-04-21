@@ -118,7 +118,9 @@ async function cleanup(orgId: string, userIds: string[]) {
 async function run() {
   console.log("\nacceptBotSlotInvite — smoke test\n");
 
-  let org, inviter, realUser;
+  let org: Awaited<ReturnType<typeof setup>>["org"] | undefined;
+  let inviter: Awaited<ReturnType<typeof setup>>["inviter"] | undefined;
+  let realUser: Awaited<ReturnType<typeof setup>>["realUser"] | undefined;
   try {
     const setup_result = await setup();
     org = setup_result.org;
@@ -129,7 +131,7 @@ async function run() {
     const invite = setup_result.invite;
     // ── 1. Capture state before ────────────────────────────────────────────
     const membershipsBefore = await prisma.membership.findMany({
-      where: { orgId: org.id },
+      where: { orgId: org!.id },
     });
     assert(
       membershipsBefore.length === 2,
@@ -141,7 +143,7 @@ async function run() {
     assert(botBefore.botName === "ShiftBot", "Before: bot membership has botName");
 
     // ── 2. Call acceptBotSlotInvite ────────────────────────────────────────
-    const result = await acceptBotSlotInvite(invite.id, realUser.id);
+    const result = await acceptBotSlotInvite(invite.id, realUser!.id);
     assert(result.ok === true, `acceptBotSlotInvite returned ok: ${result.ok}${!result.ok ? ` — ${result.error}` : ""}`);
 
     // ── 3. Membership count must NOT have changed ──────────────────────────
@@ -193,7 +195,7 @@ async function run() {
 
     // ── 7. No separate membership created for realUser ─────────────────────
     const realUserMemberships = membershipsAfter.filter(
-      (m) => m.userId === realUser.id,
+      (m) => m.userId === realUser!.id,
     );
     assert(
       realUserMemberships.length === 1,

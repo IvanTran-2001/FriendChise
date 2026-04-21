@@ -33,3 +33,16 @@ export function formatDate(
   }
   return date.toLocaleDateString(locale, { timeZone });
 }
+
+/**
+ * Normalizes an email address to a consistent format for lookups.
+ *
+ * Trims whitespace and converts to lowercase to ensure case-insensitive
+ * matching across the application.
+ *
+ * @param email - The email address to normalize.
+ * @returns The normalized email address.
+ */
+export function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}

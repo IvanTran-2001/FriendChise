@@ -18,6 +18,7 @@ import {
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { normalizeEmail } from "@/lib/utils";
 
 export async function createBotAction(
   orgId: string,
@@ -111,7 +112,7 @@ export async function inviteBotSlotAction(
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0].message };
 
-  const email = parsed.data.email.trim().toLowerCase();
+  const email = normalizeEmail(parsed.data.email);
 
   // Verify the membership is still a bot slot
   const membership = await prisma.membership.findUnique({

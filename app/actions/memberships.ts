@@ -12,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { sendMemberInviteSchema } from "@/lib/validators/membership";
+import { normalizeEmail } from "@/lib/utils";
 
 export async function sendMemberInviteAction(
   orgId: string,
@@ -40,7 +41,7 @@ export async function sendMemberInviteAction(
 
   const { email: rawEmail, workingDays } = parsed.data;
   let { roleIds } = parsed.data;
-  const email = rawEmail.trim().toLowerCase();
+  const email = normalizeEmail(rawEmail);
 
   // If no roles selected, fall back to the org's default member role.
   if (roleIds.length === 0) {

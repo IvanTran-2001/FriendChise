@@ -14,6 +14,7 @@ import { InviteType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ROLE_KEYS } from "@/lib/rbac";
 import type { ServiceResult } from "./types";
+import { normalizeEmail } from "@/lib/utils";
 
 export type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -234,7 +235,7 @@ export async function createFranchiseToken(
   email: string,
   inviterId: string,
 ): Promise<ServiceResult<void>> {
-  const trimmed = email.trim().toLowerCase();
+  const trimmed = normalizeEmail(email);
   if (!trimmed)
     return { ok: false, error: "Email is required", code: "INVALID" };
 
@@ -382,7 +383,7 @@ export async function changeFranchiseeOwner(
   newOwnerEmail: string,
 ): Promise<ServiceResult<void>> {
   const newOwner = await prisma.user.findUnique({
-    where: { email: newOwnerEmail.trim().toLowerCase() },
+    where: { email: normalizeEmail(newOwnerEmail) },
     select: { id: true },
   });
   if (!newOwner)
