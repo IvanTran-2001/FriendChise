@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma, InviteType } from "@prisma/client";
 import type { CreateMembershipInput } from "@/lib/validators/membership";
 import type { ServiceResult } from "./types";
 import { ROLE_KEYS } from "@/lib/rbac";
@@ -68,15 +68,22 @@ export async function createMembership(
  */
 export async function deleteMembership(
   orgId: string,
-  userId: string,
+  membershipId: string,
 ): Promise<ServiceResult<null>> {
+  const membership = await prisma.membership.findUnique({
+    where: { id: membershipId, orgId },
+    select: { userId: true },
+  });
+  if (!membership)
+    return { ok: false, error: "Membership not found", code: "NOT_FOUND" };
+
   const org = await prisma.organization.findUnique({
     where: { id: orgId },
     select: { ownerId: true },
   });
   if (!org) return { ok: false, error: "Org not found", code: "NOT_FOUND" };
 
-  if (userId === org.ownerId) {
+  if (membership.userId !== null && membership.userId === org.ownerId) {
     return {
       ok: false,
       error: "Cannot remove the organization owner",
@@ -84,12 +91,19 @@ export async function deleteMembership(
     };
   }
 
-  const { count } = await prisma.membership.deleteMany({
-    where: { userId, orgId },
-  });
-  if (count === 0)
-    return { ok: false, error: "Membership not found", code: "NOT_FOUND" };
-
+  await prisma.$transaction([
+    // Cancel any lingering pending invites so the user can be re-invited later
+    prisma.invite.updateMany({
+      where: {
+        orgId,
+        recipientId: membership.userId ?? undefined,
+        type: InviteType.MEMBER,
+        status: "PENDING",
+      },
+      data: { status: "DECLINED", declinedAt: new Date() },
+    }),
+    prisma.membership.delete({ where: { id: membershipId } }),
+  ]);
   return { ok: true, data: null };
 }
 
@@ -100,7 +114,13 @@ export async function deleteMembership(
 export async function getMemberships(orgId: string) {
   return prisma.membership.findMany({
     where: { orgId },
-    include: {
+    select: {
+      id: true,
+      userId: true,
+      botName: true,
+      status: true,
+      joinedAt: true,
+      workingDays: true,
       user: { select: { id: true, name: true, image: true } },
       memberRoles: { include: { role: true } },
     },
@@ -112,9 +132,9 @@ export async function getMemberships(orgId: string) {
  * Returns a single membership by orgId + userId, with full user and role
  * details needed for the member detail page. Returns null if not found.
  */
-export async function getMembershipDetail(orgId: string, userId: string) {
+export async function getMembershipDetail(orgId: string, membershipId: string) {
   return prisma.membership.findUnique({
-    where: { userId_orgId: { userId, orgId } },
+    where: { id: membershipId, orgId },
     include: {
       user: { select: { id: true, name: true, email: true, image: true } },
       memberRoles: { include: { role: true } },
@@ -129,11 +149,11 @@ export async function getMembershipDetail(orgId: string, userId: string) {
  */
 export async function updateMembership(
   orgId: string,
-  userId: string,
+  membershipId: string,
   data: { workingDays: string[]; roleIds: string[] },
 ): Promise<ServiceResult<null>> {
   const membership = await prisma.membership.findUnique({
-    where: { userId_orgId: { userId, orgId } },
+    where: { id: membershipId, orgId },
     select: { id: true },
   });
   if (!membership)
@@ -181,14 +201,18 @@ export async function updateMembership(
  */
 export async function setMembershipStatus(
   orgId: string,
-  userId: string,
+  membershipId: string,
   status: "ACTIVE" | "RESTRICTED",
 ): Promise<ServiceResult<null>> {
-  const updated = await prisma.membership.updateMany({
-    where: { userId, orgId },
+  const membership = await prisma.membership.findUnique({
+    where: { id: membershipId, orgId },
+    select: { id: true },
+  });
+  if (!membership)
+    return { ok: false, error: "Membership not found", code: "NOT_FOUND" };
+  await prisma.membership.update({
+    where: { id: membershipId },
     data: { status },
   });
-  if (updated.count === 0)
-    return { ok: false, error: "Membership not found", code: "NOT_FOUND" };
   return { ok: true, data: null };
 }

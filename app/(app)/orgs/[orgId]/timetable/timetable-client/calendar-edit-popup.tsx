@@ -323,7 +323,7 @@ export function CalendarEditPopup({
                 key={a.membership.id}
                 className="flex items-center justify-between rounded bg-muted/50 px-2 py-1 text-xs"
               >
-                <span>{a.membership.user.name ?? "Unknown"}</span>
+                <span>{a.membership.user?.name ?? a.membership.botName ?? "Bot"}</span>
                 <button
                   onClick={() => handleRemoveAssignee(a.membership.id)}
                   className="text-muted-foreground hover:text-destructive ml-2"
@@ -342,7 +342,7 @@ export function CalendarEditPopup({
               >
                 {available.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.user.name ?? "Unknown"}
+                    {m.user?.name ?? m.botName ?? "Bot"}
                   </option>
                 ))}
               </select>

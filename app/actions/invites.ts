@@ -6,6 +6,8 @@
  * markInvitesSeenAction        — mark all unseen invites as seen so the bell badge clears.
  * acceptMemberInviteAction     — accept a pending member invite; creates the Membership + MemberRole.
  * declineMemberInviteAction    — decline a pending member invite.
+ * acceptBotSlotInviteAction    — accept a bot-slot invite; slots the user into the bot membership row.
+ * declineBotSlotInviteAction   — decline a bot-slot invite.
  * declineFranchiseInviteAction — decline a pending franchise invite; also expires the token.
  *
  * All actions read the session directly. They delegate to `lib/services/invites`
@@ -19,6 +21,8 @@ import {
   markNotificationsSeen,
   acceptMemberInvite,
   declineMemberInvite,
+  acceptBotSlotInvite,
+  declineBotSlotInvite,
   declineFranchiseInvite,
 } from "@/lib/services/invites";
 
@@ -58,6 +62,37 @@ export async function declineMemberInviteAction(
   if (!session?.user?.id) return { ok: false, error: "Unauthorized" };
 
   const result = await declineMemberInvite(inviteId, session.user.id);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/**
+ * Accepts a pending bot-slot invite.
+ * Slots the user into the existing bot membership row (userId = user, botName = null).
+ */
+export async function acceptBotSlotInviteAction(
+  inviteId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Unauthorized" };
+
+  const result = await acceptBotSlotInvite(inviteId, session.user.id);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/** Declines a pending bot-slot invite. */
+export async function declineBotSlotInviteAction(
+  inviteId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Unauthorized" };
+
+  const result = await declineBotSlotInvite(inviteId, session.user.id);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath("/");

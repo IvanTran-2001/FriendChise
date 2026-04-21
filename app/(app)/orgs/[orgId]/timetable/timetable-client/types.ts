@@ -9,7 +9,8 @@ export type ClientTask = SharedTask;
 /** A membership with its associated roles, used to populate assignee dropdowns. */
 export type ClientMembership = {
   id: string;
-  user: { id: string; name: string | null };
+  user: { id: string; name: string | null } | null;
+  botName?: string | null;
   roles: { id: string; name: string; color: string | null }[];
 };
 
@@ -38,6 +39,10 @@ export type ClientTimetableInstance = {
   };
   assignees: Array<{
     id: string;
-    membership: { id: string; user: { id: string; name: string | null } };
+    membership: {
+      id: string;
+      botName: string | null;
+      user: { id: string; name: string | null } | null;
+    };
   }>;
 };

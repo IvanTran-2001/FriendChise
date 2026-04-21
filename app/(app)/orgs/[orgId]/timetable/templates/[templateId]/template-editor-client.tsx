@@ -62,7 +62,11 @@ export type ClientTemplateInstance = {
   task: { id: string; name: string; durationMin: number };
   assignees: Array<{
     id: string;
-    membership: { id: string; user: { id: string; name: string | null } };
+    membership: {
+      id: string;
+      botName: string | null;
+      user: { id: string; name: string | null } | null;
+    };
   }>;
 };
 
@@ -673,7 +677,7 @@ export function TemplateEditorClient({
             )}
             renderBlock={(inst, heightPx) => {
               const assigneeNames = inst.assignees
-                .map((a) => a.membership.user.name?.split(" ")[0] ?? "?")
+                .map((a) => (a.membership.user?.name ?? a.membership.botName ?? "Bot").split(" ")[0])
                 .join(", ");
               return (
                 <>

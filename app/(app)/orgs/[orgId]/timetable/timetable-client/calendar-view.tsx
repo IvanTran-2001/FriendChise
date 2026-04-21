@@ -61,6 +61,8 @@ export interface CalendarViewProps {
     visStart: string,
     visEnd: string,
   ) => void;
+  /** Current user's ID — used to scope the past-drop warning suppression per user. */
+  userId?: string;
 }
 
 export function CalendarView({
@@ -76,6 +78,7 @@ export function CalendarView({
   availableTasks,
   memberships,
   onVisibleRangeChange,
+  userId,
 }: CalendarViewProps) {
   function effStatus(inst: ClientTimetableInstance) {
     return inst.status === "TODO" && inst.date < todayStr
@@ -153,7 +156,9 @@ export function CalendarView({
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
   const [suppressDrop, setSuppressDrop] = useState(false);
 
-  const DROP_SUPPRESS_KEY = "timetable-past-drop-warn-suppress";
+  const DROP_SUPPRESS_KEY = userId
+    ? `timetable-past-drop-warn-suppress:${userId}`
+    : "timetable-past-drop-warn-suppress";
 
   function isDropSuppressed(): boolean {
     if (typeof window === "undefined") return false;
@@ -325,7 +330,7 @@ export function CalendarView({
             }}
             renderBlock={(inst, heightPx) => {
               const assigneeNames = inst.assignees
-                .map((a) => a.membership.user.name?.split(" ")[0] ?? "?")
+                .map((a) => (a.membership.user?.name ?? a.membership.botName ?? "Bot").split(" ")[0])
                 .join(", ");
               return (
                 <>

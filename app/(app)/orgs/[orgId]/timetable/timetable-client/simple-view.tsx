@@ -133,7 +133,7 @@ export function SimpleView({
                     {dayInstances.map((inst, idx) => {
                       const assigneeNames =
                         inst.assignees
-                          .map((a) => a.membership.user.name ?? "Unknown")
+                          .map((a) => a.membership.user?.name ?? a.membership.botName ?? "Bot")
                           .join(", ") || "—";
                       const isSkipped = effStatus(inst) === "SKIPPED";
                       return (

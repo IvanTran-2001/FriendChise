@@ -45,6 +45,8 @@ interface ApplyTemplateDialogProps {
   defaultStartDate: string;
   /** Server-derived "today" date string (YYYY-MM-DD) in org timezone. */
   todayStr: string;
+  /** Current user's ID — used to scope the past warning suppression per user. */
+  userId?: string;
 }
 
 const MONTH_NAMES = [
@@ -81,6 +83,7 @@ function ApplyTemplateForm({
   templates,
   defaultStartDate,
   todayStr,
+  userId,
 }: Omit<ApplyTemplateDialogProps, "open">) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -93,7 +96,9 @@ function ApplyTemplateForm({
   const [showPastWarning, setShowPastWarning] = useState(false);
   const [suppressToday, setSuppressToday] = useState(false);
 
-  const SUPPRESS_KEY = "apply-template-past-warn-suppress";
+  const SUPPRESS_KEY = userId
+    ? `apply-template-past-warn-suppress:${userId}`
+    : "apply-template-past-warn-suppress";
 
   function isSuppressed(): boolean {
     if (typeof window === "undefined") return false;
@@ -337,6 +342,7 @@ export function ApplyTemplateDialog({
   templates,
   defaultStartDate,
   todayStr,
+  userId,
 }: ApplyTemplateDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -351,6 +357,7 @@ export function ApplyTemplateDialog({
             templates={templates}
             defaultStartDate={defaultStartDate}
             todayStr={todayStr}
+            userId={userId}
           />
         )}
       </DialogContent>

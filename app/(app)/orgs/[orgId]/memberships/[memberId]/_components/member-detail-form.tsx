@@ -36,7 +36,7 @@ type Role = { id: string; name: string };
 
 interface MemberDetailFormProps {
   orgId: string;
-  userId: string;
+  membershipId: string;
   name: string | null;
   email: string;
   image: string | null;
@@ -54,7 +54,7 @@ interface MemberDetailFormProps {
  */
 export function MemberDetailForm({
   orgId,
-  userId,
+  membershipId,
   name,
   email,
   image,
@@ -87,7 +87,7 @@ export function MemberDetailForm({
     }
     setError(null);
     startTransition(async () => {
-      const result = await updateMembershipAction(orgId, userId, {
+      const result = await updateMembershipAction(orgId, membershipId, {
         workingDays,
         roleIds,
       });
@@ -101,7 +101,7 @@ export function MemberDetailForm({
 
   function handleDelete() {
     startTransition(async () => {
-      const result = await deleteMembershipAction(orgId, userId);
+      const result = await deleteMembershipAction(orgId, membershipId);
       if (!result.ok) {
         setError(result.error);
         setDeleteOpen(false);
@@ -114,7 +114,7 @@ export function MemberDetailForm({
   function handleToggleRestrict() {
     const next = status === "ACTIVE" ? "RESTRICTED" : "ACTIVE";
     startTransition(async () => {
-      const result = await setMemberStatusAction(orgId, userId, next);
+      const result = await setMemberStatusAction(orgId, membershipId, next);
       if (!result.ok) {
         setError(result.error);
         return;

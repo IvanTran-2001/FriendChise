@@ -34,10 +34,12 @@ const MemberDetailPage = async ({
       )
     : false;
 
-  const { user, memberRoles, workingDays, status, joinedAt } = membership;
+  const { user, botName, memberRoles, workingDays, status, joinedAt } = membership;
   const isRestricted = status === "RESTRICTED";
+  const displayName = user?.name ?? botName ?? "Bot";
+  const isBot = user === null;
 
-  const initials = (user.name ?? "?")
+  const initials = displayName
     .split(" ")
     .map((w) => w[0])
     .slice(0, 2)
@@ -62,8 +64,8 @@ const MemberDetailPage = async ({
             </Button>
             <MemberToolbarActions
               orgId={orgId}
-              userId={memberId}
-              memberName={user.name}
+              membershipId={memberId}
+              memberName={displayName}
               status={status as "ACTIVE" | "RESTRICTED"}
             />
           </div>
@@ -77,13 +79,13 @@ const MemberDetailPage = async ({
               <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
                 Full Name
               </dt>
-              <dd className="text-sm font-medium">{user.name ?? "—"}</dd>
+              <dd className="text-sm font-medium">{displayName}</dd>
             </div>
             <div>
               <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
                 Email
               </dt>
-              <dd className="text-sm">{user.email}</dd>
+              <dd className="text-sm">{isBot ? "—" : user?.email ?? "—"}</dd>
             </div>
             <div>
               <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-2">
@@ -154,10 +156,10 @@ const MemberDetailPage = async ({
           </dl>
 
           <div className="flex flex-col items-center gap-2 md:pt-1 order-first md:order-last">
-            {user.image ? (
+            {user?.image ? (
               <Image
                 src={user.image}
-                alt={user.name ?? "Member"}
+                alt={displayName}
                 width={96}
                 height={96}
                 className="rounded-full object-cover"

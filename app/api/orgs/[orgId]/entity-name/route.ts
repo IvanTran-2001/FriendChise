@@ -37,9 +37,9 @@ export async function GET(
     } else if (type === "memberships") {
       const row = await prisma.membership.findFirst({
         where: { id, orgId },
-        select: { user: { select: { name: true } } },
+        select: { botName: true, user: { select: { name: true } } },
       });
-      name = row?.user?.name ?? null;
+      name = row?.user?.name ?? row?.botName ?? null;
     } else if (type === "roles") {
       const row = await prisma.role.findFirst({
         where: { id, orgId },

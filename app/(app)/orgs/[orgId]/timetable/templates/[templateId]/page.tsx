@@ -34,8 +34,8 @@ export default async function TemplateEditorPage({
     getTasks(orgId),
     prisma.membership.findMany({
       where: { orgId },
-      select: { id: true, user: { select: { id: true, name: true } } },
-      orderBy: { user: { name: "asc" } },
+      select: { id: true, botName: true, user: { select: { id: true, name: true } } },
+      orderBy: { joinedAt: "asc" },
     }),
   ]);
 
@@ -60,10 +60,10 @@ export default async function TemplateEditorPage({
       id: a.id,
       membership: {
         id: a.membership.id,
-        user: {
-          id: a.membership.user.id,
-          name: a.membership.user.name,
-        },
+        botName: a.membership.botName ?? null,
+        user: a.membership.user
+          ? { id: a.membership.user.id, name: a.membership.user.name }
+          : null,
       },
     })),
   }));
