@@ -13,7 +13,8 @@ export type SharedTask = {
 
 export type SharedMembership = {
   id: string;
-  user: { id: string; name: string | null };
+  botName?: string | null;
+  user: { id: string; name: string | null } | null;
 };
 
 /**

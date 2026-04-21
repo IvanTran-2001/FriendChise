@@ -26,7 +26,7 @@ import { deleteMembershipAction } from "@/app/actions/memberships";
 
 interface MemberActionsProps {
   orgId: string;
-  userId: string;
+  membershipId: string;
   memberName: string | null;
 }
 
@@ -37,7 +37,7 @@ interface MemberActionsProps {
  */
 export function MemberActions({
   orgId,
-  userId,
+  membershipId,
   memberName,
 }: MemberActionsProps) {
   const router = useRouter();
@@ -46,7 +46,7 @@ export function MemberActions({
 
   function handleDelete() {
     startTransition(async () => {
-      const result = await deleteMembershipAction(orgId, userId);
+      const result = await deleteMembershipAction(orgId, membershipId);
       if (!result.ok) {
         toast.error(result.error);
         return;
@@ -71,7 +71,7 @@ export function MemberActions({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem asChild>
-            <Link href={`/orgs/${orgId}/memberships/${userId}/edit`}>Edit</Link>
+            <Link href={`/orgs/${orgId}/memberships/${membershipId}/edit`}>Edit</Link>
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={(e) => {

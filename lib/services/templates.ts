@@ -42,7 +42,11 @@ export async function getTimetableTemplate(orgId: string, templateId: string) {
             where: { membership: { orgId } },
             include: {
               membership: {
-                include: { user: { select: { id: true, name: true } } },
+                select: {
+                  id: true,
+                  botName: true,
+                  user: { select: { id: true, name: true } },
+                },
               },
             },
           },

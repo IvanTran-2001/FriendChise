@@ -165,11 +165,15 @@ model Organization {
 model Membership {
   id            String   @id @default(cuid())
 
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Null when isBot = true
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   orgId         String
   organization  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  // Populated when userId is null (bot/placeholder slot)
+  botName       String?  // display name for the placeholder
 
   workingDays   String[] // ["mon", "tue", "wed"]
   status        MembershipStatus @default(ACTIVE)
@@ -181,6 +185,7 @@ model Membership {
   joinedAt      DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  // Real users: one membership per org. Bots have null userId so no unique conflict.
   @@unique([userId, orgId])
   @@index([orgId])
   @@index([userId])

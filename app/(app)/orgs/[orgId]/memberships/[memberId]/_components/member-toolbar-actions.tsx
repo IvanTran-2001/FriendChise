@@ -21,7 +21,7 @@ import {
 
 interface MemberToolbarActionsProps {
   orgId: string;
-  userId: string;
+  membershipId: string;
   memberName: string | null;
   status: "ACTIVE" | "RESTRICTED";
 }
@@ -33,7 +33,7 @@ interface MemberToolbarActionsProps {
  */
 export function MemberToolbarActions({
   orgId,
-  userId,
+  membershipId,
   memberName,
   status,
 }: MemberToolbarActionsProps) {
@@ -46,7 +46,7 @@ export function MemberToolbarActions({
 
   function handleDelete() {
     startTransition(async () => {
-      const result = await deleteMembershipAction(orgId, userId);
+      const result = await deleteMembershipAction(orgId, membershipId);
       if (!result.ok) {
         toast.error(result.error);
         return;
@@ -58,7 +58,7 @@ export function MemberToolbarActions({
   function handleToggleRestrict() {
     const next = isRestricted ? "ACTIVE" : "RESTRICTED";
     startTransition(async () => {
-      const result = await setMemberStatusAction(orgId, userId, next);
+      const result = await setMemberStatusAction(orgId, membershipId, next);
       if (!result.ok) {
         toast.error(result.error);
         return;

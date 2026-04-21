@@ -99,7 +99,8 @@ export default async function TimetablePage({
   // Build membership→roles map for client rendering
   const clientMemberships = memberships.map((m) => ({
     id: m.id,
-    user: { id: m.user.id, name: m.user.name },
+    user: m.user ? { id: m.user.id, name: m.user.name } : null,
+    botName: m.botName ?? null,
     roles: m.memberRoles.map((mr) => ({
       id: mr.role.id,
       name: mr.role.name,
@@ -207,6 +208,7 @@ export default async function TimetablePage({
         todayStr={todayStr}
         roleId={rawRoleId}
         canManage={canManageTimetable}
+        userId={userId}
         availableTasks={
           canManageTimetable
             ? tasks.map((t) => {
@@ -254,6 +256,7 @@ export default async function TimetablePage({
             }))}
             anchor={anchor}
             todayStr={todayStr}
+            userId={userId}
           />
         )}
       </TimetableClient>

@@ -42,9 +42,11 @@ import { Toolbar } from "@/components/layout/toolbar";
 import { MemberActions } from "./member-actions";
 
 type Member = {
-  userId: string;
+  id: string;
+  userId: string | null;
+  botName: string | null;
   status: "ACTIVE" | "RESTRICTED";
-  user: { id: string; name: string | null; image: string | null };
+  user: { id: string; name: string | null; image: string | null } | null;
   memberRoles: { role: { id: string; name: string; color: string } }[];
 };
 
@@ -165,7 +167,7 @@ export function MembersView({
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     return members.filter((m) => {
-      if (q && !(m.user.name ?? "").toLowerCase().includes(q)) return false;
+      if (q && !(m.user?.name ?? m.botName ?? "").toLowerCase().includes(q)) return false;
       if (
         roleFilter &&
         !m.memberRoles.some(({ role }) => role.id === roleFilter)
@@ -228,9 +230,14 @@ export function MembersView({
           </DropdownMenu>
 
           {canManage && (
-            <Button asChild size="sm" className="ml-auto shrink-0">
-              <Link href={`/orgs/${orgId}/memberships/new`}>+ Add Member</Link>
-            </Button>
+            <div className="flex items-center gap-2 ml-auto shrink-0">
+              <Button asChild size="sm">
+                <Link href={`/orgs/${orgId}/memberships/new`}>+ Member</Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link href={`/orgs/${orgId}/memberships/new?bot=1`}>+ Bot</Link>
+              </Button>
+            </div>
           )}
         </div>
       </Toolbar>
@@ -271,17 +278,20 @@ function CardGrid({
         }));
         return (
           <Link
-            key={m.userId}
-            href={`/orgs/${orgId}/memberships/${m.userId}`}
+            key={m.id}
+            href={`/orgs/${orgId}/memberships/${m.id}`}
             className="group"
           >
             <Card className="items-center text-center transition-all group-hover:shadow-md group-hover:border-primary/20 cursor-pointer">
               <div className="pt-4 flex justify-center">
-                <Avatar name={m.user.name} image={m.user.image} size="lg" />
+                <Avatar name={m.user?.name ?? m.botName} image={m.user?.image ?? null} size="lg" />
               </div>
               <CardContent className="flex flex-col items-center gap-1.5 pb-4 pt-3">
-                <CardTitle className="text-sm leading-tight">
-                  {m.user.name ?? "Unnamed user"}
+                <CardTitle className="text-sm leading-tight flex items-center gap-1.5">
+                  {m.user?.name ?? m.botName ?? "Unnamed"}
+                  {m.userId === null && (
+                    <span className="text-xs font-bold font-mono text-red-500 tracking-tight">[Bot]</span>
+                  )}
                 </CardTitle>
                 <RolesBadge roles={roles} />
                 <StatusBadge status={m.status} />
@@ -294,8 +304,8 @@ function CardGrid({
                   >
                     <MemberActions
                       orgId={orgId}
-                      userId={m.userId}
-                      memberName={m.user.name}
+                      membershipId={m.id}
+                      memberName={m.user?.name ?? m.botName}
                     />
                   </div>
                 )}
@@ -327,17 +337,20 @@ function MemberList({
         }));
         return (
           <li
-            key={m.userId}
+            key={m.id}
             className="flex items-center hover:bg-primary/5 transition-colors"
           >
             <Link
-              href={`/orgs/${orgId}/memberships/${m.userId}`}
+              href={`/orgs/${orgId}/memberships/${m.id}`}
               className="flex items-center gap-3 px-4 py-3 flex-1 min-w-0"
             >
-              <Avatar name={m.user.name} image={m.user.image} size="sm" />
+              <Avatar name={m.user?.name ?? m.botName} image={m.user?.image ?? null} size="sm" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">
-                  {m.user.name ?? "Unnamed user"}
+                <p className="text-sm font-medium truncate flex items-center gap-1.5">
+                  {m.user?.name ?? m.botName ?? "Unnamed"}
+                  {m.userId === null && (
+                    <span className="text-xs font-bold font-mono text-red-500 tracking-tight">[Bot]</span>
+                  )}
                 </p>
                 <RolesBadge roles={roles} />
               </div>
@@ -347,8 +360,8 @@ function MemberList({
               <div className="pr-3 shrink-0">
                 <MemberActions
                   orgId={orgId}
-                  userId={m.userId}
-                  memberName={m.user.name}
+                  membershipId={m.id}
+                  memberName={m.user?.name ?? m.botName}
                 />
               </div>
             )}

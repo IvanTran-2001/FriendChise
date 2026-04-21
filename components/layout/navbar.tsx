@@ -9,7 +9,7 @@ import {
   NavbarLogo,
   NavbarLogoSpacer,
 } from "@/components/layout/navbar-sidebar-trigger";
-import { NotificationPanel } from "@/components/layout/notification-panel";
+import { NotificationPanel } from "@/components/notifications";
 import {
   getInvitesForUser,
   getUnseenInviteCount,

@@ -89,7 +89,7 @@ export async function sendMemberInviteAction(
  */
 export async function deleteMembershipAction(
   orgId: string,
-  userId: string,
+  membershipId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const authz = await requireOrgPermissionAction(
     orgId,
@@ -97,7 +97,7 @@ export async function deleteMembershipAction(
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const result = await deleteMembership(orgId, userId);
+  const result = await deleteMembership(orgId, membershipId);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/memberships`);
@@ -110,7 +110,7 @@ export async function deleteMembershipAction(
  */
 export async function updateMembershipAction(
   orgId: string,
-  userId: string,
+  membershipId: string,
   data: { workingDays: string[]; roleIds: string[] },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const authz = await requireOrgPermissionAction(
@@ -119,11 +119,11 @@ export async function updateMembershipAction(
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const result = await updateMembership(orgId, userId, data);
+  const result = await updateMembership(orgId, membershipId, data);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/memberships`);
-  revalidatePath(`/orgs/${orgId}/memberships/${userId}`);
+  revalidatePath(`/orgs/${orgId}/memberships/${membershipId}`);
   return { ok: true };
 }
 
@@ -132,7 +132,7 @@ export async function updateMembershipAction(
  */
 export async function setMemberStatusAction(
   orgId: string,
-  userId: string,
+  membershipId: string,
   status: "ACTIVE" | "RESTRICTED",
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const authz = await requireOrgPermissionAction(
@@ -141,10 +141,10 @@ export async function setMemberStatusAction(
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const result = await setMembershipStatus(orgId, userId, status);
+  const result = await setMembershipStatus(orgId, membershipId, status);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/memberships`);
-  revalidatePath(`/orgs/${orgId}/memberships/${userId}`);
+  revalidatePath(`/orgs/${orgId}/memberships/${membershipId}`);
   return { ok: true };
 }

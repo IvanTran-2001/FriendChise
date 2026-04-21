@@ -132,6 +132,7 @@ export async function createMemberInvite(
   recipientId: string,
   roleIds: string[],
   workingDays: string[],
+  botMembershipId?: string,
 ): Promise<ServiceResult<null>> {
   const [org, inviter, validRoles] = await Promise.all([
     prisma.organization.findUnique({
@@ -160,6 +161,18 @@ export async function createMemberInvite(
       error: "Cannot assign the owner role",
       code: "INVALID",
     };
+
+  // If this is a bot-slot invite, validate the bot membership exists and is actually a bot
+  if (botMembershipId) {
+    const botMembership = await prisma.membership.findUnique({
+      where: { id: botMembershipId, orgId },
+      select: { id: true, userId: true },
+    });
+    if (!botMembership)
+      return { ok: false, error: "Bot membership not found", code: "NOT_FOUND" };
+    if (botMembership.userId !== null)
+      return { ok: false, error: "Membership slot is already occupied by a real user", code: "CONFLICT" };
+  }
 
   const existingMembership = await prisma.membership.findUnique({
     where: { userId_orgId: { userId: recipientId, orgId } },
@@ -190,7 +203,7 @@ export async function createMemberInvite(
         type: InviteType.MEMBER,
         orgName: org.name,
         inviterName: inviter?.name ?? null,
-        metadata: { roleIds, workingDays },
+        metadata: { roleIds, workingDays, ...(botMembershipId ? { botMembershipId } : {}) },
       },
     });
   } catch (e) {
@@ -213,7 +226,8 @@ export async function createMemberInvite(
 
 /**
  * Accepts a pending member invite atomically.
- * Creates the Membership + MemberRole rows in a transaction.
+ * Creates a new Membership + MemberRole rows in a transaction.
+ * For bot-slot invites use acceptBotSlotInvite instead.
  */
 export async function acceptMemberInvite(
   inviteId: string,
@@ -227,18 +241,11 @@ export async function acceptMemberInvite(
   )
     return { ok: false, error: "Invite not found", code: "NOT_FOUND" };
   if (invite.status !== "PENDING")
-    return {
-      ok: false,
-      error: "This invite is no longer pending",
-      code: "CONFLICT",
-    };
+    return { ok: false, error: "This invite is no longer pending", code: "CONFLICT" };
   if (invite.expiresAt && invite.expiresAt < new Date())
     return { ok: false, error: "This invite has expired", code: "INVALID" };
 
-  const meta = invite.metadata as {
-    roleIds: string[];
-    workingDays: string[];
-  } | null;
+  const meta = invite.metadata as { roleIds?: string[]; workingDays?: string[] } | null;
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -251,10 +258,7 @@ export async function acceptMemberInvite(
       const validRoleIds = meta?.roleIds?.length
         ? (
             await tx.role.findMany({
-              where: {
-                id: { in: meta.roleIds },
-                orgId: invite.orgId,
-              },
+              where: { id: { in: meta.roleIds }, orgId: invite.orgId },
               select: { id: true },
             })
           ).map((r) => r.id)
@@ -262,11 +266,7 @@ export async function acceptMemberInvite(
 
       const m = await tx.membership.upsert({
         where: { userId_orgId: { userId, orgId: invite.orgId } },
-        create: {
-          orgId: invite.orgId,
-          userId,
-          workingDays: meta?.workingDays ?? [],
-        },
+        create: { orgId: invite.orgId, userId, workingDays: meta?.workingDays ?? [] },
         update: {},
       });
 
@@ -279,47 +279,150 @@ export async function acceptMemberInvite(
     });
   } catch (e) {
     if (e instanceof Error && e.message === "ALREADY_HANDLED")
-      return {
-        ok: false,
-        error: "This invite has already been handled",
-        code: "CONFLICT",
-      };
-    // Handle Prisma constraint errors
+      return { ok: false, error: "This invite has already been handled", code: "CONFLICT" };
     if (e && typeof e === "object" && "code" in e) {
       const prismaCode = (e as { code?: string }).code;
       if (prismaCode === "P2002" || prismaCode === "P2003")
-        return {
-          ok: false,
-          error: "Membership or role conflict",
-          code: "CONFLICT",
-        };
+        return { ok: false, error: "Membership or role conflict", code: "CONFLICT" };
     }
     throw e;
   }
 
-  // Notify the inviter that their invite was accepted.
-  if (invite.invitedById) {
-    try {
-      const acceptingUser = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { name: true },
+  await notifyInviteAccepted(invite, userId);
+  return { ok: true, data: null };
+}
+
+/**
+ * Accepts a pending bot-slot invite.
+ * Slots the user into the existing bot membership row (userId = user, botName = null).
+ * The bot membership's working days and roles are replaced with those from the invite.
+ */
+export async function acceptBotSlotInvite(
+  inviteId: string,
+  userId: string,
+): Promise<ServiceResult<null>> {
+  const invite = await prisma.invite.findUnique({ where: { id: inviteId } });
+  if (
+    !invite ||
+    invite.recipientId !== userId ||
+    invite.type !== InviteType.MEMBER
+  )
+    return { ok: false, error: "Invite not found", code: "NOT_FOUND" };
+  if (invite.status !== "PENDING")
+    return { ok: false, error: "This invite is no longer pending", code: "CONFLICT" };
+  if (invite.expiresAt && invite.expiresAt < new Date())
+    return { ok: false, error: "This invite has expired", code: "INVALID" };
+
+  const meta = invite.metadata as {
+    roleIds?: string[];
+    workingDays?: string[];
+    botMembershipId: string;
+  } | null;
+
+  if (!meta?.botMembershipId)
+    return { ok: false, error: "Invalid bot-slot invite", code: "INVALID" };
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.invite.updateMany({
+        where: { id: inviteId, status: "PENDING" },
+        data: { status: "ACCEPTED", acceptedAt: new Date() },
       });
-      await prisma.notification.create({
+      if (updated.count === 0) throw new Error("ALREADY_HANDLED");
+
+      const bot = await tx.membership.findUnique({
+        where: { id: meta.botMembershipId, orgId: invite.orgId },
+        select: { id: true, userId: true },
+      });
+      if (!bot || bot.userId !== null) throw new Error("BOT_SLOT_TAKEN");
+
+      // Slot the user in — clear botName, set userId, always replace workingDays
+      await tx.membership.update({
+        where: { id: meta.botMembershipId },
         data: {
-          userId: invite.invitedById,
-          message: `${acceptingUser?.name ?? "Someone"} accepted your invitation to ${invite.orgName}.`,
+          userId,
+          botName: null,
+          workingDays: meta.workingDays ?? [],
         },
       });
-    } catch (error) {
-      // Log the error but don't fail the invite acceptance
-      console.error(
-        "Failed to create notification for invite acceptance:",
-        error,
-      );
+
+      // Always replace roles — delete bot's old roles and apply the invited ones
+      const validRoleIds = meta.roleIds?.length
+        ? (
+            await tx.role.findMany({
+              where: { id: { in: meta.roleIds }, orgId: invite.orgId },
+              select: { id: true },
+            })
+          ).map((r) => r.id)
+        : [];
+
+      await tx.memberRole.deleteMany({ where: { membershipId: meta.botMembershipId } });
+      if (validRoleIds.length) {
+        await tx.memberRole.createMany({
+          data: validRoleIds.map((roleId) => ({ membershipId: meta.botMembershipId, roleId })),
+        });
+      }
+    });
+  } catch (e) {
+    if (e instanceof Error && e.message === "ALREADY_HANDLED")
+      return { ok: false, error: "This invite has already been handled", code: "CONFLICT" };
+    if (e instanceof Error && e.message === "BOT_SLOT_TAKEN")
+      return { ok: false, error: "The bot slot was already filled by another user", code: "CONFLICT" };
+    if (e && typeof e === "object" && "code" in e) {
+      const prismaCode = (e as { code?: string }).code;
+      if (prismaCode === "P2002" || prismaCode === "P2003")
+        return { ok: false, error: "Membership conflict", code: "CONFLICT" };
     }
+    throw e;
   }
 
+  await notifyInviteAccepted(invite, userId);
   return { ok: true, data: null };
+}
+
+/**
+ * Declines a pending bot-slot invite.
+ */
+export async function declineBotSlotInvite(
+  inviteId: string,
+  userId: string,
+): Promise<ServiceResult<null>> {
+  const updated = await prisma.invite.updateMany({
+    where: {
+      id: inviteId,
+      recipientId: userId,
+      type: InviteType.MEMBER,
+      status: "PENDING",
+    },
+    data: { status: "DECLINED", declinedAt: new Date() },
+  });
+
+  if (updated.count === 0)
+    return { ok: false, error: "Invite not found or already handled", code: "NOT_FOUND" };
+
+  return { ok: true, data: null };
+}
+
+/** Shared helper: notify the inviter that their invite was accepted. */
+async function notifyInviteAccepted(
+  invite: { invitedById: string | null; orgName: string },
+  acceptingUserId: string,
+): Promise<void> {
+  if (!invite.invitedById) return;
+  try {
+    const acceptingUser = await prisma.user.findUnique({
+      where: { id: acceptingUserId },
+      select: { name: true },
+    });
+    await prisma.notification.create({
+      data: {
+        userId: invite.invitedById,
+        message: `${acceptingUser?.name ?? "Someone"} accepted your invitation to ${invite.orgName}.`,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to create notification for invite acceptance:", error);
+  }
 }
 
 /**

@@ -248,7 +248,9 @@ export async function getTimetableEntries(
       assignees: {
         include: {
           membership: {
-            include: {
+            select: {
+              id: true,
+              botName: true,
               user: { select: { id: true, name: true } },
             },
           },
@@ -475,7 +477,8 @@ export type WeekTimetableInstance = {
     id: string;
     membership: {
       id: string;
-      user: { id: string; name: string | null };
+      botName: string | null;
+      user: { id: string; name: string | null } | null;
     };
   }>;
 };
@@ -521,7 +524,11 @@ export async function getRangeTimetableInstances(
       assignees: {
         include: {
           membership: {
-            include: { user: { select: { id: true, name: true } } },
+            select: {
+              id: true,
+              botName: true,
+              user: { select: { id: true, name: true } },
+            },
           },
         },
       },
@@ -567,7 +574,10 @@ function mapInstance(
       id: a.id,
       membership: {
         id: a.membership.id,
-        user: { id: a.membership.user.id, name: a.membership.user.name },
+        botName: a.membership.botName,
+        user: a.membership.user
+          ? { id: a.membership.user.id, name: a.membership.user.name }
+          : null,
       },
     })),
   };

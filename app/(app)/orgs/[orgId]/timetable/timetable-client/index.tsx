@@ -69,6 +69,8 @@ interface TimetableClientProps {
   canManage?: boolean;
   availableTasks?: ClientTask[];
   memberships?: ClientMembership[];
+  /** Current user's ID — forwarded to CalendarView for per-user warning suppression. */
+  userId?: string;
   /** Toolbar content rendered to the right of the nav (role filter, view picker, actions). */
   children?: ReactNode;
 }
@@ -87,6 +89,7 @@ export function TimetableClient({
   canManage = false,
   availableTasks,
   memberships,
+  userId,
   children,
 }: TimetableClientProps) {
   const router = useRouter();
@@ -221,6 +224,7 @@ export function TimetableClient({
             canManage={canManage}
             availableTasks={availableTasks}
             memberships={memberships}
+            userId={userId}
             onVisibleRangeChange={(count) => setNavColCount(count)}
           />
         ) : (

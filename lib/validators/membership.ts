@@ -9,7 +9,7 @@ export const createMembershipSchema = z.object({
 export type CreateMembershipInput = z.infer<typeof createMembershipSchema>;
 
 export const deleteMembershipSchema = z.object({
-  userId: z.string().cuid(),
+  membershipId: z.string().cuid(),
 });
 
 export const sendMemberInviteSchema = z.object({
