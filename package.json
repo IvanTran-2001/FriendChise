@@ -7,7 +7,14 @@
     "build": "prisma generate && next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "seed": "prisma db seed"
+    "seed": "prisma db seed",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:services": "vitest run __tests__/lib/services",
+    "test:validators": "vitest run __tests__/lib/validators",
+    "test:actions": "vitest run __tests__/app/actions",
+    "test:api": "vitest run __tests__/app/api"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -39,6 +46,7 @@
     "@types/pg": "^8.18.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.1.4",
     "autoprefixer": "^10.4.27",
     "dotenv": "^17.4.2",
     "eslint": "^9",
@@ -51,6 +59,8 @@
     "tailwindcss": "^4",
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.4"
   }
 }
