@@ -22,7 +22,6 @@ import { auth } from "@/auth";
 import {
   createOrg as createOrgService,
   joinFranchise as joinFranchiseService,
-  updateOrgSettings as updateOrgSettingsService,
 } from "@/lib/services/orgs";
 import {
   createOrg,
@@ -36,7 +35,7 @@ const mockSession = (userId: string, email = "user@example.com") =>
     user: { id: userId, email },
   } as any);
 
-const noSession = () => vi.mocked(auth).mockResolvedValue(null);
+const noSession = () => vi.mocked(auth).mockResolvedValue(null as any);
 
 beforeEach(() => vi.clearAllMocks());
 

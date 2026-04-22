@@ -1,0 +1,247 @@
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+
+ RUN  v4.1.4 /Users/ivantran/Desktop/Git Repo/FriendChise
+
+ ❯ __tests__/app/actions/memberships.test.ts (16 tests | 4 failed) 25ms
+     ✓ returns unauthorized when permission check fails 3ms
+     ✓ returns field error for invalid email 2ms
+     × returns error when no user found with that email 10ms
+     ✓ falls back to default role when roleIds is empty 1ms
+     × sends invite with specified roles and revalidates on success 2ms
+     × normalizes email to lowercase before lookup 1ms
+     × propagates service CONFLICT error with email field 1ms
+     ✓ returns unauthorized when permission check fails 0ms
+     ✓ deletes membership and revalidates on success 0ms
+     ✓ propagates service NOT_FOUND error 0ms
+     ✓ returns unauthorized when permission check fails 0ms
+     ✓ updates membership and revalidates both paths on success 0ms
+     ✓ propagates service INVALID error 0ms
+     ✓ returns unauthorized when permission check fails 0ms
+     ✓ sets member status and revalidates both paths on success 0ms
+     ✓ propagates service NOT_FOUND error 0ms
+ ❯ __tests__/app/actions/bots.test.ts (22 tests | 5 failed) 27ms
+     ✓ returns unauthorized when permission check fails 4ms
+     ✓ returns validation error for invalid input 2ms
+     ✓ falls back to default role when roleIds is empty 2ms
+     ✓ returns error when no default role exists 0ms
+     × calls service with provided roleIds and returns ok: true on success 7ms
+     × propagates service errors 1ms
+     ✓ returns unauthorized when permission check fails 0ms
+     ✓ deletes the bot and revalidates the path 1ms
+     ✓ propagates service NOT_FOUND error 0ms
+     ✓ returns unauthorized when permission check fails 0ms
+     ✓ returns validation error for invalid input 1ms
+     × converts member to bot and revalidates path on success 1ms
+     ✓ returns unauthorized when permission check fails 0ms
+     ✓ returns validation error for invalid email 0ms
+     ✓ returns error when bot membership not found 0ms
+     ✓ returns error when slot is already a real user 0ms
+     ✓ returns error when no account found for email 0ms
+     ✓ creates a member invite with the bot slot and returns ok: true 0ms
+     ✓ returns unauthorized when permission check fails 0ms
+     ✓ returns validation error for invalid input 0ms
+     × updates bot and revalidates paths on success 1ms
+     × propagates service errors 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/app/actions/bots.test.ts > createBotAction > calls service with provided roleIds and returns ok: true on success
+AssertionError: expected { ok: false, error: 'Invalid role' } to deeply equal { ok: true }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "ok": true,[39m
+[31m+   "error": "Invalid role",[39m
+[31m+   "ok": false,[39m
+[2m  }[22m
+
+ ❯ __tests__/app/actions/bots.test.ts:103:20
+    101|     const result = await createBotAction("org-1", { botName: "Bot", ro…
+    102|
+    103|     expect(result).toEqual({ ok: true });
+       |                    ^
+    104|     expect(revalidatePath).toHaveBeenCalled();
+    105|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  __tests__/app/actions/bots.test.ts > createBotAction > propagates service errors
+AssertionError: expected { ok: false, error: 'Invalid role' } to deeply equal { ok: false, …(1) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "error": "One or more roles not found or do not belong to this org",[39m
+[31m+   "error": "Invalid role",[39m
+[2m    "ok": false,[22m
+[2m  }[22m
+
+ ❯ __tests__/app/actions/bots.test.ts:117:20
+    115|     const result = await createBotAction("org-1", { botName: "Bot", ro…
+    116|
+    117|     expect(result).toEqual({ ok: false, error: "One or more roles not …
+       |                    ^
+    118|   });
+    119| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  __tests__/app/actions/bots.test.ts > memberToBotAction > converts member to bot and revalidates path on success
+AssertionError: expected { ok: false, …(1) } to deeply equal { ok: true }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "ok": true,[39m
+[31m+   "error": "Invalid membership",[39m
+[31m+   "ok": false,[39m
+[2m  }[22m
+
+ ❯ __tests__/app/actions/bots.test.ts:183:20
+    181|     const result = await memberToBotAction("org-1", { membershipId: "m…
+    182|
+    183|     expect(result).toEqual({ ok: true });
+       |                    ^
+    184|     expect(revalidatePath).toHaveBeenCalled();
+    185|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  __tests__/app/actions/bots.test.ts > updateBotAction > updates bot and revalidates paths on success
+AssertionError: expected { ok: false, …(1) } to deeply equal { ok: true }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "ok": true,[39m
+[31m+   "error": "Invalid option: expected one of \"mon\"|\"tue\"|\"wed\"|\"thu\"|\"fri\"|\"sat\"|\"sun\"",[39m
+[31m+   "ok": false,[39m
+[2m  }[22m
+
+ ❯ __tests__/app/actions/bots.test.ts:296:20
+    294|     const result = await updateBotAction("org-1", "mem-bot", validData…
+    295|
+    296|     expect(result).toEqual({ ok: true });
+       |                    ^
+    297|     expect(updateBotService).toHaveBeenCalledWith("org-1", "mem-bot", …
+    298|     expect(revalidatePath).toHaveBeenCalledTimes(2);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  __tests__/app/actions/bots.test.ts > updateBotAction > propagates service errors
+AssertionError: expected { ok: false, …(1) } to deeply equal { ok: false, error: 'Bot not found' }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "error": "Bot not found",[39m
+[31m+   "error": "Invalid option: expected one of \"mon\"|\"tue\"|\"wed\"|\"thu\"|\"fri\"|\"sat\"|\"sun\"",[39m
+[2m    "ok": false,[22m
+[2m  }[22m
+
+ ❯ __tests__/app/actions/bots.test.ts:311:20
+    309|     const result = await updateBotAction("org-1", "mem-bot", validData…
+    310|
+    311|     expect(result).toEqual({ ok: false, error: "Bot not found" });
+       |                    ^
+    312|   });
+    313| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  __tests__/app/actions/memberships.test.ts > sendMemberInviteAction > returns error when no user found with that email
+AssertionError: expected { ok: false, …(2) } to match object { ok: false, field: 'email' }
+(1 matching property omitted from actual)
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "field": "email",[39m
+[31m+   "field": "roles",[39m
+[2m    "ok": false,[22m
+[2m  }[22m
+
+ ❯ __tests__/app/actions/memberships.test.ts:92:20
+     90|     });
+     91|
+     92|     expect(result).toMatchObject({ ok: false, field: "email" });
+       |                    ^
+     93|   });
+     94|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  __tests__/app/actions/memberships.test.ts > sendMemberInviteAction > sends invite with specified roles and revalidates on success
+AssertionError: expected { ok: false, …(2) } to deeply equal { ok: true }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "ok": true,[39m
+[31m+   "error": "Invalid cuid",[39m
+[31m+   "field": "roles",[39m
+[31m+   "ok": false,[39m
+[2m  }[22m
+
+ ❯ __tests__/app/actions/memberships.test.ts:123:20
+    121|     });
+    122|
+    123|     expect(result).toEqual({ ok: true });
+       |                    ^
+    124|     expect(createMemberInvite).toHaveBeenCalledWith(
+    125|       "org-1",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  __tests__/app/actions/memberships.test.ts > sendMemberInviteAction > normalizes email to lowercase before lookup
+AssertionError: expected "vi.fn()" to be called with arguments: [ ObjectContaining{…} ][90m
+
+Number of calls: [1m0[22m
+[39m
+ ❯ __tests__/app/actions/memberships.test.ts:143:36
+    141|     });
+    142|
+    143|     expect(prisma.user.findUnique).toHaveBeenCalledWith(
+       |                                    ^
+    144|       expect.objectContaining({ where: { email: "user@example.com" } }…
+    145|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  __tests__/app/actions/memberships.test.ts > sendMemberInviteAction > propagates service CONFLICT error with email field
+AssertionError: expected { ok: false, …(2) } to match object { ok: false, field: 'email' }
+(1 matching property omitted from actual)
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "field": "email",[39m
+[31m+   "field": "roles",[39m
+[2m    "ok": false,[22m
+[2m  }[22m
+
+ ❯ __tests__/app/actions/memberships.test.ts:162:20
+    160|     });
+    161|
+    162|     expect(result).toMatchObject({ ok: false, field: "email" });
+       |                    ^
+    163|   });
+    164| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  9 failed | 29 passed (38)
+   Start at  23:44:06
+   Duration  488ms (transform 168ms, setup 0ms, import 379ms, tests 52ms, environment 0ms)
+

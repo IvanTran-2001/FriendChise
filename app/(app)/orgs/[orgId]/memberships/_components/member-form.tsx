@@ -12,7 +12,7 @@ import {
   sendMemberInviteAction,
   updateMembershipAction,
 } from "@/app/actions/memberships";
-import { createBotAction, memberToBotAction, inviteBotSlotAction, updateBotAction } from "@/app/actions/bots";
+import { createBotAction, inviteBotSlotAction, updateBotAction } from "@/app/actions/bots";
 
 type Role = { id: string; name: string };
 
@@ -327,7 +327,12 @@ export function MemberForm({
               {initials}
             </div>
           )}
-          <p className="font-medium text-sm">{name ?? "Unnamed user"}</p>
+          <div>
+            <p className="font-medium text-sm">{name ?? "Unnamed user"}</p>
+            {initialEmail && (
+              <p className="text-xs text-muted-foreground">{initialEmail}</p>
+            )}
+          </div>
         </div>
       )}
 

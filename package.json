@@ -11,10 +11,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:services": "vitest run __tests__/lib/services",
-    "test:validators": "vitest run __tests__/lib/validators",
-    "test:actions": "vitest run __tests__/app/actions",
-    "test:api": "vitest run __tests__/app/api"
+    "test:services": "vitest run __tests__/unit/lib/services",
+    "test:validators": "vitest run __tests__/unit/lib/validators",
+    "test:actions": "vitest run __tests__/unit/app/actions",
+    "test:api": "vitest run __tests__/unit/app/api",
+    "test:e2e": "playwright test"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -41,6 +42,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.18.0",

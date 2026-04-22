@@ -91,7 +91,7 @@ describe("updateTimetableEntryAction", () => {
 
   it("updates entry and revalidates on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(updateTimetableEntryService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(updateTimetableEntryService).mockResolvedValue({ ok: true, data: {} as any });
 
     const result = await updateTimetableEntryAction("org-1", "entry-1", {
       startTimeMin: 540,
@@ -133,7 +133,7 @@ describe("updateTimetableEntryStatusAction", () => {
 
   it("updates status and revalidates — uses member check not permission check", async () => {
     vi.mocked(requireOrgMemberAction).mockResolvedValue(authorised);
-    vi.mocked(updateTimetableEntryService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(updateTimetableEntryService).mockResolvedValue({ ok: true, data: {} as any });
 
     const result = await updateTimetableEntryStatusAction("org-1", "entry-1", EntryStatus.DONE);
 

@@ -39,7 +39,7 @@ import {
 const mockSession = (userId = "user-1") =>
   vi.mocked(auth).mockResolvedValue({ user: { id: userId } } as any);
 
-const noSession = () => vi.mocked(auth).mockResolvedValue(null);
+const noSession = () => vi.mocked(auth).mockResolvedValue(null as any);
 
 beforeEach(() => vi.clearAllMocks());
 
