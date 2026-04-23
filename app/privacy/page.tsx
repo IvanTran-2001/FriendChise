@@ -93,7 +93,9 @@ export default function PrivacyPage() {
             <p className="text-muted-foreground">
               If you have any questions about this Privacy Policy or wish to
               request deletion of your account and data, please contact us at{" "}
-              <strong className="text-foreground">alt28920@gmail.com</strong>.
+              <strong className="text-foreground">
+                <a href="mailto:alt28920@gmail.com">alt28920@gmail.com</a>
+              </strong>.
               Please include your account email address and the type of request
               (privacy inquiry or data deletion) in your message for verification
               purposes.

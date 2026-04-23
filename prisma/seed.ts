@@ -2195,23 +2195,25 @@ function confirm(): void {
   }
 
   // Validate DATABASE_URL is a valid URL
-  let host: string;
+  let parsedUrl: URL;
   try {
-    const parsedUrl = new URL(dbUrl);
-    host = parsedUrl.host;
+    parsedUrl = new URL(dbUrl);
   } catch (error) {
     console.error("  ❌ ERROR: DATABASE_URL is not a valid URL.");
-    console.error(`  Received: ${dbUrl}`);
     console.error("  Aborted — nothing was changed.\n");
     process.exit(1);
   }
 
-  const isProduction = !dbUrl.includes("mwivbmygangszkcnikcn");
+  const isProduction = !(
+    parsedUrl.hostname.includes("localhost") ||
+    parsedUrl.hostname.includes("dev") ||
+    parsedUrl.username.includes("dev")
+  );
   const expected = isProduction ? "production" : "development";
   const arg = process.argv[2];
 
   console.log("");
-  console.log(`  Target database : ${host}`);
+  console.log(`  Target database : ${parsedUrl.hostname}`);
   console.log(`  Environment     : ${expected.toUpperCase()}`);
   console.log("");
 
