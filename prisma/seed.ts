@@ -2181,7 +2181,36 @@ async function seedInvites(
 // MAIN
 // ─────────────────────────────────────────────────────────────────────────────
 
+function confirm(): void {
+  const dbUrl = process.env.DATABASE_URL ?? "";
+  const isProduction = !dbUrl.includes("mwivbmygangszkcnikcn");
+  const expected = isProduction ? "production" : "development";
+  const arg = process.argv[2];
+  const host = new URL(dbUrl).host;
+
+  console.log("");
+  console.log(`  Target database : ${host}`);
+  console.log(`  Environment     : ${expected.toUpperCase()}`);
+  console.log("");
+
+  if (arg !== expected) {
+    if (isProduction) {
+      console.log("  ⚠️  WARNING: This targets PRODUCTION. Run: pnpm seed:prod");
+    } else {
+      console.log("  Run: pnpm seed:dev");
+    }
+    console.log("  Aborted — nothing was changed.\n");
+    process.exit(1);
+  }
+
+  if (isProduction) {
+    console.log("  ⚠️  WARNING: This will WIPE and reseed PRODUCTION.");
+    console.log("");
+  }
+}
+
 async function main() {
+  confirm();
   await cleanDatabase();
   const users = await seedUsers();
 

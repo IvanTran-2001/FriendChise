@@ -7,7 +7,9 @@
     "build": "prisma generate && next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "seed": "prisma db seed"
+    "seed": "prisma db seed",
+    "seed:developer": "tsx prisma/seed.ts development",
+    "seed:production": "tsx prisma/seed.ts production"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
