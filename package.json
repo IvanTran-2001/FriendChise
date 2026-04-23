@@ -8,11 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "prisma db seed",
-    "seed:developer": "tsx prisma/seed.ts development",
-    "seed:production": "tsx prisma/seed.ts production"
+    "seed:dev": "tsx prisma/seed.ts development",
+    "seed:prod": "tsx prisma/seed.ts production"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts development"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

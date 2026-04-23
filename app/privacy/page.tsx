@@ -62,6 +62,9 @@ export default function PrivacyPage() {
                 sign-in authentication
               </li>
               <li>
+                <strong className="text-foreground">Google (lh3.googleusercontent.com)</strong> — avatar CDN used by next/image
+              </li>
+              <li>
                 <strong className="text-foreground">LinkedIn OAuth</strong> —
                 for sign-in authentication
               </li>
@@ -88,9 +91,12 @@ export default function PrivacyPage() {
           <section className="space-y-2">
             <h2 className="text-xl font-semibold">6. Contact</h2>
             <p className="text-muted-foreground">
-              If you have any questions about this Privacy Policy, please reach
-              out via the FriendChise application or the repository contact
-              information.
+              If you have any questions about this Privacy Policy or wish to
+              request deletion of your account and data, please contact us at{" "}
+              <strong className="text-foreground">privacy@yourdomain.com</strong>.
+              Please include your account email address and the type of request
+              (privacy inquiry or data deletion) in your message for verification
+              purposes.
             </p>
           </section>
         </div>
