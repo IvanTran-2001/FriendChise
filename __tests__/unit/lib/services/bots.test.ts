@@ -287,7 +287,7 @@ describe("memberToBot", () => {
 // ─── updateBot ────────────────────────────────────────────────────────────────
 
 describe("updateBot", () => {
-  const updateData = { botName: "Updated Bot", workingDays: ["tue"], roleIds: ["role-1"] };
+  const updateData = { botName: "Updated Bot", workingDays: ["tue" as const], roleIds: ["role-1"] };
 
   beforeEach(() => {
     vi.mocked(prisma.membership.findUnique).mockResolvedValue({
