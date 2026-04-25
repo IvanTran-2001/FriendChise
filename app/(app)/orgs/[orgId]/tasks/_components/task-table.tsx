@@ -54,6 +54,18 @@ import {
 import { deleteTaskAction } from "@/app/actions/tasks";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 
+// Strip markdown syntax for plain-text previews
+function stripMd(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "$1")   // bold
+    .replace(/\*(.+?)\*/g, "$1")       // italic
+    .replace(/^#{1,6}\s+/gm, "")       // headings
+    .replace(/^[•\-*]\s+/gm, "")      // bullet lists
+    .replace(/^\d+\.\s+/gm, "")       // numbered lists
+    .replace(/\n/g, " ")              // collapse newlines
+    .trim();
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Task = {
@@ -309,7 +321,7 @@ export function TaskTable({
                   </div>
                   {task.description && (
                     <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                      {task.description}
+                      {stripMd(task.description)}
                     </p>
                   )}
                   <div className="flex items-center gap-2 flex-wrap">
@@ -371,6 +383,7 @@ export function TaskTable({
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem
+                        disabled
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(
@@ -442,7 +455,7 @@ export function TaskTable({
                     </div>
                   </td>
                   <td className="hidden sm:table-cell px-4 py-3 text-muted-foreground max-w-60 truncate">
-                    {task.description ?? "—"}
+                    {task.description ? stripMd(task.description) : "—"}
                   </td>
                   <td className="hidden sm:table-cell px-4 py-3 tabular-nums">
                     {task.durationMin} min
@@ -500,6 +513,7 @@ export function TaskTable({
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
+                            disabled
                             onClick={() =>
                               router.push(
                                 `/orgs/${orgId}/tasks/new?duplicateFrom=${task.id}`,
