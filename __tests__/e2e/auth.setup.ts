@@ -9,8 +9,7 @@ import { test as setup, expect } from "@playwright/test";
  * tests can reuse it without logging in again.
  */
 
-// Ivan is the primary test user — owner of Donut Shop A and Coffee House B.
-// Primary test user — owner of Walker's Doughnuts.
+// Primary test user — owner of Walker's Doughnuts (and the dev seed orgs when using default seed).
 // Override locally via E2E_TEST_USER_EMAIL if your seed uses a different identity.
 const E2E_TEST_USER_EMAIL = process.env.E2E_TEST_USER_EMAIL ?? "ivan@example.test";
 

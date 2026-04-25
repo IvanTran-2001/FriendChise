@@ -2,6 +2,8 @@
 
 A role-based chore/practice management system for organizations to manage recurring tasks, schedules, and team members. Supports franchise hierarchies where a parent org can spawn and manage child organisations.
 
+Production deployment: **[friendchise.app](https://friendchise.app)**
+
 ## Tech Stack
 
 - **Next.js 16.1.6** (App Router, TypeScript, React 19)
@@ -11,6 +13,9 @@ A role-based chore/practice management system for organizations to manage recurr
 - **Tailwind CSS v4** + **shadcn/ui** + **Radix UI**
 - **Sonner** — toast notifications
 - **Zod v4** — schema validation
+- **react-markdown** + **remark-gfm** — GFM markdown rendering for task descriptions
+- **Vitest** — unit + integration tests
+- **Playwright** — E2E browser tests
 
 ## Getting Started
 
@@ -43,10 +48,11 @@ AUTH_URL=              # e.g. http://localhost:3000
 DATABASE_URL=          # PostgreSQL connection string
 ```
 
-Optional test configuration:
+Optional / local overrides (`.env.local`):
 
 ```env
-E2E_TEST_USER_EMAIL=   # Test user email for E2E tests and seeding (default: ivan@example.test)
+E2E_TEST_USER_EMAIL=      # Test user email for E2E tests and seeding (default: ivan@example.test)
+SEED_DEV_IDENTIFIERS=     # Space-separated Supabase project refs to seed with dev data (seed.ts production path)
 ```
 
 ## Database
@@ -401,6 +407,7 @@ A parent org can spawn franchisee orgs using a one-time invite token flow:
 - **Fixed toolbar / scroll containment** — `h-dvh` on `SidebarProvider` + `overflow-hidden` on `SidebarInset` keep the body from scrolling so toolbars can stay visually fixed. The `<main>` element is the actual scroll container. Child pages that need a pinned toolbar use `flex flex-col h-full` on their root, a static `<Toolbar>` at the top, and a `flex-1 overflow-auto` div below it for the scrollable list. Negative horizontal margins on the scrollable div cancel `<main>`'s padding so the list extends edge-to-edge.
 - **Template editor** — Two view modes (Calendar / Simple) toggled via a segmented control and persisted in `localStorage`. **Calendar** mode shows a drag-and-drop time grid; tasks are dragged from a sidebar panel (desktop) or a bottom sheet (mobile); adaptive column count based on container width via `ResizeObserver`. **Simple** mode shows a day-by-day table sorted by start time; clicking a row opens an inline popup to adjust time and assignees. Both modes share day/week navigation and +/− cycle-length controls.
 - **Template list management** — MANAGE_TASKS holders see a ··· dropdown on each template (card and list view) with Rename (inline Dialog), Duplicate ("Copy of …" with collision suffix), and Delete (AlertDialog confirmation). Mutations call `revalidatePath` so the list refreshes without a full reload.
+- **Task descriptions** — Task descriptions are stored as GFM markdown and rendered via `react-markdown` + `remark-gfm` on the task detail page. The task list (card and table views) strips markdown via a lightweight `stripMd()` helper for plain-text previews.
 - **Task table** — `TaskTable` client component: search, sort (name/duration/people), role filter, row `···` menu (Edit / Duplicate / Delete with confirm). Clicking the row navigates to the task detail page.
 - **Roles page** — System roles show a `system` badge and cannot be deleted; Owner also cannot be edited. Custom roles have a `···` menu with Edit and Delete (AlertDialog). Role create/edit form has a two-column task eligibility picker.
 - **Role security** — `createRole` and `updateRole` validate `taskIds` against tasks scoped to `orgId` inside a transaction. Cross-tenant IDs abort the transaction with an `INVALID` error.
@@ -439,7 +446,9 @@ Live `TimetableEntry` rows are stored in UTC (`date` = UTC midnight, `startTimeM
 
 ## Seed Data
 
-The dev seed (`pnpm seed`) creates 3 sample organizations each with realistic data:
+### Dev seed (`pnpm seed` / `pnpm seed:dev`)
+
+Creates 3 sample organizations each with realistic data:
 
 | Org            | Owner  | Members                       | Custom roles                  | Tasks |
 | -------------- | ------ | ----------------------------- | ----------------------------- | ----- |
@@ -451,13 +460,55 @@ All orgs also have Owner and Default Member system roles. Members can hold multi
 
 Users: Ivan, Jordan, Casey, Riley, Morgan, Alex, Taylor, Sam.
 
+### Walker's Doughnuts one-off seed
+
+`scripts/seed-walkers-doughnuts.ts` is a standalone seed for the Walker's Doughnuts org (60 tasks — frappes, hot drinks, food prep, cleaning). Task descriptions are written in GFM markdown (ingredients, method steps, notes).
+
+```bash
+# First run — creates the org from scratch
+npx tsx scripts/seed-walkers-doughnuts.ts
+
+# Re-run (safe) — upserts roles/permissions/membership and replaces all tasks
+npx tsx scripts/seed-walkers-doughnuts.ts
+
+# Full reset — deletes the org and all related data, then recreates from scratch
+npx tsx scripts/seed-walkers-doughnuts.ts --reset
+```
+
+The script reads `DATABASE_URL` from `.env` (then `.env.local` override). The owner email defaults to `E2E_TEST_USER_EMAIL` or `ivan@example.test`.
+
+## Testing
+
+```bash
+# Unit tests (Vitest)
+pnpm test
+pnpm test:watch
+pnpm test:coverage
+
+# Scoped unit test runs
+pnpm test:services
+pnpm test:validators
+pnpm test:actions
+pnpm test:api
+
+# E2E tests (Playwright — requires a running dev server and seeded DB)
+pnpm test:e2e
+```
+
+CI runs on every push/PR to `master` via GitHub Actions (`.github/workflows/ci.yml`):
+1. **check** job — type-check, lint, unit tests (no DB required)
+2. **e2e** job (needs `check`) — spins up a Postgres 16 service container, runs migrations + dev seed, then runs Playwright against the Next.js dev server
+
+Playwright test state is saved to `playwright/.auth/` (gitignored). The `global.setup.ts` skips reseeding when `CI=true` (already seeded by the workflow).
+
 ## Docs
 
 The `docs/` folder contains long-form documentation that doesn't belong in this README:
 
-| File                       | Description                                                                                        |
-| -------------------------- | -------------------------------------------------------------------------------------------------- |
-| `smoke-test-2026-04-15.md` | Manual smoke test report — 87 tests across all feature areas, run against production on 2026-04-15 |
+| Path                               | Description                                                                                          |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `docs/v1/UAT.md`                   | User Acceptance Testing checklist for the v1 feature set                                             |
+| `docs/v1/v1-smoke-test/smoke-test-{1..4}.md` | Manual smoke test reports run against production                                         |
 
 ## Status
 
