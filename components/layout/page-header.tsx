@@ -188,6 +188,7 @@ export function PageHeader() {
                       ? "text-primary font-semibold text-[0.9rem]"
                       : "text-muted-foreground"
                   }
+                  {...(isLast ? { "aria-current": "page" } : {})}
                 >
                   {crumb.loading ? (
                     <span className="inline-block h-3.5 w-20 animate-pulse rounded bg-muted" />
