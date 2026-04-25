@@ -10,7 +10,9 @@ import { test as setup, expect } from "@playwright/test";
  */
 
 // Ivan is the primary test user — owner of Donut Shop A and Coffee House B.
-const IVAN_EMAIL = "mystoganx2001@gmail.com";
+// Primary test user — owner of Walker's Doughnuts.
+// Override locally via TEST_USER_EMAIL if your seed uses a different identity.
+const IVAN_EMAIL = process.env.TEST_USER_EMAIL ?? "alt28920@gmail.com";
 
 // Must match the storageState path in playwright.config.ts
 export const AUTH_FILE = "playwright/.auth/ivan.json";
