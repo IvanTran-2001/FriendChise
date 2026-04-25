@@ -113,9 +113,9 @@ async function seedUsers() {
         create: { email: "alt28919@gmail.com", name: "Casey" },
       }),
       prisma.user.upsert({
-        where: { email: "alt28920@gmail.com" },
+        where: { email: process.env.IVAN_EMAIL ?? "ivan@example.test" },
         update: { name: "Riley" },
-        create: { email: "alt28920@gmail.com", name: "Riley" },
+        create: { email: process.env.IVAN_EMAIL ?? "ivan@example.test", name: "Riley" },
       }),
       prisma.user.upsert({
         where: { email: "alt28921@gmail.com" },
