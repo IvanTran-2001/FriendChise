@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
-dotenv.config();
+dotenv.config({ path: ".env" });
+dotenv.config({ path: ".env.local", override: true });
 
 import {
   PrismaClient,
@@ -112,9 +113,9 @@ async function seedUsers() {
         create: { email: "alt28919@gmail.com", name: "Casey" },
       }),
       prisma.user.upsert({
-        where: { email: "alt28920@gmail.com" },
+        where: { email: process.env.E2E_TEST_USER_EMAIL ?? "ivan@example.test" },
         update: { name: "Riley" },
-        create: { email: "alt28920@gmail.com", name: "Riley" },
+        create: { email: process.env.E2E_TEST_USER_EMAIL ?? "ivan@example.test", name: "Riley" },
       }),
       prisma.user.upsert({
         where: { email: "alt28921@gmail.com" },
@@ -274,6 +275,7 @@ async function seedOrg1(users: Users) {
       { membershipId: mJordan.id, roleId: roleCounter.id },
       { membershipId: mCasey.id, roleId: roleWorker.id },
       { membershipId: mCasey.id, roleId: roleFryer.id },
+      { membershipId: mCasey.id, roleId: roleCounter.id },
       { membershipId: mRiley.id, roleId: roleWorker.id },
       { membershipId: mAlex.id, roleId: roleWorker.id },
       { membershipId: mAlex.id, roleId: roleFryer.id },
@@ -365,10 +367,9 @@ async function seedOrg1(users: Users) {
 
   await prisma.taskEligibility.createMany({
     data: [
-      ...[tOpen, tIceCream, tClose, tFry, tRestock, tQuality].map((t) => ({
-        taskId: t.id,
-        roleId: roleWorker.id,
-      })),
+      { taskId: tOpen.id, roleId: roleWorker.id },
+      { taskId: tIceCream.id, roleId: roleCounter.id },
+      { taskId: tClose.id, roleId: roleWorker.id },
       { taskId: tFry.id, roleId: roleFryer.id },
       { taskId: tRestock.id, roleId: roleCounter.id },
       { taskId: tQuality.id, roleId: roleFryer.id },
@@ -1114,10 +1115,9 @@ async function seedOrg2(users: Users) {
 
   await prisma.taskEligibility.createMany({
     data: [
-      ...[tOpen, tMachine, tClose, tMilk, tBeans, tClean].map((t) => ({
-        taskId: t.id,
-        roleId: roleBarista.id,
-      })),
+      { taskId: tOpen.id, roleId: roleBarista.id },
+      { taskId: tMachine.id, roleId: roleHeadBarista.id },
+      { taskId: tClose.id, roleId: roleBarista.id },
       { taskId: tMilk.id, roleId: roleKitchen.id },
       { taskId: tBeans.id, roleId: roleHeadBarista.id },
       { taskId: tClean.id, roleId: roleKitchen.id },
@@ -1873,10 +1873,9 @@ async function seedOrg3(users: Users) {
 
   await prisma.taskEligibility.createMany({
     data: [
-      ...[tPrep, tBread, tCleanup, tPastry, tWindow, tStock].map((t) => ({
-        taskId: t.id,
-        roleId: roleBaker.id,
-      })),
+      { taskId: tPrep.id, roleId: roleBaker.id },
+      { taskId: tBread.id, roleId: roleBaker.id },
+      { taskId: tCleanup.id, roleId: roleBaker.id },
       { taskId: tPastry.id, roleId: rolePastry.id },
       { taskId: tWindow.id, roleId: roleHeadBaker.id },
       { taskId: tStock.id, roleId: roleHeadBaker.id },
@@ -2204,10 +2203,18 @@ function confirm(): void {
     process.exit(1);
   }
 
+  const devIdentifiers = (process.env.SEED_DEV_IDENTIFIERS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   const isProduction = !(
     parsedUrl.hostname.includes("localhost") ||
     parsedUrl.hostname.includes("dev") ||
-    parsedUrl.username.includes("dev")
+    parsedUrl.username.includes("dev") ||
+    devIdentifiers.some(
+      (id) =>
+        parsedUrl.username.includes(id) || parsedUrl.hostname.includes(id),
+    )
   );
   const expected = isProduction ? "production" : "development";
   const arg = process.argv[2];
@@ -2269,8 +2276,9 @@ async function main() {
 }
 
 main()
-  .catch((e) => {
+  .catch(async (e) => {
     console.error("Seed failed:", e);
+    await prisma.$disconnect();
     process.exit(1);
   })
   .finally(() => prisma.$disconnect());

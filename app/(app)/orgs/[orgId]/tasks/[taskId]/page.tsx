@@ -15,6 +15,7 @@ import { getTaskById } from "@/lib/services/tasks";
 import { Toolbar } from "@/components/layout/toolbar";
 import { BackButton } from "@/components/layout/back-button";
 import { TaskViewActions } from "./task-view-actions";
+import { TaskDescription } from "./task-description";
 import { formatDate } from "@/lib/utils";
 
 function formatDuration(min: number): string {
@@ -131,8 +132,8 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
                 <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">
                   Description
                 </dt>
-                <dd className="text-sm whitespace-pre-wrap">
-                  {task.description}
+                <dd>
+                  <TaskDescription description={task.description} />
                 </dd>
               </div>
             )}

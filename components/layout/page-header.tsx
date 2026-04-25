@@ -166,7 +166,7 @@ export function PageHeader() {
   if (baseCrumbs.length === 0) return null;
 
   return (
-    <div className="sticky top-[var(--safe-header-height)] z-10 border-b bg-card px-6 py-2.5">
+    <div className="sticky top-(--safe-header-height) z-10 border-b bg-card px-6 py-2.5">
       <nav className="flex items-center gap-1 text-sm">
         {crumbs.map((crumb, i) => {
           const isLast = i === crumbs.length - 1;
@@ -188,6 +188,7 @@ export function PageHeader() {
                       ? "text-primary font-semibold text-[0.9rem]"
                       : "text-muted-foreground"
                   }
+                  {...(isLast ? { "aria-current": "page" } : {})}
                 >
                   {crumb.loading ? (
                     <span className="inline-block h-3.5 w-20 animate-pulse rounded bg-muted" />

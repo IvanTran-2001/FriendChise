@@ -9,7 +9,15 @@
     "lint": "eslint",
     "seed": "prisma db seed",
     "seed:dev": "tsx prisma/seed.ts development",
-    "seed:prod": "tsx prisma/seed.ts production"
+    "seed:prod": "tsx prisma/seed.ts production",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:services": "vitest run __tests__/unit/lib/services",
+    "test:validators": "vitest run __tests__/unit/lib/validators",
+    "test:actions": "vitest run __tests__/unit/app/actions",
+    "test:api": "vitest run __tests__/unit/app/api",
+    "test:e2e": "playwright test"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts development"
@@ -29,6 +37,8 @@
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "shadcn": "^4.0.8",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
@@ -36,11 +46,13 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.18.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.1.4",
     "autoprefixer": "^10.4.27",
     "dotenv": "^17.4.2",
     "eslint": "^9",
@@ -53,6 +65,8 @@
     "tailwindcss": "^4",
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.4"
   }
 }

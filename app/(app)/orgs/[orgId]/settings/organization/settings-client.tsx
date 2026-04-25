@@ -253,6 +253,7 @@ function DeleteOrgSection({
   return (
     <fieldset
       disabled={disabled}
+      data-testid="delete-org-section"
       className="rounded-lg border border-destructive/40 bg-destructive/5 shadow-sm p-6 space-y-4 disabled:opacity-50"
     >
       <h2 className="font-semibold text-sm text-destructive uppercase tracking-wide">
