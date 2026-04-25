@@ -32,7 +32,8 @@ export default defineConfig({
   ],
   webServer: {
     // TEST_MODE=1 enables the /api/test/login endpoint in the dev server
-    command: "TEST_MODE=1 pnpm dev",
+    command: "pnpm dev",
+    env: { TEST_MODE: "1" },
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

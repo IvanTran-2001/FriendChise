@@ -12,7 +12,8 @@ import { prisma } from "@/lib/prisma";
  * the webServer command). Never exposed in production.
  */
 export async function GET(request: Request) {
-  if (process.env.TEST_MODE !== "1") {
+  // Hard fail in production regardless of TEST_MODE — defense in depth.
+  if (process.env.NODE_ENV === "production" || process.env.TEST_MODE !== "1") {
     return new NextResponse(null, { status: 404 });
   }
 

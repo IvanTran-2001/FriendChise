@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
-dotenv.config({ path: ".env.local" });
+dotenv.config({ path: ".env" });
+dotenv.config({ path: ".env.local", override: true });
 
 import {
   PrismaClient,
@@ -2201,11 +2202,18 @@ function confirm(): void {
     process.exit(1);
   }
 
+  const devIdentifiers = (process.env.SEED_DEV_IDENTIFIERS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   const isProduction = !(
     parsedUrl.hostname.includes("localhost") ||
     parsedUrl.hostname.includes("dev") ||
     parsedUrl.username.includes("dev") ||
-    parsedUrl.username.includes("mwivbmygangszkcnikcn")
+    devIdentifiers.some(
+      (id) =>
+        parsedUrl.username.includes(id) || parsedUrl.hostname.includes(id),
+    )
   );
   const expected = isProduction ? "production" : "development";
   const arg = process.argv[2];
