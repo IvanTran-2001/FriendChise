@@ -7,7 +7,7 @@ import * as Sentry from "@sentry/nextjs";
 /**
  * Scrubs sensitive data from events before sending to Sentry
  */
-function beforeSend(event: Sentry.ErrorEvent, hint: Sentry.EventHint): Sentry.ErrorEvent | null {
+function beforeSend(event: Sentry.ErrorEvent, _hint: Sentry.EventHint): Sentry.ErrorEvent | null {
   // Scrub sensitive headers
   if (event.request?.headers) {
     delete event.request.headers.cookie;
