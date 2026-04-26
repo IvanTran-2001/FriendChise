@@ -120,9 +120,9 @@ export const NavBar = async () => {
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>{user.name ?? "Profile"}</DropdownMenuLabel>
-                <DropdownMenuLabel className="text-xs text-muted-foreground font-normal -mt-2 truncate">
+                <DropdownMenuLabel className="text-xs text-muted-foreground font-normal -mt-2 w-full truncate block">
                   {user.email}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
