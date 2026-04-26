@@ -56,9 +56,6 @@ importers:
       remark-gfm:
         specifier: ^4.0.1
         version: 4.0.1
-      shadcn:
-        specifier: ^4.0.8
-        version: 4.0.8(@types/node@20.19.37)(typescript@5.9.3)
       sonner:
         specifier: ^2.0.7
         version: 2.0.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -114,6 +111,9 @@ importers:
       prisma:
         specifier: ^7.4.2
         version: 7.4.2(@types/react@19.2.14)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
+      shadcn:
+        specifier: ^4.0.8
+        version: 4.0.8(@types/node@20.19.37)(typescript@5.9.3)
       stylelint:
         specifier: ^17.4.0
         version: 17.4.0(typescript@5.9.3)
