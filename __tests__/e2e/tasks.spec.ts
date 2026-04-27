@@ -132,13 +132,19 @@ test("delete task → removed from task list", async ({ page }) => {
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
 
   // Click Delete — opens AlertDialog
-  await page.getByTestId("task-actions").getByRole("button", { name: "Delete" }).click();
+  await page
+    .getByTestId("task-actions")
+    .getByRole("button", { name: "Delete" })
+    .click();
 
   // Wait for the AlertDialog animation to complete before interacting
   await expect(page.getByRole("alertdialog")).toBeVisible();
 
   // Confirm in the AlertDialog
-  await page.getByRole("alertdialog").getByRole("button", { name: /^delete$/i }).click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: /^delete$/i })
+    .click();
 
   // Should redirect to the tasks list
   await expect(page).toHaveURL(/\/orgs\/.+\/tasks$/);
@@ -182,7 +188,10 @@ test("edit task without title → stays on edit page, does not submit", async ({
   await searchTasks(page, taskTitle);
   await page.getByRole("cell", { name: taskTitle }).click();
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
-  await page.getByTestId("task-actions").getByRole("link", { name: /edit/i }).click();
+  await page
+    .getByTestId("task-actions")
+    .getByRole("link", { name: /edit/i })
+    .click();
   await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+\/edit$/);
 
   // Clear the title and attempt to save
@@ -213,7 +222,11 @@ test.skip("duplicate task → opens new task form with duplicateFrom param", asy
 
   // Open the ⋮ dropdown on the task row and click Duplicate
   await searchTasks(page, taskTitle);
-  await page.getByRole("row").filter({ hasText: taskTitle }).getByRole("button", { name: /task actions/i }).click();
+  await page
+    .getByRole("row")
+    .filter({ hasText: taskTitle })
+    .getByRole("button", { name: /task actions/i })
+    .click();
   await page.getByRole("menuitem", { name: /duplicate/i }).click();
 
   // Should land on the new task page with duplicateFrom in the URL
@@ -273,7 +286,10 @@ test("edit task to add role → role badge visible in task list", async ({
   await searchTasks(page, taskTitle);
   await page.getByRole("cell", { name: taskTitle }).click();
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
-  await page.getByTestId("task-actions").getByRole("link", { name: /edit/i }).click();
+  await page
+    .getByTestId("task-actions")
+    .getByRole("link", { name: /edit/i })
+    .click();
   await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+\/edit$/);
 
   // Add the role via the eligibility panel
@@ -314,7 +330,10 @@ test("edit task to remove role → role badge no longer visible in task list", a
   await searchTasks(page, taskTitle);
   await page.getByRole("cell", { name: taskTitle }).click();
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
-  await page.getByTestId("task-actions").getByRole("link", { name: /edit/i }).click();
+  await page
+    .getByTestId("task-actions")
+    .getByRole("link", { name: /edit/i })
+    .click();
   await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+\/edit$/);
 
   // Remove the role using its labelled remove button in the eligibility panel
@@ -351,7 +370,9 @@ test("search filter → only matching tasks visible", async ({ page }) => {
 
   // Matching task visible, non-matching task not visible
   await expect(page.getByRole("cell", { name: matchTitle })).toBeVisible();
-  await expect(page.getByRole("cell", { name: noMatchTitle })).not.toBeVisible();
+  await expect(
+    page.getByRole("cell", { name: noMatchTitle }),
+  ).not.toBeVisible();
 });
 
 test("role filter → only tasks with that role visible", async ({ page }) => {
@@ -385,7 +406,9 @@ test("role filter → only tasks with that role visible", async ({ page }) => {
 
   // Only the task with the role should be visible
   await expect(page.getByRole("cell", { name: taskWithRole })).toBeVisible();
-  await expect(page.getByRole("cell", { name: taskWithoutRole })).not.toBeVisible();
+  await expect(
+    page.getByRole("cell", { name: taskWithoutRole }),
+  ).not.toBeVisible();
 });
 
 test("task detail page → shows correct field values after create", async ({
@@ -419,12 +442,15 @@ test("task detail page → shows correct field values after create", async ({
   await expect(page.getByText("2 – 5 days")).toBeVisible();
   await expect(page.getByText(description)).toBeVisible();
   // People required: assert the value appears next to its label
-  await expect(page.locator("dt").filter({ hasText: /people required/i }).locator("+ dd")).toHaveText("3");
+  await expect(
+    page
+      .locator("dt")
+      .filter({ hasText: /people required/i })
+      .locator("+ dd"),
+  ).toHaveText("3");
 });
 
-test("task detail page → shows updated values after edit", async ({
-  page,
-}) => {
+test("task detail page → shows updated values after edit", async ({ page }) => {
   const orgId = await createOrg(page, `E2E Detail Edit Org ${Date.now()}`);
   const taskTitle = `E2E Detail Edit Task ${Date.now()}`;
   const updatedTitle = `E2E Detail Edited ${Date.now()}`;
@@ -444,7 +470,10 @@ test("task detail page → shows updated values after edit", async ({
   await searchTasks(page, taskTitle);
   await page.getByRole("cell", { name: taskTitle }).click();
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
-  await page.getByTestId("task-actions").getByRole("link", { name: /edit/i }).click();
+  await page
+    .getByTestId("task-actions")
+    .getByRole("link", { name: /edit/i })
+    .click();
   await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+\/edit$/);
 
   // Update fields

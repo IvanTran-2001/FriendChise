@@ -12,6 +12,7 @@ Production deployment: **[friendchise.app](https://friendchise.app)**
 ## Screenshots
 
 > _TODO: add screenshots / screen recording_
+
 <!-- Replace this comment with: ![Timetable view](docs/screenshots/timetable.png) etc. -->
 
 ## Tech Stack
@@ -353,32 +354,32 @@ Server Actions call `revalidatePath` to invalidate the Next.js cache so server-r
 
 ## Pages
 
-| Route                                            | Guard                                      | Description                                                                           |
-| ------------------------------------------------ | ------------------------------------------ | ------------------------------------------------------------------------------------- |
-| `/`                                              | Signed in                                  | Home                                                                                  |
-| `/signin`                                        | —                                          | Google OAuth sign-in                                                                  |
-| `/orgs/new`                                      | Signed in                                  | Create a new organization                                                             |
-| `/orgs/[orgId]`                                  | `requireOrgMemberPage`                     | Org overview                                                                          |
-| `/orgs/[orgId]/franchisee`                       | `requireParentOrgOwnerPage`                | Franchise management — invite tokens + franchisee list                                |
-| `/orgs/[orgId]/tasks`                            | `requireOrgMemberPage`                     | Task definition list — searchable/sortable table with role filter and per-row actions |
-| `/orgs/[orgId]/tasks/new`                        | `requireOrgPermissionPage MANAGE_TASKS`    | Create task — includes color picker                                                   |
-| `/orgs/[orgId]/tasks/[taskId]`                   | `requireOrgMemberPage`                     | Task detail view; clicking a task name in the timetable navigates here                |
-| `/orgs/[orgId]/tasks/[taskId]/edit`              | `requireOrgPermissionPage MANAGE_TASKS`    | Edit task — color picker pre-filled with current color                                |
-| `/orgs/[orgId]/memberships`                      | `requireOrgMemberPage`                     | Member list                                                                           |
-| `/orgs/[orgId]/memberships/new`                  | `requireOrgPermissionPage MANAGE_MEMBERS`  | Invite a new member by email                                                          |
-| `/orgs/[orgId]/memberships/[memberId]`           | `requireOrgMemberPage`                     | Member detail view — avatar, roles (multi-badge), working days, status, join date     |
-| `/orgs/[orgId]/memberships/[memberId]/edit`      | `requireOrgPermissionPage MANAGE_MEMBERS`  | Edit member — working days, roles (owner role excluded from picker)                   |
-| `/orgs/[orgId]/timetable`                        | `requireOrgMemberPage`                     | Timetable — calendar or simple mode, week navigation                                  |
+| Route                                            | Guard                                      | Description                                                                                         |
+| ------------------------------------------------ | ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `/`                                              | Signed in                                  | Home                                                                                                |
+| `/signin`                                        | —                                          | Google OAuth sign-in                                                                                |
+| `/orgs/new`                                      | Signed in                                  | Create a new organization                                                                           |
+| `/orgs/[orgId]`                                  | `requireOrgMemberPage`                     | Org overview                                                                                        |
+| `/orgs/[orgId]/franchisee`                       | `requireParentOrgOwnerPage`                | Franchise management — invite tokens + franchisee list                                              |
+| `/orgs/[orgId]/tasks`                            | `requireOrgMemberPage`                     | Task definition list — searchable/sortable table with role filter and per-row actions               |
+| `/orgs/[orgId]/tasks/new`                        | `requireOrgPermissionPage MANAGE_TASKS`    | Create task — includes color picker                                                                 |
+| `/orgs/[orgId]/tasks/[taskId]`                   | `requireOrgMemberPage`                     | Task detail view; clicking a task name in the timetable navigates here                              |
+| `/orgs/[orgId]/tasks/[taskId]/edit`              | `requireOrgPermissionPage MANAGE_TASKS`    | Edit task — color picker pre-filled with current color                                              |
+| `/orgs/[orgId]/memberships`                      | `requireOrgMemberPage`                     | Member list                                                                                         |
+| `/orgs/[orgId]/memberships/new`                  | `requireOrgPermissionPage MANAGE_MEMBERS`  | Invite a new member by email                                                                        |
+| `/orgs/[orgId]/memberships/[memberId]`           | `requireOrgMemberPage`                     | Member detail view — avatar, roles (multi-badge), working days, status, join date                   |
+| `/orgs/[orgId]/memberships/[memberId]/edit`      | `requireOrgPermissionPage MANAGE_MEMBERS`  | Edit member — working days, roles (owner role excluded from picker)                                 |
+| `/orgs/[orgId]/timetable`                        | `requireOrgMemberPage`                     | Timetable — calendar or simple mode, week navigation                                                |
 | `/orgs/[orgId]/timetable/templates`              | `requireOrgMemberPage`                     | Timetable template list — card or list view; MANAGE_TASKS holders can rename, duplicate, and delete |
-| `/orgs/[orgId]/timetable/templates/new`          | `requireOrgMemberPage`                     | Create a new timetable template                                                       |
-| `/orgs/[orgId]/timetable/templates/[templateId]` | `requireOrgMemberPage`                     | Template editor — Calendar (drag-and-drop grid) or Simple (day table) view; cycle-length controls |
-| `/orgs/[orgId]/settings`                         | —                                          | Redirects to `/settings/organization`                                                 |
-| `/orgs/[orgId]/settings/organization`            | `requireOrgPermissionPage MANAGE_SETTINGS` | Org info, timezone, hours, transfer, delete                                           |
-| `/orgs/[orgId]/settings/roles`                   | `requireOrgPermissionPage MANAGE_ROLES`    | Role list + delete custom roles                                                       |
-| `/orgs/[orgId]/settings/roles/new`               | `requireOrgPermissionPage MANAGE_ROLES`    | Create a new custom role (name, color, permissions, task eligibility)                 |
-| `/orgs/[orgId]/settings/roles/[roleId]/edit`     | `requireOrgPermissionPage MANAGE_ROLES`    | Edit a custom role                                                                    |
-| `/orgs/[orgId]/settings/timetable`               | —                                          | Timetable display settings (stub)                                                     |
-| `/orgs/[orgId]/settings/notification`            | —                                          | Notification preferences (stub)                                                       |
+| `/orgs/[orgId]/timetable/templates/new`          | `requireOrgMemberPage`                     | Create a new timetable template                                                                     |
+| `/orgs/[orgId]/timetable/templates/[templateId]` | `requireOrgMemberPage`                     | Template editor — Calendar (drag-and-drop grid) or Simple (day table) view; cycle-length controls   |
+| `/orgs/[orgId]/settings`                         | —                                          | Redirects to `/settings/organization`                                                               |
+| `/orgs/[orgId]/settings/organization`            | `requireOrgPermissionPage MANAGE_SETTINGS` | Org info, timezone, hours, transfer, delete                                                         |
+| `/orgs/[orgId]/settings/roles`                   | `requireOrgPermissionPage MANAGE_ROLES`    | Role list + delete custom roles                                                                     |
+| `/orgs/[orgId]/settings/roles/new`               | `requireOrgPermissionPage MANAGE_ROLES`    | Create a new custom role (name, color, permissions, task eligibility)                               |
+| `/orgs/[orgId]/settings/roles/[roleId]/edit`     | `requireOrgPermissionPage MANAGE_ROLES`    | Edit a custom role                                                                                  |
+| `/orgs/[orgId]/settings/timetable`               | —                                          | Timetable display settings (stub)                                                                   |
+| `/orgs/[orgId]/settings/notification`            | —                                          | Notification preferences (stub)                                                                     |
 
 All `/orgs/[orgId]/*` pages are guarded by at least `requireOrgMemberPage` — users not in the org are redirected.
 
@@ -507,6 +508,7 @@ pnpm test:e2e
 ```
 
 CI runs on every push/PR to `master` via GitHub Actions (`.github/workflows/ci.yml`):
+
 1. **check** job — type-check, lint, unit tests (no DB required)
 2. **e2e** job (needs `check`) — spins up a Postgres 16 service container, runs migrations + dev seed, then runs Playwright against the Next.js dev server
 
@@ -516,10 +518,10 @@ Playwright test state is saved to `playwright/.auth/` (gitignored). The `global.
 
 The `docs/` folder contains long-form documentation that doesn't belong in this README:
 
-| Path                               | Description                                                                                          |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `docs/v1/UAT.md`                   | User Acceptance Testing checklist for the v1 feature set                                             |
-| `docs/v1/v1-smoke-test/smoke-test-{1..4}.md` | Manual smoke test reports run against production                                         |
+| Path                                         | Description                                              |
+| -------------------------------------------- | -------------------------------------------------------- |
+| `docs/v1/UAT.md`                             | User Acceptance Testing checklist for the v1 feature set |
+| `docs/v1/v1-smoke-test/smoke-test-{1..4}.md` | Manual smoke test reports run against production         |
 
 ## Observability
 
@@ -534,12 +536,12 @@ Error monitoring and performance tracking is handled by **Sentry** via `@sentry/
 
 Sentry config files:
 
-| File                      | Purpose                                        |
-| ------------------------- | ---------------------------------------------- |
-| `sentry.server.config.ts` | Server-side init (tracing, logs, PII)          |
-| `sentry.edge.config.ts`   | Edge runtime init                              |
-| `instrumentation.ts`      | Next.js instrumentation hook (wires server/edge configs) |
-| `instrumentation-client.ts` | Client-side init (tracing, replay, logs)     |
+| File                        | Purpose                                                  |
+| --------------------------- | -------------------------------------------------------- |
+| `sentry.server.config.ts`   | Server-side init (tracing, logs, PII)                    |
+| `sentry.edge.config.ts`     | Edge runtime init                                        |
+| `instrumentation.ts`        | Next.js instrumentation hook (wires server/edge configs) |
+| `instrumentation-client.ts` | Client-side init (tracing, replay, logs)                 |
 
 Required env var for source map uploads:
 

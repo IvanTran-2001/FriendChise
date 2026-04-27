@@ -4,7 +4,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({
-  redirect: vi.fn(() => { throw new Error("NEXT_REDIRECT"); }),
+  redirect: vi.fn(() => {
+    throw new Error("NEXT_REDIRECT");
+  }),
 }));
 vi.mock("@/auth", () => ({
   auth: vi.fn(),
@@ -23,10 +25,7 @@ import {
   createOrg as createOrgService,
   joinFranchise as joinFranchiseService,
 } from "@/lib/services/orgs";
-import {
-  createOrg,
-  joinFranchise,
-} from "@/app/actions/orgs";
+import { createOrg, joinFranchise } from "@/app/actions/orgs";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -69,12 +68,17 @@ describe("createOrg", () => {
     const result = await createOrg({ title: "Acme Café" });
 
     expect(result).toEqual({ ok: true, orgId: "org-new" });
-    expect(createOrgService).toHaveBeenCalledWith("user-1", expect.objectContaining({ title: "Acme Café" }));
+    expect(createOrgService).toHaveBeenCalledWith(
+      "user-1",
+      expect.objectContaining({ title: "Acme Café" }),
+    );
   });
 
   it("revalidates the layout after successful create", async () => {
     mockSession("user-1");
-    vi.mocked(createOrgService).mockResolvedValue({ org: { id: "org-new" } } as any);
+    vi.mocked(createOrgService).mockResolvedValue({
+      org: { id: "org-new" },
+    } as any);
 
     await createOrg({ title: "Acme" });
 
@@ -83,7 +87,9 @@ describe("createOrg", () => {
 
   it("accepts valid schedule fields alongside title", async () => {
     mockSession("user-1");
-    vi.mocked(createOrgService).mockResolvedValue({ org: { id: "org-2" } } as any);
+    vi.mocked(createOrgService).mockResolvedValue({
+      org: { id: "org-2" },
+    } as any);
 
     const result = await createOrg({
       title: "Acme",
@@ -119,7 +125,9 @@ describe("joinFranchise", () => {
 
   it("calls joinFranchise service and returns orgId on success", async () => {
     mockSession("user-1", "alice@example.com");
-    vi.mocked(joinFranchiseService).mockResolvedValue({ org: { id: "child-org" } } as any);
+    vi.mocked(joinFranchiseService).mockResolvedValue({
+      org: { id: "child-org" },
+    } as any);
 
     const result = await joinFranchise({ token: "tok-valid" });
 
@@ -133,7 +141,9 @@ describe("joinFranchise", () => {
 
   it("returns error message when service throws", async () => {
     mockSession("user-1");
-    vi.mocked(joinFranchiseService).mockRejectedValue(new Error("Token has expired"));
+    vi.mocked(joinFranchiseService).mockRejectedValue(
+      new Error("Token has expired"),
+    );
 
     const result = await joinFranchise({ token: "tok-expired" });
 
@@ -151,7 +161,9 @@ describe("joinFranchise", () => {
 
   it("revalidates the layout after successful join", async () => {
     mockSession("user-1");
-    vi.mocked(joinFranchiseService).mockResolvedValue({ org: { id: "child-org" } } as any);
+    vi.mocked(joinFranchiseService).mockResolvedValue({
+      org: { id: "child-org" },
+    } as any);
 
     await joinFranchise({ token: "tok-valid" });
 

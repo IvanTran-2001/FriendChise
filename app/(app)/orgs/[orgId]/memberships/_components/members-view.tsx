@@ -167,7 +167,8 @@ export function MembersView({
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     return members.filter((m) => {
-      if (q && !(m.user?.name ?? m.botName ?? "").toLowerCase().includes(q)) return false;
+      if (q && !(m.user?.name ?? m.botName ?? "").toLowerCase().includes(q))
+        return false;
       if (
         roleFilter &&
         !m.memberRoles.some(({ role }) => role.id === roleFilter)
@@ -284,13 +285,19 @@ function CardGrid({
           >
             <Card className="items-center text-center transition-all group-hover:shadow-md group-hover:border-primary/20 cursor-pointer">
               <div className="pt-4 flex justify-center">
-                <Avatar name={m.user?.name ?? m.botName} image={m.user?.image ?? null} size="lg" />
+                <Avatar
+                  name={m.user?.name ?? m.botName}
+                  image={m.user?.image ?? null}
+                  size="lg"
+                />
               </div>
               <CardContent className="flex flex-col items-center gap-1.5 pb-4 pt-3">
                 <CardTitle className="text-sm leading-tight flex items-center gap-1.5">
                   {m.user?.name ?? m.botName ?? "Unnamed"}
                   {m.userId === null && (
-                    <span className="text-xs font-bold font-mono text-red-500 tracking-tight">[Bot]</span>
+                    <span className="text-xs font-bold font-mono text-red-500 tracking-tight">
+                      [Bot]
+                    </span>
                   )}
                 </CardTitle>
                 <RolesBadge roles={roles} />
@@ -344,12 +351,18 @@ function MemberList({
               href={`/orgs/${orgId}/memberships/${m.id}`}
               className="flex items-center gap-3 px-4 py-3 flex-1 min-w-0"
             >
-              <Avatar name={m.user?.name ?? m.botName} image={m.user?.image ?? null} size="sm" />
+              <Avatar
+                name={m.user?.name ?? m.botName}
+                image={m.user?.image ?? null}
+                size="sm"
+              />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate flex items-center gap-1.5">
                   {m.user?.name ?? m.botName ?? "Unnamed"}
                   {m.userId === null && (
-                    <span className="text-xs font-bold font-mono text-red-500 tracking-tight">[Bot]</span>
+                    <span className="text-xs font-bold font-mono text-red-500 tracking-tight">
+                      [Bot]
+                    </span>
                   )}
                 </p>
                 <RolesBadge roles={roles} />

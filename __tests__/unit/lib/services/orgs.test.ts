@@ -34,14 +34,18 @@ describe("createOrg", () => {
     const mockMembership = { id: "mem-1" };
 
     // Transaction runs its callback with the prisma mock as tx
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma));
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+      fn(prisma),
+    );
     vi.mocked(prisma.organization.create).mockResolvedValue(mockOrg as any);
     // bootstrapRoles creates two roles — mock to return ownerRole then memberRole
     vi.mocked(prisma.role.create)
       .mockResolvedValueOnce(mockOwnerRole as any)
       .mockResolvedValueOnce(mockMemberRole as any);
     vi.mocked(prisma.permission.createMany).mockResolvedValue({ count: 10 });
-    vi.mocked(prisma.membership.create).mockResolvedValue(mockMembership as any);
+    vi.mocked(prisma.membership.create).mockResolvedValue(
+      mockMembership as any,
+    );
     vi.mocked(prisma.memberRole.createMany).mockResolvedValue({ count: 2 });
 
     const result = await createOrg("user-1", input as any);
@@ -55,11 +59,21 @@ describe("createOrg", () => {
   });
 
   it("creates the org with the correct name and ownerId", async () => {
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma));
-    vi.mocked(prisma.organization.create).mockResolvedValue({ id: "org-1", name: "My Café" } as any);
-    vi.mocked(prisma.role.create).mockResolvedValue({ id: "role-1", key: "owner" } as any);
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+      fn(prisma),
+    );
+    vi.mocked(prisma.organization.create).mockResolvedValue({
+      id: "org-1",
+      name: "My Café",
+    } as any);
+    vi.mocked(prisma.role.create).mockResolvedValue({
+      id: "role-1",
+      key: "owner",
+    } as any);
     vi.mocked(prisma.permission.createMany).mockResolvedValue({ count: 1 });
-    vi.mocked(prisma.membership.create).mockResolvedValue({ id: "mem-1" } as any);
+    vi.mocked(prisma.membership.create).mockResolvedValue({
+      id: "mem-1",
+    } as any);
     vi.mocked(prisma.memberRole.createMany).mockResolvedValue({ count: 2 });
 
     await createOrg("user-1", input as any);
@@ -72,11 +86,20 @@ describe("createOrg", () => {
   });
 
   it("defaults timezone to Australia/Sydney when not supplied", async () => {
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma));
-    vi.mocked(prisma.organization.create).mockResolvedValue({ id: "org-1" } as any);
-    vi.mocked(prisma.role.create).mockResolvedValue({ id: "role-1", key: "owner" } as any);
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+      fn(prisma),
+    );
+    vi.mocked(prisma.organization.create).mockResolvedValue({
+      id: "org-1",
+    } as any);
+    vi.mocked(prisma.role.create).mockResolvedValue({
+      id: "role-1",
+      key: "owner",
+    } as any);
     vi.mocked(prisma.permission.createMany).mockResolvedValue({ count: 1 });
-    vi.mocked(prisma.membership.create).mockResolvedValue({ id: "mem-1" } as any);
+    vi.mocked(prisma.membership.create).mockResolvedValue({
+      id: "mem-1",
+    } as any);
     vi.mocked(prisma.memberRole.createMany).mockResolvedValue({ count: 2 });
 
     await createOrg("user-1", { title: "No TZ" } as any);
@@ -89,13 +112,22 @@ describe("createOrg", () => {
   });
 
   it("creates Owner and Default Member roles for the org", async () => {
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma));
-    vi.mocked(prisma.organization.create).mockResolvedValue({ id: "org-1" } as any);
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+      fn(prisma),
+    );
+    vi.mocked(prisma.organization.create).mockResolvedValue({
+      id: "org-1",
+    } as any);
     vi.mocked(prisma.role.create)
       .mockResolvedValueOnce({ id: "role-owner", key: "owner" } as any)
-      .mockResolvedValueOnce({ id: "role-member", key: "default_member" } as any);
+      .mockResolvedValueOnce({
+        id: "role-member",
+        key: "default_member",
+      } as any);
     vi.mocked(prisma.permission.createMany).mockResolvedValue({ count: 1 });
-    vi.mocked(prisma.membership.create).mockResolvedValue({ id: "mem-1" } as any);
+    vi.mocked(prisma.membership.create).mockResolvedValue({
+      id: "mem-1",
+    } as any);
     vi.mocked(prisma.memberRole.createMany).mockResolvedValue({ count: 2 });
 
     await createOrg("user-1", input as any);
@@ -104,13 +136,22 @@ describe("createOrg", () => {
   });
 
   it("assigns the creator membership to both Owner and Default Member roles", async () => {
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma));
-    vi.mocked(prisma.organization.create).mockResolvedValue({ id: "org-1" } as any);
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+      fn(prisma),
+    );
+    vi.mocked(prisma.organization.create).mockResolvedValue({
+      id: "org-1",
+    } as any);
     vi.mocked(prisma.role.create)
       .mockResolvedValueOnce({ id: "role-owner", key: "owner" } as any)
-      .mockResolvedValueOnce({ id: "role-member", key: "default_member" } as any);
+      .mockResolvedValueOnce({
+        id: "role-member",
+        key: "default_member",
+      } as any);
     vi.mocked(prisma.permission.createMany).mockResolvedValue({ count: 1 });
-    vi.mocked(prisma.membership.create).mockResolvedValue({ id: "mem-1" } as any);
+    vi.mocked(prisma.membership.create).mockResolvedValue({
+      id: "mem-1",
+    } as any);
     vi.mocked(prisma.memberRole.createMany).mockResolvedValue({ count: 2 });
 
     await createOrg("user-1", input as any);

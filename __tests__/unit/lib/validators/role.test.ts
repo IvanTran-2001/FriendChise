@@ -16,7 +16,10 @@ describe("roleFormSchema", () => {
   });
 
   it("accepts input without optional color", () => {
-    const result = roleFormSchema.safeParse({ ...validInput, color: undefined });
+    const result = roleFormSchema.safeParse({
+      ...validInput,
+      color: undefined,
+    });
     expect(result.success).toBe(true);
   });
 
@@ -41,28 +44,43 @@ describe("roleFormSchema", () => {
   });
 
   it("rejects name longer than 50 characters", () => {
-    const result = roleFormSchema.safeParse({ ...validInput, name: "A".repeat(51) });
+    const result = roleFormSchema.safeParse({
+      ...validInput,
+      name: "A".repeat(51),
+    });
     expect(result.success).toBe(false);
   });
 
   it("accepts name of exactly 50 characters", () => {
-    const result = roleFormSchema.safeParse({ ...validInput, name: "A".repeat(50) });
+    const result = roleFormSchema.safeParse({
+      ...validInput,
+      name: "A".repeat(50),
+    });
     expect(result.success).toBe(true);
   });
 
   it("trims whitespace from name", () => {
-    const result = roleFormSchema.safeParse({ ...validInput, name: "  Manager  " });
+    const result = roleFormSchema.safeParse({
+      ...validInput,
+      name: "  Manager  ",
+    });
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.name).toBe("Manager");
   });
 
   it("accepts a valid 6-digit hex color", () => {
-    const result = roleFormSchema.safeParse({ ...validInput, color: "#a1b2c3" });
+    const result = roleFormSchema.safeParse({
+      ...validInput,
+      color: "#a1b2c3",
+    });
     expect(result.success).toBe(true);
   });
 
   it("accepts uppercase hex color", () => {
-    const result = roleFormSchema.safeParse({ ...validInput, color: "#A1B2C3" });
+    const result = roleFormSchema.safeParse({
+      ...validInput,
+      color: "#A1B2C3",
+    });
     expect(result.success).toBe(true);
   });
 
@@ -77,7 +95,10 @@ describe("roleFormSchema", () => {
   });
 
   it("rejects color with invalid characters", () => {
-    const result = roleFormSchema.safeParse({ ...validInput, color: "#GGGGGG" });
+    const result = roleFormSchema.safeParse({
+      ...validInput,
+      color: "#GGGGGG",
+    });
     expect(result.success).toBe(false);
   });
 

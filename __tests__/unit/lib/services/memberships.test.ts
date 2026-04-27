@@ -63,8 +63,12 @@ describe("createMembership", () => {
   it("creates membership and returns ok: true with the new membership", async () => {
     vi.mocked(prisma.role.findFirst).mockResolvedValue({ id: "role-1" } as any);
     vi.mocked(prisma.user.findFirst).mockResolvedValue({ id: "user-1" } as any);
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma));
-    vi.mocked(prisma.membership.create).mockResolvedValue(mockMembership as any);
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+      fn(prisma),
+    );
+    vi.mocked(prisma.membership.create).mockResolvedValue(
+      mockMembership as any,
+    );
     vi.mocked(prisma.memberRole.create).mockResolvedValue({} as any);
 
     const result = await createMembership("org-1", input);
@@ -147,9 +151,15 @@ describe("createMembership", () => {
 
 describe("deleteMembership", () => {
   it("deletes membership and returns ok: true", async () => {
-    vi.mocked(prisma.membership.findUnique).mockResolvedValue({ userId: "user-1" } as any);
-    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ownerId: "owner-user" } as any);
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma));
+    vi.mocked(prisma.membership.findUnique).mockResolvedValue({
+      userId: "user-1",
+    } as any);
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({
+      ownerId: "owner-user",
+    } as any);
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+      fn(prisma),
+    );
     vi.mocked(prisma.membership.delete).mockResolvedValue({} as any);
 
     const result = await deleteMembership("org-1", "mem-1");
@@ -171,7 +181,9 @@ describe("deleteMembership", () => {
   });
 
   it("returns NOT_FOUND when org does not exist", async () => {
-    vi.mocked(prisma.membership.findUnique).mockResolvedValue({ userId: "user-1" } as any);
+    vi.mocked(prisma.membership.findUnique).mockResolvedValue({
+      userId: "user-1",
+    } as any);
     vi.mocked(prisma.organization.findUnique).mockResolvedValue(null);
 
     const result = await deleteMembership("org-1", "mem-1");
@@ -184,8 +196,12 @@ describe("deleteMembership", () => {
   });
 
   it("returns INVALID when trying to remove the org owner", async () => {
-    vi.mocked(prisma.membership.findUnique).mockResolvedValue({ userId: "owner-user" } as any);
-    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ownerId: "owner-user" } as any);
+    vi.mocked(prisma.membership.findUnique).mockResolvedValue({
+      userId: "owner-user",
+    } as any);
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({
+      ownerId: "owner-user",
+    } as any);
 
     const result = await deleteMembership("org-1", "mem-owner");
 
@@ -253,13 +269,15 @@ describe("updateMembership", () => {
   const updateData = { workingDays: ["MON", "TUE"], roleIds: ["role-1"] };
 
   it("updates working days and roles, returns ok: true", async () => {
-    vi.mocked(prisma.membership.findUnique).mockResolvedValue(
-      { id: "mem-1" } as any,
-    );
+    vi.mocked(prisma.membership.findUnique).mockResolvedValue({
+      id: "mem-1",
+    } as any);
     vi.mocked(prisma.role.findMany).mockResolvedValue([
       { id: "role-1", key: "manager" },
     ] as any);
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma));
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+      fn(prisma),
+    );
     vi.mocked(prisma.membership.update).mockResolvedValue({} as any);
     vi.mocked(prisma.memberRole.deleteMany).mockResolvedValue({ count: 1 });
     vi.mocked(prisma.memberRole.create).mockResolvedValue({} as any);
@@ -282,9 +300,9 @@ describe("updateMembership", () => {
   });
 
   it("returns INVALID when roleIds is empty", async () => {
-    vi.mocked(prisma.membership.findUnique).mockResolvedValue(
-      { id: "mem-1" } as any,
-    );
+    vi.mocked(prisma.membership.findUnique).mockResolvedValue({
+      id: "mem-1",
+    } as any);
 
     const result = await updateMembership("org-1", "user-1", {
       workingDays: [],
@@ -299,9 +317,9 @@ describe("updateMembership", () => {
   });
 
   it("returns INVALID when a roleId does not belong to the org", async () => {
-    vi.mocked(prisma.membership.findUnique).mockResolvedValue(
-      { id: "mem-1" } as any,
-    );
+    vi.mocked(prisma.membership.findUnique).mockResolvedValue({
+      id: "mem-1",
+    } as any);
     // Only 0 of 1 requested roles found in this org
     vi.mocked(prisma.role.findMany).mockResolvedValue([]);
 
@@ -318,9 +336,9 @@ describe("updateMembership", () => {
   });
 
   it("returns INVALID when trying to assign the owner role", async () => {
-    vi.mocked(prisma.membership.findUnique).mockResolvedValue(
-      { id: "mem-1" } as any,
-    );
+    vi.mocked(prisma.membership.findUnique).mockResolvedValue({
+      id: "mem-1",
+    } as any);
     vi.mocked(prisma.role.findMany).mockResolvedValue([
       { id: "role-owner", key: "owner" },
     ] as any);
@@ -342,7 +360,9 @@ describe("updateMembership", () => {
 
 describe("setMembershipStatus", () => {
   it("returns ok: true on successful status update", async () => {
-    vi.mocked(prisma.membership.findUnique).mockResolvedValue({ id: "mem-1" } as any);
+    vi.mocked(prisma.membership.findUnique).mockResolvedValue({
+      id: "mem-1",
+    } as any);
     vi.mocked(prisma.membership.update).mockResolvedValue({} as any);
 
     const result = await setMembershipStatus("org-1", "mem-1", "RESTRICTED");

@@ -49,3 +49,7 @@ next-env.d.ts
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# test artifacts
+test_output.log
+*.log

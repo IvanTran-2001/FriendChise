@@ -25,10 +25,20 @@ beforeEach(() => vi.clearAllMocks());
 
 describe("createAssignee", () => {
   it("creates and returns the assignee when both entry and membership exist", async () => {
-    const assignee = { id: "asn-1", timetableEntryId: "entry-1", membershipId: "mem-1" };
-    vi.mocked(prisma.timetableEntry.findFirst).mockResolvedValue({ id: "entry-1" } as any);
-    vi.mocked(prisma.membership.findFirst).mockResolvedValue({ id: "mem-1" } as any);
-    vi.mocked(prisma.timetableEntryAssignee.create).mockResolvedValue(assignee as any);
+    const assignee = {
+      id: "asn-1",
+      timetableEntryId: "entry-1",
+      membershipId: "mem-1",
+    };
+    vi.mocked(prisma.timetableEntry.findFirst).mockResolvedValue({
+      id: "entry-1",
+    } as any);
+    vi.mocked(prisma.membership.findFirst).mockResolvedValue({
+      id: "mem-1",
+    } as any);
+    vi.mocked(prisma.timetableEntryAssignee.create).mockResolvedValue(
+      assignee as any,
+    );
 
     const result = await createAssignee("org-1", "entry-1", "mem-1");
 
@@ -53,7 +63,9 @@ describe("createAssignee", () => {
   });
 
   it("returns NOT_FOUND when membership does not belong to org", async () => {
-    vi.mocked(prisma.timetableEntry.findFirst).mockResolvedValue({ id: "entry-1" } as any);
+    vi.mocked(prisma.timetableEntry.findFirst).mockResolvedValue({
+      id: "entry-1",
+    } as any);
     vi.mocked(prisma.membership.findFirst).mockResolvedValue(null);
 
     const result = await createAssignee("org-1", "entry-1", "bad-mem");
@@ -67,8 +79,12 @@ describe("createAssignee", () => {
   });
 
   it("returns CONFLICT on duplicate assignee (P2002)", async () => {
-    vi.mocked(prisma.timetableEntry.findFirst).mockResolvedValue({ id: "entry-1" } as any);
-    vi.mocked(prisma.membership.findFirst).mockResolvedValue({ id: "mem-1" } as any);
+    vi.mocked(prisma.timetableEntry.findFirst).mockResolvedValue({
+      id: "entry-1",
+    } as any);
+    vi.mocked(prisma.membership.findFirst).mockResolvedValue({
+      id: "mem-1",
+    } as any);
     const err = new Prisma.PrismaClientKnownRequestError("Unique constraint", {
       code: "P2002",
       clientVersion: "5.0.0",
@@ -86,11 +102,19 @@ describe("createAssignee", () => {
   });
 
   it("re-throws unexpected errors", async () => {
-    vi.mocked(prisma.timetableEntry.findFirst).mockResolvedValue({ id: "entry-1" } as any);
-    vi.mocked(prisma.membership.findFirst).mockResolvedValue({ id: "mem-1" } as any);
-    vi.mocked(prisma.timetableEntryAssignee.create).mockRejectedValue(new Error("DB down"));
+    vi.mocked(prisma.timetableEntry.findFirst).mockResolvedValue({
+      id: "entry-1",
+    } as any);
+    vi.mocked(prisma.membership.findFirst).mockResolvedValue({
+      id: "mem-1",
+    } as any);
+    vi.mocked(prisma.timetableEntryAssignee.create).mockRejectedValue(
+      new Error("DB down"),
+    );
 
-    await expect(createAssignee("org-1", "entry-1", "mem-1")).rejects.toThrow("DB down");
+    await expect(createAssignee("org-1", "entry-1", "mem-1")).rejects.toThrow(
+      "DB down",
+    );
   });
 });
 
@@ -98,8 +122,12 @@ describe("createAssignee", () => {
 
 describe("deleteAssignee", () => {
   it("deletes the assignee and returns ok: true", async () => {
-    vi.mocked(prisma.timetableEntryAssignee.findFirst).mockResolvedValue({ id: "asn-1" } as any);
-    vi.mocked(prisma.timetableEntryAssignee.delete).mockResolvedValue({} as any);
+    vi.mocked(prisma.timetableEntryAssignee.findFirst).mockResolvedValue({
+      id: "asn-1",
+    } as any);
+    vi.mocked(prisma.timetableEntryAssignee.delete).mockResolvedValue(
+      {} as any,
+    );
 
     const result = await deleteAssignee("org-1", "entry-1", "mem-1");
 

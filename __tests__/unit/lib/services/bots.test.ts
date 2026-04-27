@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { createBot, deleteBot, memberToBot, updateBot } from "@/lib/services/bots";
+import {
+  createBot,
+  deleteBot,
+  memberToBot,
+  updateBot,
+} from "@/lib/services/bots";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -45,11 +50,19 @@ beforeEach(() => vi.clearAllMocks());
 
 describe("createBot", () => {
   it("creates a bot membership and returns ok: true with data", async () => {
-    vi.mocked(prisma.role.findMany).mockResolvedValue([{ id: "role-1", key: "manager" }] as any);
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma));
-    vi.mocked(prisma.membership.create).mockResolvedValue({ id: "mem-bot" } as any);
+    vi.mocked(prisma.role.findMany).mockResolvedValue([
+      { id: "role-1", key: "manager" },
+    ] as any);
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+      fn(prisma),
+    );
+    vi.mocked(prisma.membership.create).mockResolvedValue({
+      id: "mem-bot",
+    } as any);
     vi.mocked(prisma.memberRole.create).mockResolvedValue({} as any);
-    vi.mocked(prisma.membership.findUniqueOrThrow).mockResolvedValue(mockBot as any);
+    vi.mocked(prisma.membership.findUniqueOrThrow).mockResolvedValue(
+      mockBot as any,
+    );
 
     const result = await createBot("org-1", {
       botName: "Bot Alice",
@@ -60,7 +73,11 @@ describe("createBot", () => {
     expect(result).toEqual({ ok: true, data: mockBot });
     expect(prisma.membership.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ orgId: "org-1", userId: null, botName: "Bot Alice" }),
+        data: expect.objectContaining({
+          orgId: "org-1",
+          userId: null,
+          botName: "Bot Alice",
+        }),
       }),
     );
   });
@@ -79,7 +96,10 @@ describe("createBot", () => {
   it("returns INVALID when a roleId does not belong to the org", async () => {
     vi.mocked(prisma.role.findMany).mockResolvedValue([]);
 
-    const result = await createBot("org-1", { botName: "Bot", roleIds: ["role-bad"] });
+    const result = await createBot("org-1", {
+      botName: "Bot",
+      roleIds: ["role-bad"],
+    });
 
     expect(result).toEqual({
       ok: false,
@@ -89,9 +109,14 @@ describe("createBot", () => {
   });
 
   it("returns INVALID when attempting to assign the owner role", async () => {
-    vi.mocked(prisma.role.findMany).mockResolvedValue([{ id: "role-owner", key: "owner" }] as any);
+    vi.mocked(prisma.role.findMany).mockResolvedValue([
+      { id: "role-owner", key: "owner" },
+    ] as any);
 
-    const result = await createBot("org-1", { botName: "Bot", roleIds: ["role-owner"] });
+    const result = await createBot("org-1", {
+      botName: "Bot",
+      roleIds: ["role-owner"],
+    });
 
     expect(result).toEqual({
       ok: false,
@@ -101,11 +126,19 @@ describe("createBot", () => {
   });
 
   it("creates membership with empty workingDays when not supplied", async () => {
-    vi.mocked(prisma.role.findMany).mockResolvedValue([{ id: "role-1", key: "manager" }] as any);
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma));
-    vi.mocked(prisma.membership.create).mockResolvedValue({ id: "mem-bot" } as any);
+    vi.mocked(prisma.role.findMany).mockResolvedValue([
+      { id: "role-1", key: "manager" },
+    ] as any);
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+      fn(prisma),
+    );
+    vi.mocked(prisma.membership.create).mockResolvedValue({
+      id: "mem-bot",
+    } as any);
     vi.mocked(prisma.memberRole.create).mockResolvedValue({} as any);
-    vi.mocked(prisma.membership.findUniqueOrThrow).mockResolvedValue(mockBot as any);
+    vi.mocked(prisma.membership.findUniqueOrThrow).mockResolvedValue(
+      mockBot as any,
+    );
 
     await createBot("org-1", { botName: "Bot", roleIds: ["role-1"] });
 
@@ -138,7 +171,11 @@ describe("deleteBot", () => {
 
     const result = await deleteBot("org-1", "mem-bad");
 
-    expect(result).toEqual({ ok: false, error: "Bot not found", code: "NOT_FOUND" });
+    expect(result).toEqual({
+      ok: false,
+      error: "Bot not found",
+      code: "NOT_FOUND",
+    });
   });
 
   it("returns NOT_FOUND when membership belongs to a different org", async () => {
@@ -150,7 +187,11 @@ describe("deleteBot", () => {
 
     const result = await deleteBot("org-1", "mem-bot");
 
-    expect(result).toEqual({ ok: false, error: "Bot not found", code: "NOT_FOUND" });
+    expect(result).toEqual({
+      ok: false,
+      error: "Bot not found",
+      code: "NOT_FOUND",
+    });
   });
 
   it("returns INVALID when membership belongs to a real user", async () => {
@@ -189,7 +230,9 @@ describe("deleteBot", () => {
         data: expect.objectContaining({ status: "DECLINED" }),
       }),
     );
-    expect(prisma.membership.delete).toHaveBeenCalledWith({ where: { id: "mem-bot" } });
+    expect(prisma.membership.delete).toHaveBeenCalledWith({
+      where: { id: "mem-bot" },
+    });
   });
 });
 
@@ -204,13 +247,20 @@ describe("memberToBot", () => {
   };
 
   beforeEach(() => {
-    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ownerId: "owner-99" } as any);
-    vi.mocked(prisma.membership.findUnique).mockResolvedValue(realMembership as any);
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({
+      ownerId: "owner-99",
+    } as any);
+    vi.mocked(prisma.membership.findUnique).mockResolvedValue(
+      realMembership as any,
+    );
     vi.mocked(prisma.membership.update).mockResolvedValue(mockBot as any);
   });
 
   it("converts a real membership to a bot and returns ok: true", async () => {
-    const result = await memberToBot("org-1", { membershipId: "mem-1", overrideName: undefined });
+    const result = await memberToBot("org-1", {
+      membershipId: "mem-1",
+      overrideName: undefined,
+    });
 
     expect(result).toEqual({ ok: true, data: mockBot });
     expect(prisma.membership.update).toHaveBeenCalledWith(
@@ -221,7 +271,10 @@ describe("memberToBot", () => {
   });
 
   it("uses the overrideName when provided", async () => {
-    await memberToBot("org-1", { membershipId: "mem-1", overrideName: "Custom Bot Name" });
+    await memberToBot("org-1", {
+      membershipId: "mem-1",
+      overrideName: "Custom Bot Name",
+    });
 
     expect(prisma.membership.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -231,7 +284,10 @@ describe("memberToBot", () => {
   });
 
   it("falls back to user name when no overrideName", async () => {
-    await memberToBot("org-1", { membershipId: "mem-1", overrideName: undefined });
+    await memberToBot("org-1", {
+      membershipId: "mem-1",
+      overrideName: undefined,
+    });
 
     expect(prisma.membership.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -243,17 +299,31 @@ describe("memberToBot", () => {
   it("returns NOT_FOUND when org does not exist", async () => {
     vi.mocked(prisma.organization.findUnique).mockResolvedValue(null);
 
-    const result = await memberToBot("org-bad", { membershipId: "mem-1", overrideName: undefined });
+    const result = await memberToBot("org-bad", {
+      membershipId: "mem-1",
+      overrideName: undefined,
+    });
 
-    expect(result).toEqual({ ok: false, error: "Org not found", code: "NOT_FOUND" });
+    expect(result).toEqual({
+      ok: false,
+      error: "Org not found",
+      code: "NOT_FOUND",
+    });
   });
 
   it("returns NOT_FOUND when membership does not exist", async () => {
     vi.mocked(prisma.membership.findUnique).mockResolvedValue(null);
 
-    const result = await memberToBot("org-1", { membershipId: "mem-bad", overrideName: undefined });
+    const result = await memberToBot("org-1", {
+      membershipId: "mem-bad",
+      overrideName: undefined,
+    });
 
-    expect(result).toEqual({ ok: false, error: "Membership not found", code: "NOT_FOUND" });
+    expect(result).toEqual({
+      ok: false,
+      error: "Membership not found",
+      code: "NOT_FOUND",
+    });
   });
 
   it("returns INVALID when membership is already a bot", async () => {
@@ -262,7 +332,10 @@ describe("memberToBot", () => {
       userId: null,
     } as any);
 
-    const result = await memberToBot("org-1", { membershipId: "mem-1", overrideName: undefined });
+    const result = await memberToBot("org-1", {
+      membershipId: "mem-1",
+      overrideName: undefined,
+    });
 
     expect(result).toEqual({
       ok: false,
@@ -272,9 +345,14 @@ describe("memberToBot", () => {
   });
 
   it("returns INVALID when trying to convert the org owner", async () => {
-    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ownerId: "user-1" } as any);
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({
+      ownerId: "user-1",
+    } as any);
 
-    const result = await memberToBot("org-1", { membershipId: "mem-1", overrideName: undefined });
+    const result = await memberToBot("org-1", {
+      membershipId: "mem-1",
+      overrideName: undefined,
+    });
 
     expect(result).toEqual({
       ok: false,
@@ -287,15 +365,23 @@ describe("memberToBot", () => {
 // ─── updateBot ────────────────────────────────────────────────────────────────
 
 describe("updateBot", () => {
-  const updateData = { botName: "Updated Bot", workingDays: ["tue" as const], roleIds: ["role-1"] };
+  const updateData = {
+    botName: "Updated Bot",
+    workingDays: ["tue" as const],
+    roleIds: ["role-1"],
+  };
 
   beforeEach(() => {
     vi.mocked(prisma.membership.findUnique).mockResolvedValue({
       id: "mem-bot",
       userId: null,
     } as any);
-    vi.mocked(prisma.role.findMany).mockResolvedValue([{ id: "role-1", key: "manager" }] as any);
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma));
+    vi.mocked(prisma.role.findMany).mockResolvedValue([
+      { id: "role-1", key: "manager" },
+    ] as any);
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+      fn(prisma),
+    );
     vi.mocked(prisma.membership.update).mockResolvedValue({} as any);
     vi.mocked(prisma.memberRole.deleteMany).mockResolvedValue({ count: 0 });
     vi.mocked(prisma.memberRole.create).mockResolvedValue({} as any);
@@ -307,7 +393,10 @@ describe("updateBot", () => {
     expect(result).toEqual({ ok: true, data: null });
     expect(prisma.membership.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ botName: "Updated Bot", workingDays: ["tue"] }),
+        data: expect.objectContaining({
+          botName: "Updated Bot",
+          workingDays: ["tue"],
+        }),
       }),
     );
   });
@@ -317,7 +406,11 @@ describe("updateBot", () => {
 
     const result = await updateBot("org-1", "mem-bad", updateData);
 
-    expect(result).toEqual({ ok: false, error: "Bot not found", code: "NOT_FOUND" });
+    expect(result).toEqual({
+      ok: false,
+      error: "Bot not found",
+      code: "NOT_FOUND",
+    });
   });
 
   it("returns INVALID when membership belongs to a real user", async () => {
@@ -340,11 +433,17 @@ describe("updateBot", () => {
 
     const result = await updateBot("org-1", "mem-bot", updateData);
 
-    expect(result).toEqual({ ok: false, error: "One or more roles not found", code: "INVALID" });
+    expect(result).toEqual({
+      ok: false,
+      error: "One or more roles not found",
+      code: "INVALID",
+    });
   });
 
   it("returns INVALID when trying to assign the owner role", async () => {
-    vi.mocked(prisma.role.findMany).mockResolvedValue([{ id: "role-1", key: "owner" }] as any);
+    vi.mocked(prisma.role.findMany).mockResolvedValue([
+      { id: "role-1", key: "owner" },
+    ] as any);
 
     const result = await updateBot("org-1", "mem-bot", updateData);
 
@@ -358,9 +457,13 @@ describe("updateBot", () => {
   it("replaces all member roles atomically", async () => {
     await updateBot("org-1", "mem-bot", updateData);
 
-    expect(prisma.memberRole.deleteMany).toHaveBeenCalledWith({ where: { membershipId: "mem-bot" } });
+    expect(prisma.memberRole.deleteMany).toHaveBeenCalledWith({
+      where: { membershipId: "mem-bot" },
+    });
     expect(prisma.memberRole.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ roleId: "role-1" }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ roleId: "role-1" }),
+      }),
     );
   });
 });

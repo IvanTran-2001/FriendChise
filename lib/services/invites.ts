@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/nextjs";
+import { log } from "@/lib/observability";
 import { InviteType } from "@prisma/client";
 import { ROLE_KEYS } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
@@ -170,10 +170,21 @@ export async function createMemberInvite(
       select: { id: true, userId: true },
     });
     if (!botMembership)
-      return { ok: false, error: "Bot membership not found", code: "NOT_FOUND" };
+      return {
+        ok: false,
+        error: "Bot membership not found",
+        code: "NOT_FOUND",
+      };
     if (botMembership.userId !== null) {
-      Sentry.logger.warn("Conflict: bot membership slot already occupied", { orgId, botMembershipId });
-      return { ok: false, error: "Membership slot is already occupied by a real user", code: "CONFLICT" };
+      log.warn("Conflict: bot membership slot already occupied", {
+        orgId,
+        botMembershipId,
+      });
+      return {
+        ok: false,
+        error: "Membership slot is already occupied by a real user",
+        code: "CONFLICT",
+      };
     }
   }
 
@@ -181,7 +192,10 @@ export async function createMemberInvite(
     where: { userId_orgId: { userId: recipientId, orgId } },
   });
   if (existingMembership) {
-    Sentry.logger.warn("Conflict: user already a member", { orgId, recipientId });
+    log.warn("Conflict: user already a member", {
+      orgId,
+      recipientId,
+    });
     return {
       ok: false,
       error: "This user is already a member",
@@ -193,7 +207,10 @@ export async function createMemberInvite(
     where: { orgId, recipientId, type: InviteType.MEMBER, status: "PENDING" },
   });
   if (existingInvite) {
-    Sentry.logger.warn("Conflict: pending invite already exists", { orgId, recipientId });
+    log.warn("Conflict: pending invite already exists", {
+      orgId,
+      recipientId,
+    });
     return {
       ok: false,
       error: "This user already has a pending invite",
@@ -210,7 +227,11 @@ export async function createMemberInvite(
         type: InviteType.MEMBER,
         orgName: org.name,
         inviterName: inviter?.name ?? null,
-        metadata: { roleIds, workingDays, ...(botMembershipId ? { botMembershipId } : {}) },
+        metadata: {
+          roleIds,
+          workingDays,
+          ...(botMembershipId ? { botMembershipId } : {}),
+        },
       },
     });
   } catch (e) {
@@ -228,7 +249,11 @@ export async function createMemberInvite(
     throw e;
   }
 
-  Sentry.logger.info("Member invite created", { orgId, invitedById, recipientId });
+  log.info("Member invite created", {
+    orgId,
+    invitedById,
+    recipientId,
+  });
   return { ok: true, data: null };
 }
 
@@ -249,13 +274,23 @@ export async function acceptMemberInvite(
   )
     return { ok: false, error: "Invite not found", code: "NOT_FOUND" };
   if (invite.status !== "PENDING") {
-    Sentry.logger.warn("Conflict: invite no longer pending", { inviteId, userId });
-    return { ok: false, error: "This invite is no longer pending", code: "CONFLICT" };
+    log.warn("Conflict: invite no longer pending", {
+      inviteId,
+      userId,
+    });
+    return {
+      ok: false,
+      error: "This invite is no longer pending",
+      code: "CONFLICT",
+    };
   }
   if (invite.expiresAt && invite.expiresAt < new Date())
     return { ok: false, error: "This invite has expired", code: "INVALID" };
 
-  const meta = invite.metadata as { roleIds?: string[]; workingDays?: string[] } | null;
+  const meta = invite.metadata as {
+    roleIds?: string[];
+    workingDays?: string[];
+  } | null;
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -276,7 +311,11 @@ export async function acceptMemberInvite(
 
       const m = await tx.membership.upsert({
         where: { userId_orgId: { userId, orgId: invite.orgId } },
-        create: { orgId: invite.orgId, userId, workingDays: meta?.workingDays ?? [] },
+        create: {
+          orgId: invite.orgId,
+          userId,
+          workingDays: meta?.workingDays ?? [],
+        },
         update: {},
       });
 
@@ -289,21 +328,39 @@ export async function acceptMemberInvite(
     });
   } catch (e) {
     if (e instanceof Error && e.message === "ALREADY_HANDLED") {
-      Sentry.logger.warn("Conflict: member invite already handled", { inviteId, userId });
-      return { ok: false, error: "This invite has already been handled", code: "CONFLICT" };
+      log.warn("Conflict: member invite already handled", {
+        inviteId,
+        userId,
+      });
+      return {
+        ok: false,
+        error: "This invite has already been handled",
+        code: "CONFLICT",
+      };
     }
     if (e && typeof e === "object" && "code" in e) {
       const prismaCode = (e as { code?: string }).code;
       if (prismaCode === "P2002" || prismaCode === "P2003") {
-        Sentry.logger.warn("Conflict: membership or role DB conflict", { inviteId, userId });
-        return { ok: false, error: "Membership or role conflict", code: "CONFLICT" };
+        log.warn("Conflict: membership or role DB conflict", {
+          inviteId,
+          userId,
+        });
+        return {
+          ok: false,
+          error: "Membership or role conflict",
+          code: "CONFLICT",
+        };
       }
     }
     throw e;
   }
 
   await notifyInviteAccepted(invite, userId);
-  Sentry.logger.info("Member invite accepted", { inviteId, userId, orgId: invite.orgId });
+  log.info("Member invite accepted", {
+    inviteId,
+    userId,
+    orgId: invite.orgId,
+  });
   return { ok: true, data: null };
 }
 
@@ -324,8 +381,15 @@ export async function acceptBotSlotInvite(
   )
     return { ok: false, error: "Invite not found", code: "NOT_FOUND" };
   if (invite.status !== "PENDING") {
-    Sentry.logger.warn("Conflict: bot-slot invite no longer pending", { inviteId, userId });
-    return { ok: false, error: "This invite is no longer pending", code: "CONFLICT" };
+    log.warn("Conflict: bot-slot invite no longer pending", {
+      inviteId,
+      userId,
+    });
+    return {
+      ok: false,
+      error: "This invite is no longer pending",
+      code: "CONFLICT",
+    };
   }
   if (invite.expiresAt && invite.expiresAt < new Date())
     return { ok: false, error: "This invite has expired", code: "INVALID" };
@@ -373,26 +437,48 @@ export async function acceptBotSlotInvite(
           ).map((r) => r.id)
         : [];
 
-      await tx.memberRole.deleteMany({ where: { membershipId: meta.botMembershipId } });
+      await tx.memberRole.deleteMany({
+        where: { membershipId: meta.botMembershipId },
+      });
       if (validRoleIds.length) {
         await tx.memberRole.createMany({
-          data: validRoleIds.map((roleId) => ({ membershipId: meta.botMembershipId, roleId })),
+          data: validRoleIds.map((roleId) => ({
+            membershipId: meta.botMembershipId,
+            roleId,
+          })),
         });
       }
     });
   } catch (e) {
     if (e instanceof Error && e.message === "ALREADY_HANDLED") {
-      Sentry.logger.warn("Conflict: bot-slot invite already handled", { inviteId, userId });
-      return { ok: false, error: "This invite has already been handled", code: "CONFLICT" };
+      log.warn("Conflict: bot-slot invite already handled", {
+        inviteId,
+        userId,
+      });
+      return {
+        ok: false,
+        error: "This invite has already been handled",
+        code: "CONFLICT",
+      };
     }
     if (e instanceof Error && e.message === "BOT_SLOT_TAKEN") {
-      Sentry.logger.warn("Conflict: bot slot already filled", { inviteId, userId });
-      return { ok: false, error: "The bot slot was already filled by another user", code: "CONFLICT" };
+      log.warn("Conflict: bot slot already filled", {
+        inviteId,
+        userId,
+      });
+      return {
+        ok: false,
+        error: "The bot slot was already filled by another user",
+        code: "CONFLICT",
+      };
     }
     if (e && typeof e === "object" && "code" in e) {
       const prismaCode = (e as { code?: string }).code;
       if (prismaCode === "P2002" || prismaCode === "P2003") {
-        Sentry.logger.warn("Conflict: membership DB conflict on bot-slot", { inviteId, userId });
+        log.warn("Conflict: membership DB conflict on bot-slot", {
+          inviteId,
+          userId,
+        });
         return { ok: false, error: "Membership conflict", code: "CONFLICT" };
       }
     }
@@ -400,7 +486,11 @@ export async function acceptBotSlotInvite(
   }
 
   await notifyInviteAccepted(invite, userId);
-  Sentry.logger.info("Bot-slot invite accepted", { inviteId, userId, orgId: invite.orgId });
+  log.info("Bot-slot invite accepted", {
+    inviteId,
+    userId,
+    orgId: invite.orgId,
+  });
   return { ok: true, data: null };
 }
 
@@ -422,9 +512,13 @@ export async function declineBotSlotInvite(
   });
 
   if (updated.count === 0)
-    return { ok: false, error: "Invite not found or already handled", code: "NOT_FOUND" };
+    return {
+      ok: false,
+      error: "Invite not found or already handled",
+      code: "NOT_FOUND",
+    };
 
-  Sentry.logger.info("Bot-slot invite declined", { inviteId, userId });
+  log.info("Bot-slot invite declined", { inviteId, userId });
   return { ok: true, data: null };
 }
 
@@ -446,7 +540,10 @@ async function notifyInviteAccepted(
       },
     });
   } catch (error) {
-    Sentry.logger.error("Failed to create notification for invite acceptance", { error, acceptingUserId });
+    log.error("Failed to create notification for invite acceptance", {
+      error,
+      acceptingUserId,
+    });
   }
 }
 
@@ -474,7 +571,7 @@ export async function declineMemberInvite(
       code: "NOT_FOUND",
     };
 
-  Sentry.logger.info("Member invite declined", { inviteId, userId });
+  log.info("Member invite declined", { inviteId, userId });
   return { ok: true, data: null };
 }
 
@@ -494,7 +591,10 @@ export async function declineFranchiseInvite(
   )
     return { ok: false, error: "Invite not found", code: "NOT_FOUND" };
   if (invite.status !== "PENDING") {
-    Sentry.logger.warn("Conflict: franchise invite no longer pending", { inviteId, userId });
+    log.warn("Conflict: franchise invite no longer pending", {
+      inviteId,
+      userId,
+    });
     return {
       ok: false,
       error: "This invite is no longer pending",
@@ -525,7 +625,10 @@ export async function declineFranchiseInvite(
     });
   } catch (e) {
     if (e instanceof Error && e.message === "ALREADY_HANDLED") {
-      Sentry.logger.warn("Conflict: franchise invite already handled", { inviteId, userId });
+      log.warn("Conflict: franchise invite already handled", {
+        inviteId,
+        userId,
+      });
       return {
         ok: false,
         error: "This invite has already been handled",
@@ -535,6 +638,10 @@ export async function declineFranchiseInvite(
     throw e;
   }
 
-  Sentry.logger.info("Franchise invite declined", { inviteId, userId, orgId: invite.orgId });
+  log.info("Franchise invite declined", {
+    inviteId,
+    userId,
+    orgId: invite.orgId,
+  });
   return { ok: true, data: null };
 }

@@ -172,10 +172,7 @@ export function CalendarView({
   let initialScrollMin = openTimeMin;
   const visibleSet = new Set(visibleDays);
   for (const inst of instances) {
-    if (
-      visibleSet.has(inst.date) &&
-      inst.startTimeMin < initialScrollMin
-    ) {
+    if (visibleSet.has(inst.date) && inst.startTimeMin < initialScrollMin) {
       initialScrollMin = inst.startTimeMin;
     }
   }
@@ -184,7 +181,12 @@ export function CalendarView({
     startT(async () => {
       let result;
       if (data.type === "task") {
-        result = await createTimetableEntryAction(orgId, data.taskId, col, timeMin);
+        result = await createTimetableEntryAction(
+          orgId,
+          data.taskId,
+          col,
+          timeMin,
+        );
       } else {
         result = await updateTimetableEntryAction(orgId, data.instanceId, {
           startTimeMin: timeMin,
@@ -209,7 +211,12 @@ export function CalendarView({
 
   function executeTap(col: string, timeMin: number, taskId: string) {
     startT(async () => {
-      const result = await createTimetableEntryAction(orgId, taskId, col, timeMin);
+      const result = await createTimetableEntryAction(
+        orgId,
+        taskId,
+        col,
+        timeMin,
+      );
       if (!result.ok) {
         toast.error(result.error ?? "Something went wrong");
         return;
@@ -330,7 +337,14 @@ export function CalendarView({
             }}
             renderBlock={(inst, heightPx) => {
               const assigneeNames = inst.assignees
-                .map((a) => (a.membership.user?.name ?? a.membership.botName ?? "Bot").split(" ")[0])
+                .map(
+                  (a) =>
+                    (
+                      a.membership.user?.name ??
+                      a.membership.botName ??
+                      "Bot"
+                    ).split(" ")[0],
+                )
                 .join(", ");
               return (
                 <>
@@ -483,7 +497,9 @@ export function CalendarView({
 
       <AlertDialog
         open={!!pendingDrop}
-        onOpenChange={(open) => { if (!open) setPendingDrop(null); }}
+        onOpenChange={(open) => {
+          if (!open) setPendingDrop(null);
+        }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -514,7 +530,10 @@ export function CalendarView({
               onClick={() => {
                 if (!pendingDrop) return;
                 if (suppressDrop) {
-                  localStorage.setItem(DROP_SUPPRESS_KEY, String(Date.now() + 24 * 60 * 60 * 1000));
+                  localStorage.setItem(
+                    DROP_SUPPRESS_KEY,
+                    String(Date.now() + 24 * 60 * 60 * 1000),
+                  );
                 }
                 const p = pendingDrop;
                 setPendingDrop(null);

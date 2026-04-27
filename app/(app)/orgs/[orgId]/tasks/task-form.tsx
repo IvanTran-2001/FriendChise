@@ -423,10 +423,7 @@ export function TaskForm(props: TaskFormProps) {
       : null;
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-6"
-    >
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       {/* ── Task fields ───────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-5">
         {err("_") && (

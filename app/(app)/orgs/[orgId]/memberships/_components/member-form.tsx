@@ -12,7 +12,11 @@ import {
   sendMemberInviteAction,
   updateMembershipAction,
 } from "@/app/actions/memberships";
-import { createBotAction, inviteBotSlotAction, updateBotAction } from "@/app/actions/bots";
+import {
+  createBotAction,
+  inviteBotSlotAction,
+  updateBotAction,
+} from "@/app/actions/bots";
 
 type Role = { id: string; name: string };
 
@@ -94,12 +98,23 @@ export function MemberForm({
             roleIds,
             workingDays,
           });
-          if (!result.ok) { setErrors({ _: result.error }); return; }
+          if (!result.ok) {
+            setErrors({ _: result.error });
+            return;
+          }
           toast.success(`Bot "${botName.trim()}" added.`);
         } else {
-          const result = await sendMemberInviteAction(orgId, { email, roleIds, workingDays });
+          const result = await sendMemberInviteAction(orgId, {
+            email,
+            roleIds,
+            workingDays,
+          });
           if (!result.ok) {
-            setErrors(result.field ? { [result.field]: result.error } : { _: result.error });
+            setErrors(
+              result.field
+                ? { [result.field]: result.error }
+                : { _: result.error },
+            );
             return;
           }
         }
@@ -110,7 +125,10 @@ export function MemberForm({
           workingDays,
           roleIds,
         });
-        if (!result.ok) { setErrors({ _: result.error }); return; }
+        if (!result.ok) {
+          setErrors({ _: result.error });
+          return;
+        }
         toast.success(`${name ?? "Member"} updated.`);
         router.push(`/orgs/${orgId}/memberships/${membershipId}`);
       }
@@ -130,7 +148,10 @@ export function MemberForm({
         workingDays,
         roleIds,
       });
-      if (!result.ok) { setErrors({ _: result.error }); return; }
+      if (!result.ok) {
+        setErrors({ _: result.error });
+        return;
+      }
       toast.success("Bot updated.");
       router.push(`/orgs/${orgId}/memberships/${membershipId}`);
     });
@@ -144,13 +165,17 @@ export function MemberForm({
     }
     setInviteErrors({});
     startInviteTransition(async () => {
-      const result = await inviteBotSlotAction(orgId, membershipId!, { email: inviteEmail });
-      if (!result.ok) { setInviteErrors({ email: result.error }); return; }
+      const result = await inviteBotSlotAction(orgId, membershipId!, {
+        email: inviteEmail,
+      });
+      if (!result.ok) {
+        setInviteErrors({ email: result.error });
+        return;
+      }
       toast.success("Invite sent! They\'ll be slotted in when they accept.");
       router.push(`/orgs/${orgId}/memberships/${membershipId}`);
     });
   }
-
 
   const initials = (name ?? "?")
     .split(" ")
@@ -165,7 +190,9 @@ export function MemberForm({
       <div className="flex flex-col gap-4">
         {/* Section 1: Bot settings */}
         <div className="rounded-xl border bg-card p-6 flex flex-col gap-6">
-          <h3 className="text-sm font-semibold text-foreground">Bot Settings</h3>
+          <h3 className="text-sm font-semibold text-foreground">
+            Bot Settings
+          </h3>
           {errors._ && <p className="text-sm text-destructive">{errors._}</p>}
 
           {/* Bot name */}
@@ -232,10 +259,12 @@ export function MemberForm({
         {/* Section 2: Invite to fill slot */}
         <div className="rounded-xl border bg-card p-6 flex flex-col gap-4">
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Invite to Fill Slot</h3>
+            <h3 className="text-sm font-semibold text-foreground">
+              Invite to Fill Slot
+            </h3>
             <p className="text-xs text-muted-foreground mt-1">
-              Send an invite to someone to fill this bot slot. They&apos;ll take over all
-              assigned tasks and shifts when they accept.
+              Send an invite to someone to fill this bot slot. They&apos;ll take
+              over all assigned tasks and shifts when they accept.
             </p>
           </div>
           {inviteErrors._ && (
@@ -379,10 +408,14 @@ export function MemberForm({
       >
         {isPending
           ? mode === "create"
-            ? isBot ? "Adding…" : "Inviting…"
+            ? isBot
+              ? "Adding…"
+              : "Inviting…"
             : "Saving…"
           : mode === "create"
-            ? isBot ? "Add Bot" : "Invite"
+            ? isBot
+              ? "Add Bot"
+              : "Invite"
             : "Save"}
       </Button>
     </div>

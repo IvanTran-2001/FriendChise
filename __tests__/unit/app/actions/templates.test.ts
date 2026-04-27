@@ -5,7 +5,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/lib/authz", () => ({ requireOrgPermissionAction: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({
-  redirect: vi.fn(() => { throw new Error("NEXT_REDIRECT"); }),
+  redirect: vi.fn(() => {
+    throw new Error("NEXT_REDIRECT");
+  }),
 }));
 vi.mock("@/lib/services/templates", () => ({
   createTemplate: vi.fn(),
@@ -56,7 +58,11 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const authorised = { ok: true as const, userId: "u-1", membership: { id: "m-1" } as any };
+const authorised = {
+  ok: true as const,
+  userId: "u-1",
+  membership: { id: "m-1" } as any,
+};
 const unauthorised = { ok: false as const };
 
 function makeFormData(fields: Record<string, string>) {
@@ -73,7 +79,11 @@ describe("createTemplateAction", () => {
   it("returns unauthorized when permission check fails", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(unauthorised);
 
-    const result = await createTemplateAction("org-1", null, makeFormData({ title: "My Template", templateDays: "7" }));
+    const result = await createTemplateAction(
+      "org-1",
+      null,
+      makeFormData({ title: "My Template", templateDays: "7" }),
+    );
 
     expect(result).toEqual({ ok: false, errors: { _: ["Unauthorized"] } });
   });
@@ -81,7 +91,11 @@ describe("createTemplateAction", () => {
   it("returns validation error when title is missing", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
 
-    const result = await createTemplateAction("org-1", null, makeFormData({ title: "", templateDays: "7" }));
+    const result = await createTemplateAction(
+      "org-1",
+      null,
+      makeFormData({ title: "", templateDays: "7" }),
+    );
 
     expect(result).toMatchObject({ ok: false });
     expect(createTemplateService).not.toHaveBeenCalled();
@@ -89,14 +103,23 @@ describe("createTemplateAction", () => {
 
   it("creates template and redirects on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(createTemplateService).mockResolvedValue({ ok: true, data: { id: "tmpl-1" } });
+    vi.mocked(createTemplateService).mockResolvedValue({
+      ok: true,
+      data: { id: "tmpl-1" },
+    });
 
     await expect(
-      createTemplateAction("org-1", null, makeFormData({ title: "Weekly", templateDays: "7" })),
+      createTemplateAction(
+        "org-1",
+        null,
+        makeFormData({ title: "Weekly", templateDays: "7" }),
+      ),
     ).rejects.toThrow("NEXT_REDIRECT");
 
     expect(createTemplateService).toHaveBeenCalledWith("org-1", "Weekly", 7);
-    expect(redirect).toHaveBeenCalledWith("/orgs/org-1/timetable/templates/tmpl-1");
+    expect(redirect).toHaveBeenCalledWith(
+      "/orgs/org-1/timetable/templates/tmpl-1",
+    );
   });
 
   it("returns error when service fails", async () => {
@@ -107,9 +130,16 @@ describe("createTemplateAction", () => {
       code: "INVALID",
     });
 
-    const result = await createTemplateAction("org-1", null, makeFormData({ title: "T", templateDays: "7" }));
+    const result = await createTemplateAction(
+      "org-1",
+      null,
+      makeFormData({ title: "T", templateDays: "7" }),
+    );
 
-    expect(result).toEqual({ ok: false, errors: { _: ["Template creation failed"] } });
+    expect(result).toEqual({
+      ok: false,
+      errors: { _: ["Template creation failed"] },
+    });
   });
 });
 
@@ -119,19 +149,40 @@ describe("addTemplateInstanceAction", () => {
   it("returns unauthorized when permission check fails", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(unauthorised);
 
-    const result = await addTemplateInstanceAction("org-1", "tmpl-1", "task-1", 0, 480);
+    const result = await addTemplateInstanceAction(
+      "org-1",
+      "tmpl-1",
+      "task-1",
+      0,
+      480,
+    );
 
     expect(result).toEqual({ ok: false, error: "Unauthorized" });
   });
 
   it("adds instance and revalidates on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(addTemplateInstanceService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(addTemplateInstanceService).mockResolvedValue({
+      ok: true,
+      data: null,
+    });
 
-    const result = await addTemplateInstanceAction("org-1", "tmpl-1", "task-1", 0, 480);
+    const result = await addTemplateInstanceAction(
+      "org-1",
+      "tmpl-1",
+      "task-1",
+      0,
+      480,
+    );
 
     expect(result).toEqual({ ok: true });
-    expect(addTemplateInstanceService).toHaveBeenCalledWith("org-1", "tmpl-1", "task-1", 0, 480);
+    expect(addTemplateInstanceService).toHaveBeenCalledWith(
+      "org-1",
+      "tmpl-1",
+      "task-1",
+      0,
+      480,
+    );
     expect(revalidatePath).toHaveBeenCalled();
   });
 
@@ -143,7 +194,13 @@ describe("addTemplateInstanceAction", () => {
       code: "NOT_FOUND",
     });
 
-    const result = await addTemplateInstanceAction("org-1", "tmpl-1", "task-bad", 0, 480);
+    const result = await addTemplateInstanceAction(
+      "org-1",
+      "tmpl-1",
+      "task-bad",
+      0,
+      480,
+    );
 
     expect(result).toEqual({ ok: false, error: "Task not found" });
   });
@@ -162,12 +219,18 @@ describe("removeTemplateInstanceAction", () => {
 
   it("removes instance and revalidates on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(removeTemplateInstanceService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(removeTemplateInstanceService).mockResolvedValue({
+      ok: true,
+      data: null,
+    });
 
     const result = await removeTemplateInstanceAction("org-1", "inst-1");
 
     expect(result).toEqual({ ok: true });
-    expect(removeTemplateInstanceService).toHaveBeenCalledWith("org-1", "inst-1");
+    expect(removeTemplateInstanceService).toHaveBeenCalledWith(
+      "org-1",
+      "inst-1",
+    );
   });
 });
 
@@ -177,19 +240,31 @@ describe("updateTemplateInstanceAction", () => {
   it("returns unauthorized when permission check fails", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(unauthorised);
 
-    const result = await updateTemplateInstanceAction("org-1", "inst-1", { dayIndex: 2 });
+    const result = await updateTemplateInstanceAction("org-1", "inst-1", {
+      dayIndex: 2,
+    });
 
     expect(result).toEqual({ ok: false, error: "Unauthorized" });
   });
 
   it("updates instance and revalidates on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(updateTemplateInstanceService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(updateTemplateInstanceService).mockResolvedValue({
+      ok: true,
+      data: null,
+    });
 
-    const result = await updateTemplateInstanceAction("org-1", "inst-1", { dayIndex: 2, startTimeMin: 540 });
+    const result = await updateTemplateInstanceAction("org-1", "inst-1", {
+      dayIndex: 2,
+      startTimeMin: 540,
+    });
 
     expect(result).toEqual({ ok: true });
-    expect(updateTemplateInstanceService).toHaveBeenCalledWith("org-1", "inst-1", { dayIndex: 2, startTimeMin: 540 });
+    expect(updateTemplateInstanceService).toHaveBeenCalledWith(
+      "org-1",
+      "inst-1",
+      { dayIndex: 2, startTimeMin: 540 },
+    );
   });
 });
 
@@ -206,12 +281,19 @@ describe("updateTemplateDaysAction", () => {
 
   it("updates template days and revalidates on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(updateTemplateDaysService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(updateTemplateDaysService).mockResolvedValue({
+      ok: true,
+      data: null,
+    });
 
     const result = await updateTemplateDaysAction("org-1", "tmpl-1", 14);
 
     expect(result).toEqual({ ok: true });
-    expect(updateTemplateDaysService).toHaveBeenCalledWith("org-1", "tmpl-1", 14);
+    expect(updateTemplateDaysService).toHaveBeenCalledWith(
+      "org-1",
+      "tmpl-1",
+      14,
+    );
     expect(revalidatePath).toHaveBeenCalled();
   });
 });
@@ -229,12 +311,19 @@ describe("addInstanceAssigneeAction", () => {
 
   it("adds assignee and revalidates on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(addTemplateInstanceAssigneeService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(addTemplateInstanceAssigneeService).mockResolvedValue({
+      ok: true,
+      data: null,
+    });
 
     const result = await addInstanceAssigneeAction("org-1", "inst-1", "mem-1");
 
     expect(result).toEqual({ ok: true });
-    expect(addTemplateInstanceAssigneeService).toHaveBeenCalledWith("org-1", "inst-1", "mem-1");
+    expect(addTemplateInstanceAssigneeService).toHaveBeenCalledWith(
+      "org-1",
+      "inst-1",
+      "mem-1",
+    );
   });
 });
 
@@ -244,19 +333,34 @@ describe("removeInstanceAssigneeAction", () => {
   it("returns unauthorized when permission check fails", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(unauthorised);
 
-    const result = await removeInstanceAssigneeAction("org-1", "inst-1", "mem-1");
+    const result = await removeInstanceAssigneeAction(
+      "org-1",
+      "inst-1",
+      "mem-1",
+    );
 
     expect(result).toEqual({ ok: false, error: "Unauthorized" });
   });
 
   it("removes assignee and revalidates on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(removeTemplateInstanceAssigneeService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(removeTemplateInstanceAssigneeService).mockResolvedValue({
+      ok: true,
+      data: null,
+    });
 
-    const result = await removeInstanceAssigneeAction("org-1", "inst-1", "mem-1");
+    const result = await removeInstanceAssigneeAction(
+      "org-1",
+      "inst-1",
+      "mem-1",
+    );
 
     expect(result).toEqual({ ok: true });
-    expect(removeTemplateInstanceAssigneeService).toHaveBeenCalledWith("org-1", "inst-1", "mem-1");
+    expect(removeTemplateInstanceAssigneeService).toHaveBeenCalledWith(
+      "org-1",
+      "inst-1",
+      "mem-1",
+    );
   });
 });
 
@@ -266,7 +370,11 @@ describe("countTimetableEntriesInRangeAction", () => {
   it("returns unauthorized when permission check fails", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(unauthorised);
 
-    const result = await countTimetableEntriesInRangeAction("org-1", "2025-01-06", 7);
+    const result = await countTimetableEntriesInRangeAction(
+      "org-1",
+      "2025-01-06",
+      7,
+    );
 
     expect(result).toEqual({ ok: false, error: "Unauthorized" });
   });
@@ -278,7 +386,11 @@ describe("countTimetableEntriesInRangeAction", () => {
       data: { count: 12 },
     });
 
-    const result = await countTimetableEntriesInRangeAction("org-1", "2025-01-06", 7);
+    const result = await countTimetableEntriesInRangeAction(
+      "org-1",
+      "2025-01-06",
+      7,
+    );
 
     expect(result).toEqual({ ok: true, count: 12 });
   });
@@ -290,19 +402,37 @@ describe("applyTemplateAction", () => {
   it("returns unauthorized when permission check fails", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(unauthorised);
 
-    const result = await applyTemplateAction("org-1", "tmpl-1", "2025-01-06", 1);
+    const result = await applyTemplateAction(
+      "org-1",
+      "tmpl-1",
+      "2025-01-06",
+      1,
+    );
 
     expect(result).toEqual({ ok: false, error: "Unauthorized" });
   });
 
   it("applies template and revalidates timetable on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(applyTemplateService).mockResolvedValue({ ok: true, data: { created: 14 } });
+    vi.mocked(applyTemplateService).mockResolvedValue({
+      ok: true,
+      data: { created: 14 },
+    });
 
-    const result = await applyTemplateAction("org-1", "tmpl-1", "2025-01-06", 2);
+    const result = await applyTemplateAction(
+      "org-1",
+      "tmpl-1",
+      "2025-01-06",
+      2,
+    );
 
     expect(result).toEqual({ ok: true, created: 14 });
-    expect(applyTemplateService).toHaveBeenCalledWith("org-1", "tmpl-1", "2025-01-06", 2);
+    expect(applyTemplateService).toHaveBeenCalledWith(
+      "org-1",
+      "tmpl-1",
+      "2025-01-06",
+      2,
+    );
     expect(revalidatePath).toHaveBeenCalledWith("/orgs/org-1/timetable");
   });
 
@@ -314,7 +444,12 @@ describe("applyTemplateAction", () => {
       code: "NOT_FOUND",
     });
 
-    const result = await applyTemplateAction("org-1", "tmpl-bad", "2025-01-06", 1);
+    const result = await applyTemplateAction(
+      "org-1",
+      "tmpl-bad",
+      "2025-01-06",
+      1,
+    );
 
     expect(result).toEqual({ ok: false, error: "Template not found" });
   });
@@ -333,12 +468,19 @@ describe("renameTemplateAction", () => {
 
   it("renames template and revalidates on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(renameTemplateService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(renameTemplateService).mockResolvedValue({
+      ok: true,
+      data: null,
+    });
 
     const result = await renameTemplateAction("org-1", "tmpl-1", "New Name");
 
     expect(result).toEqual({ ok: true });
-    expect(renameTemplateService).toHaveBeenCalledWith("org-1", "tmpl-1", "New Name");
+    expect(renameTemplateService).toHaveBeenCalledWith(
+      "org-1",
+      "tmpl-1",
+      "New Name",
+    );
   });
 });
 
@@ -355,7 +497,10 @@ describe("duplicateTemplateAction", () => {
 
   it("duplicates template and returns new id on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(duplicateTemplateService).mockResolvedValue({ ok: true, data: { id: "tmpl-2" } });
+    vi.mocked(duplicateTemplateService).mockResolvedValue({
+      ok: true,
+      data: { id: "tmpl-2" },
+    });
 
     const result = await duplicateTemplateAction("org-1", "tmpl-1");
 
@@ -377,7 +522,10 @@ describe("deleteTemplateAction", () => {
 
   it("deletes template and revalidates on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(deleteTemplateService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(deleteTemplateService).mockResolvedValue({
+      ok: true,
+      data: null,
+    });
 
     const result = await deleteTemplateAction("org-1", "tmpl-1");
 

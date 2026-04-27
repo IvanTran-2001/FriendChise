@@ -57,7 +57,9 @@ test("delete org → redirected to /", async ({ page }) => {
   await page.getByPlaceholder(deleteOrgName).fill(deleteOrgName);
 
   const deleteSection = page.getByTestId("delete-org-section");
-  const deleteButton = deleteSection.getByRole("button", { name: /delete org/i });
+  const deleteButton = deleteSection.getByRole("button", {
+    name: /delete org/i,
+  });
   await expect(deleteButton).toBeEnabled();
   await deleteButton.click();
 
@@ -80,9 +82,7 @@ test("create org without a name → stays on page, does not submit", async ({
   await expect(page.getByLabel(/org name/i)).toHaveAttribute("required");
 });
 
-test("delete org with wrong name → button stays disabled", async ({
-  page,
-}) => {
+test("delete org with wrong name → button stays disabled", async ({ page }) => {
   const deleteOrgName = `E2E Wrong Delete Org ${Date.now()}`;
 
   await page.goto("/orgs/new");
@@ -97,7 +97,9 @@ test("delete org with wrong name → button stays disabled", async ({
   await page.goto(`/orgs/${orgId}/settings/organization`);
 
   const deleteSection = page.getByTestId("delete-org-section");
-  const deleteButton = deleteSection.getByRole("button", { name: /delete org/i });
+  const deleteButton = deleteSection.getByRole("button", {
+    name: /delete org/i,
+  });
 
   // Type a wrong name — button should remain disabled
   await page.getByPlaceholder(deleteOrgName).fill("wrong name");

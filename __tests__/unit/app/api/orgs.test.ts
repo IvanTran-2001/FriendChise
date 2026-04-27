@@ -82,7 +82,9 @@ describe("POST /api/orgs", () => {
 
   it("returns 201 with org data on success", async () => {
     vi.mocked(requireUser).mockResolvedValue(authenticated);
-    vi.mocked(createOrg).mockResolvedValue({ org: { id: "org-1", name: "Acme Café" } } as any);
+    vi.mocked(createOrg).mockResolvedValue({
+      org: { id: "org-1", name: "Acme Café" },
+    } as any);
 
     const res = await POST(makeReq({ title: "Acme Café" }));
 

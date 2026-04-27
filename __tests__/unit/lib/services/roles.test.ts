@@ -161,8 +161,8 @@ describe("createRole", () => {
   };
 
   it("creates a role with no permissions or tasks", async () => {
-    vi.mocked(prisma.$transaction).mockImplementation(
-      async (fn: any) => fn(prisma),
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+      fn(prisma),
     );
     vi.mocked(prisma.role.create).mockResolvedValue({ id: "role-new" } as any);
     vi.mocked(prisma.role.findUniqueOrThrow).mockResolvedValue(mockRole as any);
@@ -180,8 +180,8 @@ describe("createRole", () => {
       taskIds: ["task-1", "task-2"],
     };
 
-    vi.mocked(prisma.$transaction).mockImplementation(
-      async (fn: any) => fn(prisma),
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+      fn(prisma),
     );
     vi.mocked(prisma.task.findMany).mockResolvedValue([
       { id: "task-1" },
@@ -189,7 +189,9 @@ describe("createRole", () => {
     ] as any);
     vi.mocked(prisma.role.create).mockResolvedValue({ id: "role-new" } as any);
     vi.mocked(prisma.permission.createMany).mockResolvedValue({ count: 2 });
-    vi.mocked(prisma.taskEligibility.createMany).mockResolvedValue({ count: 2 });
+    vi.mocked(prisma.taskEligibility.createMany).mockResolvedValue({
+      count: 2,
+    });
     vi.mocked(prisma.role.findUniqueOrThrow).mockResolvedValue(mockRole as any);
 
     const result = await createRole("org-1", inputWithPerms as any);
@@ -210,7 +212,9 @@ describe("createRole", () => {
     // Transaction returns null (task validation fails inside tx)
     vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
       // Simulate task validation failure: only 1 of 2 tasks found
-      vi.mocked(prisma.task.findMany).mockResolvedValue([{ id: "task-1" }] as any);
+      vi.mocked(prisma.task.findMany).mockResolvedValue([
+        { id: "task-1" },
+      ] as any);
       return fn(prisma);
     });
 
@@ -236,12 +240,14 @@ describe("updateRole", () => {
 
   it("returns ok: true on successful update", async () => {
     vi.mocked(prisma.role.findFirst).mockResolvedValue(mockRole as any);
-    vi.mocked(prisma.$transaction).mockImplementation(
-      async (fn: any) => fn(prisma),
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+      fn(prisma),
     );
     vi.mocked(prisma.role.update).mockResolvedValue(mockRole as any);
     vi.mocked(prisma.permission.deleteMany).mockResolvedValue({ count: 0 });
-    vi.mocked(prisma.taskEligibility.deleteMany).mockResolvedValue({ count: 0 });
+    vi.mocked(prisma.taskEligibility.deleteMany).mockResolvedValue({
+      count: 0,
+    });
     vi.mocked(prisma.role.findUniqueOrThrow).mockResolvedValue({
       ...mockRole,
       name: "Updated Manager",
@@ -255,7 +261,11 @@ describe("updateRole", () => {
   it("returns NOT_FOUND when role does not exist", async () => {
     vi.mocked(prisma.role.findFirst).mockResolvedValue(null);
 
-    const result = await updateRole("org-1", "non-existent", updateInput as any);
+    const result = await updateRole(
+      "org-1",
+      "non-existent",
+      updateInput as any,
+    );
 
     expect(result).toEqual({
       ok: false,
@@ -280,7 +290,9 @@ describe("updateRole", () => {
   it("returns INVALID when a taskId does not belong to the org", async () => {
     vi.mocked(prisma.role.findFirst).mockResolvedValue(mockRole as any);
     vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
-      vi.mocked(prisma.task.findMany).mockResolvedValue([{ id: "task-1" }] as any);
+      vi.mocked(prisma.task.findMany).mockResolvedValue([
+        { id: "task-1" },
+      ] as any);
       return fn(prisma);
     });
 

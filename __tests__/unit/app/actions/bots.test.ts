@@ -43,7 +43,11 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const authorised = { ok: true as const, userId: "u-1", membership: { id: "m-1" } as any };
+const authorised = {
+  ok: true as const,
+  userId: "u-1",
+  membership: { id: "m-1" } as any,
+};
 const unauthorised = { ok: false as const };
 
 beforeEach(() => vi.clearAllMocks());
@@ -54,7 +58,10 @@ describe("createBotAction", () => {
   it("returns unauthorized when permission check fails", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(unauthorised);
 
-    const result = await createBotAction("org-1", { botName: "Bot", roleIds: [] });
+    const result = await createBotAction("org-1", {
+      botName: "Bot",
+      roleIds: [],
+    });
 
     expect(result).toEqual({ ok: false, error: "Unauthorized" });
     expect(createBotService).not.toHaveBeenCalled();
@@ -72,10 +79,18 @@ describe("createBotAction", () => {
 
   it("falls back to default role when roleIds is empty", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(prisma.role.findFirst).mockResolvedValue({ id: "role-default" } as any);
-    vi.mocked(createBotService).mockResolvedValue({ ok: true, data: {} as any });
+    vi.mocked(prisma.role.findFirst).mockResolvedValue({
+      id: "role-default",
+    } as any);
+    vi.mocked(createBotService).mockResolvedValue({
+      ok: true,
+      data: {} as any,
+    });
 
-    const result = await createBotAction("org-1", { botName: "Bot", roleIds: [] });
+    const result = await createBotAction("org-1", {
+      botName: "Bot",
+      roleIds: [],
+    });
 
     expect(result).toEqual({ ok: true });
     expect(createBotService).toHaveBeenCalledWith(
@@ -88,16 +103,28 @@ describe("createBotAction", () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
     vi.mocked(prisma.role.findFirst).mockResolvedValue(null);
 
-    const result = await createBotAction("org-1", { botName: "Bot", roleIds: [] });
+    const result = await createBotAction("org-1", {
+      botName: "Bot",
+      roleIds: [],
+    });
 
-    expect(result).toEqual({ ok: false, error: "No default role found for this org" });
+    expect(result).toEqual({
+      ok: false,
+      error: "No default role found for this org",
+    });
   });
 
   it("calls service with provided roleIds and returns ok: true on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(createBotService).mockResolvedValue({ ok: true, data: {} as any });
+    vi.mocked(createBotService).mockResolvedValue({
+      ok: true,
+      data: {} as any,
+    });
 
-    const result = await createBotAction("org-1", { botName: "Bot", roleIds: ["crole00001"] });
+    const result = await createBotAction("org-1", {
+      botName: "Bot",
+      roleIds: ["crole00001"],
+    });
 
     expect(result).toEqual({ ok: true });
     expect(revalidatePath).toHaveBeenCalled();
@@ -111,9 +138,15 @@ describe("createBotAction", () => {
       code: "INVALID",
     });
 
-    const result = await createBotAction("org-1", { botName: "Bot", roleIds: ["crole00002"] });
+    const result = await createBotAction("org-1", {
+      botName: "Bot",
+      roleIds: ["crole00002"],
+    });
 
-    expect(result).toEqual({ ok: false, error: "One or more roles not found or do not belong to this org" });
+    expect(result).toEqual({
+      ok: false,
+      error: "One or more roles not found or do not belong to this org",
+    });
   });
 });
 
@@ -175,9 +208,14 @@ describe("memberToBotAction", () => {
 
   it("converts member to bot and revalidates path on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(memberToBotService).mockResolvedValue({ ok: true, data: {} as any });
+    vi.mocked(memberToBotService).mockResolvedValue({
+      ok: true,
+      data: {} as any,
+    });
 
-    const result = await memberToBotAction("org-1", { membershipId: "cmem000001" });
+    const result = await memberToBotAction("org-1", {
+      membershipId: "cmem000001",
+    });
 
     expect(result).toEqual({ ok: true });
     expect(revalidatePath).toHaveBeenCalled();
@@ -195,14 +233,18 @@ describe("inviteBotSlotAction", () => {
       memberRoles: [{ roleId: "role-1" }],
       workingDays: ["MON"],
     } as any);
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "user-rec" } as any);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      id: "user-rec",
+    } as any);
     vi.mocked(createMemberInvite).mockResolvedValue({ ok: true, data: null });
   });
 
   it("returns unauthorized when permission check fails", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(unauthorised);
 
-    const result = await inviteBotSlotAction("org-1", "mem-bot", { email: "a@b.com" });
+    const result = await inviteBotSlotAction("org-1", "mem-bot", {
+      email: "a@b.com",
+    });
 
     expect(result).toEqual({ ok: false, error: "Unauthorized" });
   });
@@ -210,7 +252,9 @@ describe("inviteBotSlotAction", () => {
   it("returns validation error for invalid email", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
 
-    const result = await inviteBotSlotAction("org-1", "mem-bot", { email: "not-an-email" });
+    const result = await inviteBotSlotAction("org-1", "mem-bot", {
+      email: "not-an-email",
+    });
 
     expect(result.ok).toBe(false);
   });
@@ -219,7 +263,9 @@ describe("inviteBotSlotAction", () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
     vi.mocked(prisma.membership.findUnique).mockResolvedValue(null);
 
-    const result = await inviteBotSlotAction("org-1", "mem-bot", { email: "user@example.com" });
+    const result = await inviteBotSlotAction("org-1", "mem-bot", {
+      email: "user@example.com",
+    });
 
     expect(result).toEqual({ ok: false, error: "Membership not found" });
   });
@@ -233,24 +279,36 @@ describe("inviteBotSlotAction", () => {
       workingDays: [],
     } as any);
 
-    const result = await inviteBotSlotAction("org-1", "mem-bot", { email: "user@example.com" });
+    const result = await inviteBotSlotAction("org-1", "mem-bot", {
+      email: "user@example.com",
+    });
 
-    expect(result).toEqual({ ok: false, error: "This slot already belongs to a real user" });
+    expect(result).toEqual({
+      ok: false,
+      error: "This slot already belongs to a real user",
+    });
   });
 
   it("returns error when no account found for email", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
-    const result = await inviteBotSlotAction("org-1", "mem-bot", { email: "unknown@example.com" });
+    const result = await inviteBotSlotAction("org-1", "mem-bot", {
+      email: "unknown@example.com",
+    });
 
-    expect(result).toEqual({ ok: false, error: "No account found with that email address" });
+    expect(result).toEqual({
+      ok: false,
+      error: "No account found with that email address",
+    });
   });
 
   it("creates a member invite with the bot slot and returns ok: true", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
 
-    const result = await inviteBotSlotAction("org-1", "mem-bot", { email: "user@example.com" });
+    const result = await inviteBotSlotAction("org-1", "mem-bot", {
+      email: "user@example.com",
+    });
 
     expect(result).toEqual({ ok: true });
     expect(createMemberInvite).toHaveBeenCalledWith(
@@ -268,7 +326,11 @@ describe("inviteBotSlotAction", () => {
 // ─── updateBotAction ──────────────────────────────────────────────────────────
 
 describe("updateBotAction", () => {
-  const validData = { botName: "Updated", workingDays: ["tue"], roleIds: ["crole00001"] };
+  const validData = {
+    botName: "Updated",
+    workingDays: ["tue"],
+    roleIds: ["crole00001"],
+  };
 
   it("returns unauthorized when permission check fails", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(unauthorised);
@@ -281,7 +343,10 @@ describe("updateBotAction", () => {
   it("returns validation error for invalid input", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
 
-    const result = await updateBotAction("org-1", "mem-bot", { botName: "", roleIds: [] });
+    const result = await updateBotAction("org-1", "mem-bot", {
+      botName: "",
+      roleIds: [],
+    });
 
     expect(result.ok).toBe(false);
   });
@@ -293,7 +358,11 @@ describe("updateBotAction", () => {
     const result = await updateBotAction("org-1", "mem-bot", validData);
 
     expect(result).toEqual({ ok: true });
-    expect(updateBotService).toHaveBeenCalledWith("org-1", "mem-bot", expect.objectContaining(validData));
+    expect(updateBotService).toHaveBeenCalledWith(
+      "org-1",
+      "mem-bot",
+      expect.objectContaining(validData),
+    );
     expect(revalidatePath).toHaveBeenCalledTimes(2);
   });
 

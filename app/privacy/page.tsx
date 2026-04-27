@@ -32,7 +32,9 @@ export default function PrivacyPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold">2. How We Use Your Information</h2>
+            <h2 className="text-xl font-semibold">
+              2. How We Use Your Information
+            </h2>
             <p className="text-muted-foreground">
               Your information is used solely to operate FriendChise — to
               identify your account, display your name within the application,
@@ -62,7 +64,10 @@ export default function PrivacyPage() {
                 sign-in authentication
               </li>
               <li>
-                <strong className="text-foreground">Google (lh3.googleusercontent.com)</strong> — avatar CDN used by next/image
+                <strong className="text-foreground">
+                  Google (lh3.googleusercontent.com)
+                </strong>{" "}
+                — avatar CDN used by next/image
               </li>
               <li>
                 <strong className="text-foreground">LinkedIn OAuth</strong> —
@@ -95,10 +100,10 @@ export default function PrivacyPage() {
               request deletion of your account and data, please contact us at{" "}
               <strong className="text-foreground">
                 <a href="mailto:alt28920@gmail.com">alt28920@gmail.com</a>
-              </strong>.
-              Please include your account email address and the type of request
-              (privacy inquiry or data deletion) in your message for verification
-              purposes.
+              </strong>
+              . Please include your account email address and the type of
+              request (privacy inquiry or data deletion) in your message for
+              verification purposes.
             </p>
           </section>
         </div>

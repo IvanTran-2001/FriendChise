@@ -93,7 +93,10 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
       </div>
       <p className="text-xs text-muted-foreground">
         By signing in, you agree to our{" "}
-        <a href="/privacy" className="underline underline-offset-4 hover:text-foreground">
+        <a
+          href="/privacy"
+          className="underline underline-offset-4 hover:text-foreground"
+        >
           Privacy Policy
         </a>
         .

@@ -56,12 +56,16 @@ describe("createMembershipSchema", () => {
 
 describe("deleteMembershipSchema", () => {
   it("accepts a valid membershipId cuid", () => {
-    const result = deleteMembershipSchema.safeParse({ membershipId: validCuid });
+    const result = deleteMembershipSchema.safeParse({
+      membershipId: validCuid,
+    });
     expect(result.success).toBe(true);
   });
 
   it("rejects non-cuid membershipId", () => {
-    const result = deleteMembershipSchema.safeParse({ membershipId: "not-a-cuid" });
+    const result = deleteMembershipSchema.safeParse({
+      membershipId: "not-a-cuid",
+    });
     expect(result.success).toBe(false);
   });
 

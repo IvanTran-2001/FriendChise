@@ -7,4 +7,8 @@ export {
   getInviteSubtype,
   INVITE_CONFIGS,
 } from "./invite-config";
-export type { InviteConfig, InviteSubtype, InviteHandlerResult } from "./invite-config";
+export type {
+  InviteConfig,
+  InviteSubtype,
+  InviteHandlerResult,
+} from "./invite-config";

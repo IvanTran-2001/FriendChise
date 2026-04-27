@@ -79,7 +79,10 @@ describe("acceptMemberInviteAction", () => {
 
   it("calls service and revalidates root on success", async () => {
     mockSession();
-    vi.mocked(acceptMemberInviteService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(acceptMemberInviteService).mockResolvedValue({
+      ok: true,
+      data: null,
+    });
 
     const result = await acceptMemberInviteAction("inv-1");
 
@@ -116,7 +119,10 @@ describe("declineMemberInviteAction", () => {
 
   it("declines invite and revalidates root on success", async () => {
     mockSession();
-    vi.mocked(declineMemberInviteService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(declineMemberInviteService).mockResolvedValue({
+      ok: true,
+      data: null,
+    });
 
     const result = await declineMemberInviteAction("inv-1");
 
@@ -135,7 +141,10 @@ describe("declineMemberInviteAction", () => {
 
     const result = await declineMemberInviteAction("inv-bad");
 
-    expect(result).toEqual({ ok: false, error: "Invite not found or already handled" });
+    expect(result).toEqual({
+      ok: false,
+      error: "Invite not found or already handled",
+    });
   });
 });
 
@@ -152,12 +161,18 @@ describe("acceptBotSlotInviteAction", () => {
 
   it("accepts bot slot invite and revalidates root on success", async () => {
     mockSession();
-    vi.mocked(acceptBotSlotInviteService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(acceptBotSlotInviteService).mockResolvedValue({
+      ok: true,
+      data: null,
+    });
 
     const result = await acceptBotSlotInviteAction("inv-bot");
 
     expect(result).toEqual({ ok: true });
-    expect(acceptBotSlotInviteService).toHaveBeenCalledWith("inv-bot", "user-1");
+    expect(acceptBotSlotInviteService).toHaveBeenCalledWith(
+      "inv-bot",
+      "user-1",
+    );
     expect(revalidatePath).toHaveBeenCalledWith("/");
   });
 
@@ -171,7 +186,10 @@ describe("acceptBotSlotInviteAction", () => {
 
     const result = await acceptBotSlotInviteAction("inv-bot");
 
-    expect(result).toEqual({ ok: false, error: "The bot slot was already filled by another user" });
+    expect(result).toEqual({
+      ok: false,
+      error: "The bot slot was already filled by another user",
+    });
   });
 });
 
@@ -188,12 +206,18 @@ describe("declineBotSlotInviteAction", () => {
 
   it("declines bot slot invite and revalidates root on success", async () => {
     mockSession();
-    vi.mocked(declineBotSlotInviteService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(declineBotSlotInviteService).mockResolvedValue({
+      ok: true,
+      data: null,
+    });
 
     const result = await declineBotSlotInviteAction("inv-bot");
 
     expect(result).toEqual({ ok: true });
-    expect(declineBotSlotInviteService).toHaveBeenCalledWith("inv-bot", "user-1");
+    expect(declineBotSlotInviteService).toHaveBeenCalledWith(
+      "inv-bot",
+      "user-1",
+    );
   });
 });
 
@@ -210,12 +234,18 @@ describe("declineFranchiseInviteAction", () => {
 
   it("declines franchise invite and revalidates root on success", async () => {
     mockSession();
-    vi.mocked(declineFranchiseInviteService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(declineFranchiseInviteService).mockResolvedValue({
+      ok: true,
+      data: null,
+    });
 
     const result = await declineFranchiseInviteAction("inv-fr");
 
     expect(result).toEqual({ ok: true });
-    expect(declineFranchiseInviteService).toHaveBeenCalledWith("inv-fr", "user-1");
+    expect(declineFranchiseInviteService).toHaveBeenCalledWith(
+      "inv-fr",
+      "user-1",
+    );
     expect(revalidatePath).toHaveBeenCalledWith("/");
   });
 
@@ -229,6 +259,9 @@ describe("declineFranchiseInviteAction", () => {
 
     const result = await declineFranchiseInviteAction("inv-fr");
 
-    expect(result).toEqual({ ok: false, error: "This invite has already been handled" });
+    expect(result).toEqual({
+      ok: false,
+      error: "This invite has already been handled",
+    });
   });
 });

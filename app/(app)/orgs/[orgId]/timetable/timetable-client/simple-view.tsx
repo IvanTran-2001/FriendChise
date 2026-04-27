@@ -11,7 +11,12 @@ import {
   groupBy,
   minTo12h,
 } from "../_shared/grid-utils";
-import { STATUS_LABELS, statusDotClass, statusRowClass, getMondayOf } from "./helpers";
+import {
+  STATUS_LABELS,
+  statusDotClass,
+  statusRowClass,
+  getMondayOf,
+} from "./helpers";
 import { CalendarEditPopup } from "./calendar-edit-popup";
 import type { ClientTimetableInstance, ClientMembership } from "./types";
 
@@ -133,7 +138,12 @@ export function SimpleView({
                     {dayInstances.map((inst, idx) => {
                       const assigneeNames =
                         inst.assignees
-                          .map((a) => a.membership.user?.name ?? a.membership.botName ?? "Bot")
+                          .map(
+                            (a) =>
+                              a.membership.user?.name ??
+                              a.membership.botName ??
+                              "Bot",
+                          )
                           .join(", ") || "—";
                       const isSkipped = effStatus(inst) === "SKIPPED";
                       return (

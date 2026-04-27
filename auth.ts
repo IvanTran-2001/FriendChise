@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
-import * as Sentry from "@sentry/nextjs";
+import { log } from "@/lib/observability";
 
 /**
  * Full Auth.js config. Used by API routes and server components (Node.js runtime only).
@@ -30,10 +30,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   events: {
     signIn({ user }) {
-      Sentry.logger.info("User signed in", { userId: user.id });
+      log.info("User signed in", { userId: user.id });
     },
     signOut({ token }) {
-      Sentry.logger.info("User signed out", { userId: token?.sub });
+      log.info("User signed out", { userId: token?.sub });
     },
   },
 });

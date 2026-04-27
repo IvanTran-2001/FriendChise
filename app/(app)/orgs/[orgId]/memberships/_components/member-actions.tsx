@@ -71,7 +71,9 @@ export function MemberActions({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem asChild>
-            <Link href={`/orgs/${orgId}/memberships/${membershipId}/edit`}>Edit</Link>
+            <Link href={`/orgs/${orgId}/memberships/${membershipId}/edit`}>
+              Edit
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={(e) => {

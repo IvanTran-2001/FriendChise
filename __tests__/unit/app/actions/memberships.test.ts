@@ -40,7 +40,11 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const authorised = { ok: true as const, userId: "u-1", membership: { id: "m-1" } as any };
+const authorised = {
+  ok: true as const,
+  userId: "u-1",
+  membership: { id: "m-1" } as any,
+};
 const unauthorised = { ok: false as const };
 
 beforeEach(() => vi.clearAllMocks());
@@ -50,7 +54,9 @@ beforeEach(() => vi.clearAllMocks());
 describe("sendMemberInviteAction", () => {
   beforeEach(() => {
     vi.mocked(auth).mockResolvedValue({ user: { id: "u-1" } } as any);
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "user-rec" } as any);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      id: "user-rec",
+    } as any);
     vi.mocked(createMemberInvite).mockResolvedValue({ ok: true, data: null });
   });
 
@@ -94,7 +100,9 @@ describe("sendMemberInviteAction", () => {
 
   it("falls back to default role when roleIds is empty", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(prisma.role.findFirst).mockResolvedValue({ id: "role-default" } as any);
+    vi.mocked(prisma.role.findFirst).mockResolvedValue({
+      id: "role-default",
+    } as any);
 
     await sendMemberInviteAction("org-1", {
       email: "user@example.com",
@@ -176,7 +184,10 @@ describe("deleteMembershipAction", () => {
 
   it("deletes membership and revalidates on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(deleteMembershipService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(deleteMembershipService).mockResolvedValue({
+      ok: true,
+      data: null,
+    });
 
     const result = await deleteMembershipAction("org-1", "mem-1");
 
@@ -214,12 +225,19 @@ describe("updateMembershipAction", () => {
 
   it("updates membership and revalidates both paths on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(updateMembershipService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(updateMembershipService).mockResolvedValue({
+      ok: true,
+      data: null,
+    });
 
     const result = await updateMembershipAction("org-1", "mem-1", updateData);
 
     expect(result).toEqual({ ok: true });
-    expect(updateMembershipService).toHaveBeenCalledWith("org-1", "mem-1", updateData);
+    expect(updateMembershipService).toHaveBeenCalledWith(
+      "org-1",
+      "mem-1",
+      updateData,
+    );
     expect(revalidatePath).toHaveBeenCalledTimes(2);
   });
 
@@ -236,7 +254,10 @@ describe("updateMembershipAction", () => {
       roleIds: [],
     });
 
-    expect(result).toEqual({ ok: false, error: "At least one role is required" });
+    expect(result).toEqual({
+      ok: false,
+      error: "At least one role is required",
+    });
   });
 });
 
@@ -253,12 +274,19 @@ describe("setMemberStatusAction", () => {
 
   it("sets member status and revalidates both paths on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(setMembershipStatusService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(setMembershipStatusService).mockResolvedValue({
+      ok: true,
+      data: null,
+    });
 
     const result = await setMemberStatusAction("org-1", "mem-1", "RESTRICTED");
 
     expect(result).toEqual({ ok: true });
-    expect(setMembershipStatusService).toHaveBeenCalledWith("org-1", "mem-1", "RESTRICTED");
+    expect(setMembershipStatusService).toHaveBeenCalledWith(
+      "org-1",
+      "mem-1",
+      "RESTRICTED",
+    );
     expect(revalidatePath).toHaveBeenCalledTimes(2);
   });
 

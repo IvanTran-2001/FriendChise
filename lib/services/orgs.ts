@@ -4,7 +4,7 @@
  * Every function that mutates is wrapped in a Prisma transaction so partial
  * writes are impossible: either everything succeeds or nothing is persisted.
  */
-import * as Sentry from "@sentry/nextjs";
+import { log } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 import { PermissionAction } from "@prisma/client";
 import { ROLE_KEYS } from "@/lib/rbac";
@@ -118,7 +118,11 @@ export async function createOrg(userId: string, data: CreateOrgInput) {
 
     return { org, ownerRole, memberRole, membership };
   });
-  Sentry.logger.info("Org created", { orgId: result.org.id, userId, name: result.org.name });
+  log.info("Org created", {
+    orgId: result.org.id,
+    userId,
+    name: result.org.name,
+  });
   return result;
 }
 
@@ -224,7 +228,7 @@ export async function joinFranchise(
 
     return { org, clonedRoles, membership };
   });
-  Sentry.logger.info("Franchise joined", { orgId: result.org.id, userId });
+  log.info("Franchise joined", { orgId: result.org.id, userId });
   return result;
 }
 
@@ -315,7 +319,11 @@ export async function transferOrgOwnership(
       data: { ownerId: newOwnerId },
     });
   });
-  Sentry.logger.info("Org ownership transferred", { orgId, from: currentOwnerId, to: newOwnerId });
+  log.info("Org ownership transferred", {
+    orgId,
+    from: currentOwnerId,
+    to: newOwnerId,
+  });
 }
 
 /**
@@ -342,7 +350,7 @@ export async function deleteOrg(
     throw new Error("Confirmation name does not match");
 
   await prisma.organization.delete({ where: { id: orgId } });
-  Sentry.logger.info("Org deleted", { orgId, deletedBy: currentOwnerId });
+  log.info("Org deleted", { orgId, deletedBy: currentOwnerId });
 }
 
 /**

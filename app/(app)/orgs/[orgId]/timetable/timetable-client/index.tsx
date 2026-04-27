@@ -103,9 +103,11 @@ export function TimetableClient({
   // Compute effective column count: SimpleView never updates navColCount,
   // so derive it from mode and span.
   const effectiveColCount =
-    mode === "simple" && span === "day" ? 1
-    : mode === "simple" && span === "week" ? 7
-    : navColCount;
+    mode === "simple" && span === "day"
+      ? 1
+      : mode === "simple" && span === "week"
+        ? 7
+        : navColCount;
 
   const makeHref = (a: string, m: string) => {
     const p = new URLSearchParams({ anchor: a, mode: m, span });

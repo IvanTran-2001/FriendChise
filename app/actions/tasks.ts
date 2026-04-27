@@ -36,7 +36,8 @@ function parseTaskFormData(formData: FormData) {
 
   const minWaitDaysRaw = num("minWaitDays");
   const maxWaitDaysRaw = num("maxWaitDays");
-  const bothEmpty = minWaitDaysRaw === undefined && maxWaitDaysRaw === undefined;
+  const bothEmpty =
+    minWaitDaysRaw === undefined && maxWaitDaysRaw === undefined;
 
   return {
     color: String(formData.get("color") ?? "#6366f1"),

@@ -214,7 +214,9 @@ function TemplateMenu({
             <Button variant="outline" onClick={() => setRenameOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={submitRename} disabled={isPending}>Save</Button>
+            <Button onClick={submitRename} disabled={isPending}>
+              Save
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -223,7 +225,9 @@ function TemplateMenu({
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete &ldquo;{template.name}&rdquo;?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Delete &ldquo;{template.name}&rdquo;?
+            </AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete the template and all its slots. This
               action cannot be undone.
@@ -315,7 +319,10 @@ export function TemplatesClient({ orgId, templates }: TemplatesClientProps) {
       {view === "card" ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {templates.map((t) => (
-            <div key={t.id} className="group relative border bg-card hover:shadow-md transition-all overflow-hidden">
+            <div
+              key={t.id}
+              className="group relative border bg-card hover:shadow-md transition-all overflow-hidden"
+            >
               <Link
                 href={`/orgs/${orgId}/timetable/templates/${t.id}`}
                 className="flex items-start gap-4 p-5 pr-12"

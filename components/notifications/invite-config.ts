@@ -52,8 +52,7 @@ export type InviteConfig = {
 
 const memberConfig: InviteConfig = {
   label: "Member",
-  badgeClassName:
-    "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  badgeClassName: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
   Icon: Users,
   onAccept: async (invite) => acceptMemberInviteAction(invite.id),
   onDecline: async (invite) => declineMemberInviteAction(invite.id),
@@ -62,12 +61,10 @@ const memberConfig: InviteConfig = {
 
 const franchiseConfig: InviteConfig = {
   label: "Franchisee",
-  badgeClassName:
-    "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  badgeClassName: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
   Icon: Building2,
   onAccept: async (invite, router) => {
-    const token =
-      (invite.metadata as { token?: string } | null)?.token ?? "";
+    const token = (invite.metadata as { token?: string } | null)?.token ?? "";
     if (!token || typeof token !== "string") {
       toast.error("Invalid invite token");
       return { ok: false, error: "Invalid invite token" };
@@ -81,13 +78,11 @@ const franchiseConfig: InviteConfig = {
 
 const botSlotConfig: InviteConfig = {
   label: "Fill Bot Slot",
-  badgeClassName:
-    "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  badgeClassName: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
   Icon: Bot,
   onAccept: async (invite) => acceptBotSlotInviteAction(invite.id),
   onDecline: async (invite) => declineBotSlotInviteAction(invite.id),
-  acceptToast: (invite) =>
-    `You've filled the bot slot at ${invite.orgName}`,
+  acceptToast: (invite) => `You've filled the bot slot at ${invite.orgName}`,
 };
 
 // ── Lookup ─────────────────────────────────────────────────────────────────
