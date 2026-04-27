@@ -78,17 +78,34 @@ function getIp(req: NextRequest): string {
 // ─── Fail-open wrapper for rate limiting ────────────────────────────────────
 // Returns true (allow) when the limiter is not configured or on Redis errors.
 
+type LimitResult = Awaited<ReturnType<Ratelimit["limit"]>>;
+
 async function safeLimit(
   limiter: Ratelimit | null,
   key: string
-): Promise<{ success: boolean }> {
-  if (!limiter) return { success: true };
+): Promise<LimitResult> {
+  if (!limiter) return { success: true, limit: 0, remaining: 0, reset: 0, pending: Promise.resolve() };
   try {
     return await limiter.limit(key);
   } catch (error) {
     Sentry.logger.error("Rate limiter error (failing open)", { error });
-    return { success: true };
+    return { success: true, limit: 0, remaining: 0, reset: 0, pending: Promise.resolve() };
   }
+}
+
+function tooManyRequests(result: LimitResult) {
+  return NextResponse.json(
+    { error: "Too many requests" },
+    {
+      status: 429,
+      headers: {
+        "Retry-After": String(Math.max(0, Math.ceil((result.reset - Date.now()) / 1000))),
+        "X-RateLimit-Limit": String(result.limit),
+        "X-RateLimit-Remaining": "0",
+        "X-RateLimit-Reset": String(result.reset),
+      },
+    }
+  );
 }
 
 // ─── Proxy entry point ───────────────────────────────────────────────────────
@@ -104,18 +121,14 @@ export default async function proxy(req: NextRequest) {
       pathname.startsWith("/api/auth/signin/")
     ) {
       // OAuth flow — no session exists yet, key by IP
-      const { success } = await safeLimit(authRatelimit, getIp(req));
-      if (!success) {
-        return NextResponse.json({ error: "Too many requests" }, { status: 429 });
-      }
+      const authResult = await safeLimit(authRatelimit, getIp(req));
+      if (!authResult.success) return tooManyRequests(authResult);
     } else if (!pathname.startsWith("/api/auth/")) {
       // Authenticated API (non-auth routes) — key by user ID from JWT, fall back to IP
       const token = await getToken({ req, secret: process.env.AUTH_SECRET! });
       const key = token?.sub ?? getIp(req);
-      const { success } = await safeLimit(apiRatelimit, key);
-      if (!success) {
-        return NextResponse.json({ error: "Too many requests" }, { status: 429 });
-      }
+      const apiResult = await safeLimit(apiRatelimit, key);
+      if (!apiResult.success) return tooManyRequests(apiResult);
     }
     return NextResponse.next();
   }
@@ -124,10 +137,8 @@ export default async function proxy(req: NextRequest) {
   if (req.method === "POST" && req.headers.has("next-action")) {
     const token = await getToken({ req, secret: process.env.AUTH_SECRET! });
     const key = token?.sub ?? getIp(req);
-    const { success } = await safeLimit(apiRatelimit, key);
-    if (!success) {
-      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
-    }
+    const actionResult = await safeLimit(apiRatelimit, key);
+    if (!actionResult.success) return tooManyRequests(actionResult);
   }
 
   // 3. App routes — enforce auth and attach x-pathname header
