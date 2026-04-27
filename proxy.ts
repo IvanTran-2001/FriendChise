@@ -2,6 +2,7 @@
 
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import * as Sentry from "@sentry/nextjs";
 import { authConfig } from "@/auth.config";
 import NextAuth from "next-auth";
 import { getToken } from "next-auth/jwt";
@@ -85,7 +86,7 @@ async function safeLimit(
   try {
     return await limiter.limit(key);
   } catch (error) {
-    console.error("Rate limiter error (failing open):", error);
+    Sentry.logger.error("Rate limiter error (failing open)", { error });
     return { success: true };
   }
 }
