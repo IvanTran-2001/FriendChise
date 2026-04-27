@@ -26,6 +26,7 @@ Production deployment: **[friendchise.app](https://friendchise.app)**
 - **react-markdown** + **remark-gfm** — GFM markdown rendering for task descriptions
 - **Vitest** — unit + integration tests
 - **Playwright** — E2E browser tests
+- **Sentry** — error monitoring, performance tracing, session replay, and server-side logs
 
 ## Getting Started
 
@@ -519,6 +520,33 @@ The `docs/` folder contains long-form documentation that doesn't belong in this 
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `docs/v1/UAT.md`                   | User Acceptance Testing checklist for the v1 feature set                                             |
 | `docs/v1/v1-smoke-test/smoke-test-{1..4}.md` | Manual smoke test reports run against production                                         |
+
+## Observability
+
+Error monitoring and performance tracking is handled by **Sentry** via `@sentry/nextjs`.
+
+- **Error monitoring** — unhandled exceptions on server, edge, and client are captured with full stack traces and request context
+- **Performance tracing** — distributed traces across server actions, API routes, and the client; `tracesSampleRate: 1` in development (lower this in production)
+- **Session Replay** — video-like reproduction of user sessions leading up to an error (10% of sessions sampled; 100% on error)
+- **Logs** — server-side logs forwarded to Sentry via `enableLogs: true`
+- **Source maps** — uploaded at build time via `withSentryConfig`; requires `SENTRY_AUTH_TOKEN` in Vercel env vars
+- **Global error boundary** — `app/global-error.tsx` catches top-level React errors and reports them before rendering the fallback UI
+
+Sentry config files:
+
+| File                      | Purpose                                        |
+| ------------------------- | ---------------------------------------------- |
+| `sentry.server.config.ts` | Server-side init (tracing, logs, PII)          |
+| `sentry.edge.config.ts`   | Edge runtime init                              |
+| `instrumentation.ts`      | Next.js instrumentation hook (wires server/edge configs) |
+| `instrumentation-client.ts` | Client-side init (tracing, replay, logs)     |
+
+Required env var for source map uploads:
+
+```env
+SENTRY_AUTH_TOKEN=   # Required whenever source maps are uploaded at build time (e.g., in CI/CD or on hosting platforms such as Vercel)
+                     # Source map upload is performed by withSentryConfig during build
+```
 
 ## Status
 
