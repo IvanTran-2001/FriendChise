@@ -51,6 +51,7 @@ const authRatelimit = redis
       redis,
       limiter: Ratelimit.slidingWindow(20, "15 m"),
       prefix: "rl:auth",
+      timeout: 500,
     })
   : null;
 
@@ -59,6 +60,7 @@ const apiRatelimit = redis
       redis,
       limiter: Ratelimit.slidingWindow(60, "1 m"),
       prefix: "rl:api",
+      timeout: 500,
     })
   : null;
 
