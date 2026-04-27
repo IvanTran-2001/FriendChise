@@ -60,7 +60,6 @@ export async function requireOrgPermission(
     log.warn("Permission denied", {
       orgId,
       permission,
-      userId: authz.userId,
     });
     return { ok: false as const, response: permissionDenied() };
   }

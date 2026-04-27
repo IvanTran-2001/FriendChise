@@ -27,10 +27,10 @@ labels: bug
 - [ ] Desktop — Chrome
 - [ ] Desktop — Safari
 - [ ] Desktop — Firefox
-      +- [ ] Desktop — Edge
+- [ ] Desktop — Edge
 - [ ] iPhone — Safari
 - [ ] Android — Chrome
-      +- [ ] Other (please specify): \_\_\_
+- [ ] Other (please specify): \_\_\_
 
 ## Severity
 

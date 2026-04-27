@@ -32,8 +32,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn({ user }) {
       log.info("User signed in", { userId: user.id });
     },
-    signOut({ token }) {
-      log.info("User signed out", { userId: token?.sub });
+    signOut(payload) {
+      if ("token" in payload && payload.token) {
+        log.info("User signed out", { userId: payload.token.sub });
+      }
     },
   },
 });
