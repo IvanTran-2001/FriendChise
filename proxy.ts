@@ -57,6 +57,22 @@ function getIp(req: NextRequest): string {
   );
 }
 
+// ─── Fail-open wrapper for rate limiting ────────────────────────────────────
+// Wraps rate limiter calls in try/catch to prevent Redis/network errors from
+// causing 500s. Returns true (allow) on error to fail open.
+
+async function safeLimit(
+  limiter: Ratelimit,
+  key: string
+): Promise<{ success: boolean }> {
+  try {
+    return await limiter.limit(key);
+  } catch (error) {
+    console.error("Rate limiter error (failing open):", error);
+    return { success: true }; // fail-open: allow the request
+  }
+}
+
 // ─── Proxy entry point ───────────────────────────────────────────────────────
 
 export default async function proxy(req: NextRequest) {
@@ -64,17 +80,21 @@ export default async function proxy(req: NextRequest) {
 
   // 1. API routes — run rate limiting first, then let the request through
   if (pathname.startsWith("/api/")) {
-    if (pathname.startsWith("/api/auth/")) {
+    // Only rate-limit sensitive auth endpoints (callback, signin), not session/csrf
+    if (
+      pathname.startsWith("/api/auth/callback/") ||
+      pathname.startsWith("/api/auth/signin/")
+    ) {
       // OAuth flow — no session exists yet, key by IP
-      const { success } = await authRatelimit.limit(getIp(req));
+      const { success } = await safeLimit(authRatelimit, getIp(req));
       if (!success) {
         return NextResponse.json({ error: "Too many requests" }, { status: 429 });
       }
-    } else {
-      // Authenticated API — key by user ID from JWT, fall back to IP
+    } else if (!pathname.startsWith("/api/auth/")) {
+      // Authenticated API (non-auth routes) — key by user ID from JWT, fall back to IP
       const token = await getToken({ req, secret: process.env.AUTH_SECRET! });
       const key = token?.sub ?? getIp(req);
-      const { success } = await apiRatelimit.limit(key);
+      const { success } = await safeLimit(apiRatelimit, key);
       if (!success) {
         return NextResponse.json({ error: "Too many requests" }, { status: 429 });
       }
@@ -86,7 +106,7 @@ export default async function proxy(req: NextRequest) {
   if (req.method === "POST" && req.headers.has("next-action")) {
     const token = await getToken({ req, secret: process.env.AUTH_SECRET! });
     const key = token?.sub ?? getIp(req);
-    const { success } = await apiRatelimit.limit(key);
+    const { success } = await safeLimit(apiRatelimit, key);
     if (!success) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
