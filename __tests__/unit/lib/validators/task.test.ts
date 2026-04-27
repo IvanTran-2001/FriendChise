@@ -84,28 +84,43 @@ describe("createTaskSchema", () => {
 
   describe("color validation", () => {
     it("rejects an invalid hex color", () => {
-      const result = createTaskSchema.safeParse({ ...validCreate, color: "red" });
+      const result = createTaskSchema.safeParse({
+        ...validCreate,
+        color: "red",
+      });
       expect(result.success).toBe(false);
       expect(issueMessages(result)).toContain("Must be a valid hex color");
     });
 
     it("rejects a 3-digit hex shorthand", () => {
-      const result = createTaskSchema.safeParse({ ...validCreate, color: "#FFF" });
+      const result = createTaskSchema.safeParse({
+        ...validCreate,
+        color: "#FFF",
+      });
       expect(result.success).toBe(false);
     });
 
     it("rejects a hex without leading #", () => {
-      const result = createTaskSchema.safeParse({ ...validCreate, color: "F59E0B" });
+      const result = createTaskSchema.safeParse({
+        ...validCreate,
+        color: "F59E0B",
+      });
       expect(result.success).toBe(false);
     });
 
     it("accepts uppercase hex letters", () => {
-      const result = createTaskSchema.safeParse({ ...validCreate, color: "#AABBCC" });
+      const result = createTaskSchema.safeParse({
+        ...validCreate,
+        color: "#AABBCC",
+      });
       expect(result.success).toBe(true);
     });
 
     it("accepts lowercase hex letters", () => {
-      const result = createTaskSchema.safeParse({ ...validCreate, color: "#aabbcc" });
+      const result = createTaskSchema.safeParse({
+        ...validCreate,
+        color: "#aabbcc",
+      });
       expect(result.success).toBe(true);
     });
   });
@@ -135,22 +150,34 @@ describe("createTaskSchema", () => {
 
   describe("durationMin validation", () => {
     it("rejects durationMin of 0", () => {
-      const result = createTaskSchema.safeParse({ ...validCreate, durationMin: 0 });
+      const result = createTaskSchema.safeParse({
+        ...validCreate,
+        durationMin: 0,
+      });
       expect(result.success).toBe(false);
     });
 
     it("rejects negative durationMin", () => {
-      const result = createTaskSchema.safeParse({ ...validCreate, durationMin: -1 });
+      const result = createTaskSchema.safeParse({
+        ...validCreate,
+        durationMin: -1,
+      });
       expect(result.success).toBe(false);
     });
 
     it("rejects durationMin over 1440 (24h)", () => {
-      const result = createTaskSchema.safeParse({ ...validCreate, durationMin: 1441 });
+      const result = createTaskSchema.safeParse({
+        ...validCreate,
+        durationMin: 1441,
+      });
       expect(result.success).toBe(false);
     });
 
     it("rejects non-integer durationMin", () => {
-      const result = createTaskSchema.safeParse({ ...validCreate, durationMin: 30.5 });
+      const result = createTaskSchema.safeParse({
+        ...validCreate,
+        durationMin: 30.5,
+      });
       expect(result.success).toBe(false);
     });
   });
@@ -195,13 +222,13 @@ describe("createTaskSchema", () => {
       expect(result.success).toBe(true);
     });
 
-    it("rejects maxWaitDays: 0 (must be >= 1)", () => {
+    it("accepts maxWaitDays: 0 (min is 0)", () => {
       const result = createTaskSchema.safeParse({
         ...validCreate,
         minWaitDays: 0,
         maxWaitDays: 0,
       });
-      expect(result.success).toBe(false);
+      expect(result.success).toBe(true);
     });
   });
 
@@ -225,12 +252,18 @@ describe("createTaskSchema", () => {
 
   describe("peopleRequired validation", () => {
     it("rejects peopleRequired of 0", () => {
-      const result = createTaskSchema.safeParse({ ...validCreate, peopleRequired: 0 });
+      const result = createTaskSchema.safeParse({
+        ...validCreate,
+        peopleRequired: 0,
+      });
       expect(result.success).toBe(false);
     });
 
     it("rejects peopleRequired over 50", () => {
-      const result = createTaskSchema.safeParse({ ...validCreate, peopleRequired: 51 });
+      const result = createTaskSchema.safeParse({
+        ...validCreate,
+        peopleRequired: 51,
+      });
       expect(result.success).toBe(false);
     });
   });
@@ -277,7 +310,8 @@ describe("updateTaskInstanceStatusSchema", () => {
 
   it("accepts IN_PROGRESS", () => {
     expect(
-      updateTaskInstanceStatusSchema.safeParse({ status: "IN_PROGRESS" }).success,
+      updateTaskInstanceStatusSchema.safeParse({ status: "IN_PROGRESS" })
+        .success,
     ).toBe(true);
   });
 

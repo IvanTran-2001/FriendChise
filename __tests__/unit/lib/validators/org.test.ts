@@ -9,7 +9,15 @@ import {
 
 describe("DAY_VALUES", () => {
   it("contains all seven days in order", () => {
-    expect(DAY_VALUES).toEqual(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
+    expect(DAY_VALUES).toEqual([
+      "mon",
+      "tue",
+      "wed",
+      "thu",
+      "fri",
+      "sat",
+      "sun",
+    ]);
   });
 });
 

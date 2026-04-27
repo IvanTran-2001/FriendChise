@@ -3,9 +3,9 @@
 /**
  * Shared form for creating and editing tasks.
  *
- * Layout: two-column.
- *   Left  — task fields (title, description, duration, etc.)
- *   Right — role eligibility panel (searchable dropdown + current list)
+ * Layout: single-column, top to bottom.
+ *   Top    — task fields (title, description, duration, etc.)
+ *   Bottom — role eligibility panel (searchable dropdown + current list)
  *
  * Props:
  *   mode="create" — submits createTaskAction (redirects on success)
@@ -341,11 +341,11 @@ function StartTimePicker({
 // ─── Main form ────────────────────────────────────────────────────────────────
 
 /**
- * Two-column task form (create / edit).
+ * Single-column task form (create / edit).
  *
- * Left column  — task fields: title, color picker, description, duration,
- *                preferred start time, people required, min/max wait days.
- * Right column — `EligibilityPanel` for picking which roles can be assigned.
+ * Top section    — task fields: title, color picker, description, duration,
+ *                  preferred start time, people required, min/max wait days.
+ * Bottom section — `EligibilityPanel` for picking which roles can be assigned.
  *
  * Color is managed via a `useState` lazy initialiser (random hex for new tasks,
  * pre-filled from `defaultValues.color` for edits). A hidden
@@ -423,11 +423,8 @@ export function TaskForm(props: TaskFormProps) {
       : null;
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-6 items-start"
-    >
-      {/* ── Left: task fields ─────────────────────────────────────────────── */}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      {/* ── Task fields ───────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-5">
         {err("_") && (
           <p role="alert" className="text-sm text-destructive">
@@ -598,7 +595,7 @@ export function TaskForm(props: TaskFormProps) {
               id="maxWaitDays"
               name="maxWaitDays"
               type="number"
-              min={1}
+              min={0}
               max={3650}
               placeholder="e.g. 14"
               defaultValue={dv?.maxWaitDays ?? undefined}
@@ -629,7 +626,7 @@ export function TaskForm(props: TaskFormProps) {
         </Button>
       </div>
 
-      {/* ── Right: eligibility panel ───────────────────────────────────── */}
+      {/* ── Eligibility panel ─────────────────────────────────────────────── */}
       <div className="rounded-xl border bg-card p-5">
         {isEdit ? (
           <EligibilityPanel

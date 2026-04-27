@@ -46,7 +46,10 @@ describe("POST /api/orgs/[orgId]/tasks", () => {
   it("returns 403 when permission check fails", async () => {
     vi.mocked(requireOrgPermission).mockResolvedValue(forbidden);
 
-    const res = await POST(makeReq("POST", { title: "Task A", durationMin: 30, color: "#6366f1" }), { params });
+    const res = await POST(
+      makeReq("POST", { title: "Task A", durationMin: 30, color: "#6366f1" }),
+      { params },
+    );
 
     expect(res.status).toBe(403);
   });
@@ -83,12 +86,20 @@ describe("POST /api/orgs/[orgId]/tasks", () => {
     vi.mocked(createTask).mockResolvedValue(task as any);
 
     const res = await POST(
-      makeReq("POST", { title: "Task A", durationMin: 30, color: "#6366f1", minWaitDays: 7 }),
+      makeReq("POST", {
+        title: "Task A",
+        durationMin: 30,
+        color: "#6366f1",
+        minWaitDays: 7,
+      }),
       { params },
     );
 
     expect(res.status).toBe(201);
-    expect(createTask).toHaveBeenCalledWith("org-1", expect.objectContaining({ title: "Task A" }));
+    expect(createTask).toHaveBeenCalledWith(
+      "org-1",
+      expect.objectContaining({ title: "Task A" }),
+    );
     const body = await res.json();
     expect(body).toMatchObject({ id: "task-1" });
   });
@@ -116,7 +127,9 @@ describe("DELETE /api/orgs/[orgId]/tasks", () => {
   it("returns 404 when task not found", async () => {
     vi.mocked(requireOrgPermission).mockResolvedValue(permitted);
     vi.mocked(deleteTask).mockResolvedValue({
-      ok: false, error: "Task not found", code: "NOT_FOUND",
+      ok: false,
+      error: "Task not found",
+      code: "NOT_FOUND",
     });
 
     const res = await DELETE(makeReq("DELETE", { id: "task-bad" }), { params });

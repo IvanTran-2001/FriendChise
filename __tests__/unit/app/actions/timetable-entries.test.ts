@@ -16,7 +16,10 @@ vi.mock("@/lib/services/timetable-entries", () => ({
   removeTimetableEntryAssignee: vi.fn(),
 }));
 
-import { requireOrgPermissionAction, requireOrgMemberAction } from "@/lib/authz";
+import {
+  requireOrgPermissionAction,
+  requireOrgMemberAction,
+} from "@/lib/authz";
 import { revalidatePath } from "next/cache";
 import {
   createTimetableEntry as createTimetableEntryService,
@@ -36,7 +39,11 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const authorised = { ok: true as const, userId: "u-1", membership: { id: "m-1" } as any };
+const authorised = {
+  ok: true as const,
+  userId: "u-1",
+  membership: { id: "m-1" } as any,
+};
 const unauthorised = { ok: false as const };
 
 beforeEach(() => vi.clearAllMocks());
@@ -47,7 +54,12 @@ describe("createTimetableEntryAction", () => {
   it("returns unauthorized when permission check fails", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(unauthorised);
 
-    const result = await createTimetableEntryAction("org-1", "task-1", "2025-06-01", 480);
+    const result = await createTimetableEntryAction(
+      "org-1",
+      "task-1",
+      "2025-06-01",
+      480,
+    );
 
     expect(result).toEqual({ ok: false, error: "Unauthorized" });
     expect(createTimetableEntryService).not.toHaveBeenCalled();
@@ -55,12 +67,25 @@ describe("createTimetableEntryAction", () => {
 
   it("creates entry and revalidates on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(createTimetableEntryService).mockResolvedValue({ ok: true, data: {} as any });
+    vi.mocked(createTimetableEntryService).mockResolvedValue({
+      ok: true,
+      data: {} as any,
+    });
 
-    const result = await createTimetableEntryAction("org-1", "task-1", "2025-06-01", 480);
+    const result = await createTimetableEntryAction(
+      "org-1",
+      "task-1",
+      "2025-06-01",
+      480,
+    );
 
     expect(result).toEqual({ ok: true });
-    expect(createTimetableEntryService).toHaveBeenCalledWith("org-1", "task-1", "2025-06-01", 480);
+    expect(createTimetableEntryService).toHaveBeenCalledWith(
+      "org-1",
+      "task-1",
+      "2025-06-01",
+      480,
+    );
     expect(revalidatePath).toHaveBeenCalledWith("/orgs/org-1/timetable");
   });
 
@@ -72,7 +97,12 @@ describe("createTimetableEntryAction", () => {
       code: "NOT_FOUND",
     });
 
-    const result = await createTimetableEntryAction("org-1", "task-bad", "2025-06-01", 480);
+    const result = await createTimetableEntryAction(
+      "org-1",
+      "task-bad",
+      "2025-06-01",
+      480,
+    );
 
     expect(result).toEqual({ ok: false, error: "Task not found" });
   });
@@ -84,14 +114,19 @@ describe("updateTimetableEntryAction", () => {
   it("returns unauthorized when permission check fails", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(unauthorised);
 
-    const result = await updateTimetableEntryAction("org-1", "entry-1", { startTimeMin: 540 });
+    const result = await updateTimetableEntryAction("org-1", "entry-1", {
+      startTimeMin: 540,
+    });
 
     expect(result).toEqual({ ok: false, error: "Unauthorized" });
   });
 
   it("updates entry and revalidates on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(updateTimetableEntryService).mockResolvedValue({ ok: true, data: {} as any });
+    vi.mocked(updateTimetableEntryService).mockResolvedValue({
+      ok: true,
+      data: {} as any,
+    });
 
     const result = await updateTimetableEntryAction("org-1", "entry-1", {
       startTimeMin: 540,
@@ -99,10 +134,14 @@ describe("updateTimetableEntryAction", () => {
     });
 
     expect(result).toEqual({ ok: true });
-    expect(updateTimetableEntryService).toHaveBeenCalledWith("org-1", "entry-1", {
-      startTimeMin: 540,
-      dateStr: "2025-06-02",
-    });
+    expect(updateTimetableEntryService).toHaveBeenCalledWith(
+      "org-1",
+      "entry-1",
+      {
+        startTimeMin: 540,
+        dateStr: "2025-06-02",
+      },
+    );
     expect(revalidatePath).toHaveBeenCalled();
   });
 
@@ -126,20 +165,35 @@ describe("updateTimetableEntryStatusAction", () => {
   it("returns unauthorized when member check fails", async () => {
     vi.mocked(requireOrgMemberAction).mockResolvedValue(unauthorised);
 
-    const result = await updateTimetableEntryStatusAction("org-1", "entry-1", EntryStatus.DONE);
+    const result = await updateTimetableEntryStatusAction(
+      "org-1",
+      "entry-1",
+      EntryStatus.DONE,
+    );
 
     expect(result).toEqual({ ok: false, error: "Unauthorized" });
   });
 
   it("updates status and revalidates — uses member check not permission check", async () => {
     vi.mocked(requireOrgMemberAction).mockResolvedValue(authorised);
-    vi.mocked(updateTimetableEntryService).mockResolvedValue({ ok: true, data: {} as any });
+    vi.mocked(updateTimetableEntryService).mockResolvedValue({
+      ok: true,
+      data: {} as any,
+    });
 
-    const result = await updateTimetableEntryStatusAction("org-1", "entry-1", EntryStatus.DONE);
+    const result = await updateTimetableEntryStatusAction(
+      "org-1",
+      "entry-1",
+      EntryStatus.DONE,
+    );
 
     expect(result).toEqual({ ok: true });
     expect(requireOrgPermissionAction).not.toHaveBeenCalled();
-    expect(updateTimetableEntryService).toHaveBeenCalledWith("org-1", "entry-1", { status: EntryStatus.DONE });
+    expect(updateTimetableEntryService).toHaveBeenCalledWith(
+      "org-1",
+      "entry-1",
+      { status: EntryStatus.DONE },
+    );
   });
 });
 
@@ -156,12 +210,18 @@ describe("deleteTimetableEntryAction", () => {
 
   it("deletes entry and revalidates on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(deleteTimetableEntryService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(deleteTimetableEntryService).mockResolvedValue({
+      ok: true,
+      data: null,
+    });
 
     const result = await deleteTimetableEntryAction("org-1", "entry-1");
 
     expect(result).toEqual({ ok: true });
-    expect(deleteTimetableEntryService).toHaveBeenCalledWith("org-1", "entry-1");
+    expect(deleteTimetableEntryService).toHaveBeenCalledWith(
+      "org-1",
+      "entry-1",
+    );
     expect(revalidatePath).toHaveBeenCalled();
   });
 });
@@ -172,19 +232,34 @@ describe("addTimetableEntryAssigneeAction", () => {
   it("returns unauthorized when permission check fails", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(unauthorised);
 
-    const result = await addTimetableEntryAssigneeAction("org-1", "entry-1", "mem-1");
+    const result = await addTimetableEntryAssigneeAction(
+      "org-1",
+      "entry-1",
+      "mem-1",
+    );
 
     expect(result).toEqual({ ok: false, error: "Unauthorized" });
   });
 
   it("adds assignee and revalidates on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(addTimetableEntryAssigneeService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(addTimetableEntryAssigneeService).mockResolvedValue({
+      ok: true,
+      data: null,
+    });
 
-    const result = await addTimetableEntryAssigneeAction("org-1", "entry-1", "mem-1");
+    const result = await addTimetableEntryAssigneeAction(
+      "org-1",
+      "entry-1",
+      "mem-1",
+    );
 
     expect(result).toEqual({ ok: true });
-    expect(addTimetableEntryAssigneeService).toHaveBeenCalledWith("org-1", "entry-1", "mem-1");
+    expect(addTimetableEntryAssigneeService).toHaveBeenCalledWith(
+      "org-1",
+      "entry-1",
+      "mem-1",
+    );
   });
 
   it("propagates service NOT_FOUND error", async () => {
@@ -195,7 +270,11 @@ describe("addTimetableEntryAssigneeAction", () => {
       code: "NOT_FOUND",
     });
 
-    const result = await addTimetableEntryAssigneeAction("org-1", "entry-bad", "mem-1");
+    const result = await addTimetableEntryAssigneeAction(
+      "org-1",
+      "entry-bad",
+      "mem-1",
+    );
 
     expect(result).toEqual({ ok: false, error: "Entry not found" });
   });
@@ -207,18 +286,33 @@ describe("removeTimetableEntryAssigneeAction", () => {
   it("returns unauthorized when permission check fails", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(unauthorised);
 
-    const result = await removeTimetableEntryAssigneeAction("org-1", "entry-1", "mem-1");
+    const result = await removeTimetableEntryAssigneeAction(
+      "org-1",
+      "entry-1",
+      "mem-1",
+    );
 
     expect(result).toEqual({ ok: false, error: "Unauthorized" });
   });
 
   it("removes assignee and revalidates on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(removeTimetableEntryAssigneeService).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(removeTimetableEntryAssigneeService).mockResolvedValue({
+      ok: true,
+      data: null,
+    });
 
-    const result = await removeTimetableEntryAssigneeAction("org-1", "entry-1", "mem-1");
+    const result = await removeTimetableEntryAssigneeAction(
+      "org-1",
+      "entry-1",
+      "mem-1",
+    );
 
     expect(result).toEqual({ ok: true });
-    expect(removeTimetableEntryAssigneeService).toHaveBeenCalledWith("org-1", "entry-1", "mem-1");
+    expect(removeTimetableEntryAssigneeService).toHaveBeenCalledWith(
+      "org-1",
+      "entry-1",
+      "mem-1",
+    );
   });
 });

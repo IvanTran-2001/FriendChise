@@ -113,9 +113,14 @@ async function seedUsers() {
         create: { email: "alt28919@gmail.com", name: "Casey" },
       }),
       prisma.user.upsert({
-        where: { email: process.env.E2E_TEST_USER_EMAIL ?? "ivan@example.test" },
+        where: {
+          email: process.env.E2E_TEST_USER_EMAIL ?? "ivan@example.test",
+        },
         update: { name: "Riley" },
-        create: { email: process.env.E2E_TEST_USER_EMAIL ?? "ivan@example.test", name: "Riley" },
+        create: {
+          email: process.env.E2E_TEST_USER_EMAIL ?? "ivan@example.test",
+          name: "Riley",
+        },
       }),
       prisma.user.upsert({
         where: { email: "alt28921@gmail.com" },
@@ -890,7 +895,11 @@ async function seedOrg1(users: Users) {
     }),
   ]);
 
-  return { org, roles: { roleOwner, roleWorker, roleFryer, roleCounter }, botOpenSlot: mBotOpenSlot };
+  return {
+    org,
+    roles: { roleOwner, roleWorker, roleFryer, roleCounter },
+    botOpenSlot: mBotOpenSlot,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2226,7 +2235,9 @@ function confirm(): void {
 
   if (arg !== expected) {
     if (isProduction) {
-      console.log("  ⚠️  WARNING: This targets PRODUCTION. Run: pnpm seed:prod");
+      console.log(
+        "  ⚠️  WARNING: This targets PRODUCTION. Run: pnpm seed:prod",
+      );
     } else {
       console.log("  Run: pnpm seed:dev");
     }
@@ -2237,7 +2248,9 @@ function confirm(): void {
   if (isProduction) {
     // Require explicit env var confirmation for production
     if (process.env.CONFIRM_RESEED !== "production") {
-      console.log("  ❌ ERROR: Production reseed requires explicit confirmation.");
+      console.log(
+        "  ❌ ERROR: Production reseed requires explicit confirmation.",
+      );
       console.log("  Set CONFIRM_RESEED=production to proceed.");
       console.log("  Aborted — nothing was changed.\n");
       process.exit(1);

@@ -25,9 +25,10 @@ const EditMemberPage = async ({
 
   if (!membership) notFound();
 
-  const displayName = membership.userId === null
-    ? (membership.botName ?? "Bot")
-    : (membership.user?.name ?? "Unknown user");
+  const displayName =
+    membership.userId === null
+      ? (membership.botName ?? "Bot")
+      : (membership.user?.name ?? "Unknown user");
   const initialRoleIds = membership.memberRoles.map(({ role }) => role.id);
 
   return (
@@ -53,7 +54,9 @@ const EditMemberPage = async ({
         <MemberForm
           mode="edit"
           orgId={orgId}
-          membershipId={memberId}          isCurrentlyBot={membership.userId === null}          allRoles={roles
+          membershipId={memberId}
+          isCurrentlyBot={membership.userId === null}
+          allRoles={roles
             .filter((r) => r.key !== ROLE_KEYS.OWNER)
             .map((r) => ({ id: r.id, name: r.name }))}
           initialRoleIds={initialRoleIds}

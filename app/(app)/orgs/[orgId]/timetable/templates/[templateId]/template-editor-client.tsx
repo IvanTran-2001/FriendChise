@@ -24,7 +24,15 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, LayoutList, Minus, MoreHorizontal, Plus, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  LayoutList,
+  Minus,
+  MoreHorizontal,
+  Plus,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -124,7 +132,10 @@ function EditPopup({
       if (r.ok) {
         setLocalAssignees((p) => [
           ...p,
-          { id: `opt-${effectiveAddId}`, membership: { ...membership, botName: membership.botName ?? null } },
+          {
+            id: `opt-${effectiveAddId}`,
+            membership: { ...membership, botName: membership.botName ?? null },
+          },
         ]);
         router.refresh();
       }
@@ -325,9 +336,7 @@ export function TemplateEditorClient({
   const [startDay, setStartDay] = useState(0);
 
   // In simple mode page by 1 (day) or 7 (week); in calendar mode page by colCount.
-  const pageSize = mode === "simple"
-    ? (span === "day" ? 1 : 7)
-    : colCount;
+  const pageSize = mode === "simple" ? (span === "day" ? 1 : 7) : colCount;
 
   // Clamp only to [0, templateDays-1] — allows partial last page.
   const clampedStartDay = Math.max(0, Math.min(startDay, templateDays - 1));
@@ -470,7 +479,9 @@ export function TemplateEditorClient({
               variant="outline"
               size="icon"
               className="h-7 w-7"
-              onClick={() => setStartDay(Math.max(0, clampedStartDay - pageSize))}
+              onClick={() =>
+                setStartDay(Math.max(0, clampedStartDay - pageSize))
+              }
               disabled={!canPrev}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -482,9 +493,7 @@ export function TemplateEditorClient({
               variant="outline"
               size="icon"
               className="h-7 w-7"
-              onClick={() =>
-                setStartDay(clampedStartDay + pageSize)
-              }
+              onClick={() => setStartDay(clampedStartDay + pageSize)}
               disabled={!canNext}
             >
               <ChevronRight className="h-4 w-4" />
@@ -549,30 +558,48 @@ export function TemplateEditorClient({
       </div>
 
       {/* ── Simple list view ── */}
-      {mode === "simple" && (() => {
-        // visibleDays already accounts for span + clamped navigation
-        return (
-          <div className={`flex flex-col gap-4${fillHeight ? " flex-1 overflow-y-auto min-h-0" : ""}`}>
-            {visibleDays.map((dayIdx) => {
-              const dayInstances = [...instances]
-                .filter((inst) => inst.dayIndex === dayIdx)
-                .sort((a, b) => a.startTimeMin - b.startTimeMin);
-              return (
-                <div key={dayIdx} className="rounded-xl border shadow-sm overflow-hidden bg-card shrink-0">
+      {mode === "simple" &&
+        (() => {
+          // visibleDays already accounts for span + clamped navigation
+          return (
+            <div
+              className={`flex flex-col gap-4${fillHeight ? " flex-1 overflow-y-auto min-h-0" : ""}`}
+            >
+              {visibleDays.map((dayIdx) => {
+                const dayInstances = [...instances]
+                  .filter((inst) => inst.dayIndex === dayIdx)
+                  .sort((a, b) => a.startTimeMin - b.startTimeMin);
+                return (
+                  <div
+                    key={dayIdx}
+                    className="rounded-xl border shadow-sm overflow-hidden bg-card shrink-0"
+                  >
                     <div className="px-4 py-2.5 flex items-center gap-2 font-semibold text-sm border-b bg-muted/20">
                       Day {dayIdx + 1}
                     </div>
                     {dayInstances.length === 0 ? (
-                      <div className="px-4 py-8 text-sm text-muted-foreground">No tasks scheduled</div>
+                      <div className="px-4 py-8 text-sm text-muted-foreground">
+                        No tasks scheduled
+                      </div>
                     ) : (
                       <table className="w-full text-sm">
                         <thead className="border-b bg-muted/20">
                           <tr className="text-xs text-muted-foreground uppercase tracking-wide">
-                            <th className="px-3 py-1.5 text-left font-medium w-8">#</th>
-                            <th className="px-3 py-1.5 text-left font-medium">Time</th>
-                            <th className="px-3 py-1.5 text-left font-medium">Task</th>
-                            <th className="px-3 py-1.5 text-left font-medium">Duration</th>
-                            <th className="px-3 py-1.5 text-left font-medium">Assigned To</th>
+                            <th className="px-3 py-1.5 text-left font-medium w-8">
+                              #
+                            </th>
+                            <th className="px-3 py-1.5 text-left font-medium">
+                              Time
+                            </th>
+                            <th className="px-3 py-1.5 text-left font-medium">
+                              Task
+                            </th>
+                            <th className="px-3 py-1.5 text-left font-medium">
+                              Duration
+                            </th>
+                            <th className="px-3 py-1.5 text-left font-medium">
+                              Assigned To
+                            </th>
                             <th className="px-3 py-1.5 w-8" />
                           </tr>
                         </thead>
@@ -580,7 +607,9 @@ export function TemplateEditorClient({
                           {dayInstances.map((inst, idx) => {
                             const assigneeNames =
                               inst.assignees
-                                .map((a) => a.membership.user?.name ?? "Unknown")
+                                .map(
+                                  (a) => a.membership.user?.name ?? "Unknown",
+                                )
                                 .join(", ") || "—";
                             return (
                               <tr
@@ -588,7 +617,9 @@ export function TemplateEditorClient({
                                 onClick={() => setEditingInstance(inst)}
                                 className="hover:bg-primary/5 active:bg-primary/10 transition-colors cursor-pointer"
                               >
-                                <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
+                                <td className="px-3 py-2 text-muted-foreground">
+                                  {idx + 1}
+                                </td>
                                 <td className="px-3 py-2 text-muted-foreground text-xs font-mono">
                                   {minTo12h(inst.startTimeMin)}
                                 </td>
@@ -596,7 +627,9 @@ export function TemplateEditorClient({
                                   <span className="flex items-center gap-2">
                                     <span
                                       className="w-2 h-2 rounded-full shrink-0"
-                                      style={{ background: inst.taskColor ?? "#9ca3af" }}
+                                      style={{
+                                        background: inst.taskColor ?? "#9ca3af",
+                                      }}
                                     />
                                     {inst.task.name}
                                   </span>
@@ -609,7 +642,10 @@ export function TemplateEditorClient({
                                 </td>
                                 <td className="px-2 py-2">
                                   <button
-                                    onClick={(e) => { e.stopPropagation(); setEditingInstance(inst); }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingInstance(inst);
+                                    }}
                                     className="flex items-center justify-center w-6 h-6 rounded hover:bg-muted transition-colors cursor-pointer text-muted-foreground"
                                   >
                                     <MoreHorizontal className="h-3.5 w-3.5" />
@@ -624,110 +660,121 @@ export function TemplateEditorClient({
                   </div>
                 );
               })}
-          </div>
-        );
-      })()}
+            </div>
+          );
+        })()}
 
       {/* ── Grid + desktop panel ── */}
       {mode === "calendar" && (
-      <div className={`flex gap-4${fillHeight ? " flex-1 min-h-0" : ""}`}>
-        <div
-          ref={containerRef}
-          className={`relative flex-1 min-w-0${fillHeight ? " min-h-0 flex flex-col" : ""}`}
-        >
-          {/* Empty state — hidden during tap-to-place and drag */}
-          {!visibleInstances.length && !isDragging && !selectedTaskId && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center border bg-background/90">
-              <div className="flex flex-col items-center gap-3 text-center">
-                <p className="text-2xl font-semibold text-foreground">
-                  {colCount === 1
-                    ? `No slots on day ${startDay + 1}`
-                    : "No slots in this range"}
-                </p>
-                {isMobile ? (
-                  <button
-                    onClick={() => setTaskPanelOpen(true)}
-                    className="flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-md px-4 py-2.5 text-sm font-medium active:scale-95 transition-transform"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add task
-                  </button>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Drag a task from the panel to get started
+        <div className={`flex gap-4${fillHeight ? " flex-1 min-h-0" : ""}`}>
+          <div
+            ref={containerRef}
+            className={`relative flex-1 min-w-0${fillHeight ? " min-h-0 flex flex-col" : ""}`}
+          >
+            {/* Empty state — hidden during tap-to-place and drag */}
+            {!visibleInstances.length && !isDragging && !selectedTaskId && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center border bg-background/90">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <p className="text-2xl font-semibold text-foreground">
+                    {colCount === 1
+                      ? `No slots on day ${startDay + 1}`
+                      : "No slots in this range"}
                   </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          <TimeGrid
-            columns={columns}
-            instances={visibleInstances}
-            getColumnKey={(inst) => String(inst.dayIndex)}
-            renderColumnHeader={(col) => (
-              <>
-                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
-                  Day
-                </div>
-                <div className="text-base font-bold leading-none mt-0.5">
-                  {parseInt(col, 10) + 1}
-                </div>
-              </>
-            )}
-            renderBlock={(inst, heightPx) => {
-              const assigneeNames = inst.assignees
-                .map((a) => (a.membership.user?.name ?? a.membership.botName ?? "Bot").split(" ")[0])
-                .join(", ");
-              return (
-                <>
-                  <div className="text-[10px] text-muted-foreground font-mono leading-none mb-0.5">
-                    {minToHHMM(inst.startTimeMin)}
-                  </div>
-                  <div className="font-semibold truncate">{inst.task.name}</div>
-                  {heightPx >= 60 && assigneeNames && (
-                    <div className="truncate text-[10px] text-muted-foreground mt-0.5">
-                      {assigneeNames}
-                    </div>
+                  {isMobile ? (
+                    <button
+                      onClick={() => setTaskPanelOpen(true)}
+                      className="flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-md px-4 py-2.5 text-sm font-medium active:scale-95 transition-transform"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add task
+                    </button>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Drag a task from the panel to get started
+                    </p>
                   )}
-                </>
-              );
-            }}
-            dragDataRef={dragDataRef as DragDataRef}
-            onDragOver={(col, timeMin) => setDragOver({ column: col, timeMin })}
-            onDrop={handleDrop}
-            onDragLeave={() => setDragOver(null)}
-            dragOver={dragOver}
-            onBlockMenuClick={setEditingInstance}
-            draggable
-            initialScrollMin={initialScrollMin}
-            openTimeMin={openTimeMin}
-            closeTimeMin={closeTimeMin}
-            fillHeight={fillHeight}
-            blockColor={(inst) => inst.taskColor ?? undefined}
-            selectedTaskId={isMobile ? selectedTaskId : null}
-            onTapPlace={isMobile ? handleTapPlace : undefined}
-          />
-        </div>
+                </div>
+              </div>
+            )}
 
-        {/* Desktop task panel */}
-        {!isMobile && (
-          <TaskPanel
-            tasks={availableTasks}
-            fillHeight={fillHeight}
-            onDragStart={(taskId, e) => {
-              dragDataRef.current = { type: "task", taskId };
-              e.dataTransfer.effectAllowed = "copy";
-              setIsDragging(true);
-            }}
-            onDragEnd={() => {
-              dragDataRef.current = null;
-              setDragOver(null);
-              setIsDragging(false);
-            }}
-          />
-        )}
-      </div>
+            <TimeGrid
+              columns={columns}
+              instances={visibleInstances}
+              getColumnKey={(inst) => String(inst.dayIndex)}
+              renderColumnHeader={(col) => (
+                <>
+                  <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                    Day
+                  </div>
+                  <div className="text-base font-bold leading-none mt-0.5">
+                    {parseInt(col, 10) + 1}
+                  </div>
+                </>
+              )}
+              renderBlock={(inst, heightPx) => {
+                const assigneeNames = inst.assignees
+                  .map(
+                    (a) =>
+                      (
+                        a.membership.user?.name ??
+                        a.membership.botName ??
+                        "Bot"
+                      ).split(" ")[0],
+                  )
+                  .join(", ");
+                return (
+                  <>
+                    <div className="text-[10px] text-muted-foreground font-mono leading-none mb-0.5">
+                      {minToHHMM(inst.startTimeMin)}
+                    </div>
+                    <div className="font-semibold truncate">
+                      {inst.task.name}
+                    </div>
+                    {heightPx >= 60 && assigneeNames && (
+                      <div className="truncate text-[10px] text-muted-foreground mt-0.5">
+                        {assigneeNames}
+                      </div>
+                    )}
+                  </>
+                );
+              }}
+              dragDataRef={dragDataRef as DragDataRef}
+              onDragOver={(col, timeMin) =>
+                setDragOver({ column: col, timeMin })
+              }
+              onDrop={handleDrop}
+              onDragLeave={() => setDragOver(null)}
+              dragOver={dragOver}
+              onBlockMenuClick={setEditingInstance}
+              draggable
+              initialScrollMin={initialScrollMin}
+              openTimeMin={openTimeMin}
+              closeTimeMin={closeTimeMin}
+              fillHeight={fillHeight}
+              blockColor={(inst) => inst.taskColor ?? undefined}
+              selectedTaskId={isMobile ? selectedTaskId : null}
+              onTapPlace={isMobile ? handleTapPlace : undefined}
+            />
+          </div>
+
+          {/* Desktop task panel */}
+          {!isMobile && (
+            <TaskPanel
+              tasks={availableTasks}
+              fillHeight={fillHeight}
+              onDragStart={(taskId, e) => {
+                dragDataRef.current = { type: "task", taskId };
+                e.dataTransfer.effectAllowed = "copy";
+                setIsDragging(true);
+              }}
+              onDragEnd={() => {
+                dragDataRef.current = null;
+                setDragOver(null);
+                setIsDragging(false);
+              }}
+            />
+          )}
+        </div>
       )}
 
       {/* Mobile: floating Tasks button + Sheet */}

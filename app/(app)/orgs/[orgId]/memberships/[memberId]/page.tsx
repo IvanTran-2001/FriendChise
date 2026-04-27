@@ -34,7 +34,8 @@ const MemberDetailPage = async ({
       )
     : false;
 
-  const { user, botName, memberRoles, workingDays, status, joinedAt } = membership;
+  const { user, botName, memberRoles, workingDays, status, joinedAt } =
+    membership;
   const isRestricted = status === "RESTRICTED";
   const displayName = user?.name ?? botName ?? "Bot";
   const isBot = user === null;
@@ -85,7 +86,7 @@ const MemberDetailPage = async ({
               <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
                 Email
               </dt>
-              <dd className="text-sm">{isBot ? "—" : user?.email ?? "—"}</dd>
+              <dd className="text-sm">{isBot ? "—" : (user?.email ?? "—")}</dd>
             </div>
             <div>
               <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-2">

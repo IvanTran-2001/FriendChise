@@ -32,6 +32,14 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+vi.mock("@/lib/observability", () => ({
+  log: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
 const mockTask = {
   id: "task-1",
   orgId: "org-1",
@@ -215,7 +223,11 @@ describe("updateTask", () => {
   it("returns NOT_FOUND when no task matches", async () => {
     vi.mocked(prisma.task.updateMany).mockResolvedValue({ count: 0 });
 
-    const result = await updateTask("org-1", "non-existent", updateInput as any);
+    const result = await updateTask(
+      "org-1",
+      "non-existent",
+      updateInput as any,
+    );
 
     expect(result).toEqual({
       ok: false,
@@ -294,7 +306,9 @@ describe("addTaskEligibility", () => {
 describe("removeTaskEligibility", () => {
   it("returns ok: true and removes the eligibility row", async () => {
     vi.mocked(prisma.task.findFirst).mockResolvedValue({ id: "task-1" } as any);
-    vi.mocked(prisma.taskEligibility.deleteMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.taskEligibility.deleteMany).mockResolvedValue({
+      count: 1,
+    });
 
     const result = await removeTaskEligibility("org-1", "task-1", "role-1");
 
@@ -307,7 +321,11 @@ describe("removeTaskEligibility", () => {
   it("returns NOT_FOUND when task does not exist", async () => {
     vi.mocked(prisma.task.findFirst).mockResolvedValue(null);
 
-    const result = await removeTaskEligibility("org-1", "non-existent", "role-1");
+    const result = await removeTaskEligibility(
+      "org-1",
+      "non-existent",
+      "role-1",
+    );
 
     expect(result).toEqual({
       ok: false,
@@ -341,9 +359,15 @@ describe("setTaskEligibilities", () => {
       { id: "role-1" },
       { id: "role-2" },
     ] as any);
-    vi.mocked(prisma.taskEligibility.createMany).mockResolvedValue({ count: 2 });
+    vi.mocked(prisma.taskEligibility.createMany).mockResolvedValue({
+      count: 2,
+    });
 
-    await setTaskEligibilities("org-1", "task-1", ["role-1", "role-2", "role-invalid"]);
+    await setTaskEligibilities("org-1", "task-1", [
+      "role-1",
+      "role-2",
+      "role-invalid",
+    ]);
 
     expect(prisma.taskEligibility.createMany).toHaveBeenCalledWith({
       data: [

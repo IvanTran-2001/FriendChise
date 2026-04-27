@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { CreateAssigneeSchema, DeleteAssigneeSchema } from "@/lib/validators/assignee";
+import {
+  CreateAssigneeSchema,
+  DeleteAssigneeSchema,
+} from "@/lib/validators/assignee";
 
 describe("CreateAssigneeSchema", () => {
   it("accepts a valid membershipId string", () => {
@@ -18,8 +21,13 @@ describe("CreateAssigneeSchema", () => {
   });
 
   it("accepts any string as membershipId (no cuid/non-empty constraint)", () => {
-    expect(CreateAssigneeSchema.safeParse({ membershipId: "any-string-123" }).success).toBe(true);
-    expect(CreateAssigneeSchema.safeParse({ membershipId: "" }).success).toBe(true);
+    expect(
+      CreateAssigneeSchema.safeParse({ membershipId: "any-string-123" })
+        .success,
+    ).toBe(true);
+    expect(CreateAssigneeSchema.safeParse({ membershipId: "" }).success).toBe(
+      true,
+    );
   });
 });
 

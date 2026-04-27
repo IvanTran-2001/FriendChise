@@ -13,7 +13,11 @@ vi.mock("@/lib/services/memberships", () => ({
 }));
 
 import { requireOrgPermission } from "@/lib/authz";
-import { createMembership, deleteMembership, getMemberships } from "@/lib/services/memberships";
+import {
+  createMembership,
+  deleteMembership,
+  getMemberships,
+} from "@/lib/services/memberships";
 import { POST, DELETE, GET } from "@/app/api/orgs/[orgId]/memberships/route";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -48,7 +52,10 @@ describe("POST /api/orgs/[orgId]/memberships", () => {
   it("returns 403 when permission check fails", async () => {
     vi.mocked(requireOrgPermission).mockResolvedValue(forbidden);
 
-    const res = await POST(makeReq("POST", { userId: validCuid, roleId: validCuid2 }), { params });
+    const res = await POST(
+      makeReq("POST", { userId: validCuid, roleId: validCuid2 }),
+      { params },
+    );
 
     expect(res.status).toBe(403);
   });
@@ -69,7 +76,10 @@ describe("POST /api/orgs/[orgId]/memberships", () => {
   it("returns 400 when validation fails (non-cuid userId)", async () => {
     vi.mocked(requireOrgPermission).mockResolvedValue(permitted);
 
-    const res = await POST(makeReq("POST", { userId: "not-cuid", roleId: validCuid }), { params });
+    const res = await POST(
+      makeReq("POST", { userId: "not-cuid", roleId: validCuid }),
+      { params },
+    );
 
     expect(res.status).toBe(400);
     const body = await res.json();
@@ -79,10 +89,15 @@ describe("POST /api/orgs/[orgId]/memberships", () => {
   it("returns 409 when membership already exists (CONFLICT)", async () => {
     vi.mocked(requireOrgPermission).mockResolvedValue(permitted);
     vi.mocked(createMembership).mockResolvedValue({
-      ok: false, error: "Already a member", code: "CONFLICT",
+      ok: false,
+      error: "Already a member",
+      code: "CONFLICT",
     });
 
-    const res = await POST(makeReq("POST", { userId: validCuid, roleId: validCuid2 }), { params });
+    const res = await POST(
+      makeReq("POST", { userId: validCuid, roleId: validCuid2 }),
+      { params },
+    );
 
     expect(res.status).toBe(409);
     const body = await res.json();
@@ -92,9 +107,15 @@ describe("POST /api/orgs/[orgId]/memberships", () => {
   it("returns 201 with membership on success", async () => {
     vi.mocked(requireOrgPermission).mockResolvedValue(permitted);
     const membership = { id: "mem-new", userId: validCuid };
-    vi.mocked(createMembership).mockResolvedValue({ ok: true, data: membership as any });
+    vi.mocked(createMembership).mockResolvedValue({
+      ok: true,
+      data: membership as any,
+    });
 
-    const res = await POST(makeReq("POST", { userId: validCuid, roleId: validCuid2 }), { params });
+    const res = await POST(
+      makeReq("POST", { userId: validCuid, roleId: validCuid2 }),
+      { params },
+    );
 
     expect(res.status).toBe(201);
     const body = await res.json();
@@ -108,7 +129,9 @@ describe("DELETE /api/orgs/[orgId]/memberships", () => {
   it("returns 403 when permission check fails", async () => {
     vi.mocked(requireOrgPermission).mockResolvedValue(forbidden);
 
-    const res = await DELETE(makeReq("DELETE", { userId: validCuid }), { params });
+    const res = await DELETE(makeReq("DELETE", { userId: validCuid }), {
+      params,
+    });
 
     expect(res.status).toBe(403);
   });
@@ -116,7 +139,9 @@ describe("DELETE /api/orgs/[orgId]/memberships", () => {
   it("returns 400 when validation fails", async () => {
     vi.mocked(requireOrgPermission).mockResolvedValue(permitted);
 
-    const res = await DELETE(makeReq("DELETE", { userId: "not-cuid" }), { params });
+    const res = await DELETE(makeReq("DELETE", { userId: "not-cuid" }), {
+      params,
+    });
 
     expect(res.status).toBe(400);
   });
@@ -124,10 +149,14 @@ describe("DELETE /api/orgs/[orgId]/memberships", () => {
   it("returns 404 when membership not found", async () => {
     vi.mocked(requireOrgPermission).mockResolvedValue(permitted);
     vi.mocked(deleteMembership).mockResolvedValue({
-      ok: false, error: "Not found", code: "NOT_FOUND",
+      ok: false,
+      error: "Not found",
+      code: "NOT_FOUND",
     });
 
-    const res = await DELETE(makeReq("DELETE", { membershipId: validCuid }), { params });
+    const res = await DELETE(makeReq("DELETE", { membershipId: validCuid }), {
+      params,
+    });
 
     expect(res.status).toBe(404);
     const body = await res.json();
@@ -138,7 +167,9 @@ describe("DELETE /api/orgs/[orgId]/memberships", () => {
     vi.mocked(requireOrgPermission).mockResolvedValue(permitted);
     vi.mocked(deleteMembership).mockResolvedValue({ ok: true, data: null });
 
-    const res = await DELETE(makeReq("DELETE", { membershipId: validCuid }), { params });
+    const res = await DELETE(makeReq("DELETE", { membershipId: validCuid }), {
+      params,
+    });
 
     expect(res.status).toBe(200);
   });

@@ -5,7 +5,7 @@
  * automatically when an org is created (Owner, Default Member) and cannot be
  * deleted. Custom roles can be created freely and removed here.
  */
-import * as Sentry from "@sentry/nextjs";
+import { log } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 import { PermissionAction } from "@prisma/client";
 import { ROLE_KEYS } from "@/lib/rbac";
@@ -62,7 +62,7 @@ export async function deleteRole(
     };
 
   await prisma.role.delete({ where: { id: roleId } });
-  Sentry.logger.info("Role deleted", { orgId, roleId });
+  log.info("Role deleted", { orgId, roleId });
   return { ok: true, data: null };
 }
 
@@ -163,7 +163,7 @@ export async function createRole(
     };
   }
 
-  Sentry.logger.info("Role created", { orgId, roleId: role.id });
+  log.info("Role created", { orgId, roleId: role.id });
   return { ok: true, data: role };
 }
 
@@ -244,6 +244,6 @@ export async function updateRole(
     };
   }
 
-  Sentry.logger.info("Role updated", { orgId, roleId });
+  log.info("Role updated", { orgId, roleId });
   return { ok: true, data: updated };
 }

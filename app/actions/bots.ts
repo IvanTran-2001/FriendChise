@@ -117,7 +117,12 @@ export async function inviteBotSlotAction(
   // Verify the membership is still a bot slot
   const membership = await prisma.membership.findUnique({
     where: { id: membershipId, orgId },
-    select: { id: true, userId: true, memberRoles: { select: { roleId: true } }, workingDays: true },
+    select: {
+      id: true,
+      userId: true,
+      memberRoles: { select: { roleId: true } },
+      workingDays: true,
+    },
   });
   if (!membership) return { ok: false, error: "Membership not found" };
   if (membership.userId !== null)

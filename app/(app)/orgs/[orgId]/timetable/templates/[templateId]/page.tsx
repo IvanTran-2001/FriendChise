@@ -34,7 +34,11 @@ export default async function TemplateEditorPage({
     getTasks(orgId),
     prisma.membership.findMany({
       where: { orgId },
-      select: { id: true, botName: true, user: { select: { id: true, name: true } } },
+      select: {
+        id: true,
+        botName: true,
+        user: { select: { id: true, name: true } },
+      },
       orderBy: { joinedAt: "asc" },
     }),
   ]);
@@ -79,7 +83,10 @@ export default async function TemplateEditorPage({
   const memberships: ClientMembership[] = rawMemberships;
 
   return (
-      <div className="flex flex-col" style={{ height: "calc(100dvh - 148px)", minHeight: "600px" }}>
+    <div
+      className="flex flex-col"
+      style={{ height: "calc(100dvh - 148px)", minHeight: "600px" }}
+    >
       <Toolbar>
         <Link
           href={`/orgs/${orgId}/timetable/templates`}

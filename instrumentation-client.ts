@@ -8,12 +8,14 @@ Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
   // Add optional integrations for additional features
-  integrations: [Sentry.replayIntegration({ maskAllText: true, blockAllMedia: true })],
+  integrations: [
+    Sentry.replayIntegration({ maskAllText: true, blockAllMedia: true }),
+  ],
 
-  // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1,
+  // Only trace and log in production — dev sessions would burn free quota fast.
+  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 0,
   // Enable logs to be sent to Sentry
-  enableLogs: true,
+  enableLogs: process.env.NODE_ENV === "production",
 
   // Define how likely Replay events are sampled.
   // Rely on replaysOnErrorSampleRate for error sessions instead of sampling all sessions

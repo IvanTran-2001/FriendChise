@@ -7,7 +7,10 @@ import * as Sentry from "@sentry/nextjs";
 /**
  * Scrubs sensitive data from events before sending to Sentry
  */
-function beforeSend(event: Sentry.ErrorEvent, _hint: Sentry.EventHint): Sentry.ErrorEvent | null {
+function beforeSend(
+  event: Sentry.ErrorEvent,
+  _hint: Sentry.EventHint,
+): Sentry.ErrorEvent | null {
   // Scrub sensitive headers
   if (event.request?.headers) {
     delete event.request.headers.cookie;
@@ -43,11 +46,11 @@ function beforeSendLog(log: Sentry.Log): Sentry.Log | null {
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
 
-  // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1,
+  // Only trace and log in production — dev sessions would burn free quota fast.
+  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 0,
 
   // Enable logs to be sent to Sentry
-  enableLogs: true,
+  enableLogs: process.env.NODE_ENV === "production",
 
   // Disable sending user PII (Personally Identifiable Information) by default
   // Only enable in non-production environments when explicitly approved

@@ -15,7 +15,9 @@ import { resolve } from "path";
  */
 export default function globalSetup() {
   if (process.env.CI) {
-    console.log("\n[global setup] CI environment detected — skipping reseed (already seeded by workflow).\n");
+    console.log(
+      "\n[global setup] CI environment detected — skipping reseed (already seeded by workflow).\n",
+    );
     return;
   }
 

@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/nextjs";
+import { log } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import type { ServiceResult } from "./types";
@@ -43,13 +43,22 @@ export async function createAssignee(
     const assignee = await prisma.timetableEntryAssignee.create({
       data: { timetableEntryId: taskInstanceId, membershipId },
     });
-    Sentry.logger.info("Assignee added", { orgId, taskInstanceId, membershipId });
+    log.info("Assignee added", {
+      orgId,
+      taskInstanceId,
+      membershipId,
+    });
     return { ok: true, data: assignee };
   } catch (e) {
     if (
       e instanceof Prisma.PrismaClientKnownRequestError &&
       e.code === "P2002"
     ) {
+      log.warn("Conflict: assignee already exists", {
+        orgId,
+        taskInstanceId,
+        membershipId,
+      });
       return { ok: false, error: "Assignee already exists", code: "CONFLICT" };
     }
     throw e;
@@ -80,7 +89,11 @@ export async function deleteAssignee(
     return { ok: false, error: "Assignee not found", code: "NOT_FOUND" };
 
   await prisma.timetableEntryAssignee.delete({ where: { id: link.id } });
-  Sentry.logger.info("Assignee removed", { orgId, taskInstanceId, membershipId });
+  log.info("Assignee removed", {
+    orgId,
+    taskInstanceId,
+    membershipId,
+  });
   return { ok: true, data: null };
 }
 

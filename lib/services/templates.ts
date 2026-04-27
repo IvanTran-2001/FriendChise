@@ -2,7 +2,7 @@
  * @file templates.ts
  * Service functions for reading and mutating timetable templates and their entries.
  */
-import * as Sentry from "@sentry/nextjs";
+import { log } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import type { ServiceResult } from "./types";
@@ -70,7 +70,11 @@ export async function createTemplate(
     data: { orgId, name, cycleLengthDays },
     select: { id: true },
   });
-  Sentry.logger.info("Template created", { orgId, templateId: template.id, name });
+  log.info("Template created", {
+    orgId,
+    templateId: template.id,
+    name,
+  });
   return { ok: true, data: template };
 }
 
@@ -113,7 +117,7 @@ export async function addTemplateInstance(
   await prisma.templateEntry.create({
     data: { taskId, templateId, dayIndex, startTimeMin, endTimeMin },
   });
-  Sentry.logger.info("Template instance added", { orgId, templateId, taskId });
+  log.info("Template instance added", { orgId, templateId, taskId });
   return { ok: true, data: null };
 }
 
@@ -131,7 +135,7 @@ export async function removeTemplateInstance(
   if (!entry) return { ok: false, error: "Not found", code: "NOT_FOUND" };
 
   await prisma.templateEntry.delete({ where: { id: instanceId } });
-  Sentry.logger.info("Template instance removed", { orgId, instanceId });
+  log.info("Template instance removed", { orgId, instanceId });
   return { ok: true, data: null };
 }
 
@@ -193,7 +197,9 @@ export async function updateTemplateInstance(
         ),
       }),
     },
-  });  Sentry.logger.info("Template instance updated", { orgId, instanceId });  return { ok: true, data: null };
+  });
+  log.info("Template instance updated", { orgId, instanceId });
+  return { ok: true, data: null };
 }
 
 /**
@@ -235,7 +241,11 @@ export async function updateTemplateDays(
   if (updated.count === 0) {
     return { ok: false, error: "Template not found", code: "NOT_FOUND" };
   }
-  Sentry.logger.info("Template cycle length updated", { orgId, templateId, cycleLengthDays });
+  log.info("Template cycle length updated", {
+    orgId,
+    templateId,
+    cycleLengthDays,
+  });
   return { ok: true, data: null };
 }
 
@@ -272,7 +282,11 @@ export async function addTemplateInstanceAssignee(
     create: { templateEntryId: instanceId, membershipId },
     update: {},
   });
-  Sentry.logger.info("Template instance assignee added", { orgId, instanceId, membershipId });
+  log.info("Template instance assignee added", {
+    orgId,
+    instanceId,
+    membershipId,
+  });
   return { ok: true, data: null };
 }
 
@@ -295,7 +309,11 @@ export async function removeTemplateInstanceAssignee(
   if (!assignee) return { ok: false, error: "Not found", code: "NOT_FOUND" };
 
   await prisma.templateEntryAssignee.delete({ where: { id: assignee.id } });
-  Sentry.logger.info("Template instance assignee removed", { orgId, instanceId, membershipId });
+  log.info("Template instance assignee removed", {
+    orgId,
+    instanceId,
+    membershipId,
+  });
   return { ok: true, data: null };
 }
 
@@ -471,7 +489,13 @@ export async function applyTemplate(
     }
   });
 
-  Sentry.logger.info("Template applied", { orgId, templateId, startDateStr, cycleRepeats, created: createData.length });
+  log.info("Template applied", {
+    orgId,
+    templateId,
+    startDateStr,
+    cycleRepeats,
+    created: createData.length,
+  });
   return { ok: true, data: { created: createData.length } };
 }
 
@@ -484,7 +508,8 @@ export async function renameTemplate(
   name: string,
 ): Promise<ServiceResult<null>> {
   const trimmed = name.trim();
-  if (!trimmed) return { ok: false, error: "Name is required", code: "INVALID" };
+  if (!trimmed)
+    return { ok: false, error: "Name is required", code: "INVALID" };
 
   try {
     const updated = await prisma.template.updateMany({
@@ -494,7 +519,7 @@ export async function renameTemplate(
     if (updated.count === 0)
       return { ok: false, error: "Template not found", code: "NOT_FOUND" };
 
-    Sentry.logger.info("Template renamed", { orgId, templateId });
+    log.info("Template renamed", { orgId, templateId });
     return { ok: true, data: null };
   } catch (error) {
     if (
@@ -535,7 +560,8 @@ export async function duplicateTemplate(
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     // Generate candidate name
-    const candidateName = attempt === 0 ? baseName : `${baseName} (${attempt + 1})`;
+    const candidateName =
+      attempt === 0 ? baseName : `${baseName} (${attempt + 1})`;
 
     try {
       const copy = await prisma.template.create({
@@ -552,7 +578,9 @@ export async function duplicateTemplate(
               priority: e.priority,
               durationMin: e.durationMin,
               assignees: {
-                create: e.assignees.map((a) => ({ membershipId: a.membershipId })),
+                create: e.assignees.map((a) => ({
+                  membershipId: a.membershipId,
+                })),
               },
             })),
           },
@@ -560,7 +588,11 @@ export async function duplicateTemplate(
         select: { id: true },
       });
 
-      Sentry.logger.info("Template duplicated", { orgId, sourceTemplateId: templateId, newTemplateId: copy.id });
+      log.info("Template duplicated", {
+        orgId,
+        sourceTemplateId: templateId,
+        newTemplateId: copy.id,
+      });
       return { ok: true, data: { id: copy.id } };
     } catch (error) {
       if (
@@ -602,6 +634,6 @@ export async function deleteTemplate(
   if (deleted.count === 0)
     return { ok: false, error: "Template not found", code: "NOT_FOUND" };
 
-  Sentry.logger.info("Template deleted", { orgId, templateId });
+  log.info("Template deleted", { orgId, templateId });
   return { ok: true, data: null };
 }

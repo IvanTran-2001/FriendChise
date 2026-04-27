@@ -26,7 +26,7 @@ export const createTaskSchema = z
     peopleRequired: z.number().int().min(1).max(50).optional(),
 
     minWaitDays: z.number().int().min(0).max(3650).optional(),
-    maxWaitDays: z.number().int().min(1).max(3650).optional(),
+    maxWaitDays: z.number().int().min(0).max(3650).optional(),
   })
   .superRefine((data, ctx) => {
     // Your rule: must set at least one of minWaitDays/maxWaitDays
@@ -75,7 +75,7 @@ export const updateTaskSchema = z
     preferredStartTimeMin: z.number().int().min(0).max(1439).optional(),
     peopleRequired: z.number().int().min(1).max(50).optional(),
     minWaitDays: z.number().int().min(0).max(3650).optional(),
-    maxWaitDays: z.number().int().min(1).max(3650).optional(),
+    maxWaitDays: z.number().int().min(0).max(3650).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.minWaitDays == null && data.maxWaitDays == null) {

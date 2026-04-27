@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
+import { log } from "@/lib/observability";
 
 /**
  * Full Auth.js config. Used by API routes and server components (Node.js runtime only).
@@ -25,6 +26,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.sub;
       }
       return session;
+    },
+  },
+  events: {
+    signIn({ user }) {
+      log.info("User signed in", { userId: user.id });
+    },
+    signOut(payload) {
+      if ("token" in payload && payload.token) {
+        log.info("User signed out", { userId: payload.token.sub });
+      }
     },
   },
 });

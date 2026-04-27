@@ -11,7 +11,8 @@ import { test as setup, expect } from "@playwright/test";
 
 // Primary test user — owner of Walker's Doughnuts (and the dev seed orgs when using default seed).
 // Override locally via E2E_TEST_USER_EMAIL if your seed uses a different identity.
-const E2E_TEST_USER_EMAIL = process.env.E2E_TEST_USER_EMAIL ?? "ivan@example.test";
+const E2E_TEST_USER_EMAIL =
+  process.env.E2E_TEST_USER_EMAIL ?? "ivan@example.test";
 
 // Must match the storageState path in playwright.config.ts
 export const AUTH_FILE = "playwright/.auth/ivan.json";

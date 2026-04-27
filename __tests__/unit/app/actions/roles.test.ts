@@ -26,7 +26,11 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const authorised = { ok: true as const, userId: "u-1", membership: { id: "m-1" } as any };
+const authorised = {
+  ok: true as const,
+  userId: "u-1",
+  membership: { id: "m-1" } as any,
+};
 const unauthorised = { ok: false as const };
 const validRoleInput = {
   name: "Manager",
@@ -83,7 +87,10 @@ describe("deleteRoleAction", () => {
 
     const result = await deleteRoleAction("org-1", "role-owner");
 
-    expect(result).toEqual({ ok: false, error: "This role cannot be deleted." });
+    expect(result).toEqual({
+      ok: false,
+      error: "This role cannot be deleted.",
+    });
   });
 });
 
@@ -101,7 +108,10 @@ describe("createRoleAction", () => {
   it("returns validation error for invalid input", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
 
-    const result = await createRoleAction("org-1", { ...validRoleInput, name: "" });
+    const result = await createRoleAction("org-1", {
+      ...validRoleInput,
+      name: "",
+    });
 
     expect(result.ok).toBe(false);
     expect(createRoleService).not.toHaveBeenCalled();
@@ -117,7 +127,10 @@ describe("createRoleAction", () => {
     const result = await createRoleAction("org-1", validRoleInput);
 
     expect(result).toEqual({ ok: true });
-    expect(createRoleService).toHaveBeenCalledWith("org-1", expect.objectContaining({ name: "Manager" }));
+    expect(createRoleService).toHaveBeenCalledWith(
+      "org-1",
+      expect.objectContaining({ name: "Manager" }),
+    );
     expect(revalidatePath).toHaveBeenCalled();
   });
 
@@ -131,7 +144,10 @@ describe("createRoleAction", () => {
 
     const result = await createRoleAction("org-1", validRoleInput);
 
-    expect(result).toEqual({ ok: false, error: "One or more tasks are invalid for this organization." });
+    expect(result).toEqual({
+      ok: false,
+      error: "One or more tasks are invalid for this organization.",
+    });
   });
 });
 
@@ -149,7 +165,10 @@ describe("updateRoleAction", () => {
   it("returns validation error for invalid input", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
 
-    const result = await updateRoleAction("org-1", "role-1", { ...validRoleInput, name: "" });
+    const result = await updateRoleAction("org-1", "role-1", {
+      ...validRoleInput,
+      name: "",
+    });
 
     expect(result.ok).toBe(false);
     expect(updateRoleService).not.toHaveBeenCalled();
@@ -157,12 +176,19 @@ describe("updateRoleAction", () => {
 
   it("updates role and revalidates on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(updateRoleService).mockResolvedValue({ ok: true, data: {} as any });
+    vi.mocked(updateRoleService).mockResolvedValue({
+      ok: true,
+      data: {} as any,
+    });
 
     const result = await updateRoleAction("org-1", "role-1", validRoleInput);
 
     expect(result).toEqual({ ok: true });
-    expect(updateRoleService).toHaveBeenCalledWith("org-1", "role-1", expect.objectContaining({ name: "Manager" }));
+    expect(updateRoleService).toHaveBeenCalledWith(
+      "org-1",
+      "role-1",
+      expect.objectContaining({ name: "Manager" }),
+    );
     expect(revalidatePath).toHaveBeenCalled();
   });
 
@@ -174,8 +200,15 @@ describe("updateRoleAction", () => {
       code: "INVALID",
     });
 
-    const result = await updateRoleAction("org-1", "role-owner", validRoleInput);
+    const result = await updateRoleAction(
+      "org-1",
+      "role-owner",
+      validRoleInput,
+    );
 
-    expect(result).toEqual({ ok: false, error: "The Owner role cannot be edited." });
+    expect(result).toEqual({
+      ok: false,
+      error: "The Owner role cannot be edited.",
+    });
   });
 });

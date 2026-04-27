@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/nextjs";
+import { log } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 import type { ServiceResult } from "./types";
 import type { CreateTaskInput, UpdateTaskInput } from "@/lib/validators/task";
@@ -21,7 +21,7 @@ export async function createTask(orgId: string, data: CreateTaskInput) {
       maxWaitDays: data.maxWaitDays ?? null,
     },
   });
-  Sentry.logger.info("Task created", { orgId, taskId: task.id });
+  log.info("Task created", { orgId, taskId: task.id });
   return task;
 }
 
@@ -36,7 +36,7 @@ export async function deleteTask(
   const { count } = await prisma.task.deleteMany({ where: { id, orgId } });
   if (count === 0)
     return { ok: false, error: "Task not found", code: "NOT_FOUND" };
-  Sentry.logger.info("Task deleted", { orgId, taskId: id });
+  log.info("Task deleted", { orgId, taskId: id });
   return { ok: true, data: null };
 }
 
@@ -94,7 +94,7 @@ export async function updateTask(
   });
   if (count === 0)
     return { ok: false, error: "Task not found", code: "NOT_FOUND" };
-  Sentry.logger.info("Task updated", { orgId, taskId });
+  log.info("Task updated", { orgId, taskId });
   return { ok: true, data: null };
 }
 

@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/nextjs";
+import { log } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 import { Prisma, InviteType } from "@prisma/client";
 import type { CreateMembershipInput } from "@/lib/validators/membership";
@@ -43,7 +43,11 @@ export async function createMembership(
       });
       return m;
     });
-    Sentry.logger.info("Membership created", { orgId, userId: data.userId, roleId: data.roleId });
+    log.info("Membership created", {
+      orgId,
+      userId: data.userId,
+      roleId: data.roleId,
+    });
     return { ok: true, data: membership };
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
@@ -121,7 +125,7 @@ export async function deleteMembership(
     });
     await tx.membership.delete({ where: { id: membershipId } });
   });
-  Sentry.logger.info("Membership deleted", { orgId, membershipId });
+  log.info("Membership deleted", { orgId, membershipId });
   return { ok: true, data: null };
 }
 
@@ -211,7 +215,7 @@ export async function updateMembership(
     );
   });
 
-  Sentry.logger.info("Membership updated", { orgId, membershipId });
+  log.info("Membership updated", { orgId, membershipId });
   return { ok: true, data: null };
 }
 
@@ -233,6 +237,10 @@ export async function setMembershipStatus(
     where: { id: membershipId },
     data: { status },
   });
-  Sentry.logger.info("Membership status updated", { orgId, membershipId, status });
+  log.info("Membership status updated", {
+    orgId,
+    membershipId,
+    status,
+  });
   return { ok: true, data: null };
 }

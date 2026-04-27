@@ -45,7 +45,10 @@ describe("createTimetableEntrySchema", () => {
 
   it("rejects missing date", () => {
     const { taskId, startTimeMin } = validInput;
-    const result = createTimetableEntrySchema.safeParse({ taskId, startTimeMin });
+    const result = createTimetableEntrySchema.safeParse({
+      taskId,
+      startTimeMin,
+    });
     expect(result.success).toBe(false);
   });
 

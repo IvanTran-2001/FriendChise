@@ -40,7 +40,7 @@ const MembersPage = async ({
 
   return (
     <MembersView
-        members={memberships.map((m) => ({
+      members={memberships.map((m) => ({
         id: m.id,
         userId: m.userId,
         botName: m.botName,

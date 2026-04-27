@@ -57,12 +57,12 @@ import { usePersistedState } from "@/hooks/use-persisted-state";
 // Strip markdown syntax for plain-text previews
 function stripMd(text: string): string {
   return text
-    .replace(/\*\*(.+?)\*\*/g, "$1")   // bold
-    .replace(/\*(.+?)\*/g, "$1")       // italic
-    .replace(/^#{1,6}\s+/gm, "")       // headings
-    .replace(/^[•\-*]\s+/gm, "")      // bullet lists
-    .replace(/^\d+\.\s+/gm, "")       // numbered lists
-    .replace(/\n/g, " ")              // collapse newlines
+    .replace(/\*\*(.+?)\*\*/g, "$1") // bold
+    .replace(/\*(.+?)\*/g, "$1") // italic
+    .replace(/^#{1,6}\s+/gm, "") // headings
+    .replace(/^[•\-*]\s+/gm, "") // bullet lists
+    .replace(/^\d+\.\s+/gm, "") // numbered lists
+    .replace(/\n/g, " ") // collapse newlines
     .trim();
 }
 
@@ -274,199 +274,65 @@ export function TaskTable({
       </Toolbar>
 
       <div className="flex-1 overflow-auto -mx-4 sm:-mx-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-4 sm:pb-6 -mt-4 sm:-mt-6">
-      {visible.length === 0 ? (
-        <div className="flex items-center justify-center border py-24">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <ListTodo className="h-10 w-10 text-muted-foreground/40" />
-            <p className="text-2xl font-semibold text-foreground">
-              {tasks.length === 0
-                ? "No tasks yet"
-                : "No tasks match your filters"}
-            </p>
-            {tasks.length === 0 && canManageTasks && (
-              <a
-                href={`/orgs/${orgId}/tasks/new`}
-                className="text-sm text-primary hover:underline"
-              >
-                Create your first task
-              </a>
-            )}
-          </div>
-        </div>
-      ) : view === "card" ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {visible.map((task) => (
-            <div
-              key={task.id}
-              className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden relative group"
-            >
-              {/* Color accent bar */}
-              <div
-                className="h-1.5 w-full"
-                style={{ backgroundColor: task.color }}
-              />
-              <Link
-                href={`/orgs/${orgId}/tasks/${task.id}`}
-                className="block p-4 cursor-pointer"
-              >
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-start gap-2">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0 mt-0.5"
-                      style={{ backgroundColor: task.color }}
-                    />
-                    <div className="font-semibold text-sm leading-snug">
-                      {task.name}
-                    </div>
-                  </div>
-                  {task.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                      {stripMd(task.description)}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                      {task.durationMin} min
-                    </span>
-                    <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                      {task.minPeople}+ people
-                    </span>
-                  </div>
-                  {task.eligibility.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {task.eligibility.map((e) => (
-                        <span
-                          key={e.role.id}
-                          className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium"
-                        >
-                          {e.role.color && (
-                            <span
-                              className="h-1.5 w-1.5 rounded-full shrink-0"
-                              style={{ backgroundColor: e.role.color }}
-                            />
-                          )}
-                          {e.role.name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </Link>
-              {canManageTasks && (
-                <div className="absolute top-3 right-3">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 opacity-100 transition-opacity sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto sm:focus-visible:opacity-100 sm:focus-visible:pointer-events-auto"
-                        disabled={isPending}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }}
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Task actions</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/orgs/${orgId}/tasks/${task.id}/edit`);
-                        }}
-                      >
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        disabled
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(
-                            `/orgs/${orgId}/tasks/new?duplicateFrom=${task.id}`,
-                          );
-                        }}
-                      >
-                        Duplicate
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteTarget(task);
-                        }}
-                      >
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+        {visible.length === 0 ? (
+          <div className="flex items-center justify-center border py-24">
+            <div className="flex flex-col items-center gap-3 text-center">
+              <ListTodo className="h-10 w-10 text-muted-foreground/40" />
+              <p className="text-2xl font-semibold text-foreground">
+                {tasks.length === 0
+                  ? "No tasks yet"
+                  : "No tasks match your filters"}
+              </p>
+              {tasks.length === 0 && canManageTasks && (
+                <a
+                  href={`/orgs/${orgId}/tasks/new`}
+                  className="text-sm text-primary hover:underline"
+                >
+                  Create your first task
+                </a>
               )}
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-lg border bg-card overflow-hidden shadow-sm overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/40">
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Title
-                </th>
-                <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Description
-                </th>
-                <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Duration
-                </th>
-                <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  People
-                </th>
-                <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Role
-                </th>
-                {canManageTasks && <th className="w-10" />}
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((task) => (
-                <tr
-                  key={task.id}
-                  tabIndex={0}
-                  onClick={() => router.push(`/orgs/${orgId}/tasks/${task.id}`)}
-                  onKeyDown={(e) => {
-                    if (e.key !== "Enter") return;
-                    if (e.target !== e.currentTarget) return;
-                    router.push(`/orgs/${orgId}/tasks/${task.id}`);
-                  }}
-                  className="border-b last:border-0 hover:bg-primary/5 active:bg-muted cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+          </div>
+        ) : view === "card" ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {visible.map((task) => (
+              <div
+                key={task.id}
+                className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden relative group"
+              >
+                {/* Color accent bar */}
+                <div
+                  className="h-1.5 w-full"
+                  style={{ backgroundColor: task.color }}
+                />
+                <Link
+                  href={`/orgs/${orgId}/tasks/${task.id}`}
+                  className="block p-4 cursor-pointer"
                 >
-                  <td className="px-4 py-3 font-medium">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-start gap-2">
                       <span
-                        className="w-2 h-2 rounded-full shrink-0"
+                        className="w-2.5 h-2.5 rounded-full shrink-0 mt-0.5"
                         style={{ backgroundColor: task.color }}
                       />
-                      {task.name}
+                      <div className="font-semibold text-sm leading-snug">
+                        {task.name}
+                      </div>
                     </div>
-                  </td>
-                  <td className="hidden sm:table-cell px-4 py-3 text-muted-foreground max-w-60 truncate">
-                    {task.description ? stripMd(task.description) : "—"}
-                  </td>
-                  <td className="hidden sm:table-cell px-4 py-3 tabular-nums">
-                    {task.durationMin} min
-                  </td>
-                  <td className="hidden sm:table-cell px-4 py-3 tabular-nums">
-                    {task.minPeople}
-                  </td>
-                  <td className="hidden sm:table-cell px-4 py-3">
-                    {task.eligibility.length === 0 ? (
-                      <span className="text-muted-foreground">—</span>
-                    ) : (
+                    {task.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                        {stripMd(task.description)}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                        {task.durationMin} min
+                      </span>
+                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                        {task.minPeople}+ people
+                      </span>
+                    </div>
+                    {task.eligibility.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {task.eligibility.map((e) => (
                           <span
@@ -484,61 +350,196 @@ export function TaskTable({
                         ))}
                       </div>
                     )}
-                  </td>
-                  {canManageTasks && (
-                    <td
-                      className="px-2 py-3 text-right"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            disabled={isPending}
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Task actions</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() =>
-                              router.push(
-                                `/orgs/${orgId}/tasks/${task.id}/edit`,
-                              )
-                            }
-                          >
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            disabled
-                            onClick={() =>
-                              router.push(
-                                `/orgs/${orgId}/tasks/new?duplicateFrom=${task.id}`,
-                              )
-                            }
-                          >
-                            Duplicate
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => setDeleteTarget(task)}
-                          >
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  )}
+                  </div>
+                </Link>
+                {canManageTasks && (
+                  <div className="absolute top-3 right-3">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-100 transition-opacity sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto sm:focus-visible:opacity-100 sm:focus-visible:pointer-events-auto"
+                          disabled={isPending}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Task actions</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/orgs/${orgId}/tasks/${task.id}/edit`);
+                          }}
+                        >
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabled
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(
+                              `/orgs/${orgId}/tasks/new?duplicateFrom=${task.id}`,
+                            );
+                          }}
+                        >
+                          Duplicate
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteTarget(task);
+                          }}
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border bg-card overflow-hidden shadow-sm overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/40">
+                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Title
+                  </th>
+                  <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Description
+                  </th>
+                  <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Duration
+                  </th>
+                  <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    People
+                  </th>
+                  <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Role
+                  </th>
+                  {canManageTasks && <th className="w-10" />}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
+              </thead>
+              <tbody>
+                {visible.map((task) => (
+                  <tr
+                    key={task.id}
+                    tabIndex={0}
+                    onClick={() =>
+                      router.push(`/orgs/${orgId}/tasks/${task.id}`)
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter") return;
+                      if (e.target !== e.currentTarget) return;
+                      router.push(`/orgs/${orgId}/tasks/${task.id}`);
+                    }}
+                    className="border-b last:border-0 hover:bg-primary/5 active:bg-muted cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                  >
+                    <td className="px-4 py-3 font-medium">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0"
+                          style={{ backgroundColor: task.color }}
+                        />
+                        {task.name}
+                      </div>
+                    </td>
+                    <td className="hidden sm:table-cell px-4 py-3 text-muted-foreground max-w-60 truncate">
+                      {task.description ? stripMd(task.description) : "—"}
+                    </td>
+                    <td className="hidden sm:table-cell px-4 py-3 tabular-nums">
+                      {task.durationMin} min
+                    </td>
+                    <td className="hidden sm:table-cell px-4 py-3 tabular-nums">
+                      {task.minPeople}
+                    </td>
+                    <td className="hidden sm:table-cell px-4 py-3">
+                      {task.eligibility.length === 0 ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {task.eligibility.map((e) => (
+                            <span
+                              key={e.role.id}
+                              className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium"
+                            >
+                              {e.role.color && (
+                                <span
+                                  className="h-1.5 w-1.5 rounded-full shrink-0"
+                                  style={{ backgroundColor: e.role.color }}
+                                />
+                              )}
+                              {e.role.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                    {canManageTasks && (
+                      <td
+                        className="px-2 py-3 text-right"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              disabled={isPending}
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Task actions</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() =>
+                                router.push(
+                                  `/orgs/${orgId}/tasks/${task.id}/edit`,
+                                )
+                              }
+                            >
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled
+                              onClick={() =>
+                                router.push(
+                                  `/orgs/${orgId}/tasks/new?duplicateFrom=${task.id}`,
+                                )
+                              }
+                            >
+                              Duplicate
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setDeleteTarget(task)}
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Delete confirmation */}

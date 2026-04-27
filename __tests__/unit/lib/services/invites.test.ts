@@ -69,7 +69,9 @@ describe("getInvitesForUser", () => {
 
     expect(result).toBe(invites);
     expect(prisma.invite.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.objectContaining({ recipientId: "user-1" }) }),
+      expect.objectContaining({
+        where: expect.objectContaining({ recipientId: "user-1" }),
+      }),
     );
   });
 
@@ -148,9 +150,16 @@ describe("markInvitesSeen", () => {
 describe("getNotificationsForUser", () => {
   it("returns notifications for the user ordered newest-first", async () => {
     const notifications = [
-      { id: "notif-1", message: "You got an invite", seenAt: null, createdAt: new Date() },
+      {
+        id: "notif-1",
+        message: "You got an invite",
+        seenAt: null,
+        createdAt: new Date(),
+      },
     ];
-    vi.mocked(prisma.notification.findMany).mockResolvedValue(notifications as any);
+    vi.mocked(prisma.notification.findMany).mockResolvedValue(
+      notifications as any,
+    );
 
     const result = await getNotificationsForUser("user-1");
 
@@ -205,9 +214,15 @@ describe("markNotificationsSeen", () => {
 
 describe("createMemberInvite", () => {
   const setup = () => {
-    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ name: "Acme" } as any);
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({ name: "Alice" } as any);
-    vi.mocked(prisma.role.findMany).mockResolvedValue([{ id: "role-1", key: "manager" }] as any);
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({
+      name: "Acme",
+    } as any);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      name: "Alice",
+    } as any);
+    vi.mocked(prisma.role.findMany).mockResolvedValue([
+      { id: "role-1", key: "manager" },
+    ] as any);
     vi.mocked(prisma.membership.findUnique).mockResolvedValue(null);
     vi.mocked(prisma.invite.findFirst).mockResolvedValue(null);
     vi.mocked(prisma.invite.create).mockResolvedValue({} as any);
@@ -216,7 +231,13 @@ describe("createMemberInvite", () => {
   it("creates invite and returns ok: true for valid input", async () => {
     setup();
 
-    const result = await createMemberInvite("org-1", "user-inviter", "user-recipient", ["role-1"], ["mon"]);
+    const result = await createMemberInvite(
+      "org-1",
+      "user-inviter",
+      "user-recipient",
+      ["role-1"],
+      ["mon"],
+    );
 
     expect(result).toEqual({ ok: true, data: null });
     expect(prisma.invite.create).toHaveBeenCalled();
@@ -225,7 +246,13 @@ describe("createMemberInvite", () => {
   it("returns NOT_FOUND when org does not exist", async () => {
     vi.mocked(prisma.organization.findUnique).mockResolvedValue(null);
 
-    const result = await createMemberInvite("org-bad", "inv", "rec", ["role-1"], []);
+    const result = await createMemberInvite(
+      "org-bad",
+      "inv",
+      "rec",
+      ["role-1"],
+      [],
+    );
 
     expect(result).toEqual({
       ok: false,
@@ -235,12 +262,22 @@ describe("createMemberInvite", () => {
   });
 
   it("returns INVALID when a roleId is not found in the org", async () => {
-    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ name: "Acme" } as any);
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({ name: "Alice" } as any);
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({
+      name: "Acme",
+    } as any);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      name: "Alice",
+    } as any);
     // Only 0 of 2 requested roles found
     vi.mocked(prisma.role.findMany).mockResolvedValue([]);
 
-    const result = await createMemberInvite("org-1", "inv", "rec", ["role-1", "role-2"], []);
+    const result = await createMemberInvite(
+      "org-1",
+      "inv",
+      "rec",
+      ["role-1", "role-2"],
+      [],
+    );
 
     expect(result).toEqual({
       ok: false,
@@ -250,11 +287,23 @@ describe("createMemberInvite", () => {
   });
 
   it("returns INVALID when trying to invite with owner role", async () => {
-    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ name: "Acme" } as any);
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({ name: "Alice" } as any);
-    vi.mocked(prisma.role.findMany).mockResolvedValue([{ id: "role-owner", key: "owner" }] as any);
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({
+      name: "Acme",
+    } as any);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      name: "Alice",
+    } as any);
+    vi.mocked(prisma.role.findMany).mockResolvedValue([
+      { id: "role-owner", key: "owner" },
+    ] as any);
 
-    const result = await createMemberInvite("org-1", "inv", "rec", ["role-owner"], []);
+    const result = await createMemberInvite(
+      "org-1",
+      "inv",
+      "rec",
+      ["role-owner"],
+      [],
+    );
 
     expect(result).toEqual({
       ok: false,
@@ -264,12 +313,26 @@ describe("createMemberInvite", () => {
   });
 
   it("returns CONFLICT when recipient is already a member", async () => {
-    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ name: "Acme" } as any);
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({ name: "Alice" } as any);
-    vi.mocked(prisma.role.findMany).mockResolvedValue([{ id: "role-1", key: "manager" }] as any);
-    vi.mocked(prisma.membership.findUnique).mockResolvedValue({ id: "mem-exists" } as any);
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({
+      name: "Acme",
+    } as any);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      name: "Alice",
+    } as any);
+    vi.mocked(prisma.role.findMany).mockResolvedValue([
+      { id: "role-1", key: "manager" },
+    ] as any);
+    vi.mocked(prisma.membership.findUnique).mockResolvedValue({
+      id: "mem-exists",
+    } as any);
 
-    const result = await createMemberInvite("org-1", "inv", "rec", ["role-1"], []);
+    const result = await createMemberInvite(
+      "org-1",
+      "inv",
+      "rec",
+      ["role-1"],
+      [],
+    );
 
     expect(result).toEqual({
       ok: false,
@@ -280,13 +343,27 @@ describe("createMemberInvite", () => {
   });
 
   it("returns CONFLICT when a pending invite already exists", async () => {
-    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ name: "Acme" } as any);
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({ name: "Alice" } as any);
-    vi.mocked(prisma.role.findMany).mockResolvedValue([{ id: "role-1", key: "manager" }] as any);
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({
+      name: "Acme",
+    } as any);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      name: "Alice",
+    } as any);
+    vi.mocked(prisma.role.findMany).mockResolvedValue([
+      { id: "role-1", key: "manager" },
+    ] as any);
     vi.mocked(prisma.membership.findUnique).mockResolvedValue(null);
-    vi.mocked(prisma.invite.findFirst).mockResolvedValue({ id: "inv-pending" } as any);
+    vi.mocked(prisma.invite.findFirst).mockResolvedValue({
+      id: "inv-pending",
+    } as any);
 
-    const result = await createMemberInvite("org-1", "inv", "rec", ["role-1"], []);
+    const result = await createMemberInvite(
+      "org-1",
+      "inv",
+      "rec",
+      ["role-1"],
+      [],
+    );
 
     expect(result).toEqual({
       ok: false,
@@ -299,7 +376,13 @@ describe("createMemberInvite", () => {
   it("handles null invitedById (anonymous invite)", async () => {
     setup();
 
-    const result = await createMemberInvite("org-1", null, "user-recipient", ["role-1"], []);
+    const result = await createMemberInvite(
+      "org-1",
+      null,
+      "user-recipient",
+      ["role-1"],
+      [],
+    );
 
     expect(result.ok).toBe(true);
   });
@@ -321,12 +404,20 @@ describe("acceptMemberInvite", () => {
   };
 
   beforeEach(() => {
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma));
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+      fn(prisma),
+    );
     vi.mocked(prisma.invite.updateMany).mockResolvedValue({ count: 1 });
-    vi.mocked(prisma.role.findMany).mockResolvedValue([{ id: "role-1" }] as any);
-    vi.mocked(prisma.membership.upsert).mockResolvedValue({ id: "mem-1" } as any);
+    vi.mocked(prisma.role.findMany).mockResolvedValue([
+      { id: "role-1" },
+    ] as any);
+    vi.mocked(prisma.membership.upsert).mockResolvedValue({
+      id: "mem-1",
+    } as any);
     vi.mocked(prisma.memberRole.createMany).mockResolvedValue({ count: 1 });
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({ name: "Alice" } as any);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      name: "Alice",
+    } as any);
     vi.mocked(prisma.notification.create).mockResolvedValue({} as any);
   });
 
@@ -344,7 +435,11 @@ describe("acceptMemberInvite", () => {
 
     const result = await acceptMemberInvite("inv-bad", "user-1");
 
-    expect(result).toEqual({ ok: false, error: "Invite not found", code: "NOT_FOUND" });
+    expect(result).toEqual({
+      ok: false,
+      error: "Invite not found",
+      code: "NOT_FOUND",
+    });
   });
 
   it("returns NOT_FOUND when invite belongs to a different user", async () => {
@@ -355,7 +450,11 @@ describe("acceptMemberInvite", () => {
 
     const result = await acceptMemberInvite("inv-1", "user-1");
 
-    expect(result).toEqual({ ok: false, error: "Invite not found", code: "NOT_FOUND" });
+    expect(result).toEqual({
+      ok: false,
+      error: "Invite not found",
+      code: "NOT_FOUND",
+    });
   });
 
   it("returns CONFLICT when invite is not pending", async () => {
@@ -416,7 +515,11 @@ describe("declineMemberInvite", () => {
     expect(result).toEqual({ ok: true, data: null });
     expect(prisma.invite.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ id: "inv-1", recipientId: "user-1", status: "PENDING" }),
+        where: expect.objectContaining({
+          id: "inv-1",
+          recipientId: "user-1",
+          status: "PENDING",
+        }),
         data: expect.objectContaining({ status: "DECLINED" }),
       }),
     );
@@ -456,17 +559,23 @@ describe("acceptBotSlotInvite", () => {
   };
 
   beforeEach(() => {
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma));
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+      fn(prisma),
+    );
     vi.mocked(prisma.invite.updateMany).mockResolvedValue({ count: 1 });
     vi.mocked(prisma.membership.findUnique).mockResolvedValue({
       id: "mem-bot",
       userId: null,
     } as any);
     vi.mocked(prisma.membership.update).mockResolvedValue({} as any);
-    vi.mocked(prisma.role.findMany).mockResolvedValue([{ id: "role-1" }] as any);
+    vi.mocked(prisma.role.findMany).mockResolvedValue([
+      { id: "role-1" },
+    ] as any);
     vi.mocked(prisma.memberRole.deleteMany).mockResolvedValue({ count: 0 });
     vi.mocked(prisma.memberRole.createMany).mockResolvedValue({ count: 1 });
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({ name: "Alice" } as any);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      name: "Alice",
+    } as any);
     vi.mocked(prisma.notification.create).mockResolvedValue({} as any);
   });
 
@@ -498,10 +607,14 @@ describe("acceptBotSlotInvite", () => {
 
     await acceptBotSlotInvite("inv-bot", "user-1");
 
-    expect(prisma.memberRole.deleteMany).toHaveBeenCalledWith({ where: { membershipId: "mem-bot" } });
+    expect(prisma.memberRole.deleteMany).toHaveBeenCalledWith({
+      where: { membershipId: "mem-bot" },
+    });
     expect(prisma.memberRole.createMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.arrayContaining([expect.objectContaining({ roleId: "role-1" })]),
+        data: expect.arrayContaining([
+          expect.objectContaining({ roleId: "role-1" }),
+        ]),
       }),
     );
   });
@@ -523,7 +636,11 @@ describe("acceptBotSlotInvite", () => {
 
     const result = await acceptBotSlotInvite("inv-bad", "user-1");
 
-    expect(result).toEqual({ ok: false, error: "Invite not found", code: "NOT_FOUND" });
+    expect(result).toEqual({
+      ok: false,
+      error: "Invite not found",
+      code: "NOT_FOUND",
+    });
   });
 
   it("returns INVALID when metadata has no botMembershipId", async () => {
@@ -651,13 +768,17 @@ describe("declineFranchiseInvite", () => {
   };
 
   beforeEach(() => {
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma));
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+      fn(prisma),
+    );
     vi.mocked(prisma.invite.updateMany).mockResolvedValue({ count: 1 });
     vi.mocked(prisma.franchiseToken.updateMany).mockResolvedValue({ count: 1 });
   });
 
   it("declines a franchise invite and expires the token", async () => {
-    vi.mocked(prisma.invite.findUnique).mockResolvedValue(franchiseInvite as any);
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue(
+      franchiseInvite as any,
+    );
 
     const result = await declineFranchiseInvite("inv-fr", "user-1");
 
@@ -675,7 +796,11 @@ describe("declineFranchiseInvite", () => {
 
     const result = await declineFranchiseInvite("inv-bad", "user-1");
 
-    expect(result).toEqual({ ok: false, error: "Invite not found", code: "NOT_FOUND" });
+    expect(result).toEqual({
+      ok: false,
+      error: "Invite not found",
+      code: "NOT_FOUND",
+    });
   });
 
   it("returns CONFLICT when invite is no longer pending", async () => {
@@ -694,7 +819,9 @@ describe("declineFranchiseInvite", () => {
   });
 
   it("returns CONFLICT when already handled during transaction", async () => {
-    vi.mocked(prisma.invite.findUnique).mockResolvedValue(franchiseInvite as any);
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue(
+      franchiseInvite as any,
+    );
     vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
       vi.mocked(prisma.invite.updateMany).mockResolvedValue({ count: 0 });
       return fn(prisma);

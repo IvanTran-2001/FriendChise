@@ -30,7 +30,9 @@ export type BotToMemberInput = z.infer<typeof botToMemberSchema>;
 export const updateBotSchema = z.object({
   botName: z.string().min(1, "Bot name is required").max(100),
   workingDays: workingDays.default([]),
-  roleIds: z.array(z.string().cuid("Invalid role")).min(1, "At least one role is required"),
+  roleIds: z
+    .array(z.string().cuid("Invalid role"))
+    .min(1, "At least one role is required"),
 });
 
 export type UpdateBotInput = z.infer<typeof updateBotSchema>;

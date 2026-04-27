@@ -1,4 +1,4 @@
- /**
+/**
  * Quick smoke test: verifies that acceptBotSlotInvite updates the existing
  * bot membership row in-place instead of creating a new one.
  *
@@ -139,12 +139,21 @@ async function run() {
     );
 
     const botBefore = membershipsBefore.find((m) => m.id === botMembership.id)!;
-    assert(botBefore.userId === null, "Before: bot membership has userId = null");
-    assert(botBefore.botName === "ShiftBot", "Before: bot membership has botName");
+    assert(
+      botBefore.userId === null,
+      "Before: bot membership has userId = null",
+    );
+    assert(
+      botBefore.botName === "ShiftBot",
+      "Before: bot membership has botName",
+    );
 
     // ── 2. Call acceptBotSlotInvite ────────────────────────────────────────
     const result = await acceptBotSlotInvite(invite.id, realUser!.id);
-    assert(result.ok === true, `acceptBotSlotInvite returned ok: ${result.ok}${!result.ok ? ` — ${result.error}` : ""}`);
+    assert(
+      result.ok === true,
+      `acceptBotSlotInvite returned ok: ${result.ok}${!result.ok ? ` — ${result.error}` : ""}`,
+    );
 
     // ── 3. Membership count must NOT have changed ──────────────────────────
     const membershipsAfter = await prisma.membership.findMany({
@@ -178,11 +187,11 @@ async function run() {
     const roles = await prisma.memberRole.findMany({
       where: { membershipId: botMembership.id },
     });
-    assert(roles.length === 1, `After: 1 role assigned — found ${roles.length}`);
     assert(
-      roles[0].roleId === role.id,
-      "After: correct role applied",
+      roles.length === 1,
+      `After: 1 role assigned — found ${roles.length}`,
     );
+    assert(roles[0].roleId === role.id, "After: correct role applied");
 
     // ── 6. Invite marked ACCEPTED ──────────────────────────────────────────
     const updatedInvite = await prisma.invite.findUnique({

@@ -34,6 +34,11 @@ function parseTaskFormData(formData: FormData) {
     return isNaN(n) ? undefined : n;
   };
 
+  const minWaitDaysRaw = num("minWaitDays");
+  const maxWaitDaysRaw = num("maxWaitDays");
+  const bothEmpty =
+    minWaitDaysRaw === undefined && maxWaitDaysRaw === undefined;
+
   return {
     color: String(formData.get("color") ?? "#6366f1"),
     title: String(formData.get("title") ?? ""),
@@ -41,8 +46,8 @@ function parseTaskFormData(formData: FormData) {
     durationMin: num("durationMin"),
     preferredStartTimeMin: num("preferredStartTimeMin"),
     peopleRequired: num("peopleRequired") ?? 1,
-    minWaitDays: num("minWaitDays"),
-    maxWaitDays: num("maxWaitDays"),
+    minWaitDays: bothEmpty ? 0 : minWaitDaysRaw,
+    maxWaitDays: bothEmpty ? 0 : maxWaitDaysRaw,
   };
 }
 

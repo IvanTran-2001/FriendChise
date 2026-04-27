@@ -182,7 +182,10 @@ export function CalendarEditPopup({
       }
       setLocalAssignees((p) => [
         ...p,
-        { id: `opt-${effectiveAddId}`, membership: { ...membership, botName: membership.botName ?? null } },
+        {
+          id: `opt-${effectiveAddId}`,
+          membership: { ...membership, botName: membership.botName ?? null },
+        },
       ]);
       onRefresh();
     });
@@ -211,7 +214,9 @@ export function CalendarEditPopup({
   const pastConfirmDialog = (
     <AlertDialog
       open={showPastConfirm}
-      onOpenChange={(open) => { if (!open) setShowPastConfirm(false); }}
+      onOpenChange={(open) => {
+        if (!open) setShowPastConfirm(false);
+      }}
     >
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -237,7 +242,10 @@ export function CalendarEditPopup({
           <AlertDialogAction
             onClick={() => {
               if (suppressSave) {
-                localStorage.setItem(SUPPRESS_KEY, String(Date.now() + 24 * 60 * 60 * 1000));
+                localStorage.setItem(
+                  SUPPRESS_KEY,
+                  String(Date.now() + 24 * 60 * 60 * 1000),
+                );
               }
               setShowPastConfirm(false);
               setSuppressSave(false);
@@ -323,7 +331,9 @@ export function CalendarEditPopup({
                 key={a.membership.id}
                 className="flex items-center justify-between rounded bg-muted/50 px-2 py-1 text-xs"
               >
-                <span>{a.membership.user?.name ?? a.membership.botName ?? "Bot"}</span>
+                <span>
+                  {a.membership.user?.name ?? a.membership.botName ?? "Bot"}
+                </span>
                 <button
                   onClick={() => handleRemoveAssignee(a.membership.id)}
                   className="text-muted-foreground hover:text-destructive ml-2"

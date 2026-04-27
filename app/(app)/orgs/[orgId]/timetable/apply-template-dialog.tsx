@@ -158,7 +158,10 @@ function ApplyTemplateForm({
 
   function handleConfirmPast() {
     if (suppressToday) {
-      localStorage.setItem(SUPPRESS_KEY, String(Date.now() + 24 * 60 * 60 * 1000));
+      localStorage.setItem(
+        SUPPRESS_KEY,
+        String(Date.now() + 24 * 60 * 60 * 1000),
+      );
     }
     setShowPastWarning(false);
     doApply();
@@ -171,10 +174,13 @@ function ApplyTemplateForm({
           <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 flex gap-3">
             <TriangleAlertIcon className="h-5 w-5 shrink-0 mt-0.5 text-destructive" />
             <div className="flex flex-col gap-1">
-              <p className="text-sm font-medium text-destructive">Applying to past dates</p>
+              <p className="text-sm font-medium text-destructive">
+                Applying to past dates
+              </p>
               <p className="text-xs text-muted-foreground">
-                The start date <span className="font-medium">{startDate}</span> is in the past.
-                Applying a template will overwrite any existing entries in that range.
+                The start date <span className="font-medium">{startDate}</span>{" "}
+                is in the past. Applying a template will overwrite any existing
+                entries in that range.
               </p>
             </div>
           </div>

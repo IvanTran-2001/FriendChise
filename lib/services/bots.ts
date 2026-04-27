@@ -1,8 +1,12 @@
-import * as Sentry from "@sentry/nextjs";
+import { log } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 import { Prisma, InviteType } from "@prisma/client";
 import type { ServiceResult } from "./types";
-import type { MemberToBotInput, BotToMemberInput, UpdateBotInput } from "@/lib/validators/bot";
+import type {
+  MemberToBotInput,
+  BotToMemberInput,
+  UpdateBotInput,
+} from "@/lib/validators/bot";
 import { ROLE_KEYS } from "@/lib/rbac";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -79,7 +83,11 @@ export async function createBot(
     });
   });
 
-  Sentry.logger.info("Bot created", { orgId, membershipId: bot.id, botName: data.botName });
+  log.info("Bot created", {
+    orgId,
+    membershipId: bot.id,
+    botName: data.botName,
+  });
   return { ok: true, data: bot };
 }
 
@@ -124,7 +132,7 @@ export async function deleteBot(
     }),
     prisma.membership.delete({ where: { id: membershipId } }),
   ]);
-  Sentry.logger.info("Bot deleted", { orgId, membershipId });
+  log.info("Bot deleted", { orgId, membershipId });
   return { ok: true, data: null };
 }
 
@@ -177,7 +185,7 @@ export async function memberToBot(
     select: botSelect,
   });
 
-  Sentry.logger.info("Member converted to bot", { orgId, membershipId });
+  log.info("Member converted to bot", { orgId, membershipId });
   return { ok: true, data: updated };
 }
 
@@ -202,6 +210,10 @@ export async function botToMember(
     return { ok: false, error: "Bot not found", code: "NOT_FOUND" };
   }
   if (membership.userId !== null) {
+    log.warn(
+      "Conflict: bot membership slot already occupied by real user",
+      { orgId, membershipId },
+    );
     return {
       ok: false,
       error: "Membership slot is already occupied by a real user",
@@ -223,6 +235,11 @@ export async function botToMember(
     select: { id: true },
   });
   if (existing) {
+    log.warn("Conflict: user already has membership in org", {
+      orgId,
+      userId,
+      membershipId,
+    });
     return {
       ok: false,
       error: "User already has a membership in this org",
@@ -235,13 +252,22 @@ export async function botToMember(
       where: { id: membershipId },
       data: { userId, botName: null },
     });
-    Sentry.logger.info("Bot converted to member", { orgId, membershipId, userId });
+    log.info("Bot converted to member", {
+      orgId,
+      membershipId,
+      userId,
+    });
     return { ok: true, data: updated };
   } catch (e) {
     if (
       e instanceof Prisma.PrismaClientKnownRequestError &&
       e.code === "P2002"
     ) {
+      log.warn("Conflict: DB unique violation on memberToBot", {
+        orgId,
+        membershipId,
+        userId,
+      });
       return {
         ok: false,
         error: "User already has a membership in this org",
@@ -269,7 +295,11 @@ export async function updateBot(
   if (!membership)
     return { ok: false, error: "Bot not found", code: "NOT_FOUND" };
   if (membership.userId !== null)
-    return { ok: false, error: "Membership belongs to a real user", code: "INVALID" };
+    return {
+      ok: false,
+      error: "Membership belongs to a real user",
+      code: "INVALID",
+    };
 
   const validRoles = await prisma.role.findMany({
     where: { id: { in: data.roleIds }, orgId },
@@ -278,7 +308,11 @@ export async function updateBot(
   if (validRoles.length !== data.roleIds.length)
     return { ok: false, error: "One or more roles not found", code: "INVALID" };
   if (validRoles.some((r) => r.key === ROLE_KEYS.OWNER))
-    return { ok: false, error: "Cannot assign the owner role", code: "INVALID" };
+    return {
+      ok: false,
+      error: "Cannot assign the owner role",
+      code: "INVALID",
+    };
 
   await prisma.$transaction(async (tx) => {
     await tx.membership.update({
@@ -293,6 +327,6 @@ export async function updateBot(
     );
   });
 
-  Sentry.logger.info("Bot updated", { orgId, membershipId });
+  log.info("Bot updated", { orgId, membershipId });
   return { ok: true, data: null };
 }
