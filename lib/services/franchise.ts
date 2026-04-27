@@ -11,6 +11,7 @@
  */
 
 import { InviteType } from "@prisma/client";
+import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/prisma";
 import { ROLE_KEYS } from "@/lib/rbac";
 import type { ServiceResult } from "./types";
@@ -306,6 +307,7 @@ export async function createFranchiseToken(
     }
   });
 
+  Sentry.logger.info("Franchise token created", { orgId, invitedById: inviterId, userId: user.id });
   return { ok: true, data: undefined };
 }
 
@@ -332,6 +334,7 @@ export async function deleteFranchiseToken(
     });
   });
 
+  Sentry.logger.info("Franchise token deleted", { orgId, tokenId });
   return { ok: true, data: undefined };
 }
 
@@ -357,6 +360,7 @@ export async function extendFranchiseToken(
     data: { expiresAt: newExpiry },
   });
 
+  Sentry.logger.info("Franchise token extended", { orgId, tokenId });
   return { ok: true, data: undefined };
 }
 
@@ -371,6 +375,7 @@ export async function removeFranchisee(
   if (count === 0)
     return { ok: false, error: "Franchisee not found", code: "NOT_FOUND" };
 
+  Sentry.logger.info("Franchisee removed", { parentOrgId: orgId, childOrgId });
   return { ok: true, data: undefined };
 }
 
@@ -444,5 +449,6 @@ export async function changeFranchiseeOwner(
     };
   }
 
+  Sentry.logger.info("Franchisee owner changed", { parentOrgId: orgId, childOrgId, newOwnerId: newOwner.id });
   return { ok: true, data: undefined };
 }

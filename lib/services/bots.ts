@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/prisma";
 import { Prisma, InviteType } from "@prisma/client";
 import type { ServiceResult } from "./types";
@@ -78,6 +79,7 @@ export async function createBot(
     });
   });
 
+  Sentry.logger.info("Bot created", { orgId, membershipId: bot.id, botName: data.botName });
   return { ok: true, data: bot };
 }
 
@@ -122,6 +124,7 @@ export async function deleteBot(
     }),
     prisma.membership.delete({ where: { id: membershipId } }),
   ]);
+  Sentry.logger.info("Bot deleted", { orgId, membershipId });
   return { ok: true, data: null };
 }
 
@@ -174,6 +177,7 @@ export async function memberToBot(
     select: botSelect,
   });
 
+  Sentry.logger.info("Member converted to bot", { orgId, membershipId });
   return { ok: true, data: updated };
 }
 
@@ -231,6 +235,7 @@ export async function botToMember(
       where: { id: membershipId },
       data: { userId, botName: null },
     });
+    Sentry.logger.info("Bot converted to member", { orgId, membershipId, userId });
     return { ok: true, data: updated };
   } catch (e) {
     if (
@@ -288,5 +293,6 @@ export async function updateBot(
     );
   });
 
+  Sentry.logger.info("Bot updated", { orgId, membershipId });
   return { ok: true, data: null };
 }

@@ -13,6 +13,7 @@
  *   subject to UTC conversion — only live `TimetableEntry` rows use UTC.
  * - `getTimetableEntries` is the primary read path for the calendar view.
  */
+import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/prisma";
 import { Prisma, EntryStatus } from "@prisma/client";
 import type { ServiceResult } from "./types";
@@ -78,6 +79,7 @@ export async function createTimetableEntryFromInput(
         endTimeMin,
       },
     });
+    Sentry.logger.info("Timetable entry created", { orgId, entryId: entry.id, taskId: data.taskId });
     return { ok: true, data: entry };
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
@@ -189,6 +191,7 @@ export async function updateTimetableEntryStatus(
       return item;
     });
 
+    Sentry.logger.info("Timetable entry status updated", { orgId, entryId: taskInstanceId, status });
     return { ok: true, data: entry };
   } catch (e) {
     if (e instanceof Error && (e as { code?: string }).code === "NOT_FOUND") {
@@ -319,6 +322,7 @@ export async function createTimetableEntry(
       endTimeMin,
     },
   });
+  Sentry.logger.info("Timetable entry created", { orgId, entryId: entry.id, taskId });
   return { ok: true, data: entry };
 }
 
@@ -376,6 +380,7 @@ export async function updateTimetableEntry(
     where: { id: entryId },
     data,
   });
+  Sentry.logger.info("Timetable entry updated", { orgId, entryId });
   return { ok: true, data: updated };
 }
 
@@ -393,6 +398,7 @@ export async function deleteTimetableEntry(
   if (!entry) return { ok: false, error: "Entry not found", code: "NOT_FOUND" };
 
   await prisma.timetableEntry.delete({ where: { id: entryId } });
+  Sentry.logger.info("Timetable entry deleted", { orgId, entryId });
   return { ok: true, data: null };
 }
 
@@ -428,6 +434,7 @@ export async function addTimetableEntryAssignee(
     create: { timetableEntryId: entryId, membershipId },
     update: {},
   });
+  Sentry.logger.info("Timetable entry assignee added", { orgId, entryId, membershipId });
   return { ok: true, data: null };
 }
 
@@ -450,6 +457,7 @@ export async function removeTimetableEntryAssignee(
   if (!assignee) return { ok: false, error: "Not found", code: "NOT_FOUND" };
 
   await prisma.timetableEntryAssignee.delete({ where: { id: assignee.id } });
+  Sentry.logger.info("Timetable entry assignee removed", { orgId, entryId, membershipId });
   return { ok: true, data: null };
 }
 

@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { InviteType } from "@prisma/client";
 import { ROLE_KEYS } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
@@ -221,6 +222,7 @@ export async function createMemberInvite(
     throw e;
   }
 
+  Sentry.logger.info("Member invite created", { orgId, invitedById, recipientId });
   return { ok: true, data: null };
 }
 
@@ -289,6 +291,7 @@ export async function acceptMemberInvite(
   }
 
   await notifyInviteAccepted(invite, userId);
+  Sentry.logger.info("Member invite accepted", { inviteId, userId, orgId: invite.orgId });
   return { ok: true, data: null };
 }
 
@@ -377,6 +380,7 @@ export async function acceptBotSlotInvite(
   }
 
   await notifyInviteAccepted(invite, userId);
+  Sentry.logger.info("Bot-slot invite accepted", { inviteId, userId, orgId: invite.orgId });
   return { ok: true, data: null };
 }
 
@@ -400,6 +404,7 @@ export async function declineBotSlotInvite(
   if (updated.count === 0)
     return { ok: false, error: "Invite not found or already handled", code: "NOT_FOUND" };
 
+  Sentry.logger.info("Bot-slot invite declined", { inviteId, userId });
   return { ok: true, data: null };
 }
 
@@ -421,7 +426,7 @@ async function notifyInviteAccepted(
       },
     });
   } catch (error) {
-    console.error("Failed to create notification for invite acceptance:", error);
+    Sentry.logger.error("Failed to create notification for invite acceptance", { error, acceptingUserId });
   }
 }
 
@@ -449,6 +454,7 @@ export async function declineMemberInvite(
       code: "NOT_FOUND",
     };
 
+  Sentry.logger.info("Member invite declined", { inviteId, userId });
   return { ok: true, data: null };
 }
 
@@ -505,5 +511,6 @@ export async function declineFranchiseInvite(
     throw e;
   }
 
+  Sentry.logger.info("Franchise invite declined", { inviteId, userId, orgId: invite.orgId });
   return { ok: true, data: null };
 }

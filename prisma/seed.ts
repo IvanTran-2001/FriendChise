@@ -2197,7 +2197,7 @@ function confirm(): void {
   let parsedUrl: URL;
   try {
     parsedUrl = new URL(dbUrl);
-  } catch (error) {
+  } catch {
     console.error("  ❌ ERROR: DATABASE_URL is not a valid URL.");
     console.error("  Aborted — nothing was changed.\n");
     process.exit(1);

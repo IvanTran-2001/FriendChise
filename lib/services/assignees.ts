@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import type { ServiceResult } from "./types";
@@ -42,6 +43,7 @@ export async function createAssignee(
     const assignee = await prisma.timetableEntryAssignee.create({
       data: { timetableEntryId: taskInstanceId, membershipId },
     });
+    Sentry.logger.info("Assignee added", { orgId, taskInstanceId, membershipId });
     return { ok: true, data: assignee };
   } catch (e) {
     if (
@@ -78,6 +80,7 @@ export async function deleteAssignee(
     return { ok: false, error: "Assignee not found", code: "NOT_FOUND" };
 
   await prisma.timetableEntryAssignee.delete({ where: { id: link.id } });
+  Sentry.logger.info("Assignee removed", { orgId, taskInstanceId, membershipId });
   return { ok: true, data: null };
 }
 

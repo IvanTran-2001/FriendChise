@@ -4,6 +4,7 @@
  * Every function that mutates is wrapped in a Prisma transaction so partial
  * writes are impossible: either everything succeeds or nothing is persisted.
  */
+import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/prisma";
 import { PermissionAction } from "@prisma/client";
 import { ROLE_KEYS } from "@/lib/rbac";
@@ -96,7 +97,7 @@ async function bootstrapRoles(tx: Tx, orgId: string, userId: string) {
  * All steps are atomic — if any step fails, nothing is persisted.
  */
 export async function createOrg(userId: string, data: CreateOrgInput) {
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const org = await tx.organization.create({
       data: {
         name: data.title,
@@ -117,6 +118,8 @@ export async function createOrg(userId: string, data: CreateOrgInput) {
 
     return { org, ownerRole, memberRole, membership };
   });
+  Sentry.logger.info("Org created", { orgId: result.org.id, userId, name: result.org.name });
+  return result;
 }
 
 /**
@@ -144,7 +147,7 @@ export async function joinFranchise(
   userEmail: string,
   data: JoinFranchiseInput,
 ) {
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const [token, user] = await Promise.all([
       tx.franchiseToken.findUnique({
         where: { token: data.token },
@@ -221,6 +224,8 @@ export async function joinFranchise(
 
     return { org, clonedRoles, membership };
   });
+  Sentry.logger.info("Franchise joined", { orgId: result.org.id, userId });
+  return result;
 }
 
 /**
@@ -310,6 +315,7 @@ export async function transferOrgOwnership(
       data: { ownerId: newOwnerId },
     });
   });
+  Sentry.logger.info("Org ownership transferred", { orgId, from: currentOwnerId, to: newOwnerId });
 }
 
 /**
@@ -336,6 +342,7 @@ export async function deleteOrg(
     throw new Error("Confirmation name does not match");
 
   await prisma.organization.delete({ where: { id: orgId } });
+  Sentry.logger.info("Org deleted", { orgId, deletedBy: currentOwnerId });
 }
 
 /**
