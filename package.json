@@ -28,6 +28,8 @@
     "@prisma/client": "^7.4.2",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@sentry/nextjs": "^10.50.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.37.0",
     "@vvo/tzdb": "^6.198.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

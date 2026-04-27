@@ -28,6 +28,7 @@ Production deployment: **[friendchise.app](https://friendchise.app)**
 - **Vitest** — unit + integration tests
 - **Playwright** — E2E browser tests
 - **Sentry** — error monitoring, performance tracing, session replay, and server-side logs
+- **Upstash Redis** + **@upstash/ratelimit** — sliding-window rate limiting on all API routes and server actions
 
 ## Getting Started
 
@@ -58,6 +59,13 @@ AUTH_GOOGLE_ID=        # Google OAuth client ID
 AUTH_GOOGLE_SECRET=    # Google OAuth client secret
 AUTH_URL=              # e.g. http://localhost:3000
 DATABASE_URL=          # PostgreSQL connection string
+
+# Sentry — error monitoring (get from sentry.io > Settings > Auth Tokens)
+SENTRY_AUTH_TOKEN=
+
+# Upstash Redis — rate limiting (get from console.upstash.com > your database > REST API)
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
 ```
 
 Optional / local overrides (`.env.local`):
