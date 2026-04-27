@@ -222,13 +222,13 @@ describe("createTaskSchema", () => {
       expect(result.success).toBe(true);
     });
 
-    it("rejects maxWaitDays: 0 (must be >= 1)", () => {
+    it("accepts maxWaitDays: 0 (min is 0)", () => {
       const result = createTaskSchema.safeParse({
         ...validCreate,
         minWaitDays: 0,
         maxWaitDays: 0,
       });
-      expect(result.success).toBe(false);
+      expect(result.success).toBe(true);
     });
   });
 

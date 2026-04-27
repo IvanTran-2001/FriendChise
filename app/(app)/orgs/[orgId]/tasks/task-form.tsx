@@ -595,7 +595,7 @@ export function TaskForm(props: TaskFormProps) {
               id="maxWaitDays"
               name="maxWaitDays"
               type="number"
-              min={1}
+              min={0}
               max={3650}
               placeholder="e.g. 14"
               defaultValue={dv?.maxWaitDays ?? undefined}
