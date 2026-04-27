@@ -131,6 +131,7 @@ export default async function proxy(req: NextRequest) {
   }
 
   // 3. App routes — enforce auth and attach x-pathname header
+  // TODO: tighten type when next-auth exports a public middleware type
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (authProxy as any)(req);
 }
