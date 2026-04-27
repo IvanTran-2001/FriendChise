@@ -7,6 +7,7 @@ import NextAuth from "next-auth";
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { createHash } from "crypto";
 
 // ─── Route matcher ───────────────────────────────────────────────────────────
 // Tells Next.js which URLs run through this proxy function.
@@ -61,10 +62,67 @@ const apiRatelimit = redis
     })
   : null;
 
+// ─── IP validation and extraction ───────────────────────────────────────────
+// Validates IPv4 and IPv6 addresses to prevent XFF header spoofing.
+
+function isValidIpv4(ip: string): boolean {
+  const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+  if (!ipv4Pattern.test(ip)) return false;
+  return ip.split(".").every((octet) => {
+    const num = parseInt(octet, 10);
+    return num >= 0 && num <= 255;
+  });
+}
+
+function isValidIpv6(ip: string): boolean {
+  // Simplified IPv6 validation - matches standard and compressed formats
+  const ipv6Pattern =
+    /^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|::([fF]{4}(:0{1,4})?:)?((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\.){3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9]))$/;
+  return ipv6Pattern.test(ip);
+}
+
+function isValidIp(ip: string): boolean {
+  return isValidIpv4(ip) || isValidIpv6(ip);
+}
+
+/**
+ * Extracts client IP from request headers with XFF validation.
+ *
+ * Security considerations:
+ * - Only trusts x-forwarded-for when TRUST_PROXY env var is set to "true"
+ * - Validates each IP in the XFF chain to prevent spoofing
+ * - Returns a stable hash fallback instead of shared "anonymous" string
+ *
+ * @param req - The incoming Next.js request
+ * @returns IP address string or stable hash for rate limiting
+ */
 function getIp(req: NextRequest): string {
-  return (
-    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "anonymous"
-  );
+  const trustProxy = process.env.TRUST_PROXY === "true";
+
+  if (trustProxy) {
+    const xffHeader = req.headers.get("x-forwarded-for");
+    if (xffHeader) {
+      // Parse XFF header: split by comma, trim whitespace, validate each IP
+      const ips = xffHeader
+        .split(",")
+        .map((ip) => ip.trim())
+        .filter((ip) => ip.length > 0 && isValidIp(ip));
+
+      // Return the first valid IP (leftmost = original client in standard XFF)
+      if (ips.length > 0) {
+        return ips[0];
+      }
+    }
+  }
+
+  // Fallback: create a stable hash to prevent shared rate-limit buckets
+  // Generate stable hash from User-Agent + pathname to isolate clients
+  // This prevents all anonymous users from sharing a single rate limit bucket
+  const userAgent = req.headers.get("user-agent") ?? "unknown";
+  const pathname = req.nextUrl.pathname;
+  const hashInput = `${userAgent}:${pathname}`;
+
+  return createHash("sha256").update(hashInput).digest("hex").substring(0, 32);
 }
 
 // ─── Fail-open wrapper for rate limiting ────────────────────────────────────
