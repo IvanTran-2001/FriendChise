@@ -50,6 +50,7 @@ export async function createAssignee(
       e instanceof Prisma.PrismaClientKnownRequestError &&
       e.code === "P2002"
     ) {
+      Sentry.logger.warn("Conflict: assignee already exists", { orgId, taskInstanceId, membershipId });
       return { ok: false, error: "Assignee already exists", code: "CONFLICT" };
     }
     throw e;

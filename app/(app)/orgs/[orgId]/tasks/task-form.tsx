@@ -3,9 +3,9 @@
 /**
  * Shared form for creating and editing tasks.
  *
- * Layout: two-column.
- *   Left  — task fields (title, description, duration, etc.)
- *   Right — role eligibility panel (searchable dropdown + current list)
+ * Layout: single-column, top to bottom.
+ *   Top    — task fields (title, description, duration, etc.)
+ *   Bottom — role eligibility panel (searchable dropdown + current list)
  *
  * Props:
  *   mode="create" — submits createTaskAction (redirects on success)
@@ -341,11 +341,11 @@ function StartTimePicker({
 // ─── Main form ────────────────────────────────────────────────────────────────
 
 /**
- * Two-column task form (create / edit).
+ * Single-column task form (create / edit).
  *
- * Left column  — task fields: title, color picker, description, duration,
- *                preferred start time, people required, min/max wait days.
- * Right column — `EligibilityPanel` for picking which roles can be assigned.
+ * Top section    — task fields: title, color picker, description, duration,
+ *                  preferred start time, people required, min/max wait days.
+ * Bottom section — `EligibilityPanel` for picking which roles can be assigned.
  *
  * Color is managed via a `useState` lazy initialiser (random hex for new tasks,
  * pre-filled from `defaultValues.color` for edits). A hidden
@@ -425,9 +425,9 @@ export function TaskForm(props: TaskFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-6 items-start"
+      className="flex flex-col gap-6"
     >
-      {/* ── Left: task fields ─────────────────────────────────────────────── */}
+      {/* ── Task fields ───────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-5">
         {err("_") && (
           <p role="alert" className="text-sm text-destructive">
@@ -629,7 +629,7 @@ export function TaskForm(props: TaskFormProps) {
         </Button>
       </div>
 
-      {/* ── Right: eligibility panel ───────────────────────────────────── */}
+      {/* ── Eligibility panel ─────────────────────────────────────────────── */}
       <div className="rounded-xl border bg-card p-5">
         {isEdit ? (
           <EligibilityPanel

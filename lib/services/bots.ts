@@ -202,6 +202,7 @@ export async function botToMember(
     return { ok: false, error: "Bot not found", code: "NOT_FOUND" };
   }
   if (membership.userId !== null) {
+    Sentry.logger.warn("Conflict: bot membership slot already occupied by real user", { orgId, membershipId });
     return {
       ok: false,
       error: "Membership slot is already occupied by a real user",
@@ -223,6 +224,7 @@ export async function botToMember(
     select: { id: true },
   });
   if (existing) {
+    Sentry.logger.warn("Conflict: user already has membership in org", { orgId, userId, membershipId });
     return {
       ok: false,
       error: "User already has a membership in this org",
@@ -242,6 +244,7 @@ export async function botToMember(
       e instanceof Prisma.PrismaClientKnownRequestError &&
       e.code === "P2002"
     ) {
+      Sentry.logger.warn("Conflict: DB unique violation on memberToBot", { orgId, membershipId, userId });
       return {
         ok: false,
         error: "User already has a membership in this org",

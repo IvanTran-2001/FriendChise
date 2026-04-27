@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { PermissionAction } from "@prisma/client";
+import * as Sentry from "@sentry/nextjs";
 import {
   getAuthUserId,
   getOrgMembership,
@@ -56,6 +57,7 @@ export async function requireOrgPermission(
   if (!authz.ok) return authz;
 
   if (!(await memberHasPermission(authz.membership.id, orgId, permission))) {
+    Sentry.logger.warn("Permission denied", { orgId, permission, userId: authz.userId });
     return { ok: false as const, response: permissionDenied() };
   }
 
