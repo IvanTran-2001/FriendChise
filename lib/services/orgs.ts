@@ -226,6 +226,7 @@ export async function joinFranchise(
   });
   Sentry.logger.info("Franchise joined", { orgId: result.org.id, userId });
   return result;
+}
 
 /**
  * Updates an org's location and schedule settings.
