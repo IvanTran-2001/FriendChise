@@ -33,23 +33,33 @@ const authProxy = auth((req) => {
 // ─── Rate limiting (API routes) ──────────────────────────────────────────────
 // Two limiters backed by Upstash Redis:
 //
-//   /api/auth/*  →  IP-based,     20 req / 15 min  (DoS guard on OAuth flow)
-//   /api/**      →  user-based,   60 req / 1 min   (keyed by JWT user ID,
-//                                                    falls back to IP)
+//   /api/auth/callback|signin  →  IP-based,   20 req / 15 min  (OAuth DoS guard)
+//   /api/**                    →  user-based, 60 req / 1 min   (keyed by JWT user ID,
+//                                                                falls back to IP)
+//
+// Rate limiting is skipped entirely when UPSTASH_REDIS_REST_URL is not set
+// (e.g. local dev without Redis, CI). This is intentional fail-open behaviour.
 
-const redis = Redis.fromEnv();
+const redis =
+  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+    ? Redis.fromEnv()
+    : null;
 
-const authRatelimit = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(20, "15 m"),
-  prefix: "rl:auth",
-});
+const authRatelimit = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(20, "15 m"),
+      prefix: "rl:auth",
+    })
+  : null;
 
-const apiRatelimit = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(60, "1 m"),
-  prefix: "rl:api",
-});
+const apiRatelimit = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(60, "1 m"),
+      prefix: "rl:api",
+    })
+  : null;
 
 function getIp(req: NextRequest): string {
   return (
@@ -58,18 +68,18 @@ function getIp(req: NextRequest): string {
 }
 
 // ─── Fail-open wrapper for rate limiting ────────────────────────────────────
-// Wraps rate limiter calls in try/catch to prevent Redis/network errors from
-// causing 500s. Returns true (allow) on error to fail open.
+// Returns true (allow) when the limiter is not configured or on Redis errors.
 
 async function safeLimit(
-  limiter: Ratelimit,
+  limiter: Ratelimit | null,
   key: string
 ): Promise<{ success: boolean }> {
+  if (!limiter) return { success: true };
   try {
     return await limiter.limit(key);
   } catch (error) {
     console.error("Rate limiter error (failing open):", error);
-    return { success: true }; // fail-open: allow the request
+    return { success: true };
   }
 }
 
