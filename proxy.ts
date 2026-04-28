@@ -117,7 +117,10 @@ export default async function proxy(req: NextRequest) {
 
   // Skip all rate limiting in test mode so Playwright workers don't exhaust the
   // per-user bucket (all workers run as the same test user).
-  const isTestMode = process.env.TEST_MODE === "1";
+  // Explicitly blocked in production so a misconfigured TEST_MODE env var can
+  // never disable rate limiting on a live deployment.
+  const isTestMode =
+    process.env.TEST_MODE === "1" && process.env.NODE_ENV !== "production";
 
   // 1. API routes — run rate limiting first, then let the request through
   if (pathname.startsWith("/api/")) {
