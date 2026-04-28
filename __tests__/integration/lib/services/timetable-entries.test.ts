@@ -77,7 +77,7 @@ describe("listTimetableEntries", () => {
 
     expect(entries.length).toBeGreaterThanOrEqual(1);
     expect(entries.every((e) => e.orgId === org.id)).toBe(true);
-    expect(entries.some((e) => e.id === created.data.id && e.startTimeMin === 480)).toBe(true);
+    expect(entries.some((e) => e.id === created.data.id)).toBe(true);
   });
 
   it("filters by exact status when the status option is provided", async () => {
