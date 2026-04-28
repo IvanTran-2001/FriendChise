@@ -192,7 +192,11 @@ describe("deleteMembershipAction", () => {
     const result = await deleteMembershipAction("org-1", "mem-1");
 
     expect(result).toEqual({ ok: true });
-    expect(deleteMembershipService).toHaveBeenCalledWith("org-1", "mem-1", "u-1");
+    expect(deleteMembershipService).toHaveBeenCalledWith(
+      "org-1",
+      "mem-1",
+      "u-1",
+    );
     expect(revalidatePath).toHaveBeenCalled();
   });
 

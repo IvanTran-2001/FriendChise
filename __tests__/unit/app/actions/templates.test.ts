@@ -116,7 +116,12 @@ describe("createTemplateAction", () => {
       ),
     ).rejects.toThrow("NEXT_REDIRECT");
 
-    expect(createTemplateService).toHaveBeenCalledWith("org-1", "Weekly", 7, "u-1");
+    expect(createTemplateService).toHaveBeenCalledWith(
+      "org-1",
+      "Weekly",
+      7,
+      "u-1",
+    );
     expect(redirect).toHaveBeenCalledWith(
       "/orgs/org-1/timetable/templates/tmpl-1",
     );
@@ -507,7 +512,11 @@ describe("duplicateTemplateAction", () => {
     const result = await duplicateTemplateAction("org-1", "tmpl-1");
 
     expect(result).toEqual({ ok: true, id: "tmpl-2" });
-    expect(duplicateTemplateService).toHaveBeenCalledWith("org-1", "tmpl-1", "u-1");
+    expect(duplicateTemplateService).toHaveBeenCalledWith(
+      "org-1",
+      "tmpl-1",
+      "u-1",
+    );
   });
 });
 
@@ -532,7 +541,11 @@ describe("deleteTemplateAction", () => {
     const result = await deleteTemplateAction("org-1", "tmpl-1");
 
     expect(result).toEqual({ ok: true });
-    expect(deleteTemplateService).toHaveBeenCalledWith("org-1", "tmpl-1", "u-1");
+    expect(deleteTemplateService).toHaveBeenCalledWith(
+      "org-1",
+      "tmpl-1",
+      "u-1",
+    );
     expect(revalidatePath).toHaveBeenCalled();
   });
 

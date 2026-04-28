@@ -261,7 +261,12 @@ export async function createMemberInvite(
     action: "invite.send",
     targetType: "Invite",
     targetId: recipientId,
-    after: { recipientId, roleIds, workingDays, botMembershipId: botMembershipId ?? null },
+    after: {
+      recipientId,
+      roleIds,
+      workingDays,
+      botMembershipId: botMembershipId ?? null,
+    },
   });
   return { ok: true, data: null };
 }

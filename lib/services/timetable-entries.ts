@@ -93,7 +93,13 @@ export async function createTimetableEntryFromInput(
       action: "entry.create",
       targetType: "TimetableEntry",
       targetId: entry.id,
-      after: { taskId: task.id, taskName: task.name, date: data.date, startTimeMin: data.startTimeMin, endTimeMin },
+      after: {
+        taskId: task.id,
+        taskName: task.name,
+        date: data.date,
+        startTimeMin: data.startTimeMin,
+        endTimeMin,
+      },
     });
     return { ok: true, data: entry };
   } catch (e) {

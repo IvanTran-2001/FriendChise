@@ -17,6 +17,7 @@
     "test:validators": "vitest run __tests__/unit/lib/validators",
     "test:actions": "vitest run __tests__/unit/app/actions",
     "test:api": "vitest run __tests__/unit/app/api",
+    "test:integration": "vitest run --config vitest.integration.ts",
     "test:e2e": "playwright test"
   },
   "prisma": {

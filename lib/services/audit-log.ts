@@ -52,7 +52,9 @@ function sanitizeAuditParams(params: AuditLogInput) {
     action: params.action,
     targetType: params.targetType,
     targetId: params.targetId,
-    actorEmail: params.actorEmail ? `${params.actorEmail.substring(0, 3)}***` : null,
+    actorEmail: params.actorEmail
+      ? `${params.actorEmail.substring(0, 3)}***`
+      : null,
   };
 }
 
@@ -68,7 +70,7 @@ function sanitizeAuditParams(params: AuditLogInput) {
  */
 export async function recordAudit(
   params: AuditLogInput,
-  client?: PrismaClient | Prisma.TransactionClient
+  client?: PrismaClient | Prisma.TransactionClient,
 ): Promise<void> {
   const db = client ?? prisma;
   try {
@@ -80,9 +82,15 @@ export async function recordAudit(
         action: params.action,
         targetType: params.targetType,
         targetId: params.targetId,
-        before: (params.before as Prisma.InputJsonObject | null | undefined) ?? Prisma.JsonNull,
-        after: (params.after as Prisma.InputJsonObject | null | undefined) ?? Prisma.JsonNull,
-        metadata: (params.metadata as Prisma.InputJsonObject | null | undefined) ?? Prisma.JsonNull,
+        before:
+          (params.before as Prisma.InputJsonObject | null | undefined) ??
+          Prisma.JsonNull,
+        after:
+          (params.after as Prisma.InputJsonObject | null | undefined) ??
+          Prisma.JsonNull,
+        metadata:
+          (params.metadata as Prisma.InputJsonObject | null | undefined) ??
+          Prisma.JsonNull,
       },
     });
   } catch (error) {
@@ -91,7 +99,10 @@ export async function recordAudit(
       throw error;
     }
     // Otherwise, log the failure and swallow it so the user's mutation succeeds
-    log.error("Audit log write failed", { error, params: sanitizeAuditParams(params) });
+    log.error("Audit log write failed", {
+      error,
+      params: sanitizeAuditParams(params),
+    });
   }
 }
 

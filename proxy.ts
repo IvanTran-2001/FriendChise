@@ -84,14 +84,27 @@ type LimitResult = Awaited<ReturnType<Ratelimit["limit"]>>;
 
 async function safeLimit(
   limiter: Ratelimit | null,
-  key: string
+  key: string,
 ): Promise<LimitResult> {
-  if (!limiter) return { success: true, limit: 0, remaining: 0, reset: 0, pending: Promise.resolve() };
+  if (!limiter)
+    return {
+      success: true,
+      limit: 0,
+      remaining: 0,
+      reset: 0,
+      pending: Promise.resolve(),
+    };
   try {
     return await limiter.limit(key);
   } catch (error) {
     Sentry.logger.error("Rate limiter error (failing open)", { error });
-    return { success: true, limit: 0, remaining: 0, reset: 0, pending: Promise.resolve() };
+    return {
+      success: true,
+      limit: 0,
+      remaining: 0,
+      reset: 0,
+      pending: Promise.resolve(),
+    };
   }
 }
 
@@ -101,12 +114,14 @@ function tooManyRequests(result: LimitResult) {
     {
       status: 429,
       headers: {
-        "Retry-After": String(Math.max(0, Math.ceil((result.reset - Date.now()) / 1000))),
+        "Retry-After": String(
+          Math.max(0, Math.ceil((result.reset - Date.now()) / 1000)),
+        ),
         "X-RateLimit-Limit": String(result.limit),
         "X-RateLimit-Remaining": "0",
         "X-RateLimit-Reset": String(result.reset),
       },
-    }
+    },
   );
 }
 
@@ -157,4 +172,3 @@ export default async function proxy(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (authProxy as any)(req);
 }
-

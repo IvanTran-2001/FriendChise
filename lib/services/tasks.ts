@@ -8,7 +8,11 @@ import type { CreateTaskInput, UpdateTaskInput } from "@/lib/validators/task";
  * Creates a new task for the given org using validated input.
  * Optional fields are null-coalesced so callers never need to handle `undefined`.
  */
-export async function createTask(orgId: string, data: CreateTaskInput, actorId?: string | null) {
+export async function createTask(
+  orgId: string,
+  data: CreateTaskInput,
+  actorId?: string | null,
+) {
   const task = await prisma.task.create({
     data: {
       orgId,
@@ -29,7 +33,12 @@ export async function createTask(orgId: string, data: CreateTaskInput, actorId?:
     action: "task.create",
     targetType: "Task",
     targetId: task.id,
-    after: { name: task.name, color: task.color, description: task.description, durationMin: task.durationMin },
+    after: {
+      name: task.name,
+      color: task.color,
+      description: task.description,
+      durationMin: task.durationMin,
+    },
   });
   return task;
 }
@@ -58,7 +67,12 @@ export async function deleteTask(
       action: "task.delete",
       targetType: "Task",
       targetId: id,
-      before: { name: existing.name, color: existing.color, description: existing.description, durationMin: existing.durationMin },
+      before: {
+        name: existing.name,
+        color: existing.color,
+        description: existing.description,
+        durationMin: existing.durationMin,
+      },
     });
   }
   return { ok: true, data: null };
@@ -131,7 +145,12 @@ export async function updateTask(
     targetType: "Task",
     targetId: taskId,
     before: existing as import("@prisma/client").Prisma.InputJsonObject | null,
-    after: { name: data.title, color: data.color, description: data.description ?? null, durationMin: data.durationMin },
+    after: {
+      name: data.title,
+      color: data.color,
+      description: data.description ?? null,
+      durationMin: data.durationMin,
+    },
   });
   return { ok: true, data: null };
 }

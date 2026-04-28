@@ -47,7 +47,11 @@ export async function createBotAction(
     roleIds = [defaultRole.id];
   }
 
-  const result = await createBot(orgId, { ...parsed.data, roleIds }, authz.userId);
+  const result = await createBot(
+    orgId,
+    { ...parsed.data, roleIds },
+    authz.userId,
+  );
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/memberships`);

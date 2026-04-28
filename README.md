@@ -81,24 +81,24 @@ Provider: PostgreSQL (Supabase), managed via Prisma ORM.
 
 ### Models
 
-| Model                    | Description                                                                                                                                                                                                                                                                      |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Organization`           | Top-level tenant. Owns all other resources. Supports franchise hierarchy via `parentId`.                                                                                                                                                                                         |
-| `User`                   | Auth account, identified by email. Linked to orgs via `Membership`.                                                                                                                                                                                                              |
-| `Membership`             | Links a `User` to an `Organization`. Tracks `workingDays` and `status` (ACTIVE / RESTRICTED).                                                                                                                                                                                    |
-| `Role`                   | Org-scoped role (e.g. Owner, Worker) with a required `name`, `color` (hex), and stable `key`. System roles have `isDeletable: false`.                                                                                                                                            |
-| `Permission`             | Grants a `PermissionAction` enum value to a `Role`. One row per action per role.                                                                                                                                                                                                 |
-| `MemberRole`             | Many-to-many junction between `Membership` and `Role`. A member can hold multiple roles.                                                                                                                                                                                         |
-| `Task`                   | Reusable task definition (name, required `color` hex, duration, recurrence constraints, eligibility by role).                                                                                                                                                                    |
-| `TaskEligibility`        | Links a `Task` to a `Role`, defining which roles can be assigned to it.                                                                                                                                                                                                          |
-| `TimetableEntry`         | A scheduled task occurrence with date, start/end times, status, and assignees.                                                                                                                                                                                                   |
-| `TimetableEntryAssignee` | Links a `Membership` to a `TimetableEntry` (many-to-many).                                                                                                                                                                                                                       |
-| `TimetableSettings`      | Per-org timetable display preferences (view type, start day, slot duration).                                                                                                                                                                                                     |
-| `Template`               | A reusable schedule template with a `cycleLengthDays`. Contains `TemplateEntry` rows.                                                                                                                                                                                            |
-| `TemplateEntry`          | One time slot in a `Template` — which task, which day index, start/end times.                                                                                                                                                                                                    |
-| `TemplateEntryAssignee`  | Pre-assigns a `Membership` to a `TemplateEntry`.                                                                                                                                                                                                                                 |
-| `FranchiseToken`         | One-time invite token issued by a parent org for a franchisee to join.                                                                                                                                                                                                           |
-| `Invite`                 | A member or franchise invite sent to a `User`. Carries a status (`PENDING`/`ACCEPTED`/`DECLINED`), snapshot fields for the org name and inviter name, and a JSON `metadata` blob with the roleIds/workingDays pre-filled for the accept step. Visible in the notification panel. |
+| Model                    | Description                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Organization`           | Top-level tenant. Owns all other resources. Supports franchise hierarchy via `parentId`.                                                                                                                                                                                                                                                                        |
+| `User`                   | Auth account, identified by email. Linked to orgs via `Membership`.                                                                                                                                                                                                                                                                                             |
+| `Membership`             | Links a `User` to an `Organization`. Tracks `workingDays` and `status` (ACTIVE / RESTRICTED).                                                                                                                                                                                                                                                                   |
+| `Role`                   | Org-scoped role (e.g. Owner, Worker) with a required `name`, `color` (hex), and stable `key`. System roles have `isDeletable: false`.                                                                                                                                                                                                                           |
+| `Permission`             | Grants a `PermissionAction` enum value to a `Role`. One row per action per role.                                                                                                                                                                                                                                                                                |
+| `MemberRole`             | Many-to-many junction between `Membership` and `Role`. A member can hold multiple roles.                                                                                                                                                                                                                                                                        |
+| `Task`                   | Reusable task definition (name, required `color` hex, duration, recurrence constraints, eligibility by role).                                                                                                                                                                                                                                                   |
+| `TaskEligibility`        | Links a `Task` to a `Role`, defining which roles can be assigned to it.                                                                                                                                                                                                                                                                                         |
+| `TimetableEntry`         | A scheduled task occurrence with date, start/end times, status, and assignees.                                                                                                                                                                                                                                                                                  |
+| `TimetableEntryAssignee` | Links a `Membership` to a `TimetableEntry` (many-to-many).                                                                                                                                                                                                                                                                                                      |
+| `TimetableSettings`      | Per-org timetable display preferences (view type, start day, slot duration).                                                                                                                                                                                                                                                                                    |
+| `Template`               | A reusable schedule template with a `cycleLengthDays`. Contains `TemplateEntry` rows.                                                                                                                                                                                                                                                                           |
+| `TemplateEntry`          | One time slot in a `Template` — which task, which day index, start/end times.                                                                                                                                                                                                                                                                                   |
+| `TemplateEntryAssignee`  | Pre-assigns a `Membership` to a `TemplateEntry`.                                                                                                                                                                                                                                                                                                                |
+| `FranchiseToken`         | One-time invite token issued by a parent org for a franchisee to join.                                                                                                                                                                                                                                                                                          |
+| `Invite`                 | A member or franchise invite sent to a `User`. Carries a status (`PENDING`/`ACCEPTED`/`DECLINED`), snapshot fields for the org name and inviter name, and a JSON `metadata` blob with the roleIds/workingDays pre-filled for the accept step. Visible in the notification panel.                                                                                |
 | `AuditLog`               | Append-only record of significant org mutations. Stores `action` (e.g. `task.create`), `entityType`, `entityId`, optional `before`/`after` JSON snapshots, the `actorId` who triggered the change, and a `createdAt` timestamp. Scoped per org. Actor is nullable (set to `NULL` on user deletion via `onDelete: SetNull`). Org deletion cascades all its logs. |
 
 ### Enums
@@ -127,12 +127,12 @@ pnpm seed
 
 #### Migration history
 
-| Migration                              | Description                                                                                                                              |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `20260414033638_init`                  | Full initial schema — all models, enums, indexes                                                                                         |
-| `20260414035009_add_invite_metadata`   | Add `metadata` JSON field to `Invite` for storing roleIds/workingDays for the accept step                                                |
-| `20260414045652_add_invite_snapshots`  | Add snapshot fields (`orgName`, `inviterName`) to `Invite` so cards render without joins                                                 |
-| `20260415021658_invite_pending_unique` | Partial unique index on `Invite(orgId, recipientId, type)` where `status = 'PENDING'` — DB-level guard against duplicate pending invites |
+| Migration                              | Description                                                                                                                                                                                                      |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `20260414033638_init`                  | Full initial schema — all models, enums, indexes                                                                                                                                                                 |
+| `20260414035009_add_invite_metadata`   | Add `metadata` JSON field to `Invite` for storing roleIds/workingDays for the accept step                                                                                                                        |
+| `20260414045652_add_invite_snapshots`  | Add snapshot fields (`orgName`, `inviterName`) to `Invite` so cards render without joins                                                                                                                         |
+| `20260415021658_invite_pending_unique` | Partial unique index on `Invite(orgId, recipientId, type)` where `status = 'PENDING'` — DB-level guard against duplicate pending invites                                                                         |
 | _(schema push)_                        | `AuditLog` model added (`orgId`, `actorId`, `action`, `entityType`, `entityId`, `before`, `after`, `createdAt`). Applied via `pnpm prisma db push` (dev DB had migration drift — no timestamped migration file). |
 
 ## Authentication
@@ -358,41 +358,41 @@ Significant org mutations are recorded in the `AuditLog` table. The service laye
 
 ### Service layer
 
-| File                          | Purpose                                                                                                    |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `lib/services/audit-log.ts`   | `recordAudit(params, client?)` — write helper that never throws; accepts optional Prisma client or transaction handle for atomic writes. `getAuditLogs(orgId, limit?)` — ordered read. |
+| File                        | Purpose                                                                                                                                                                                |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/services/audit-log.ts` | `recordAudit(params, client?)` — write helper that never throws; accepts optional Prisma client or transaction handle for atomic writes. `getAuditLogs(orgId, limit?)` — ordered read. |
 
 `recordAudit` accepts an optional `client` parameter (either `PrismaClient` or `Prisma.TransactionClient`). When called inside a `$transaction`, pass the transaction handle (`tx`) to ensure the audit write is part of the same atomic operation. When called outside a transaction, omit the client parameter and the root Prisma client will be used. The function never throws — audit failures are logged to Sentry and never propagate to the caller.
 
 ### Logged actions
 
-| Action                    | Trigger                                                    |
-| ------------------------- | ---------------------------------------------------------- |
-| `org.create`              | New standalone org created                                 |
-| `org.join_franchise`      | Franchisee joined via token                                |
-| `org.update`              | Org settings changed (timezone, address, hours)            |
-| `org.transfer_ownership`  | Ownership transferred to a different member                |
-| `org.delete`              | Org permanently deleted by owner                           |
-| `task.create`             | Task definition created                                    |
-| `task.update`             | Task definition updated                                    |
-| `task.delete`             | Task definition deleted                                    |
-| `role.create`             | Custom role created                                        |
-| `role.update`             | Role name, color, or permissions changed                   |
-| `role.delete`             | Custom role deleted                                        |
-| `membership.create`       | Member added to org                                        |
-| `membership.update`       | Member working days or roles changed                       |
-| `membership.status_change`| Member status toggled (ACTIVE / RESTRICTED)                |
-| `membership.delete`       | Member removed from org                                    |
-| `invite.send`             | Member or franchise invite sent                            |
-| `invite.accept`           | Invite accepted (member or bot-slot)                       |
-| `template.create`         | Template created or duplicated                             |
-| `template.update`         | Template renamed                                           |
-| `template.delete`         | Template deleted                                           |
-| `bot.create`              | Placeholder (bot) membership created                       |
-| `bot.delete`              | Placeholder membership deleted                             |
-| `entry.create`            | Live timetable entry created                               |
-| `entry.delete`            | Live timetable entry deleted                               |
-| `franchisee.remove`       | Franchisee org permanently removed by parent owner         |
+| Action                     | Trigger                                            |
+| -------------------------- | -------------------------------------------------- |
+| `org.create`               | New standalone org created                         |
+| `org.join_franchise`       | Franchisee joined via token                        |
+| `org.update`               | Org settings changed (timezone, address, hours)    |
+| `org.transfer_ownership`   | Ownership transferred to a different member        |
+| `org.delete`               | Org permanently deleted by owner                   |
+| `task.create`              | Task definition created                            |
+| `task.update`              | Task definition updated                            |
+| `task.delete`              | Task definition deleted                            |
+| `role.create`              | Custom role created                                |
+| `role.update`              | Role name, color, or permissions changed           |
+| `role.delete`              | Custom role deleted                                |
+| `membership.create`        | Member added to org                                |
+| `membership.update`        | Member working days or roles changed               |
+| `membership.status_change` | Member status toggled (ACTIVE / RESTRICTED)        |
+| `membership.delete`        | Member removed from org                            |
+| `invite.send`              | Member or franchise invite sent                    |
+| `invite.accept`            | Invite accepted (member or bot-slot)               |
+| `template.create`          | Template created or duplicated                     |
+| `template.update`          | Template renamed                                   |
+| `template.delete`          | Template deleted                                   |
+| `bot.create`               | Placeholder (bot) membership created               |
+| `bot.delete`               | Placeholder membership deleted                     |
+| `entry.create`             | Live timetable entry created                       |
+| `entry.delete`             | Live timetable entry deleted                       |
+| `franchisee.remove`        | Franchisee org permanently removed by parent owner |
 
 ### Browsing logs (no UI yet)
 
@@ -578,9 +578,27 @@ pnpm test:validators
 pnpm test:actions
 pnpm test:api
 
+# Integration tests (Vitest — hits the real dev database; reseeds before each run)
+pnpm test:integration
+
 # E2E tests (Playwright — requires a running dev server and seeded DB)
 pnpm test:e2e
 ```
+
+Integration tests live in `__tests__/integration/` and run sequentially against the live dev database (`DATABASE_URL`). They require `INTEGRATION_TEST_USER_EMAIL` (or fall back to the seed user). The global setup reseeds the dev database before each run to guarantee a clean baseline.
+
+| Test file                                                      | Service covered                  | Tests |
+| -------------------------------------------------------------- | -------------------------------- | ----- |
+| `__tests__/integration/lib/services/orgs.test.ts`              | `orgs.ts`                        | 2     |
+| `__tests__/integration/lib/services/memberships.test.ts`       | `memberships.ts`                 | 6     |
+| `__tests__/integration/lib/services/roles.test.ts`             | `roles.ts`                       | 7     |
+| `__tests__/integration/lib/services/tasks.test.ts`             | `tasks.ts`                       | 8     |
+| `__tests__/integration/lib/services/timetable-entries.test.ts` | `timetable-entries.ts`           | 14    |
+| `__tests__/integration/lib/services/assignees.test.ts`         | `assignees.ts`                   | 8     |
+| `__tests__/integration/lib/services/templates.test.ts`         | `templates.ts`                   | 18    |
+| `__tests__/integration/lib/services/invites.test.ts`           | `invites.ts`                     | 11    |
+| `__tests__/integration/lib/services/bots.test.ts`              | `bots.ts`                        | 13    |
+| `__tests__/integration/lib/services/audit-log.test.ts`         | `audit-log.ts`                   | 6     |
 
 CI runs on every push/PR to `master` via GitHub Actions (`.github/workflows/ci.yml`):
 
@@ -627,7 +645,7 @@ SENTRY_AUTH_TOKEN=   # Required whenever source maps are uploaded at build time 
 
 ## Status
 
-Work in progress. Fully implemented: service layer, REST API, auth, member management (list, view, edit, restrict, delete), task management (list, view, create, edit with color), timetable view (calendar + simple, task links), timetable templates (create, rename, duplicate, delete, calendar/simple editor, cycle-length controls, apply to timetable), org settings, role management (list, create, edit, delete, task eligibility, color), franchise management, required colors on tasks and roles, async breadcrumbs with name resolution, fixed-toolbar scroll containment on members and tasks pages, audit log (DB table + Zod-validated service layer, all significant mutations instrumented — UI pending).
+Work in progress. Fully implemented: service layer (all 10 services with 93 integration tests), REST API, auth, member management (list, view, edit, restrict, delete), task management (list, view, create, edit with color), timetable view (calendar + simple, task links), timetable templates (create, rename, duplicate, delete, calendar/simple editor, cycle-length controls, apply to timetable), org settings, role management (list, create, edit, delete, task eligibility, color), franchise management, required colors on tasks and roles, async breadcrumbs with name resolution, fixed-toolbar scroll containment on members and tasks pages, audit log (DB table + Zod-validated service layer, all significant mutations instrumented — UI pending).
 
 Not yet started: schedule generation (automatic cycle-based rotation), worker "Today" checklist, completion stats, timetable/notification settings pages, real-time notification refresh, audit log UI (activity feed page).
 

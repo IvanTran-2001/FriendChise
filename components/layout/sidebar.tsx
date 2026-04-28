@@ -92,7 +92,12 @@ function NavCollapsible({
 function getOrgItems(orgId: string): NavItem[] {
   return [
     // TODO: remove `disabled: true` when overview page is implemented
-    { title: "Overview", url: `/orgs/${orgId}`, icon: Building2, disabled: true },
+    {
+      title: "Overview",
+      url: `/orgs/${orgId}`,
+      icon: Building2,
+      disabled: true,
+    },
     { title: "Timetable", url: `/orgs/${orgId}/timetable`, icon: Calendar },
     { title: "Tasks", url: `/orgs/${orgId}/tasks`, icon: ListTodo },
     { title: "Members", url: `/orgs/${orgId}/memberships`, icon: Users },

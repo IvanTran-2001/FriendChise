@@ -692,7 +692,10 @@ export async function deleteTemplate(
       action: "template.delete",
       targetType: "Template",
       targetId: templateId,
-      before: { name: existing.name, cycleLengthDays: existing.cycleLengthDays },
+      before: {
+        name: existing.name,
+        cycleLengthDays: existing.cycleLengthDays,
+      },
     });
   }
   return { ok: true, data: null };

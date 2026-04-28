@@ -97,7 +97,11 @@ export async function createBot(
     action: "bot.create",
     targetType: "Membership",
     targetId: bot.id,
-    after: { botName: data.botName, roleIds: data.roleIds, workingDays: data.workingDays ?? [] },
+    after: {
+      botName: data.botName,
+      roleIds: data.roleIds,
+      workingDays: data.workingDays ?? [],
+    },
   });
   return { ok: true, data: bot };
 }
@@ -242,10 +246,10 @@ export async function botToMember(
     return { ok: false, error: "Bot not found", code: "NOT_FOUND" };
   }
   if (membership.userId !== null) {
-    log.warn(
-      "Conflict: bot membership slot already occupied by real user",
-      { orgId, membershipId },
-    );
+    log.warn("Conflict: bot membership slot already occupied by real user", {
+      orgId,
+      membershipId,
+    });
     return {
       ok: false,
       error: "Membership slot is already occupied by a real user",

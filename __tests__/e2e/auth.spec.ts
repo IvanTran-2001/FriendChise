@@ -36,7 +36,9 @@ test("sign-in page renders with Continue with Google button", async ({
 test.describe("authenticated", () => {
   test.use({ storageState: "playwright/.auth/ivan.json" });
 
-  test("authenticated user visiting / is redirected to /orgs/new", async ({ page }) => {
+  test("authenticated user visiting / is redirected to /orgs/new", async ({
+    page,
+  }) => {
     await page.goto("/");
     await expect(page).not.toHaveURL(/\/signin/);
     await expect(page).toHaveURL("/orgs/new");

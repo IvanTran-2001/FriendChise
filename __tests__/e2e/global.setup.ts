@@ -31,12 +31,15 @@ export default function globalSetup() {
   // Explicit opt-in required: set SEED_DEV_IDENTIFIERS or
   // ALLOW_SEED_FROM_DATABASE_URL=true to allow seeding this DB.
   // No automatic allowlisting — prevents accidental seeding of production DBs.
-  if (!process.env.SEED_DEV_IDENTIFIERS && !process.env.ALLOW_SEED_FROM_DATABASE_URL) {
+  if (
+    !process.env.SEED_DEV_IDENTIFIERS &&
+    !process.env.ALLOW_SEED_FROM_DATABASE_URL
+  ) {
     console.warn(
       "\n[global setup] WARNING: Neither SEED_DEV_IDENTIFIERS nor ALLOW_SEED_FROM_DATABASE_URL is set.\n" +
-      "The seed script may reject this DATABASE_URL. To proceed, either:\n" +
-      "  1. Set SEED_DEV_IDENTIFIERS to include your DB hostname/project ref, or\n" +
-      "  2. Set ALLOW_SEED_FROM_DATABASE_URL=true to explicitly allow seeding.\n"
+        "The seed script may reject this DATABASE_URL. To proceed, either:\n" +
+        "  1. Set SEED_DEV_IDENTIFIERS to include your DB hostname/project ref, or\n" +
+        "  2. Set ALLOW_SEED_FROM_DATABASE_URL=true to explicitly allow seeding.\n",
     );
   }
 

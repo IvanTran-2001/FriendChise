@@ -117,14 +117,17 @@ export async function createOrg(userId: string, data: CreateOrgInput) {
       userId,
     );
 
-    await recordAudit({
-      orgId: org.id,
-      actorId: userId,
-      action: "org.create",
-      targetType: "Organization",
-      targetId: org.id,
-      after: { name: org.name, timezone: org.timezone, address: org.address },
-    }, tx);
+    await recordAudit(
+      {
+        orgId: org.id,
+        actorId: userId,
+        action: "org.create",
+        targetType: "Organization",
+        targetId: org.id,
+        after: { name: org.name, timezone: org.timezone, address: org.address },
+      },
+      tx,
+    );
 
     return { org, ownerRole, memberRole, membership };
   });
@@ -236,14 +239,21 @@ export async function joinFranchise(
       data: { status: "ACCEPTED", acceptedAt: new Date() },
     });
 
-    await recordAudit({
-      orgId: org.id,
-      actorId: userId,
-      action: "org.join_franchise",
-      targetType: "Organization",
-      targetId: org.id,
-      after: { name: org.name, parentId: org.parentId, timezone: org.timezone },
-    }, tx);
+    await recordAudit(
+      {
+        orgId: org.id,
+        actorId: userId,
+        action: "org.join_franchise",
+        targetType: "Organization",
+        targetId: org.id,
+        after: {
+          name: org.name,
+          parentId: org.parentId,
+          timezone: org.timezone,
+        },
+      },
+      tx,
+    );
 
     return { org, clonedRoles, membership };
   });
@@ -263,7 +273,13 @@ export async function updateOrgSettings(
 ) {
   const before = await prisma.organization.findUnique({
     where: { id: orgId },
-    select: { timezone: true, address: true, operatingDays: true, openTimeMin: true, closeTimeMin: true },
+    select: {
+      timezone: true,
+      address: true,
+      operatingDays: true,
+      openTimeMin: true,
+      closeTimeMin: true,
+    },
   });
   const updated = await prisma.organization.update({
     where: { id: orgId },
@@ -282,7 +298,13 @@ export async function updateOrgSettings(
     targetType: "Organization",
     targetId: orgId,
     before: before as import("@prisma/client").Prisma.InputJsonObject | null,
-    after: { timezone: data.timezone, address: data.address ?? null, operatingDays: data.operatingDays ?? [], openTimeMin: data.openTimeMin ?? null, closeTimeMin: data.closeTimeMin ?? null },
+    after: {
+      timezone: data.timezone,
+      address: data.address ?? null,
+      operatingDays: data.operatingDays ?? [],
+      openTimeMin: data.openTimeMin ?? null,
+      closeTimeMin: data.closeTimeMin ?? null,
+    },
   });
   return updated;
 }
@@ -355,15 +377,18 @@ export async function transferOrgOwnership(
       data: { ownerId: newOwnerId },
     });
 
-    await recordAudit({
-      orgId,
-      actorId: currentOwnerId,
-      action: "org.transfer_ownership",
-      targetType: "Organization",
-      targetId: orgId,
-      before: { ownerId: currentOwnerId },
-      after: { ownerId: newOwnerId },
-    }, tx);
+    await recordAudit(
+      {
+        orgId,
+        actorId: currentOwnerId,
+        action: "org.transfer_ownership",
+        targetType: "Organization",
+        targetId: orgId,
+        before: { ownerId: currentOwnerId },
+        after: { ownerId: newOwnerId },
+      },
+      tx,
+    );
 
     log.info("Org ownership transferred", {
       orgId,
@@ -407,7 +432,10 @@ export async function deleteOrg(
     targetType: "Organization",
     targetId: orgId,
     before: { name: org.name },
-    metadata: { deletedBy: currentOwnerId, deletedAt: new Date().toISOString() },
+    metadata: {
+      deletedBy: currentOwnerId,
+      deletedAt: new Date().toISOString(),
+    },
   });
 
   await prisma.organization.delete({ where: { id: orgId } });

@@ -74,7 +74,11 @@ export async function deleteRole(
     action: "role.delete",
     targetType: "Role",
     targetId: roleId,
-    before: { name: role.name, color: role.color, permissions: role.permissions.map((p) => p.action) },
+    before: {
+      name: role.name,
+      color: role.color,
+      permissions: role.permissions.map((p) => p.action),
+    },
   });
   return { ok: true, data: null };
 }
@@ -168,14 +172,21 @@ export async function createRole(
       select: roleSelect,
     });
 
-    await recordAudit({
-      orgId,
-      actorId: actorId ?? null,
-      action: "role.create",
-      targetType: "Role",
-      targetId: created.id,
-      after: { name: finalRole.name, color: finalRole.color, permissions: finalRole.permissions.map((p) => p.action) },
-    }, tx);
+    await recordAudit(
+      {
+        orgId,
+        actorId: actorId ?? null,
+        action: "role.create",
+        targetType: "Role",
+        targetId: created.id,
+        after: {
+          name: finalRole.name,
+          color: finalRole.color,
+          permissions: finalRole.permissions.map((p) => p.action),
+        },
+      },
+      tx,
+    );
 
     return finalRole;
   });
@@ -221,9 +232,14 @@ export async function updateRole(
     where: { id: roleId, orgId },
     select: { key: true },
   });
-  if (!preCheck) return { ok: false, error: "Role not found.", code: "NOT_FOUND" };
+  if (!preCheck)
+    return { ok: false, error: "Role not found.", code: "NOT_FOUND" };
   if (preCheck.key === ROLE_KEYS.OWNER) {
-    return { ok: false, error: "The Owner role cannot be edited.", code: "INVALID" };
+    return {
+      ok: false,
+      error: "The Owner role cannot be edited.",
+      code: "INVALID",
+    };
   }
 
   const updated = await prisma.$transaction(async (tx) => {
@@ -241,7 +257,8 @@ export async function updateRole(
         where: { orgId, id: { in: taskIds } },
         select: { id: true },
       });
-      if (orgTasks.length !== taskIds.length) return { error: "INVALID_TASKS" as const };
+      if (orgTasks.length !== taskIds.length)
+        return { error: "INVALID_TASKS" as const };
     }
 
     await tx.role.update({
@@ -267,15 +284,26 @@ export async function updateRole(
       select: roleSelect,
     });
 
-    await recordAudit({
-      orgId,
-      actorId: actorId ?? null,
-      action: "role.update",
-      targetType: "Role",
-      targetId: roleId,
-      before: { name: existing.name, color: existing.color, permissions: existing.permissions.map((p) => p.action) },
-      after: { name: finalRole.name, color: finalRole.color, permissions: finalRole.permissions.map((p) => p.action) },
-    }, tx);
+    await recordAudit(
+      {
+        orgId,
+        actorId: actorId ?? null,
+        action: "role.update",
+        targetType: "Role",
+        targetId: roleId,
+        before: {
+          name: existing.name,
+          color: existing.color,
+          permissions: existing.permissions.map((p) => p.action),
+        },
+        after: {
+          name: finalRole.name,
+          color: finalRole.color,
+          permissions: finalRole.permissions.map((p) => p.action),
+        },
+      },
+      tx,
+    );
 
     return { error: null, data: finalRole };
   });
