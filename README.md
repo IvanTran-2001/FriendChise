@@ -99,6 +99,7 @@ Provider: PostgreSQL (Supabase), managed via Prisma ORM.
 | `TemplateEntryAssignee`  | Pre-assigns a `Membership` to a `TemplateEntry`.                                                                                                                                                                                                                                 |
 | `FranchiseToken`         | One-time invite token issued by a parent org for a franchisee to join.                                                                                                                                                                                                           |
 | `Invite`                 | A member or franchise invite sent to a `User`. Carries a status (`PENDING`/`ACCEPTED`/`DECLINED`), snapshot fields for the org name and inviter name, and a JSON `metadata` blob with the roleIds/workingDays pre-filled for the accept step. Visible in the notification panel. |
+| `AuditLog`               | Append-only record of significant org mutations. Stores `action` (e.g. `task.create`), `entityType`, `entityId`, optional `before`/`after` JSON snapshots, the `actorId` who triggered the change, and a `createdAt` timestamp. Scoped per org. Actor is nullable (set to `NULL` on user deletion via `onDelete: SetNull`). Org deletion cascades all its logs. |
 
 ### Enums
 
@@ -132,6 +133,7 @@ pnpm seed
 | `20260414035009_add_invite_metadata`   | Add `metadata` JSON field to `Invite` for storing roleIds/workingDays for the accept step                                                |
 | `20260414045652_add_invite_snapshots`  | Add snapshot fields (`orgName`, `inviterName`) to `Invite` so cards render without joins                                                 |
 | `20260415021658_invite_pending_unique` | Partial unique index on `Invite(orgId, recipientId, type)` where `status = 'PENDING'` — DB-level guard against duplicate pending invites |
+| _(schema push)_                        | `AuditLog` model added (`orgId`, `actorId`, `action`, `entityType`, `entityId`, `before`, `after`, `createdAt`). Applied via `pnpm prisma db push` (dev DB had migration drift — no timestamped migration file). |
 
 ## Authentication
 
@@ -326,6 +328,7 @@ lib/
     index.ts
   services/
     types.ts
+    audit-log.ts        # logAudit() write helper (Zod-validated) + getAuditLogs() read helper
     orgs.ts
     memberships.ts      # updateMembership rejects any roleId whose key === "owner"
     tasks.ts            # createTask / updateTask both require and persist color
@@ -334,6 +337,8 @@ lib/
     templates.ts
     roles.ts
     franchise.ts
+    invites.ts
+    bots.ts
   validators/
     org.ts
     membership.ts
@@ -345,6 +350,64 @@ lib/
 prisma/
   schema.prisma         # Role.color String (non-nullable), Task.color String (non-nullable)
   seed.ts               # 8 users · 3 orgs · 4 roles each · 6 tasks each · 5 members each
+```
+
+## Audit Log
+
+Significant org mutations are recorded in the `AuditLog` table. The service layer writes one row per meaningful event — reads, status-only changes, and low-signal operations are intentionally excluded.
+
+### Service layer
+
+| File                          | Purpose                                                                                                    |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `lib/services/audit-log.ts`   | `logAudit(db, entry)` — Zod-validated write; accepts a Prisma client or transaction handle. `getAuditLogs(orgId, limit?)` — ordered read. |
+
+`logAudit` accepts either a full `PrismaClient` (fire-and-forget `.catch()`) or a transaction handle `Tx` (atomic, awaited inside `$transaction`). The Zod schema enforces `cuid()` on `orgId`/`actorId` and requires `action`, `entityType`, and `entityId`.
+
+### Logged actions
+
+| Action                    | Trigger                                                    |
+| ------------------------- | ---------------------------------------------------------- |
+| `org.create`              | New standalone org created                                 |
+| `org.join_franchise`      | Franchisee joined via token                                |
+| `org.update`              | Org settings changed (timezone, address, hours)            |
+| `org.transfer_ownership`  | Ownership transferred to a different member                |
+| `task.create`             | Task definition created                                    |
+| `task.update`             | Task definition updated                                    |
+| `task.delete`             | Task definition deleted                                    |
+| `role.create`             | Custom role created                                        |
+| `role.update`             | Role name, color, or permissions changed                   |
+| `role.delete`             | Custom role deleted                                        |
+| `membership.remove`       | Member removed from org                                    |
+| `invite.send`             | Member or franchise invite sent                            |
+| `invite.accept`           | Invite accepted (member or bot-slot)                       |
+| `template.create`         | Template created or duplicated                             |
+| `template.update`         | Template renamed                                           |
+| `template.delete`         | Template deleted                                           |
+| `bot.create`              | Placeholder (bot) membership created                       |
+| `bot.delete`              | Placeholder membership deleted                             |
+| `entry.create`            | Live timetable entry created                               |
+| `entry.delete`            | Live timetable entry deleted                               |
+| `franchisee.remove`       | Franchisee org permanently removed by parent owner         |
+
+### Browsing logs (no UI yet)
+
+```bash
+# Prisma Studio — table browser at localhost:5555
+pnpm prisma studio
+```
+
+Or query directly in the Supabase SQL Editor:
+
+```sql
+SELECT al.action, al."entityType", al."entityId",
+       al.before, al.after, al."createdAt",
+       u.name AS actor
+FROM "AuditLog" al
+LEFT JOIN "User" u ON u.id = al."actorId"
+WHERE al."orgId" = '<org-id>'
+ORDER BY al."createdAt" DESC
+LIMIT 100;
 ```
 
 ## Server Actions vs API Routes
@@ -560,6 +623,6 @@ SENTRY_AUTH_TOKEN=   # Required whenever source maps are uploaded at build time 
 
 ## Status
 
-Work in progress. Fully implemented: service layer, REST API, auth, member management (list, view, edit, restrict, delete), task management (list, view, create, edit with color), timetable view (calendar + simple, task links), timetable templates (create, rename, duplicate, delete, calendar/simple editor, cycle-length controls, apply to timetable), org settings, role management (list, create, edit, delete, task eligibility, color), franchise management, required colors on tasks and roles, async breadcrumbs with name resolution, fixed-toolbar scroll containment on members and tasks pages.
+Work in progress. Fully implemented: service layer, REST API, auth, member management (list, view, edit, restrict, delete), task management (list, view, create, edit with color), timetable view (calendar + simple, task links), timetable templates (create, rename, duplicate, delete, calendar/simple editor, cycle-length controls, apply to timetable), org settings, role management (list, create, edit, delete, task eligibility, color), franchise management, required colors on tasks and roles, async breadcrumbs with name resolution, fixed-toolbar scroll containment on members and tasks pages, audit log (DB table + Zod-validated service layer, all significant mutations instrumented — UI pending).
 
-Not yet started: schedule generation (automatic cycle-based rotation), worker "Today" checklist, completion stats, timetable/notification settings pages, real-time notification refresh, acceptance notification back to inviter.
+Not yet started: schedule generation (automatic cycle-based rotation), worker "Today" checklist, completion stats, timetable/notification settings pages, real-time notification refresh, acceptance notification back to inviter, audit log UI (activity feed page).

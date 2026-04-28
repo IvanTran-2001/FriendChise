@@ -293,7 +293,7 @@ export async function renameTemplateAction(
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const result = await renameTemplate(orgId, templateId, name);
+  const result = await renameTemplate(orgId, templateId, name, authz.userId);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/timetable/templates`);
@@ -314,7 +314,7 @@ export async function duplicateTemplateAction(
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const result = await duplicateTemplate(orgId, templateId);
+  const result = await duplicateTemplate(orgId, templateId, authz.userId);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/timetable/templates`);

@@ -16,6 +16,7 @@
 import { log } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 import { Prisma, EntryStatus } from "@prisma/client";
+import { logAudit } from "@/lib/services/audit-log";
 import type { ServiceResult } from "./types";
 import type { CreateTimetableEntryInput } from "@/lib/validators/timetable-entry";
 import {
@@ -35,10 +36,12 @@ export type ListTimetableEntriesOptions = {
  * Creates a new timetable entry for the given org and task.
  * Validates that the task belongs to the org before inserting and
  * auto-populates snapshot fields (taskName, durationMin, etc.) from the task.
+ * @param actorId - Optional caller ID forwarded from the action layer for audit log.
  */
 export async function createTimetableEntryFromInput(
   orgId: string,
   data: CreateTimetableEntryInput,
+  actorId?: string | null,
 ): Promise<
   ServiceResult<Prisma.TimetableEntryGetPayload<Record<string, never>>>
 > {
@@ -84,6 +87,14 @@ export async function createTimetableEntryFromInput(
       entryId: entry.id,
       taskId: data.taskId,
     });
+    logAudit(prisma, {
+      orgId,
+      actorId: actorId ?? null,
+      action: "entry.create",
+      entityType: "TimetableEntry",
+      entityId: entry.id,
+      after: { taskId: task.id, taskName: task.name, date: data.date, startTimeMin: data.startTimeMin, endTimeMin },
+    }).catch((err) => log.warn("Audit log failed", { err }));
     return { ok: true, data: entry };
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
@@ -282,12 +293,14 @@ export async function getTimetableEntries(
  * Creates a new live timetable entry.
  * Fetches the org timezone and task snapshot fields, converts the local
  * date/time to UTC, then inserts the row.
+ * @param actorId - Optional caller ID forwarded from the action layer for audit log.
  */
 export async function createTimetableEntry(
   orgId: string,
   taskId: string,
   dateStr: string,
   startTimeMin: number,
+  actorId?: string | null,
 ): Promise<
   ServiceResult<Prisma.TimetableEntryGetPayload<Record<string, never>>>
 > {
@@ -335,6 +348,14 @@ export async function createTimetableEntry(
     entryId: entry.id,
     taskId,
   });
+  logAudit(prisma, {
+    orgId,
+    actorId: actorId ?? null,
+    action: "entry.create",
+    entityType: "TimetableEntry",
+    entityId: entry.id,
+    after: { taskId, taskName: task.name, dateStr, startTimeMin },
+  }).catch((err) => log.warn("Audit log failed", { err }));
   return { ok: true, data: entry };
 }
 
@@ -398,10 +419,12 @@ export async function updateTimetableEntry(
 
 /**
  * Permanently deletes a live timetable entry, scoped to `orgId`.
+ * @param actorId - Optional caller ID forwarded from the action layer for audit log.
  */
 export async function deleteTimetableEntry(
   orgId: string,
   entryId: string,
+  actorId?: string | null,
 ): Promise<ServiceResult<null>> {
   const entry = await prisma.timetableEntry.findFirst({
     where: { id: entryId, orgId },
@@ -411,6 +434,13 @@ export async function deleteTimetableEntry(
 
   await prisma.timetableEntry.delete({ where: { id: entryId } });
   log.info("Timetable entry deleted", { orgId, entryId });
+  logAudit(prisma, {
+    orgId,
+    actorId: actorId ?? null,
+    action: "entry.delete",
+    entityType: "TimetableEntry",
+    entityId: entryId,
+  }).catch((err) => log.warn("Audit log failed", { err }));
   return { ok: true, data: null };
 }
 

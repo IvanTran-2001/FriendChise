@@ -511,15 +511,22 @@ export async function applyTemplate(
 
 /**
  * Renames a template.
+ * @param actorId - Optional caller ID forwarded from the action layer for audit log.
  */
 export async function renameTemplate(
   orgId: string,
   templateId: string,
   name: string,
+  actorId?: string | null,
 ): Promise<ServiceResult<null>> {
   const trimmed = name.trim();
   if (!trimmed)
     return { ok: false, error: "Name is required", code: "INVALID" };
+
+  const existing = await prisma.template.findFirst({
+    where: { id: templateId, orgId },
+    select: { name: true },
+  });
 
   try {
     const updated = await prisma.template.updateMany({
@@ -530,6 +537,15 @@ export async function renameTemplate(
       return { ok: false, error: "Template not found", code: "NOT_FOUND" };
 
     log.info("Template renamed", { orgId, templateId });
+    logAudit(prisma, {
+      orgId,
+      actorId: actorId ?? null,
+      action: "template.update",
+      entityType: "Template",
+      entityId: templateId,
+      before: existing ? { name: existing.name } : null,
+      after: { name: trimmed },
+    }).catch((err) => log.warn("Audit log failed", { err }));
     return { ok: true, data: null };
   } catch (error) {
     if (
@@ -549,10 +565,12 @@ export async function renameTemplate(
 /**
  * Duplicates a template and all its entries (assignees are also copied).
  * The copy is named "Copy of <original name>" (or "Copy of Copy of …" if needed).
+ * @param actorId - Optional caller ID forwarded from the action layer for audit log.
  */
 export async function duplicateTemplate(
   orgId: string,
   templateId: string,
+  actorId?: string | null,
 ): Promise<ServiceResult<{ id: string }>> {
   const template = await prisma.template.findFirst({
     where: { id: templateId, orgId },
@@ -603,6 +621,14 @@ export async function duplicateTemplate(
         sourceTemplateId: templateId,
         newTemplateId: copy.id,
       });
+      logAudit(prisma, {
+        orgId,
+        actorId: actorId ?? null,
+        action: "template.create",
+        entityType: "Template",
+        entityId: copy.id,
+        after: { name: candidateName, sourceTemplateId: templateId },
+      }).catch((err) => log.warn("Audit log failed", { err }));
       return { ok: true, data: { id: copy.id } };
     } catch (error) {
       if (

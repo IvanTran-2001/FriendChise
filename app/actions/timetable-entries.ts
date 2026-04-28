@@ -44,6 +44,7 @@ export async function createTimetableEntryAction(
     taskId,
     dateStr,
     startTimeMin,
+    authz.userId,
   );
   if (!result.ok) return { ok: false, error: result.error };
 
@@ -105,7 +106,7 @@ export async function deleteTimetableEntryAction(
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const result = await deleteTimetableEntry(orgId, entryId);
+  const result = await deleteTimetableEntry(orgId, entryId, authz.userId);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/timetable`);

@@ -35,7 +35,7 @@ export async function generateFranchiseToken(
   const authz = await requireParentOrgOwnerAction(orgId);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const result = await createFranchiseToken(orgId, email, authz.userId);
+  const result = await createFranchiseToken(orgId, email, authz.userId, authz.userId);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/franchisee`);
@@ -85,7 +85,7 @@ export async function removeFranchisee(
   const authz = await requireParentOrgOwnerAction(orgId);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const result = await removeFranchiseeService(orgId, childOrgId);
+  const result = await removeFranchiseeService(orgId, childOrgId, authz.userId);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/franchisee`);

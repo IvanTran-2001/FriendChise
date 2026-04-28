@@ -254,6 +254,7 @@ export async function joinFranchise(
 /**
  * Updates an org's location and schedule settings.
  * Callable by any member with MANAGE_SETTINGS permission (checked in the action layer).
+ * @param actorId - Optional caller ID forwarded from the action layer for audit log.
  */
 export async function updateOrgSettings(
   orgId: string,
@@ -289,6 +290,7 @@ export async function updateOrgSettings(
 /**
  * Transfers org ownership to a different member.
  * Restricted to the current owner of a non-franchisee org (no parentId).
+ * Logs `org.transfer_ownership` inside the transaction with before/after owner IDs.
  */
 export async function transferOrgOwnership(
   orgId: string,
@@ -363,12 +365,12 @@ export async function transferOrgOwnership(
       after: { ownerId: newOwnerId },
     });
 
+    log.info("Org ownership transferred", {
+      orgId,
+      from: currentOwnerId,
+      to: newOwnerId,
+    });
     return updated;
-  });
-  log.info("Org ownership transferred", {
-    orgId,
-    from: currentOwnerId,
-    to: newOwnerId,
   });
 }
 

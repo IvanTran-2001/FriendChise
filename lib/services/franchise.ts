@@ -14,6 +14,7 @@ import { InviteType } from "@prisma/client";
 import { log } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 import { ROLE_KEYS } from "@/lib/rbac";
+import { logAudit } from "@/lib/services/audit-log";
 import type { ServiceResult } from "./types";
 import { normalizeEmail } from "@/lib/utils";
 
@@ -230,11 +231,13 @@ export async function cloneTimetableSettingsFromParent(
 // ---------------------------------------------------------------------------
 
 /** Issues a 7-day single-use franchise invite token tied to an email and
- *  creates a FRANCHISE invite notification for the recipient. */
+ *  creates a FRANCHISE invite notification for the recipient.
+ *  @param actorId - Optional caller ID forwarded from the action layer for audit log. */
 export async function createFranchiseToken(
   orgId: string,
   email: string,
   inviterId: string,
+  actorId?: string | null,
 ): Promise<ServiceResult<void>> {
   const trimmed = normalizeEmail(email);
   if (!trimmed)
@@ -312,6 +315,14 @@ export async function createFranchiseToken(
     invitedById: inviterId,
     userId: user.id,
   });
+  logAudit(prisma, {
+    orgId,
+    actorId: actorId ?? null,
+    action: "invite.send",
+    entityType: "FranchiseToken",
+    entityId: user.id,
+    after: { recipientEmail: trimmed, recipientId: user.id, type: "franchise" },
+  }).catch((err) => log.warn("Audit log failed", { err }));
   return { ok: true, data: undefined };
 }
 
@@ -368,10 +379,12 @@ export async function extendFranchiseToken(
   return { ok: true, data: undefined };
 }
 
-/** Permanently deletes a franchisee org (cascades all related data). */
+/** Permanently deletes a franchisee org (cascades all related data).
+ *  @param actorId - Optional caller ID forwarded from the action layer for audit log. */
 export async function removeFranchisee(
   orgId: string,
   childOrgId: string,
+  actorId?: string | null,
 ): Promise<ServiceResult<void>> {
   const { count } = await prisma.organization.deleteMany({
     where: { id: childOrgId, parentId: orgId },
@@ -380,6 +393,14 @@ export async function removeFranchisee(
     return { ok: false, error: "Franchisee not found", code: "NOT_FOUND" };
 
   log.info("Franchisee removed", { parentOrgId: orgId, childOrgId });
+  logAudit(prisma, {
+    orgId,
+    actorId: actorId ?? null,
+    action: "franchisee.remove",
+    entityType: "Organization",
+    entityId: childOrgId,
+    before: { childOrgId },
+  }).catch((err) => log.warn("Audit log failed", { err }));
   return { ok: true, data: undefined };
 }
 

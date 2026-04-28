@@ -1,6 +1,7 @@
 import { log } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 import { Prisma, InviteType } from "@prisma/client";
+import { logAudit } from "@/lib/services/audit-log";
 import type { ServiceResult } from "./types";
 import type {
   MemberToBotInput,
@@ -28,11 +29,13 @@ type BotMembership = Prisma.MembershipGetPayload<{ select: typeof botSelect }>;
 // ─────────────────────────────────────────────────────────────────────────────
 // createBot
 // Creates a placeholder membership with no userId.
+// actorId — optional caller ID forwarded from the action layer for audit log.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function createBot(
   orgId: string,
   data: { botName: string; roleIds: string[]; workingDays?: string[] },
+  actorId?: string | null,
 ): Promise<ServiceResult<BotMembership>> {
   if (data.roleIds.length === 0) {
     return {
@@ -88,21 +91,31 @@ export async function createBot(
     membershipId: bot.id,
     botName: data.botName,
   });
+  logAudit(prisma, {
+    orgId,
+    actorId: actorId ?? null,
+    action: "bot.create",
+    entityType: "Membership",
+    entityId: bot.id,
+    after: { botName: data.botName, roleIds: data.roleIds, workingDays: data.workingDays ?? [] },
+  }).catch((err) => log.warn("Audit log failed", { err }));
   return { ok: true, data: bot };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // deleteBot
 // Deletes a bot membership. Refuses to delete real-user memberships.
+// actorId — optional caller ID forwarded from the action layer for audit log.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function deleteBot(
   orgId: string,
   membershipId: string,
+  actorId?: string | null,
 ): Promise<ServiceResult<null>> {
   const membership = await prisma.membership.findUnique({
     where: { id: membershipId },
-    select: { id: true, orgId: true, userId: true },
+    select: { id: true, orgId: true, userId: true, botName: true },
   });
 
   if (!membership || membership.orgId !== orgId) {
@@ -133,6 +146,14 @@ export async function deleteBot(
     prisma.membership.delete({ where: { id: membershipId } }),
   ]);
   log.info("Bot deleted", { orgId, membershipId });
+  logAudit(prisma, {
+    orgId,
+    actorId: actorId ?? null,
+    action: "bot.delete",
+    entityType: "Membership",
+    entityId: membershipId,
+    before: { botName: membership.botName },
+  }).catch((err) => log.warn("Audit log failed", { err }));
   return { ok: true, data: null };
 }
 

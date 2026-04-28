@@ -2,6 +2,7 @@ import { log } from "@/lib/observability";
 import { InviteType } from "@prisma/client";
 import { ROLE_KEYS } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
+import { logAudit } from "@/lib/services/audit-log";
 import type { ServiceResult } from "./types";
 
 export type InviteItem = {
@@ -254,6 +255,14 @@ export async function createMemberInvite(
     invitedById,
     recipientId,
   });
+  logAudit(prisma, {
+    orgId,
+    actorId: invitedById,
+    action: "invite.send",
+    entityType: "Invite",
+    entityId: recipientId,
+    after: { recipientId, roleIds, workingDays, botMembershipId: botMembershipId ?? null },
+  }).catch((err) => log.warn("Audit log failed", { err }));
   return { ok: true, data: null };
 }
 
@@ -361,6 +370,14 @@ export async function acceptMemberInvite(
     userId,
     orgId: invite.orgId,
   });
+  logAudit(prisma, {
+    orgId: invite.orgId,
+    actorId: userId,
+    action: "invite.accept",
+    entityType: "Invite",
+    entityId: inviteId,
+    after: { userId, orgId: invite.orgId },
+  }).catch((err) => log.warn("Audit log failed", { err }));
   return { ok: true, data: null };
 }
 
@@ -491,6 +508,14 @@ export async function acceptBotSlotInvite(
     userId,
     orgId: invite.orgId,
   });
+  logAudit(prisma, {
+    orgId: invite.orgId,
+    actorId: userId,
+    action: "invite.accept",
+    entityType: "Invite",
+    entityId: inviteId,
+    after: { userId, orgId: invite.orgId, type: "bot_slot" },
+  }).catch((err) => log.warn("Audit log failed", { err }));
   return { ok: true, data: null };
 }
 
