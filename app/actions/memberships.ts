@@ -69,6 +69,8 @@ export async function sendMemberInviteAction(
     recipient.id,
     roleIds,
     workingDays,
+    undefined,
+    authz.userEmail,
   );
   if (!result.ok) {
     const field =
@@ -98,7 +100,7 @@ export async function deleteMembershipAction(
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const result = await deleteMembership(orgId, membershipId, authz.userId);
+  const result = await deleteMembership(orgId, membershipId, authz.userId, authz.userEmail);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/memberships`);
@@ -125,6 +127,7 @@ export async function updateMembershipAction(
     membershipId,
     data,
     authz.userId,
+    authz.userEmail,
   );
   if (!result.ok) return { ok: false, error: result.error };
 
@@ -152,6 +155,7 @@ export async function setMemberStatusAction(
     membershipId,
     status,
     authz.userId,
+    authz.userEmail,
   );
   if (!result.ok) return { ok: false, error: result.error };
 

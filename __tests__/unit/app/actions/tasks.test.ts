@@ -50,6 +50,7 @@ function makeFormData(fields: Record<string, string>) {
 const authorised = {
   ok: true as const,
   userId: "u-1",
+  userEmail: "user@example.com",
   membership: { id: "m-1" } as any,
 };
 const unauthorised = { ok: false as const };

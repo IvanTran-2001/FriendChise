@@ -46,7 +46,7 @@ export async function POST(
     );
   }
 
-  const result = await createTimetableEntryFromInput(orgId, parsed.data);
+  const result = await createTimetableEntryFromInput(orgId, parsed.data, authz.userId, authz.userEmail);
   if (!result.ok) {
     const status = result.code === "CONFLICT" ? 409 : 400;
     return NextResponse.json({ error: result.error }, { status });

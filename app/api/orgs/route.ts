@@ -28,6 +28,6 @@ export async function POST(req: Request) {
     );
   }
 
-  const result = await createOrg(authz.userId, parsed.data);
+  const result = await createOrg(authz.userId, parsed.data, authz.userEmail);
   return NextResponse.json(result, { status: 201 });
 }

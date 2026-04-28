@@ -2,10 +2,22 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { PermissionAction } from "@prisma/client";
 
+/** Returns the authenticated user's id and email, or null if not signed in. */
+export async function getAuthUser(): Promise<{
+  id: string;
+  email: string | null;
+} | null> {
+  const session = await auth();
+  const id = session?.user?.id as string | undefined;
+  const email = (session?.user?.email as string | undefined) ?? null;
+  if (!id) return null;
+  return { id, email };
+}
+
 /** Returns the authenticated user's id, or null if not signed in. */
 export async function getAuthUserId(): Promise<string | null> {
-  const session = await auth();
-  return (session?.user?.id as string | undefined) ?? null;
+  const user = await getAuthUser();
+  return user?.id ?? null;
 }
 
 /** Returns the membership row if the user belongs to the org, or null. */

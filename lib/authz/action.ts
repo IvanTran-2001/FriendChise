@@ -1,7 +1,7 @@
 import { PermissionAction } from "@prisma/client";
 import { log } from "@/lib/observability";
 import {
-  getAuthUserId,
+  getAuthUser,
   getOrgMembership,
   isParentOrgOwner,
   memberHasPermission,
@@ -26,28 +26,33 @@ import {
 
 /** Requires the caller to be signed in. */
 export async function requireUserAction() {
-  const userId = await getAuthUserId();
-  if (!userId) return { ok: false as const };
-  return { ok: true as const, userId };
+  const user = await getAuthUser();
+  if (!user) return { ok: false as const };
+  return { ok: true as const, userId: user.id, userEmail: user.email };
 }
 
 /** Requires the caller to be signed in and a member of the org. */
 export async function requireOrgMemberAction(orgId: string) {
-  const userId = await getAuthUserId();
-  if (!userId) return { ok: false as const };
+  const user = await getAuthUser();
+  if (!user) return { ok: false as const };
 
-  const membership = await getOrgMembership(orgId, userId);
+  const membership = await getOrgMembership(orgId, user.id);
   if (!membership) return { ok: false as const };
 
-  return { ok: true as const, userId, membership };
+  return {
+    ok: true as const,
+    userId: user.id,
+    userEmail: user.email,
+    membership,
+  };
 }
 
 /** Requires the caller to be the owner of a parent org (no parentId). */
 export async function requireParentOrgOwnerAction(orgId: string) {
-  const userId = await getAuthUserId();
-  if (!userId) return { ok: false as const };
-  if (!(await isParentOrgOwner(orgId, userId))) return { ok: false as const };
-  return { ok: true as const, userId };
+  const user = await getAuthUser();
+  if (!user) return { ok: false as const };
+  if (!(await isParentOrgOwner(orgId, user.id))) return { ok: false as const };
+  return { ok: true as const, userId: user.id, userEmail: user.email };
 }
 
 /** Requires the caller to be a member of the org with the given permission. */
@@ -69,6 +74,7 @@ export async function requireOrgPermissionAction(
   return {
     ok: true as const,
     userId: authz.userId,
+    userEmail: authz.userEmail,
     membership: authz.membership,
   };
 }

@@ -29,7 +29,7 @@ export async function deleteRoleAction(
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized." };
 
-  const result = await deleteRole(orgId, roleId, authz.userId);
+  const result = await deleteRole(orgId, roleId, authz.userId, authz.userEmail);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/settings/roles`);
@@ -66,7 +66,7 @@ export async function createRoleAction(
     };
   }
 
-  const result = await createRole(orgId, parsed.data, authz.userId);
+  const result = await createRole(orgId, parsed.data, authz.userId, authz.userEmail);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/settings/roles`);
@@ -104,7 +104,7 @@ export async function updateRoleAction(
     };
   }
 
-  const result = await updateRole(orgId, roleId, parsed.data, authz.userId);
+  const result = await updateRole(orgId, roleId, parsed.data, authz.userId, authz.userEmail);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/settings/roles`);

@@ -53,6 +53,7 @@ export async function deleteRole(
   orgId: string,
   roleId: string,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<null>> {
   const role = await prisma.role.findFirst({
     where: { id: roleId, orgId },
@@ -71,6 +72,7 @@ export async function deleteRole(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
+    actorEmail: actorEmail ?? null,
     action: "role.delete",
     targetType: "Role",
     targetId: roleId,
@@ -129,6 +131,7 @@ export async function createRole(
   orgId: string,
   data: RoleFormInput,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<RoleWithPermissions>> {
   const role = await prisma.$transaction(async (tx) => {
     const taskIds = [...new Set(data.taskIds)];
@@ -176,6 +179,7 @@ export async function createRole(
       {
         orgId,
         actorId: actorId ?? null,
+        actorEmail: actorEmail ?? null,
         action: "role.create",
         targetType: "Role",
         targetId: created.id,
@@ -225,6 +229,7 @@ export async function updateRole(
   roleId: string,
   data: RoleFormInput,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<RoleWithPermissions>> {
   // Guard before entering the transaction so the caller can trust that
   // $transaction is never called for invalid inputs (also matches test expectations).
@@ -288,6 +293,7 @@ export async function updateRole(
       {
         orgId,
         actorId: actorId ?? null,
+        actorEmail: actorEmail ?? null,
         action: "role.update",
         targetType: "Role",
         targetId: roleId,

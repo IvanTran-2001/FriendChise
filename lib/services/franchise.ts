@@ -238,6 +238,7 @@ export async function createFranchiseToken(
   email: string,
   inviterId: string,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<void>> {
   const trimmed = normalizeEmail(email);
   if (!trimmed)
@@ -318,6 +319,7 @@ export async function createFranchiseToken(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
+    actorEmail: actorEmail ?? null,
     action: "franchise.token_create",
     targetType: "FranchiseToken",
     targetId: user.id,
@@ -331,6 +333,7 @@ export async function deleteFranchiseToken(
   orgId: string,
   tokenId: string,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<void>> {
   const token = await prisma.franchiseToken.findFirst({
     where: { id: tokenId, orgId },
@@ -354,6 +357,7 @@ export async function deleteFranchiseToken(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
+    actorEmail: actorEmail ?? null,
     action: "franchise.token_delete",
     targetType: "FranchiseToken",
     targetId: tokenId,
@@ -393,6 +397,7 @@ export async function removeFranchisee(
   orgId: string,
   childOrgId: string,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<void>> {
   const { count } = await prisma.organization.deleteMany({
     where: { id: childOrgId, parentId: orgId },
@@ -404,6 +409,7 @@ export async function removeFranchisee(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
+    actorEmail: actorEmail ?? null,
     action: "franchise.member_remove",
     targetType: "Organization",
     targetId: childOrgId,
@@ -420,6 +426,7 @@ export async function changeFranchiseeOwner(
   childOrgId: string,
   newOwnerEmail: string,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<void>> {
   const newOwner = await prisma.user.findUnique({
     where: { email: normalizeEmail(newOwnerEmail) },
@@ -491,6 +498,7 @@ export async function changeFranchiseeOwner(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
+    actorEmail: actorEmail ?? null,
     action: "franchise.owner_change",
     targetType: "Organization",
     targetId: childOrgId,

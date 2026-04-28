@@ -38,12 +38,13 @@ type OrgResult = { ok: true; orgId: string } | { ok: false; error: string };
 export async function createOrg(raw: unknown): Promise<OrgResult> {
   const session = await auth();
   const userId = session?.user?.id as string | undefined;
+  const userEmail = session?.user?.email as string | undefined;
   if (!userId) return { ok: false, error: "Unauthorized" };
 
   const parsed = createOrgSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: "Validation failed" };
 
-  const { org } = await createOrgService(userId, parsed.data);
+  const { org } = await createOrgService(userId, parsed.data, userEmail);
 
   revalidatePath("/", "layout");
   return { ok: true, orgId: org.id };
@@ -89,13 +90,14 @@ export async function updateOrgSettings(
 ): Promise<ActionResult> {
   const session = await auth();
   const userId = session?.user?.id as string | undefined;
+  const userEmail = session?.user?.email as string | undefined;
   if (!userId) return { ok: false, error: "Unauthorized" };
 
   const parsed = updateOrgSettingsSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: "Validation failed" };
 
   try {
-    await updateOrgSettingsService(orgId, parsed.data, userId);
+    await updateOrgSettingsService(orgId, parsed.data, userId, userEmail);
     revalidatePath(`/orgs/${orgId}`, "layout");
     return { ok: true };
   } catch (err) {
@@ -116,13 +118,14 @@ export async function transferOrgOwnership(
 ): Promise<ActionResult> {
   const session = await auth();
   const userId = session?.user?.id as string | undefined;
+  const userEmail = session?.user?.email as string | undefined;
   if (!userId) return { ok: false, error: "Unauthorized" };
 
   const parsed = transferOrgSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: "Validation failed" };
 
   try {
-    await transferOrgOwnershipService(orgId, userId, parsed.data.newOwnerId);
+    await transferOrgOwnershipService(orgId, userId, parsed.data.newOwnerId, userEmail);
     // Revalidate the org's own pages as well as the root layout so both the
     // outgoing and incoming owner see updated sidebar state immediately.
     revalidatePath(`/orgs/${orgId}`, "layout");
@@ -147,13 +150,14 @@ export async function deleteOrg(
 ): Promise<ActionResult> {
   const session = await auth();
   const userId = session?.user?.id as string | undefined;
+  const userEmail = session?.user?.email as string | undefined;
   if (!userId) return { ok: false, error: "Unauthorized" };
 
   const parsed = deleteOrgSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: "Validation failed" };
 
   try {
-    await deleteOrgService(orgId, userId, parsed.data.confirmName);
+    await deleteOrgService(orgId, userId, parsed.data.confirmName, userEmail);
     revalidatePath("/", "layout");
     redirect("/");
   } catch (err) {
