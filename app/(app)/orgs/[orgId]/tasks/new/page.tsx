@@ -9,6 +9,8 @@ import { requireOrgPermissionPage } from "@/lib/authz";
 import { PermissionAction } from "@prisma/client";
 import { getRoles } from "@/lib/services/roles";
 import { TaskForm } from "../task-form";
+import { Toolbar } from "@/components/layout/toolbar";
+import { BackButton } from "@/components/layout/back-button";
 
 const NewTaskPage = async ({
   params,
@@ -22,12 +24,23 @@ const NewTaskPage = async ({
   const allRoles = await getRoles(orgId);
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <h1 className="text-xl font-semibold mb-6">Create Task</h1>
-      <div className="rounded-xl border bg-card p-6">
-        <TaskForm mode="create" orgId={orgId} allRoles={allRoles} />
+    <>
+      <Toolbar>
+        <BackButton
+          fallbackHref={`/orgs/${orgId}/tasks`}
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+        >
+          ← Tasks
+        </BackButton>
+      </Toolbar>
+
+      <div className="w-full max-w-3xl mx-auto flex flex-col gap-6">
+        <h1 className="text-2xl font-semibold">Create Task</h1>
+        <div className="w-full rounded-lg border bg-card p-6">
+          <TaskForm mode="create" orgId={orgId} allRoles={allRoles} />
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

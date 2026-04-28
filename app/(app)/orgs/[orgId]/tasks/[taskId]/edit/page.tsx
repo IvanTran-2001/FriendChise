@@ -12,6 +12,8 @@ import { PermissionAction } from "@prisma/client";
 import { getTaskById } from "@/lib/services/tasks";
 import { getRoles } from "@/lib/services/roles";
 import { TaskForm } from "../../task-form";
+import { Toolbar } from "@/components/layout/toolbar";
+import { BackButton } from "@/components/layout/back-button";
 
 const EditTaskPage = async ({
   params,
@@ -32,28 +34,39 @@ const EditTaskPage = async ({
   const eligibleRoles = task.eligibility.map((e) => e.role);
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      <h1 className="text-xl font-semibold mb-6">Edit Task</h1>
-      <div className="w-full rounded-xl border bg-card p-6">
-        <TaskForm
-          mode="edit"
-          orgId={orgId}
-          taskId={taskId}
-          allRoles={allRoles}
-          eligibleRoles={eligibleRoles}
-          defaultValues={{
-            color: task.color,
-            title: task.name,
-            description: task.description,
-            durationMin: task.durationMin,
-            preferredStartTimeMin: task.preferredStartTimeMin,
-            peopleRequired: task.minPeople,
-            minWaitDays: task.minWaitDays,
-            maxWaitDays: task.maxWaitDays,
-          }}
-        />
+    <>
+      <Toolbar>
+        <BackButton
+          fallbackHref={`/orgs/${orgId}/tasks/${taskId}`}
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+        >
+          ← Task
+        </BackButton>
+      </Toolbar>
+
+      <div className="w-full max-w-3xl mx-auto flex flex-col gap-6">
+        <h1 className="text-2xl font-semibold">Edit Task</h1>
+        <div className="w-full rounded-lg border bg-card p-6">
+          <TaskForm
+            mode="edit"
+            orgId={orgId}
+            taskId={taskId}
+            allRoles={allRoles}
+            eligibleRoles={eligibleRoles}
+            defaultValues={{
+              color: task.color,
+              title: task.name,
+              description: task.description,
+              durationMin: task.durationMin,
+              preferredStartTimeMin: task.preferredStartTimeMin,
+              peopleRequired: task.minPeople,
+              minWaitDays: task.minWaitDays,
+              maxWaitDays: task.maxWaitDays,
+            }}
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
