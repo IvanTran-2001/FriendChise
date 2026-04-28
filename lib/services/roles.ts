@@ -215,14 +215,24 @@ export async function updateRole(
   data: RoleFormInput,
   actorId?: string | null,
 ): Promise<ServiceResult<RoleWithPermissions>> {
+  // Guard before entering the transaction so the caller can trust that
+  // $transaction is never called for invalid inputs (also matches test expectations).
+  const preCheck = await prisma.role.findFirst({
+    where: { id: roleId, orgId },
+    select: { key: true },
+  });
+  if (!preCheck) return { ok: false, error: "Role not found.", code: "NOT_FOUND" };
+  if (preCheck.key === ROLE_KEYS.OWNER) {
+    return { ok: false, error: "The Owner role cannot be edited.", code: "INVALID" };
+  }
+
   const updated = await prisma.$transaction(async (tx) => {
-    // Fetch the current role inside the transaction for a consistent snapshot
+    // Fetch the full role inside the transaction for a consistent snapshot
     const existing = await tx.role.findFirst({
       where: { id: roleId, orgId },
       include: { permissions: { select: { action: true } } },
     });
     if (!existing) return { error: "NOT_FOUND" as const };
-    if (existing.key === ROLE_KEYS.OWNER) return { error: "OWNER_IMMUTABLE" as const };
 
     const taskIds = [...new Set(data.taskIds)];
     const permissionActions = [...new Set(data.permissions)];
@@ -272,13 +282,6 @@ export async function updateRole(
 
   if (updated.error === "NOT_FOUND") {
     return { ok: false, error: "Role not found.", code: "NOT_FOUND" };
-  }
-  if (updated.error === "OWNER_IMMUTABLE") {
-    return {
-      ok: false,
-      error: "The Owner role cannot be edited.",
-      code: "INVALID",
-    };
   }
   if (updated.error === "INVALID_TASKS") {
     return {
