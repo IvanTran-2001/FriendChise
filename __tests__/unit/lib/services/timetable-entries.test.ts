@@ -27,6 +27,7 @@ vi.mock("@/lib/prisma", () => ({
       findFirst: vi.fn(),
       delete: vi.fn(),
     },
+    auditLog: { create: vi.fn() },
   },
 }));
 

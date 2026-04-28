@@ -30,6 +30,7 @@ vi.mock("@/lib/prisma", () => ({
     organization: {
       findUnique: vi.fn(),
     },
+    auditLog: { create: vi.fn() },
   },
 }));
 

@@ -53,6 +53,7 @@ vi.mock("@/lib/prisma", () => ({
     franchiseToken: {
       updateMany: vi.fn(),
     },
+    auditLog: { create: vi.fn() },
   },
 }));
 

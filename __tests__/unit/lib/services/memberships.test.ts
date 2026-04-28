@@ -39,6 +39,7 @@ vi.mock("@/lib/prisma", () => ({
       updateMany: vi.fn(),
     },
     $transaction: vi.fn(),
+    auditLog: { create: vi.fn() },
   },
 }));
 

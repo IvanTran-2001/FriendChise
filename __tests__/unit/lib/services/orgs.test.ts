@@ -10,6 +10,7 @@ vi.mock("@/lib/prisma", () => ({
     permission: { createMany: vi.fn() },
     membership: { create: vi.fn() },
     memberRole: { createMany: vi.fn() },
+    auditLog: { create: vi.fn() },
   },
 }));
 
