@@ -1,11 +1,11 @@
+import { redirect } from "next/navigation";
 import { requireOrgMemberPage } from "@/lib/authz";
 
-/** Org overview page — placeholder for per-org summary content. */
+// TODO: remove redirect when overview page is implemented
 const Page = async ({ params }: { params: Promise<{ orgId: string }> }) => {
   const { orgId } = await params;
   await requireOrgMemberPage(orgId);
-
-  return <div>{/* Overview content */}</div>;
+  redirect(`/orgs/${orgId}/timetable`);
 };
 
 export default Page;

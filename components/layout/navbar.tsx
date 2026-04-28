@@ -126,11 +126,13 @@ export const NavBar = async () => {
                   {user.email}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/profile">Profile</Link>
+                {/* TODO: enable when profile page is implemented */}
+                <DropdownMenuItem disabled>
+                  Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/settings/account">Account Settings</Link>
+                {/* TODO: enable when account settings page is implemented */}
+                <DropdownMenuItem disabled>
+                  Account Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {/* Sign out uses a server action so no client JS is needed */}
