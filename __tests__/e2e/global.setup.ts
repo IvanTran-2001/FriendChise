@@ -26,6 +26,21 @@ export default function globalSetup() {
   // already-set env var, so this takes precedence over .env (prod).
   config({ path: resolve(process.cwd(), ".env.local"), override: true });
 
+  // Seed safety check uses SEED_DEV_IDENTIFIERS to recognise non-obvious dev
+  // URLs (e.g. Supabase pooler hostnames that don't contain "dev").
+  // If not already set, derive it from the DATABASE_URL hostname so the seed
+  // script always treats the .env.local database as dev.
+  if (!process.env.SEED_DEV_IDENTIFIERS && process.env.DATABASE_URL) {
+    try {
+      const { hostname, username } = new URL(process.env.DATABASE_URL);
+      process.env.SEED_DEV_IDENTIFIERS = [hostname, username]
+        .filter(Boolean)
+        .join(",");
+    } catch {
+      // If the URL is malformed the seed script will catch it downstream.
+    }
+  }
+
   console.log("\n[global setup] Reseeding dev database...");
   execSync("pnpm seed:dev", { stdio: "inherit", env: process.env });
   console.log("[global setup] Seed complete.\n");

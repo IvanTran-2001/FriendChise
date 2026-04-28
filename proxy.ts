@@ -115,28 +115,34 @@ function tooManyRequests(result: LimitResult) {
 export default async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Skip all rate limiting in test mode so Playwright workers don't exhaust the
+  // per-user bucket (all workers run as the same test user).
+  const isTestMode = process.env.TEST_MODE === "1";
+
   // 1. API routes — run rate limiting first, then let the request through
   if (pathname.startsWith("/api/")) {
     // Only rate-limit sensitive auth endpoints (callback, signin), not session/csrf
-    if (
-      pathname.startsWith("/api/auth/callback/") ||
-      pathname.startsWith("/api/auth/signin/")
-    ) {
-      // OAuth flow — no session exists yet, key by IP
-      const authResult = await safeLimit(authRatelimit, getIp(req));
-      if (!authResult.success) return tooManyRequests(authResult);
-    } else if (!pathname.startsWith("/api/auth/")) {
-      // Authenticated API (non-auth routes) — key by user ID from JWT, fall back to IP
-      const token = await getToken({ req, secret: process.env.AUTH_SECRET! });
-      const key = token?.sub ?? getIp(req);
-      const apiResult = await safeLimit(apiRatelimit, key);
-      if (!apiResult.success) return tooManyRequests(apiResult);
+    if (!isTestMode) {
+      if (
+        pathname.startsWith("/api/auth/callback/") ||
+        pathname.startsWith("/api/auth/signin/")
+      ) {
+        // OAuth flow — no session exists yet, key by IP
+        const authResult = await safeLimit(authRatelimit, getIp(req));
+        if (!authResult.success) return tooManyRequests(authResult);
+      } else if (!pathname.startsWith("/api/auth/")) {
+        // Authenticated API (non-auth routes) — key by user ID from JWT, fall back to IP
+        const token = await getToken({ req, secret: process.env.AUTH_SECRET! });
+        const key = token?.sub ?? getIp(req);
+        const apiResult = await safeLimit(apiRatelimit, key);
+        if (!apiResult.success) return tooManyRequests(apiResult);
+      }
     }
     return NextResponse.next();
   }
 
   // 2. Server actions — rate limit by user ID (must be signed in to call actions)
-  if (req.method === "POST" && req.headers.has("next-action")) {
+  if (!isTestMode && req.method === "POST" && req.headers.has("next-action")) {
     const token = await getToken({ req, secret: process.env.AUTH_SECRET! });
     const key = token?.sub ?? getIp(req);
     const actionResult = await safeLimit(apiRatelimit, key);
