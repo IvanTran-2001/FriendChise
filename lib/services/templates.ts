@@ -377,6 +377,7 @@ export async function applyTemplate(
   templateId: string,
   startDateStr: string,
   cycleRepeats: number,
+  actorId?: string | null,
 ): Promise<ServiceResult<{ created: number }>> {
   if (!startDateStr || !/^\d{4}-\d{2}-\d{2}$/.test(startDateStr)) {
     return { ok: false, error: "Invalid start date", code: "INVALID" };
@@ -505,6 +506,14 @@ export async function applyTemplate(
     startDateStr,
     cycleRepeats,
     created: createData.length,
+  });
+  recordAudit({
+    orgId,
+    actorId: actorId ?? null,
+    action: "template.apply",
+    targetType: "Template",
+    targetId: templateId,
+    after: { startDateStr, cycleRepeats, created: createData.length },
   });
   return { ok: true, data: { created: createData.length } };
 }

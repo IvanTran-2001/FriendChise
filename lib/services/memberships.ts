@@ -14,6 +14,7 @@ import { ROLE_KEYS } from "@/lib/rbac";
 export async function createMembership(
   orgId: string,
   data: CreateMembershipInput,
+  actorId?: string | null,
 ): Promise<ServiceResult<Prisma.MembershipGetPayload<Record<string, never>>>> {
   const role = await prisma.role.findFirst({
     where: { id: data.roleId, orgId },
@@ -48,6 +49,14 @@ export async function createMembership(
       orgId,
       userId: data.userId,
       roleId: data.roleId,
+    });
+    recordAudit({
+      orgId,
+      actorId: actorId ?? null,
+      action: "membership.create",
+      targetType: "Membership",
+      targetId: membership.id,
+      after: { userId: data.userId, roleId: data.roleId },
     });
     return { ok: true, data: membership };
   } catch (e) {
@@ -129,7 +138,7 @@ export async function deleteMembership(
     recordAudit({
       orgId,
       actorId: actorId ?? null,
-      action: "membership.remove",
+      action: "membership.delete",
       targetType: "Membership",
       targetId: membershipId,
       before: { userId: membership.userId },
@@ -183,6 +192,7 @@ export async function updateMembership(
   orgId: string,
   membershipId: string,
   data: { workingDays: string[]; roleIds: string[] },
+  actorId?: string | null,
 ): Promise<ServiceResult<null>> {
   const membership = await prisma.membership.findUnique({
     where: { id: membershipId, orgId },
@@ -226,6 +236,14 @@ export async function updateMembership(
   });
 
   log.info("Membership updated", { orgId, membershipId });
+  recordAudit({
+    orgId,
+    actorId: actorId ?? null,
+    action: "membership.update",
+    targetType: "Membership",
+    targetId: membershipId,
+    after: { workingDays: data.workingDays, roleIds: data.roleIds },
+  });
   return { ok: true, data: null };
 }
 
@@ -236,6 +254,7 @@ export async function setMembershipStatus(
   orgId: string,
   membershipId: string,
   status: "ACTIVE" | "RESTRICTED",
+  actorId?: string | null,
 ): Promise<ServiceResult<null>> {
   const membership = await prisma.membership.findUnique({
     where: { id: membershipId, orgId },
@@ -251,6 +270,14 @@ export async function setMembershipStatus(
     orgId,
     membershipId,
     status,
+  });
+  recordAudit({
+    orgId,
+    actorId: actorId ?? null,
+    action: "membership.status_change",
+    targetType: "Membership",
+    targetId: membershipId,
+    after: { status },
   });
   return { ok: true, data: null };
 }

@@ -318,7 +318,7 @@ export async function createFranchiseToken(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
-    action: "invite.send",
+    action: "franchise.token_create",
     targetType: "FranchiseToken",
     targetId: user.id,
     after: { recipientEmail: trimmed, recipientId: user.id, type: "franchise" },
@@ -330,6 +330,7 @@ export async function createFranchiseToken(
 export async function deleteFranchiseToken(
   orgId: string,
   tokenId: string,
+  actorId?: string | null,
 ): Promise<ServiceResult<void>> {
   const token = await prisma.franchiseToken.findFirst({
     where: { id: tokenId, orgId },
@@ -350,6 +351,13 @@ export async function deleteFranchiseToken(
   });
 
   log.info("Franchise token deleted", { orgId, tokenId });
+  recordAudit({
+    orgId,
+    actorId: actorId ?? null,
+    action: "franchise.token_delete",
+    targetType: "FranchiseToken",
+    targetId: tokenId,
+  });
   return { ok: true, data: undefined };
 }
 
@@ -396,7 +404,7 @@ export async function removeFranchisee(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
-    action: "franchisee.remove",
+    action: "franchise.member_remove",
     targetType: "Organization",
     targetId: childOrgId,
     before: { childOrgId },
@@ -411,6 +419,7 @@ export async function changeFranchiseeOwner(
   orgId: string,
   childOrgId: string,
   newOwnerEmail: string,
+  actorId?: string | null,
 ): Promise<ServiceResult<void>> {
   const newOwner = await prisma.user.findUnique({
     where: { email: normalizeEmail(newOwnerEmail) },
@@ -478,6 +487,14 @@ export async function changeFranchiseeOwner(
     parentOrgId: orgId,
     childOrgId,
     newOwnerId: newOwner.id,
+  });
+  recordAudit({
+    orgId,
+    actorId: actorId ?? null,
+    action: "franchise.owner_change",
+    targetType: "Organization",
+    targetId: childOrgId,
+    after: { childOrgId, newOwnerId: newOwner.id },
   });
   return { ok: true, data: undefined };
 }

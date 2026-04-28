@@ -399,6 +399,14 @@ export async function deleteOrg(
 
   await prisma.organization.delete({ where: { id: orgId } });
   log.info("Org deleted", { orgId, deletedBy: currentOwnerId });
+  recordAudit({
+    orgId,
+    actorId: currentOwnerId,
+    action: "org.delete",
+    targetType: "Organization",
+    targetId: orgId,
+    before: { name: org.name },
+  });
 }
 
 /**

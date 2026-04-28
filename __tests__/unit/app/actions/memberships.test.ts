@@ -237,6 +237,7 @@ describe("updateMembershipAction", () => {
       "org-1",
       "mem-1",
       updateData,
+      "u-1",
     );
     expect(revalidatePath).toHaveBeenCalledTimes(2);
   });
@@ -286,6 +287,7 @@ describe("setMemberStatusAction", () => {
       "org-1",
       "mem-1",
       "RESTRICTED",
+      "u-1",
     );
     expect(revalidatePath).toHaveBeenCalledTimes(2);
   });

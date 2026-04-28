@@ -432,6 +432,7 @@ describe("applyTemplateAction", () => {
       "tmpl-1",
       "2025-01-06",
       2,
+      "u-1",
     );
     expect(revalidatePath).toHaveBeenCalledWith("/orgs/org-1/timetable");
   });

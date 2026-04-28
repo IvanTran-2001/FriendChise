@@ -167,6 +167,7 @@ export async function deleteBot(
 export async function memberToBot(
   orgId: string,
   data: MemberToBotInput,
+  actorId?: string | null,
 ): Promise<ServiceResult<BotMembership>> {
   const { membershipId, overrideName } = data;
   const org = await prisma.organization.findUnique({
@@ -207,6 +208,15 @@ export async function memberToBot(
   });
 
   log.info("Member converted to bot", { orgId, membershipId });
+  recordAudit({
+    orgId,
+    actorId: actorId ?? null,
+    action: "membership.member_to_bot",
+    targetType: "Membership",
+    targetId: membershipId,
+    before: { userId: membership.userId },
+    after: { botName },
+  });
   return { ok: true, data: updated };
 }
 
@@ -220,6 +230,7 @@ export async function memberToBot(
 export async function botToMember(
   orgId: string,
   data: BotToMemberInput,
+  actorId?: string | null,
 ): Promise<ServiceResult<Prisma.MembershipGetPayload<Record<string, never>>>> {
   const { membershipId, userId } = data;
   const membership = await prisma.membership.findUnique({
@@ -277,6 +288,14 @@ export async function botToMember(
       orgId,
       membershipId,
       userId,
+    });
+    recordAudit({
+      orgId,
+      actorId: actorId ?? null,
+      action: "membership.bot_to_member",
+      targetType: "Membership",
+      targetId: membershipId,
+      after: { userId },
     });
     return { ok: true, data: updated };
   } catch (e) {

@@ -50,7 +50,7 @@ export async function deleteFranchiseToken(
   const authz = await requireParentOrgOwnerAction(orgId);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const result = await deleteFranchiseTokenService(orgId, tokenId);
+  const result = await deleteFranchiseTokenService(orgId, tokenId, authz.userId);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/franchisee`);
@@ -110,6 +110,7 @@ export async function changeFranchiseeOwner(
     orgId,
     childOrgId,
     newOwnerEmail,
+    authz.userId,
   );
   if (!result.ok) return { ok: false, error: result.error };
 

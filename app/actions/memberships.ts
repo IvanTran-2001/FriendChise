@@ -120,7 +120,7 @@ export async function updateMembershipAction(
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const result = await updateMembership(orgId, membershipId, data);
+  const result = await updateMembership(orgId, membershipId, data, authz.userId);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/memberships`);
@@ -142,7 +142,7 @@ export async function setMemberStatusAction(
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const result = await setMembershipStatus(orgId, membershipId, status);
+  const result = await setMembershipStatus(orgId, membershipId, status, authz.userId);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/memberships`);

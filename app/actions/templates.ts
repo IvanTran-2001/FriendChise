@@ -271,6 +271,7 @@ export async function applyTemplateAction(
     templateId,
     startDateStr,
     cycleRepeats,
+    authz.userId,
   );
   if (!result.ok) return { ok: false, error: result.error };
 
