@@ -587,18 +587,18 @@ pnpm test:e2e
 
 Integration tests live in `__tests__/integration/` and run sequentially against the live dev database (`DATABASE_URL`). They require `INTEGRATION_TEST_USER_EMAIL` (or fall back to the seed user). The global setup reseeds the dev database before each run to guarantee a clean baseline.
 
-| Test file                                       | Service covered                  | Tests |
-| ----------------------------------------------- | -------------------------------- | ----- |
-| `lib/services/orgs.test.ts`                     | `orgs.ts`                        | 2     |
-| `lib/services/memberships.test.ts`              | `memberships.ts`                 | 6     |
-| `lib/services/roles.test.ts`                    | `roles.ts`                       | 7     |
-| `lib/services/tasks.test.ts`                    | `tasks.ts`                       | 8     |
-| `lib/services/timetable-entries.test.ts`        | `timetable-entries.ts`           | 14    |
-| `lib/services/assignees.test.ts`                | `assignees.ts`                   | 8     |
-| `lib/services/templates.test.ts`                | `templates.ts`                   | 18    |
-| `lib/services/invites.test.ts`                  | `invites.ts`                     | 11    |
-| `lib/services/bots.test.ts`                     | `bots.ts`                        | 13    |
-| `lib/services/audit-log.test.ts`                | `audit-log.ts`                   | 6     |
+| Test file                                                      | Service covered                  | Tests |
+| -------------------------------------------------------------- | -------------------------------- | ----- |
+| `__tests__/integration/lib/services/orgs.test.ts`              | `orgs.ts`                        | 2     |
+| `__tests__/integration/lib/services/memberships.test.ts`       | `memberships.ts`                 | 6     |
+| `__tests__/integration/lib/services/roles.test.ts`             | `roles.ts`                       | 7     |
+| `__tests__/integration/lib/services/tasks.test.ts`             | `tasks.ts`                       | 8     |
+| `__tests__/integration/lib/services/timetable-entries.test.ts` | `timetable-entries.ts`           | 14    |
+| `__tests__/integration/lib/services/assignees.test.ts`         | `assignees.ts`                   | 8     |
+| `__tests__/integration/lib/services/templates.test.ts`         | `templates.ts`                   | 18    |
+| `__tests__/integration/lib/services/invites.test.ts`           | `invites.ts`                     | 11    |
+| `__tests__/integration/lib/services/bots.test.ts`              | `bots.ts`                        | 13    |
+| `__tests__/integration/lib/services/audit-log.test.ts`         | `audit-log.ts`                   | 6     |
 
 CI runs on every push/PR to `master` via GitHub Actions (`.github/workflows/ci.yml`):
 

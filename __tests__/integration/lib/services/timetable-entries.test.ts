@@ -69,12 +69,15 @@ describe("listTimetableEntries", () => {
     const task = await prisma.task.findFirstOrThrow({
       where: { orgId: org.id },
     });
-    await createTimetableEntry(org.id, task.id, "2026-08-02", 480);
+    const created = await createTimetableEntry(org.id, task.id, "2026-08-02", 480);
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
 
     const entries = await listTimetableEntries(org.id);
 
     expect(entries.length).toBeGreaterThanOrEqual(1);
     expect(entries.every((e) => e.orgId === org.id)).toBe(true);
+    expect(entries.some((e) => e.id === created.data.id && e.durationMin === 480)).toBe(true);
   });
 
   it("filters by exact status when the status option is provided", async () => {
