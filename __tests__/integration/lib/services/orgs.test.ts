@@ -10,7 +10,7 @@ import { ROLE_KEYS } from "@/lib/rbac";
 
 // Set INTEGRATION_TEST_USER_EMAIL in .env.local to override (default: Casey)
 const SEED_USER_EMAIL =
-  process.env.INTEGRATION_TEST_USER_EMAIL ?? "integration.test@example.test";
+  process.env.INTEGRATION_TEST_USER_EMAIL ?? "alt28919@gmail.com";
 
 describe("createOrg", () => {
   it("creates an org with Owner and Default Member roles bootstrapped", async () => {
