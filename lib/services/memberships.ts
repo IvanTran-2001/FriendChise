@@ -15,6 +15,7 @@ export async function createMembership(
   orgId: string,
   data: CreateMembershipInput,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<Prisma.MembershipGetPayload<Record<string, never>>>> {
   const role = await prisma.role.findFirst({
     where: { id: data.roleId, orgId },
@@ -53,6 +54,7 @@ export async function createMembership(
     recordAudit({
       orgId,
       actorId: actorId ?? null,
+      actorEmail: actorEmail ?? null,
       action: "membership.create",
       targetType: "Membership",
       targetId: membership.id,
@@ -86,6 +88,7 @@ export async function deleteMembership(
   orgId: string,
   membershipId: string,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<null>> {
   const membership = await prisma.membership.findUnique({
     where: { id: membershipId, orgId },
@@ -138,6 +141,7 @@ export async function deleteMembership(
     recordAudit({
       orgId,
       actorId: actorId ?? null,
+      actorEmail: actorEmail ?? null,
       action: "membership.delete",
       targetType: "Membership",
       targetId: membershipId,
@@ -193,6 +197,7 @@ export async function updateMembership(
   membershipId: string,
   data: { workingDays: string[]; roleIds: string[] },
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<null>> {
   const membership = await prisma.membership.findUnique({
     where: { id: membershipId, orgId },
@@ -239,6 +244,7 @@ export async function updateMembership(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
+    actorEmail: actorEmail ?? null,
     action: "membership.update",
     targetType: "Membership",
     targetId: membershipId,
@@ -255,6 +261,7 @@ export async function setMembershipStatus(
   membershipId: string,
   status: "ACTIVE" | "RESTRICTED",
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<null>> {
   const membership = await prisma.membership.findUnique({
     where: { id: membershipId, orgId },
@@ -274,6 +281,7 @@ export async function setMembershipStatus(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
+    actorEmail: actorEmail ?? null,
     action: "membership.status_change",
     targetType: "Membership",
     targetId: membershipId,

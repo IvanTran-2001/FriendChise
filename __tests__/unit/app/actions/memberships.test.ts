@@ -43,6 +43,7 @@ import {
 const authorised = {
   ok: true as const,
   userId: "u-1",
+  userEmail: "user@example.com",
   membership: { id: "m-1" } as any,
 };
 const unauthorised = { ok: false as const };
@@ -116,6 +117,7 @@ describe("sendMemberInviteAction", () => {
       "user-rec",
       ["role-default"],
       [],
+      { actorEmail: "user@example.com" },
     );
   });
 
@@ -135,6 +137,7 @@ describe("sendMemberInviteAction", () => {
       "user-rec",
       ["crole00001"],
       ["mon"],
+      { actorEmail: "user@example.com" },
     );
     expect(revalidatePath).toHaveBeenCalled();
   });
@@ -196,6 +199,7 @@ describe("deleteMembershipAction", () => {
       "org-1",
       "mem-1",
       "u-1",
+      "user@example.com",
     );
     expect(revalidatePath).toHaveBeenCalled();
   });
@@ -242,6 +246,7 @@ describe("updateMembershipAction", () => {
       "mem-1",
       updateData,
       "u-1",
+      "user@example.com",
     );
     expect(revalidatePath).toHaveBeenCalledTimes(2);
   });
@@ -292,6 +297,7 @@ describe("setMemberStatusAction", () => {
       "mem-1",
       "RESTRICTED",
       "u-1",
+      "user@example.com",
     );
     expect(revalidatePath).toHaveBeenCalledTimes(2);
   });

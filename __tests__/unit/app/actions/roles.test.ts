@@ -29,6 +29,7 @@ import {
 const authorised = {
   ok: true as const,
   userId: "u-1",
+  userEmail: "user@example.com",
   membership: { id: "m-1" } as any,
 };
 const unauthorised = { ok: false as const };
@@ -60,7 +61,7 @@ describe("deleteRoleAction", () => {
     const result = await deleteRoleAction("org-1", "role-1");
 
     expect(result).toEqual({ ok: true });
-    expect(deleteRoleService).toHaveBeenCalledWith("org-1", "role-1", "u-1");
+    expect(deleteRoleService).toHaveBeenCalledWith("org-1", "role-1", "u-1", "user@example.com");
     expect(revalidatePath).toHaveBeenCalled();
   });
 
@@ -131,6 +132,7 @@ describe("createRoleAction", () => {
       "org-1",
       expect.objectContaining({ name: "Manager" }),
       "u-1",
+      "user@example.com",
     );
     expect(revalidatePath).toHaveBeenCalled();
   });
@@ -190,6 +192,7 @@ describe("updateRoleAction", () => {
       "role-1",
       expect.objectContaining({ name: "Manager" }),
       "u-1",
+      "user@example.com",
     );
     expect(revalidatePath).toHaveBeenCalled();
   });

@@ -50,6 +50,7 @@ function makeFormData(fields: Record<string, string>) {
 const authorised = {
   ok: true as const,
   userId: "u-1",
+  userEmail: "user@example.com",
   membership: { id: "m-1" } as any,
 };
 const unauthorised = { ok: false as const };
@@ -102,6 +103,12 @@ describe("createTaskAction", () => {
       "NEXT_REDIRECT",
     );
 
+    expect(createTask).toHaveBeenCalledWith(
+      "org-1",
+      expect.objectContaining({ title: "Task A", color: "#6366f1", durationMin: 30 }),
+      "u-1",
+      "user@example.com",
+    );
     expect(revalidatePath).toHaveBeenCalledWith("/orgs/org-1/tasks");
     expect(redirect).toHaveBeenCalledWith("/orgs/org-1/tasks");
   });
@@ -165,7 +172,7 @@ describe("deleteTaskAction", () => {
 
     await deleteTaskAction("org-1", "task-xyz");
 
-    expect(deleteTask).toHaveBeenCalledWith("org-1", "task-xyz", "u-1");
+    expect(deleteTask).toHaveBeenCalledWith("org-1", "task-xyz", "u-1", "user@example.com");
   });
 });
 
@@ -213,6 +220,13 @@ describe("updateTaskAction", () => {
     const result = await updateTaskAction("org-1", "task-1", null, fd);
 
     expect(result).toEqual({ ok: true });
+    expect(updateTask).toHaveBeenCalledWith(
+      "org-1",
+      "task-1",
+      expect.objectContaining({ title: "Updated" }),
+      "u-1",
+      "user@example.com",
+    );
     expect(revalidatePath).toHaveBeenCalledWith("/orgs/org-1/tasks");
     expect(revalidatePath).toHaveBeenCalledWith(
       "/orgs/org-1/tasks/task-1/edit",

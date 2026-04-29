@@ -232,12 +232,14 @@ export async function cloneTimetableSettingsFromParent(
 
 /** Issues a 7-day single-use franchise invite token tied to an email and
  *  creates a FRANCHISE invite notification for the recipient.
- *  @param actorId - Optional caller ID forwarded from the action layer for audit log. */
+ *  @param actorId - Optional caller ID forwarded from the action layer for audit log.
+ *  @param actorEmail - Snapshot of the actor's email for audit log; preserved after deletion. */
 export async function createFranchiseToken(
   orgId: string,
   email: string,
   inviterId: string,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<void>> {
   const trimmed = normalizeEmail(email);
   if (!trimmed)
@@ -318,6 +320,7 @@ export async function createFranchiseToken(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
+    actorEmail: actorEmail ?? null,
     action: "franchise.token_create",
     targetType: "FranchiseToken",
     targetId: user.id,
@@ -326,11 +329,14 @@ export async function createFranchiseToken(
   return { ok: true, data: undefined };
 }
 
-/** Revokes an unused franchise invite token. */
+/** Revokes an unused franchise invite token.
+ *  @param actorId - Optional caller ID forwarded from the action layer for audit log.
+ *  @param actorEmail - Snapshot of the actor's email for audit log; preserved after deletion. */
 export async function deleteFranchiseToken(
   orgId: string,
   tokenId: string,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<void>> {
   const token = await prisma.franchiseToken.findFirst({
     where: { id: tokenId, orgId },
@@ -354,6 +360,7 @@ export async function deleteFranchiseToken(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
+    actorEmail: actorEmail ?? null,
     action: "franchise.token_delete",
     targetType: "FranchiseToken",
     targetId: tokenId,
@@ -388,11 +395,13 @@ export async function extendFranchiseToken(
 }
 
 /** Permanently deletes a franchisee org (cascades all related data).
- *  @param actorId - Optional caller ID forwarded from the action layer for audit log. */
+ *  @param actorId - Optional caller ID forwarded from the action layer for audit log.
+ *  @param actorEmail - Snapshot of the actor's email for audit log; preserved after deletion. */
 export async function removeFranchisee(
   orgId: string,
   childOrgId: string,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<void>> {
   const { count } = await prisma.organization.deleteMany({
     where: { id: childOrgId, parentId: orgId },
@@ -404,6 +413,7 @@ export async function removeFranchisee(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
+    actorEmail: actorEmail ?? null,
     action: "franchise.member_remove",
     targetType: "Organization",
     targetId: childOrgId,
@@ -414,12 +424,15 @@ export async function removeFranchisee(
 
 /** Transfers ownership of a franchisee org to a different user (by email).
  *  Creates a membership for the new owner if they don't have one yet.
- *  All steps are atomic. */
+ *  All steps are atomic.
+ *  @param actorId - Optional caller ID forwarded from the action layer for audit log.
+ *  @param actorEmail - Snapshot of the actor's email for audit log; preserved after deletion. */
 export async function changeFranchiseeOwner(
   orgId: string,
   childOrgId: string,
   newOwnerEmail: string,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<void>> {
   const newOwner = await prisma.user.findUnique({
     where: { email: normalizeEmail(newOwnerEmail) },
@@ -491,6 +504,7 @@ export async function changeFranchiseeOwner(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
+    actorEmail: actorEmail ?? null,
     action: "franchise.owner_change",
     targetType: "Organization",
     targetId: childOrgId,

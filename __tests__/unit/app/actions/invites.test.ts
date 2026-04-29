@@ -36,8 +36,8 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const mockSession = (userId = "user-1") =>
-  vi.mocked(auth).mockResolvedValue({ user: { id: userId } } as any);
+const mockSession = (userId = "user-1", email = "user-1@example.com") =>
+  vi.mocked(auth).mockResolvedValue({ user: { id: userId, email } } as any);
 
 const noSession = () => vi.mocked(auth).mockResolvedValue(null as any);
 
@@ -87,7 +87,7 @@ describe("acceptMemberInviteAction", () => {
     const result = await acceptMemberInviteAction("inv-1");
 
     expect(result).toEqual({ ok: true });
-    expect(acceptMemberInviteService).toHaveBeenCalledWith("inv-1", "user-1");
+    expect(acceptMemberInviteService).toHaveBeenCalledWith("inv-1", "user-1", "user-1@example.com");
     expect(revalidatePath).toHaveBeenCalledWith("/");
   });
 
@@ -172,6 +172,7 @@ describe("acceptBotSlotInviteAction", () => {
     expect(acceptBotSlotInviteService).toHaveBeenCalledWith(
       "inv-bot",
       "user-1",
+      "user-1@example.com",
     );
     expect(revalidatePath).toHaveBeenCalledWith("/");
   });

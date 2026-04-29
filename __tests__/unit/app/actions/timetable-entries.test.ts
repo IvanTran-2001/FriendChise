@@ -42,6 +42,7 @@ import {
 const authorised = {
   ok: true as const,
   userId: "u-1",
+  userEmail: "user@example.com",
   membership: { id: "m-1" } as any,
 };
 const unauthorised = { ok: false as const };
@@ -86,6 +87,7 @@ describe("createTimetableEntryAction", () => {
       "2025-06-01",
       480,
       "u-1",
+      "user@example.com",
     );
     expect(revalidatePath).toHaveBeenCalledWith("/orgs/org-1/timetable");
   });
@@ -223,6 +225,7 @@ describe("deleteTimetableEntryAction", () => {
       "org-1",
       "entry-1",
       "u-1",
+      "user@example.com",
     );
     expect(revalidatePath).toHaveBeenCalled();
   });

@@ -46,6 +46,7 @@ import {
 const authorised = {
   ok: true as const,
   userId: "u-1",
+  userEmail: "user@example.com",
   membership: { id: "m-1" } as any,
 };
 const unauthorised = { ok: false as const };
@@ -97,6 +98,7 @@ describe("createBotAction", () => {
       "org-1",
       expect.objectContaining({ roleIds: ["role-default"] }),
       "u-1",
+      "user@example.com",
     );
   });
 
@@ -128,6 +130,12 @@ describe("createBotAction", () => {
     });
 
     expect(result).toEqual({ ok: true });
+    expect(createBotService).toHaveBeenCalledWith(
+      "org-1",
+      expect.objectContaining({ botName: "Bot", roleIds: ["crole00001"] }),
+      "u-1",
+      "user@example.com",
+    );
     expect(revalidatePath).toHaveBeenCalled();
   });
 
@@ -169,7 +177,7 @@ describe("deleteBotAction", () => {
     const result = await deleteBotAction("org-1", "mem-bot");
 
     expect(result).toEqual({ ok: true });
-    expect(deleteBotService).toHaveBeenCalledWith("org-1", "mem-bot", "u-1");
+    expect(deleteBotService).toHaveBeenCalledWith("org-1", "mem-bot", "u-1", "user@example.com");
     expect(revalidatePath).toHaveBeenCalled();
   });
 
@@ -219,11 +227,17 @@ describe("memberToBotAction", () => {
     });
 
     expect(result).toEqual({ ok: true });
+    expect(memberToBotService).toHaveBeenCalledWith(
+      "org-1",
+      { membershipId: "cmem000001" },
+      "u-1",
+      "user@example.com",
+    );
     expect(revalidatePath).toHaveBeenCalled();
   });
 });
 
-// ─── inviteBotSlotAction ──────────────────────────────────────────────────────
+// ─── inviteBotSlotAction ──────────────────────────────────────────────────────────
 
 describe("inviteBotSlotAction", () => {
   beforeEach(() => {
@@ -318,7 +332,7 @@ describe("inviteBotSlotAction", () => {
       "user-rec",
       ["role-1"],
       ["MON"],
-      "mem-bot",
+      { botMembershipId: "mem-bot", actorEmail: "user@example.com" },
     );
     expect(revalidatePath).toHaveBeenCalled();
   });

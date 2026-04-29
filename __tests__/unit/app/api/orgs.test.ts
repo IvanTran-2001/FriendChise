@@ -23,7 +23,7 @@ const makeReq = (body: unknown) =>
     body: JSON.stringify(body),
   });
 
-const authenticated = { ok: true as const, userId: "user-1" };
+const authenticated = { ok: true as const, userId: "user-1", userEmail: "user@example.com" };
 const unauthenticated = {
   ok: false as const,
   response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
@@ -77,6 +77,7 @@ describe("POST /api/orgs", () => {
     expect(createOrg).toHaveBeenCalledWith(
       "user-1",
       expect.objectContaining({ title: "Acme Café" }),
+      "user@example.com",
     );
   });
 

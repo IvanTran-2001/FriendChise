@@ -97,7 +97,7 @@ async function bootstrapRoles(tx: Tx, orgId: string, userId: string) {
  *
  * All steps are atomic — if any step fails, nothing is persisted.
  */
-export async function createOrg(userId: string, data: CreateOrgInput) {
+export async function createOrg(userId: string, data: CreateOrgInput, actorEmail?: string | null) {
   const result = await prisma.$transaction(async (tx) => {
     const org = await tx.organization.create({
       data: {
@@ -121,6 +121,7 @@ export async function createOrg(userId: string, data: CreateOrgInput) {
       {
         orgId: org.id,
         actorId: userId,
+        actorEmail: actorEmail ?? null,
         action: "org.create",
         targetType: "Organization",
         targetId: org.id,
@@ -243,6 +244,7 @@ export async function joinFranchise(
       {
         orgId: org.id,
         actorId: userId,
+        actorEmail: userEmail ?? null,
         action: "org.join_franchise",
         targetType: "Organization",
         targetId: org.id,
@@ -270,6 +272,7 @@ export async function updateOrgSettings(
   orgId: string,
   data: UpdateOrgSettingsInput,
   actorId?: string | null,
+  actorEmail?: string | null,
 ) {
   const before = await prisma.organization.findUnique({
     where: { id: orgId },
@@ -294,6 +297,7 @@ export async function updateOrgSettings(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
+    actorEmail: actorEmail ?? null,
     action: "org.update",
     targetType: "Organization",
     targetId: orgId,
@@ -318,6 +322,7 @@ export async function transferOrgOwnership(
   orgId: string,
   currentOwnerId: string,
   newOwnerId: string,
+  actorEmail?: string | null,
 ) {
   const org = await prisma.organization.findUnique({
     where: { id: orgId },
@@ -381,6 +386,7 @@ export async function transferOrgOwnership(
       {
         orgId,
         actorId: currentOwnerId,
+        actorEmail: actorEmail ?? null,
         action: "org.transfer_ownership",
         targetType: "Organization",
         targetId: orgId,
@@ -408,6 +414,7 @@ export async function deleteOrg(
   orgId: string,
   currentOwnerId: string,
   confirmName: string,
+  actorEmail?: string | null,
 ) {
   const org = await prisma.organization.findUnique({
     where: { id: orgId },
@@ -428,6 +435,7 @@ export async function deleteOrg(
   await recordAudit({
     orgId,
     actorId: currentOwnerId,
+    actorEmail: actorEmail ?? null,
     action: "org.delete",
     targetType: "Organization",
     targetId: orgId,

@@ -31,6 +31,7 @@ const params = Promise.resolve({ orgId: "org-1" });
 const permitted = {
   ok: true as const,
   userId: "user-1",
+  userEmail: "user@example.com",
   membership: { id: "mem-1" } as any,
 };
 const forbidden = {
@@ -99,6 +100,8 @@ describe("POST /api/orgs/[orgId]/tasks", () => {
     expect(createTask).toHaveBeenCalledWith(
       "org-1",
       expect.objectContaining({ title: "Task A" }),
+      "user-1",
+      "user@example.com",
     );
     const body = await res.json();
     expect(body).toMatchObject({ id: "task-1" });

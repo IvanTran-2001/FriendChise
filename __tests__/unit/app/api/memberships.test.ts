@@ -37,6 +37,7 @@ const validCuid2 = "clh5z1a0o0001p1v8fq5xz3y4";
 const permitted = {
   ok: true as const,
   userId: "user-1",
+  userEmail: "user-1@example.com",
   membership: { id: "mem-1" } as any,
 };
 const forbidden = {

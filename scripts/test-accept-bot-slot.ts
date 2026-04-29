@@ -149,7 +149,7 @@ async function run() {
     );
 
     // ── 2. Call acceptBotSlotInvite ────────────────────────────────────────
-    const result = await acceptBotSlotInvite(invite.id, realUser!.id);
+    const result = await acceptBotSlotInvite(invite.id, realUser!.id, null);
     assert(
       result.ok === true,
       `acceptBotSlotInvite returned ok: ${result.ok}${!result.ok ? ` — ${result.error}` : ""}`,

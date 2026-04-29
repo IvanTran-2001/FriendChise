@@ -71,6 +71,7 @@ describe("createOrg", () => {
     expect(createOrgService).toHaveBeenCalledWith(
       "user-1",
       expect.objectContaining({ title: "Acme Café" }),
+      "user@example.com",
     );
   });
 

@@ -47,7 +47,11 @@ export async function acceptMemberInviteAction(
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Unauthorized" };
 
-  const result = await acceptMemberInvite(inviteId, session.user.id);
+  const result = await acceptMemberInvite(
+    inviteId,
+    session.user.id,
+    session.user.email,
+  );
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath("/");
@@ -78,7 +82,11 @@ export async function acceptBotSlotInviteAction(
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Unauthorized" };
 
-  const result = await acceptBotSlotInvite(inviteId, session.user.id);
+  const result = await acceptBotSlotInvite(
+    inviteId,
+    session.user.id,
+    session.user.email,
+  );
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath("/");

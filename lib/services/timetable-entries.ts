@@ -42,6 +42,7 @@ export async function createTimetableEntryFromInput(
   orgId: string,
   data: CreateTimetableEntryInput,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<
   ServiceResult<Prisma.TimetableEntryGetPayload<Record<string, never>>>
 > {
@@ -90,6 +91,7 @@ export async function createTimetableEntryFromInput(
     recordAudit({
       orgId,
       actorId: actorId ?? null,
+      actorEmail: actorEmail ?? null,
       action: "entry.create",
       targetType: "TimetableEntry",
       targetId: entry.id,
@@ -307,6 +309,7 @@ export async function createTimetableEntry(
   dateStr: string,
   startTimeMin: number,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<
   ServiceResult<Prisma.TimetableEntryGetPayload<Record<string, never>>>
 > {
@@ -357,6 +360,7 @@ export async function createTimetableEntry(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
+    actorEmail: actorEmail ?? null,
     action: "entry.create",
     targetType: "TimetableEntry",
     targetId: entry.id,
@@ -431,6 +435,7 @@ export async function deleteTimetableEntry(
   orgId: string,
   entryId: string,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<null>> {
   const entry = await prisma.timetableEntry.findFirst({
     where: { id: entryId, orgId },
@@ -443,6 +448,7 @@ export async function deleteTimetableEntry(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
+    actorEmail: actorEmail ?? null,
     action: "entry.delete",
     targetType: "TimetableEntry",
     targetId: entryId,

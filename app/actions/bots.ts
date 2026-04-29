@@ -51,6 +51,7 @@ export async function createBotAction(
     orgId,
     { ...parsed.data, roleIds },
     authz.userId,
+    authz.userEmail,
   );
   if (!result.ok) return { ok: false, error: result.error };
 
@@ -68,7 +69,7 @@ export async function deleteBotAction(
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const result = await deleteBot(orgId, membershipId, authz.userId);
+  const result = await deleteBot(orgId, membershipId, authz.userId, authz.userEmail);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/memberships`);
@@ -89,7 +90,7 @@ export async function memberToBotAction(
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0].message };
 
-  const result = await memberToBot(orgId, parsed.data, authz.userId);
+  const result = await memberToBot(orgId, parsed.data, authz.userId, authz.userEmail);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/memberships`);
@@ -151,7 +152,7 @@ export async function inviteBotSlotAction(
     recipient.id,
     roleIds,
     membership.workingDays,
-    membershipId,
+    { botMembershipId: membershipId, actorEmail: authz.userEmail },
   );
   if (!result.ok) return { ok: false, error: result.error };
 

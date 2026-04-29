@@ -36,6 +36,7 @@ export async function createBot(
   orgId: string,
   data: { botName: string; roleIds: string[]; workingDays?: string[] },
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<BotMembership>> {
   if (data.roleIds.length === 0) {
     return {
@@ -94,6 +95,7 @@ export async function createBot(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
+    actorEmail: actorEmail ?? null,
     action: "bot.create",
     targetType: "Membership",
     targetId: bot.id,
@@ -116,6 +118,7 @@ export async function deleteBot(
   orgId: string,
   membershipId: string,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<null>> {
   const membership = await prisma.membership.findUnique({
     where: { id: membershipId },
@@ -153,6 +156,7 @@ export async function deleteBot(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
+    actorEmail: actorEmail ?? null,
     action: "bot.delete",
     targetType: "Membership",
     targetId: membershipId,
@@ -172,6 +176,7 @@ export async function memberToBot(
   orgId: string,
   data: MemberToBotInput,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<BotMembership>> {
   const { membershipId, overrideName } = data;
   const org = await prisma.organization.findUnique({
@@ -215,6 +220,7 @@ export async function memberToBot(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
+    actorEmail: actorEmail ?? null,
     action: "membership.member_to_bot",
     targetType: "Membership",
     targetId: membershipId,

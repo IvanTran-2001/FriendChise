@@ -40,6 +40,7 @@ export async function generateFranchiseToken(
     email,
     authz.userId,
     authz.userId,
+    authz.userEmail,
   );
   if (!result.ok) return { ok: false, error: result.error };
 
@@ -59,6 +60,7 @@ export async function deleteFranchiseToken(
     orgId,
     tokenId,
     authz.userId,
+    authz.userEmail,
   );
   if (!result.ok) return { ok: false, error: result.error };
 
@@ -94,7 +96,7 @@ export async function removeFranchisee(
   const authz = await requireParentOrgOwnerAction(orgId);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const result = await removeFranchiseeService(orgId, childOrgId, authz.userId);
+  const result = await removeFranchiseeService(orgId, childOrgId, authz.userId, authz.userEmail);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/franchisee`);
@@ -120,6 +122,7 @@ export async function changeFranchiseeOwner(
     childOrgId,
     newOwnerEmail,
     authz.userId,
+    authz.userEmail,
   );
   if (!result.ok) return { ok: false, error: result.error };
 

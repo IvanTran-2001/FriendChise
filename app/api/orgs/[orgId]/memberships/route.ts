@@ -46,7 +46,7 @@ export async function POST(
     );
   }
 
-  const result = await createMembership(orgId, parsed.data, authz.userId);
+  const result = await createMembership(orgId, parsed.data, authz.userId, authz.userEmail);
   if (!result.ok) {
     const status = result.code === "CONFLICT" ? 409 : 400;
     return NextResponse.json({ error: result.error }, { status });
@@ -79,6 +79,7 @@ export async function DELETE(
     orgId,
     parsed.data.membershipId,
     authz.userId,
+    authz.userEmail,
   );
   if (!result.ok) {
     const status = result.code === "NOT_FOUND" ? 404 : 400;

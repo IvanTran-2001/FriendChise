@@ -12,6 +12,7 @@ export async function createTask(
   orgId: string,
   data: CreateTaskInput,
   actorId?: string | null,
+  actorEmail?: string | null,
 ) {
   const task = await prisma.task.create({
     data: {
@@ -30,6 +31,7 @@ export async function createTask(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
+    actorEmail: actorEmail ?? null,
     action: "task.create",
     targetType: "Task",
     targetId: task.id,
@@ -51,6 +53,7 @@ export async function deleteTask(
   orgId: string,
   id: string,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<null>> {
   const existing = await prisma.task.findFirst({
     where: { id, orgId },
@@ -64,6 +67,7 @@ export async function deleteTask(
     recordAudit({
       orgId,
       actorId: actorId ?? null,
+      actorEmail: actorEmail ?? null,
       action: "task.delete",
       targetType: "Task",
       targetId: id,
@@ -117,6 +121,7 @@ export async function updateTask(
   taskId: string,
   data: UpdateTaskInput,
   actorId?: string | null,
+  actorEmail?: string | null,
 ): Promise<ServiceResult<null>> {
   const existing = await prisma.task.findFirst({
     where: { id: taskId, orgId },
@@ -141,6 +146,7 @@ export async function updateTask(
   recordAudit({
     orgId,
     actorId: actorId ?? null,
+    actorEmail: actorEmail ?? null,
     action: "task.update",
     targetType: "Task",
     targetId: taskId,

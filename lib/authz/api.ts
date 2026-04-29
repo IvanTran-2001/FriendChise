@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { PermissionAction } from "@prisma/client";
 import { log } from "@/lib/observability";
 import {
-  getAuthUserId,
+  getAuthUser,
   getOrgMembership,
   memberHasPermission,
 } from "./_shared";
@@ -28,20 +28,25 @@ const permissionDenied = () =>
 
 /** Requires the caller to be signed in (any authenticated user). */
 export async function requireUser() {
-  const userId = await getAuthUserId();
-  if (!userId) return { ok: false as const, response: unauthorized() };
-  return { ok: true as const, userId };
+  const user = await getAuthUser();
+  if (!user) return { ok: false as const, response: unauthorized() };
+  return { ok: true as const, userId: user.id, userEmail: user.email };
 }
 
 /** Requires the caller to be signed in and a member of the given org. */
 export async function requireOrgMember(orgId: string) {
-  const userId = await getAuthUserId();
-  if (!userId) return { ok: false as const, response: unauthorized() };
+  const user = await getAuthUser();
+  if (!user) return { ok: false as const, response: unauthorized() };
 
-  const membership = await getOrgMembership(orgId, userId);
+  const membership = await getOrgMembership(orgId, user.id);
   if (!membership) return { ok: false as const, response: forbidden() };
 
-  return { ok: true as const, userId, membership };
+  return {
+    ok: true as const,
+    userId: user.id,
+    userEmail: user.email,
+    membership,
+  };
 }
 
 /**
@@ -67,6 +72,7 @@ export async function requireOrgPermission(
   return {
     ok: true as const,
     userId: authz.userId,
+    userEmail: authz.userEmail,
     membership: authz.membership,
   };
 }
