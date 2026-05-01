@@ -10,6 +10,8 @@
     "seed": "prisma db seed",
     "seed:dev": "tsx prisma/seed.ts development",
     "seed:prod": "tsx prisma/seed.ts production",
+    "seed:donut-a": "tsx scripts/seed-donut-shop-a.ts",
+    "seed:donut-a:reset": "tsx scripts/seed-donut-shop-a.ts --reset",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
