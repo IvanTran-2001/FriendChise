@@ -8,11 +8,13 @@ export function TimezoneSelect({
   onChange,
   timezones,
   className,
+  id,
 }: {
   value: string;
   onChange: (value: string) => void;
   timezones: TimezoneOption[];
   className?: string;
+  id?: string;
 }) {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -44,6 +46,7 @@ export function TimezoneSelect({
       className={`relative ${className ?? "max-w-xs w-full"}`}
     >
       <input
+        id={id}
         className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
         value={open ? search : (selected?.label ?? value)}
         onChange={(e) => setSearch(e.target.value)}

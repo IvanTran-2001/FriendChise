@@ -13,6 +13,7 @@
     "seed:donut-a": "tsx scripts/seed-donut-shop-a.ts",
     "seed:donut-a:reset": "tsx scripts/seed-donut-shop-a.ts --reset",
     "test": "vitest run",
+    "test:unit": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:services": "vitest run __tests__/unit/lib/services",

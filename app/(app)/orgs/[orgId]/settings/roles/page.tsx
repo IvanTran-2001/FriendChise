@@ -27,7 +27,7 @@ export default async function RolesPage({
   return (
     <>
       <Toolbar>
-        <div />
+        <div className="flex-1" />
         <Button asChild size="sm">
           <Link href={`/orgs/${orgId}/settings/roles/new`}>+ Add Role</Link>
         </Button>

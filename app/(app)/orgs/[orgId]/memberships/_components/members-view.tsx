@@ -243,7 +243,7 @@ export function MembersView({
         </div>
       </Toolbar>
 
-      <div className="flex-1 overflow-auto -mx-4 sm:-mx-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-4 sm:pb-6 -mt-4 sm:-mt-6">
+      <div className="flex-1 overflow-auto -mx-4 sm:-mx-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-4 sm:pb-6">
         {filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {members.length === 0
