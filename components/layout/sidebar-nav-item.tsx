@@ -1,0 +1,75 @@
+"use client";
+
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import type { ComponentType } from "react";
+
+type SidebarNavItemProps = {
+  title: string;
+  url: string;
+  icon: ComponentType<{ className?: string }>;
+  disabled?: boolean;
+  isActive: boolean;
+  /** "app" = fixed w-12 icon wrapper for the collapsible global sidebar.
+   *  "page" = standard px-3 gap layout for full-width page sidebars. */
+  variant?: "app" | "page";
+  onClick?: () => void;
+};
+
+export function SidebarNavItem({
+  title,
+  url,
+  icon: Icon,
+  disabled,
+  isActive,
+  variant = "page",
+  onClick,
+}: SidebarNavItemProps) {
+  const active = "bg-sidebar-primary text-sidebar-primary-foreground font-medium";
+  const hover = "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
+
+  if (variant === "app") {
+    const base = "flex items-center h-12 w-full overflow-hidden rounded-none transition-colors";
+    const inner = (
+      <>
+        <span className="w-12 flex items-center justify-center shrink-0">
+          <Icon className="h-5 w-5" />
+        </span>
+        <span className="whitespace-nowrap text-sm pr-3">
+          {title}
+        </span>
+      </>
+    );
+    if (disabled) return <div className={cn(base, "opacity-40 pointer-events-none text-sidebar-foreground")}>{inner}</div>;
+    return (
+      <Link href={url} onClick={onClick} className={cn(base, isActive ? active : cn("text-sidebar-foreground", hover))}>
+        {inner}
+      </Link>
+    );
+  }
+
+  // page variant
+  const base = "flex items-center gap-2.5 h-12 px-4 text-sm transition-colors";
+  const inner = (
+    <>
+      <Icon className="h-5 w-5 shrink-0" />
+      <span className="truncate">{title}</span>
+    </>
+  );
+  if (disabled) {
+    return (
+      <div className={cn(base, "opacity-40 pointer-events-none text-sidebar-foreground")}>
+        {inner}
+      </div>
+    );
+  }
+  return (
+    <Link
+      href={url}
+      onClick={onClick}
+      className={cn(base, isActive ? active : cn("text-sidebar-foreground", hover))}
+    >
+      {inner}
+    </Link>
+  );
+}

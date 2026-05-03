@@ -67,16 +67,16 @@ export const NavBar = async () => {
 
   return (
     <header
-      className="sticky top-0 z-20 min-h-14 border-b border-border bg-card flex items-end justify-between pr-4 pl-0 pb-0"
+      className="sticky top-0 z-20 min-h-12 border-b border-border bg-card flex items-end justify-between pr-4 pl-0 pb-0"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
-      {/* inner row always 3.5rem (h-14) tall */}
-      <div className="flex w-full items-center justify-between h-14">
+      {/* inner row always 3rem (h-12) tall */}
+      <div className="flex w-full items-center justify-between h-12">
         {/* Left: logo + mobile menu trigger + org switcher */}
-        <div className="flex items-center gap-2 min-w-0">
-          <Button variant="ghost" asChild className="h-auto px-2 py-1.5 rounded-md hidden md:flex">
+        <div className="flex items-center gap-2 min-w-0 pl-3 md:pl-0">
+          <Button variant="ghost" asChild className="h-auto px-2 py-1.5 rounded-md hidden md:flex hover:bg-blue-100 hover:text-blue-700 transition-colors">
             <Link href="/">
-              <Logo className="text-foreground" />
+              <Logo className="text-current" />
             </Link>
           </Button>
           <MobileSidebarTrigger />

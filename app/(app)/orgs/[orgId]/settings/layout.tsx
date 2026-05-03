@@ -1,5 +1,7 @@
 import { PermissionAction } from "@prisma/client";
 import { requireOrgPermissionPage } from "@/lib/authz";
+import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
+import { SettingsNav } from "./_components/settings-nav";
 
 /**
  * Layout guard for all settings subroutes.
@@ -19,5 +21,10 @@ export default async function SettingsLayout({
   await requireOrgPermissionPage(orgId, PermissionAction.MANAGE_SETTINGS, {
     redirectTo: `/orgs/${orgId}`,
   });
-  return <>{children}</>;
+  return (
+    <>
+      <RegisterPageSidebar content={<SettingsNav />} />
+      {children}
+    </>
+  );
 }
