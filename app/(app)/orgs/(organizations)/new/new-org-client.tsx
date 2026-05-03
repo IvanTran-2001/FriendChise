@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { TimezoneSelect } from "@/components/ui/timezone-select";
-import { TIMEZONES } from "@/lib/timezones";
+import type { TimezoneOption } from "@/lib/timezones";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { createOrg } from "@/app/actions/orgs";
 
@@ -40,6 +40,7 @@ function ScheduleFields({
   setCloseTime,
   days,
   setDays,
+  timezones,
 }: {
   timezone: string;
   setTimezone: (v: string) => void;
@@ -51,6 +52,7 @@ function ScheduleFields({
   setCloseTime: (v: string) => void;
   days: DayKey[];
   setDays: (v: DayKey[]) => void;
+  timezones: TimezoneOption[];
 }) {
   return (
     <>
@@ -62,7 +64,7 @@ function ScheduleFields({
           <TimezoneSelect
             value={timezone}
             onChange={setTimezone}
-            timezones={TIMEZONES}
+            timezones={timezones}
             className="w-full"
           />
         </div>
@@ -161,7 +163,7 @@ function buildSchedulePayload(s: ReturnType<typeof useScheduleState>) {
 
 // ─── Create Org Form ────────────────────────────────────────────────────────
 
-export default function NewOrgPage() {
+export default function NewOrgPage({ timezones }: { timezones: TimezoneOption[] }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -182,8 +184,8 @@ export default function NewOrgPage() {
         return;
       }
       router.push(`/orgs/${result.orgId}/timetable`);
-    } catch {
-      setError("Something went wrong");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -211,7 +213,7 @@ export default function NewOrgPage() {
             />
           </div>
 
-          <ScheduleFields {...schedule} />
+          <ScheduleFields {...schedule} timezones={timezones} />
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 

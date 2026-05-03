@@ -90,7 +90,6 @@ export function RegisterPageSidebar({ content }: { content: ReactNode }) {
   useEffect(() => {
     setSidebar(content);
     return () => setSidebar(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [content, setSidebar]);
   return null;
 }

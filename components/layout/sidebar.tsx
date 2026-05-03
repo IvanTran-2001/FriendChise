@@ -225,7 +225,7 @@ export function AppSidebar() {
             <Link
               href="/"
               onClick={() => setOpen(false)}
-              className="flex items-center h-14 shrink-0 text-foreground px-2"
+              className="flex items-center h-12 shrink-0 text-foreground px-2"
             >
               {!hasSidebar
                 ? <Logo className="text-foreground" />

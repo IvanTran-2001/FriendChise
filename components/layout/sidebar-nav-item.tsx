@@ -40,9 +40,9 @@ export function SidebarNavItem({
         </span>
       </>
     );
-    if (disabled) return <div className={cn(base, "opacity-40 pointer-events-none text-sidebar-foreground")}>{inner}</div>;
+    if (disabled) return <div className={cn(base, "opacity-40 pointer-events-none text-sidebar-foreground")} role="link" aria-disabled="true">{inner}</div>;
     return (
-      <Link href={url} onClick={onClick} className={cn(base, isActive ? active : cn("text-sidebar-foreground", hover))}>
+      <Link href={url} onClick={onClick} className={cn(base, isActive ? active : cn("text-sidebar-foreground", hover))} aria-current={isActive ? "page" : undefined}>
         {inner}
       </Link>
     );
@@ -58,7 +58,7 @@ export function SidebarNavItem({
   );
   if (disabled) {
     return (
-      <div className={cn(base, "opacity-40 pointer-events-none text-sidebar-foreground")}>
+      <div className={cn(base, "opacity-40 pointer-events-none text-sidebar-foreground")} role="link" aria-disabled="true">
         {inner}
       </div>
     );
@@ -68,6 +68,7 @@ export function SidebarNavItem({
       href={url}
       onClick={onClick}
       className={cn(base, isActive ? active : cn("text-sidebar-foreground", hover))}
+      aria-current={isActive ? "page" : undefined}
     >
       {inner}
     </Link>

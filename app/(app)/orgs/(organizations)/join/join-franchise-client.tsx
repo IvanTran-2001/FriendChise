@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { TimezoneSelect } from "@/components/ui/timezone-select";
-import { TIMEZONES } from "@/lib/timezones";
+import type { TimezoneOption } from "@/lib/timezones";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { joinFranchise } from "@/app/actions/orgs";
 
@@ -39,6 +39,7 @@ function ScheduleFields({
   setCloseTime,
   days,
   setDays,
+  timezones,
 }: {
   timezone: string;
   setTimezone: (v: string) => void;
@@ -50,6 +51,7 @@ function ScheduleFields({
   setCloseTime: (v: string) => void;
   days: DayKey[];
   setDays: (v: DayKey[]) => void;
+  timezones: TimezoneOption[];
 }) {
   return (
     <>
@@ -61,7 +63,7 @@ function ScheduleFields({
           <TimezoneSelect
             value={timezone}
             onChange={setTimezone}
-            timezones={TIMEZONES}
+            timezones={timezones}
             className="w-full"
           />
         </div>
@@ -141,7 +143,7 @@ function buildSchedulePayload(s: ReturnType<typeof useScheduleState>) {
   };
 }
 
-export default function JoinFranchisePage() {
+export default function JoinFranchisePage({ timezones }: { timezones: TimezoneOption[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialToken = searchParams.get("token") ?? "";
@@ -167,8 +169,8 @@ export default function JoinFranchisePage() {
         return;
       }
       router.push(`/orgs/${result.orgId}/timetable`);
-    } catch {
-      setError("Something went wrong");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -202,7 +204,7 @@ export default function JoinFranchisePage() {
             </div>
           )}
 
-          <ScheduleFields {...schedule} />
+          <ScheduleFields {...schedule} timezones={timezones} />
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
