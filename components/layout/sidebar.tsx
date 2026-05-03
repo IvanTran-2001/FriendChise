@@ -3,6 +3,7 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
+import { Logo } from "@/components/layout/logo";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -24,7 +25,6 @@ import {
   ShieldCheck,
   Bell,
   Network,
-  HeartHandshake,
   X,
   Menu,
 } from "lucide-react";
@@ -366,12 +366,12 @@ export function AppSidebar() {
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="w-64 bg-sidebar flex flex-col overflow-hidden">
             <div className="flex items-center justify-between h-14 px-4 border-b border-sidebar-border shrink-0">
-              <span className="flex items-center gap-2 text-sm font-semibold text-sidebar-foreground select-none">
-                <span className="flex items-center justify-center rounded-full border-2 border-current p-1.5">
-                  <HeartHandshake className="h-4 w-4" strokeWidth={1.75} />
-                </span>
-                FriendChise
-              </span>
+              <Link
+                href="/"
+                onClick={() => setMobileOpen(false)}
+              >
+                <Logo className="text-sidebar-foreground" />
+              </Link>
               <button
                 onClick={() => setMobileOpen(false)}
                 aria-label="Close menu"

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { TimezoneSelect } from "@/components/ui/timezone-select";
-import type { TimezoneOption } from "@/lib/timezones";
+import { TIMEZONES } from "@/lib/timezones";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { createOrg, joinFranchise } from "@/app/actions/orgs";
 
@@ -31,7 +31,6 @@ type DayKey = (typeof ALL_DAYS)[number]["key"];
 function ScheduleFields({
   timezone,
   setTimezone,
-  timezones,
   address,
   setAddress,
   openTime,
@@ -43,7 +42,6 @@ function ScheduleFields({
 }: {
   timezone: string;
   setTimezone: (v: string) => void;
-  timezones: TimezoneOption[];
   address: string;
   setAddress: (v: string) => void;
   openTime: string;
@@ -63,7 +61,7 @@ function ScheduleFields({
           <TimezoneSelect
             value={timezone}
             onChange={setTimezone}
-            timezones={timezones}
+            timezones={TIMEZONES}
             className="w-full"
           />
         </div>
@@ -162,7 +160,7 @@ function buildSchedulePayload(s: ReturnType<typeof useScheduleState>) {
 
 // ─── Create Org Form ────────────────────────────────────────────────────────
 
-function CreateOrgForm({ onSwitch, timezones }: { onSwitch: () => void; timezones: TimezoneOption[] }) {
+function CreateOrgForm({ onSwitch }: { onSwitch: () => void }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -205,7 +203,7 @@ function CreateOrgForm({ onSwitch, timezones }: { onSwitch: () => void; timezone
         />
       </div>
 
-      <ScheduleFields {...schedule} timezones={timezones} />
+      <ScheduleFields {...schedule} />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
@@ -236,11 +234,9 @@ function CreateOrgForm({ onSwitch, timezones }: { onSwitch: () => void; timezone
 function JoinFranchiseForm({
   onSwitch,
   initialToken = "",
-  timezones,
 }: {
   onSwitch: () => void;
   initialToken?: string;
-  timezones: TimezoneOption[];
 }) {
   const router = useRouter();
   const [manualToken, setManualToken] = useState("");
@@ -291,7 +287,7 @@ function JoinFranchiseForm({
         </div>
       )}
 
-      <ScheduleFields {...schedule} timezones={timezones} />
+      <ScheduleFields {...schedule} />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
@@ -317,7 +313,7 @@ function JoinFranchiseForm({
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
-export default function NewOrgPage({ timezones }: { timezones: TimezoneOption[] }) {
+export default function NewOrgPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const hasTokenParam = searchParams.has("token");
@@ -345,12 +341,11 @@ export default function NewOrgPage({ timezones }: { timezones: TimezoneOption[] 
 
       <div className="rounded-xl border bg-card p-6 shadow-sm">
         {mode === "create" ? (
-          <CreateOrgForm onSwitch={switchToJoin} timezones={timezones} />
+          <CreateOrgForm onSwitch={switchToJoin} />
         ) : (
           <JoinFranchiseForm
             onSwitch={switchToCreate}
             initialToken={initialToken}
-            timezones={timezones}
           />
         )}
       </div>
