@@ -192,85 +192,78 @@ export function TaskTable({
   return (
     <div className="flex flex-col h-full">
       <Toolbar>
-        {/* Row 1: search + view toggle */}
-        <div className="flex items-center gap-2 w-full">
-          <Input
-            aria-label="Search tasks by title"
-            placeholder="Search by title..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 h-8"
-          />
-          <SegmentedControl
-            size="sm"
-            value={view}
-            onChange={setView}
-            options={[
-              { value: "list", label: <List className="h-4 w-4" /> },
-              { value: "card", label: <LayoutGrid className="h-4 w-4" /> },
-            ]}
-          />
-        </div>
+        <Input
+          aria-label="Search tasks by title"
+          placeholder="Search by title..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 h-8 min-w-[200px]"
+        />
+        <SegmentedControl
+          size="sm"
+          value={view}
+          onChange={setView}
+          options={[
+            { value: "list", label: <List className="h-4 w-4" /> },
+            { value: "card", label: <LayoutGrid className="h-4 w-4" /> },
+          ]}
+        />
+        {/* Sort */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
+              {activeSort.label}
+              <ChevronDown className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            {SORT_OPTIONS.map((o) => (
+              <DropdownMenuItem
+                key={o.value}
+                onClick={() => setSort(o.value)}
+              >
+                {o.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-        {/* Row 2: sort + role filter + create */}
-        <div className="flex items-center gap-2 flex-wrap w-full">
-          {/* Sort */}
+        {/* Filter by role */}
+        {roles.length > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
-                {activeSort.label}
+              <Button
+                variant={filterRoleId ? "secondary" : "outline"}
+                size="sm"
+                className="gap-1.5 shrink-0"
+              >
+                {activeRole ? activeRole.name : "Filter by role"}
                 <ChevronDown className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              {SORT_OPTIONS.map((o) => (
+              {filterRoleId && (
+                <DropdownMenuItem onClick={() => setFilterRoleId(null)}>
+                  All roles
+                </DropdownMenuItem>
+              )}
+              {roles.map((r) => (
                 <DropdownMenuItem
-                  key={o.value}
-                  onClick={() => setSort(o.value)}
+                  key={r.id}
+                  onClick={() => setFilterRoleId(r.id)}
                 >
-                  {o.label}
+                  {r.name}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+        )}
 
-          {/* Filter by role */}
-          {roles.length > 0 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant={filterRoleId ? "secondary" : "outline"}
-                  size="sm"
-                  className="gap-1.5 shrink-0"
-                >
-                  {activeRole ? activeRole.name : "Filter by role"}
-                  <ChevronDown className="h-3.5 w-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                {filterRoleId && (
-                  <DropdownMenuItem onClick={() => setFilterRoleId(null)}>
-                    All roles
-                  </DropdownMenuItem>
-                )}
-                {roles.map((r) => (
-                  <DropdownMenuItem
-                    key={r.id}
-                    onClick={() => setFilterRoleId(r.id)}
-                  >
-                    {r.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-
-          {canManageTasks && (
-            <Button asChild size="sm" className="ml-auto shrink-0">
-              <a href={`/orgs/${orgId}/tasks/new`}>+ Create Task</a>
-            </Button>
-          )}
-        </div>
+        {canManageTasks && (
+          <Button asChild size="sm" className="ml-auto shrink-0">
+            <a href={`/orgs/${orgId}/tasks/new`}>+ Create Task</a>
+          </Button>
+        )}
       </Toolbar>
 
       <div className="flex-1 overflow-auto -mx-4 sm:-mx-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-4 sm:pb-6">

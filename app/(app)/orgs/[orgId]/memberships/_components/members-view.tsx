@@ -182,65 +182,58 @@ export function MembersView({
     <div className="flex flex-col h-full">
       {/* Toolbar */}
       <Toolbar>
-        {/* Row 1: search + view toggle */}
-        <div className="flex items-center gap-2 w-full">
-          <div className="relative flex-1">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-            <Input
-              placeholder="Search members…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-7 h-8 w-full"
-            />
-          </div>
-          <SegmentedControl
-            size="sm"
-            value={view}
-            onChange={setView}
-            options={[
-              { value: "list", label: <List className="h-4 w-4" /> },
-              { value: "card", label: <LayoutGrid className="h-4 w-4" /> },
-            ]}
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="Search members…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-7 h-8 w-full"
           />
         </div>
-
-        {/* Row 2: role filter + add member */}
-        <div className="flex items-center gap-2 w-full">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
-                {roleFilter
-                  ? (allRoles.find((r) => r.id === roleFilter)?.name ?? "Role")
-                  : "All roles"}
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onSelect={() => setRoleFilter(null)}>
-                All roles
+        <SegmentedControl
+          size="sm"
+          value={view}
+          onChange={setView}
+          options={[
+            { value: "list", label: <List className="h-4 w-4" /> },
+            { value: "card", label: <LayoutGrid className="h-4 w-4" /> },
+          ]}
+        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
+              {roleFilter
+                ? (allRoles.find((r) => r.id === roleFilter)?.name ?? "Role")
+                : "All roles"}
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuItem onSelect={() => setRoleFilter(null)}>
+              All roles
+            </DropdownMenuItem>
+            {allRoles.map((role) => (
+              <DropdownMenuItem
+                key={role.id}
+                onSelect={() => setRoleFilter(role.id)}
+              >
+                {role.name}
               </DropdownMenuItem>
-              {allRoles.map((role) => (
-                <DropdownMenuItem
-                  key={role.id}
-                  onSelect={() => setRoleFilter(role.id)}
-                >
-                  {role.name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-          {canManage && (
-            <div className="flex items-center gap-2 ml-auto shrink-0">
-              <Button asChild size="sm">
-                <Link href={`/orgs/${orgId}/memberships/new`}>+ Member</Link>
-              </Button>
-              <Button asChild size="sm">
-                <Link href={`/orgs/${orgId}/memberships/new?bot=1`}>+ Bot</Link>
-              </Button>
-            </div>
-          )}
-        </div>
+        {canManage && (
+          <div className="flex items-center gap-2 ml-auto shrink-0">
+            <Button asChild size="sm">
+              <Link href={`/orgs/${orgId}/memberships/new`}>+ Member</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href={`/orgs/${orgId}/memberships/new?bot=1`}>+ Bot</Link>
+            </Button>
+          </div>
+        )}
       </Toolbar>
 
       <div className="flex-1 overflow-auto -mx-4 sm:-mx-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-4 sm:pb-6">

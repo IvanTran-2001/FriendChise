@@ -162,9 +162,9 @@ export function TimetableClient({
   return (
     <div className={`flex flex-col${fillHeight ? " flex-1 min-h-0" : ""}`}>
       {/* Combined toolbar */}
-      <div className="-mx-4 -mt-4 mb-4 border-b bg-card px-4 min-h-12 py-3 shrink-0 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:-mx-6 sm:-mt-6 sm:mb-4 sm:px-6">
+      <div className="-mx-4 -mt-4 mb-4 border-b bg-card px-4 min-h-12 py-2 shrink-0 flex flex-wrap items-center gap-2 sm:-mx-6 sm:-mt-6 sm:mb-4 sm:px-6">
         {/* Row 1 (always): prev / date label / next + Today */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <div className="flex items-center gap-0.5">
             <Button
               variant="outline"
@@ -176,7 +176,7 @@ export function TimetableClient({
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span
-              className={`text-sm font-medium min-w-40 text-center px-1 transition-opacity duration-150${isNavPending ? " opacity-50" : ""}`}
+              className={`text-sm font-medium text-center px-1 transition-opacity duration-150${isNavPending ? " opacity-50" : ""}`}
             >
               {navLabel}
             </span>
@@ -202,9 +202,9 @@ export function TimetableClient({
           </Button>
         </div>
 
-        {/* Row 2 (mobile) / same row (sm+): toolbar slot */}
+        {/* Toolbar slot */}
         {children && (
-          <div className="flex flex-wrap items-center gap-2 sm:flex-1 sm:justify-end">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:ml-auto">
             {children}
           </div>
         )}
