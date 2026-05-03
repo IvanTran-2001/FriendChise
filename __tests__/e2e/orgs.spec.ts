@@ -8,11 +8,6 @@ import { test, expect } from "@playwright/test";
  * independent — no assumptions about seeded data.
  */
 
-// The active breadcrumb crumb has aria-current="page" so tests can
-// use getByRole("link") or a targeted selector instead of the raw DOM
-// structure. We still use `nav span` here as the crumb is a <span> (not a
-// link) when it is the current page.
-
 const ORG_NAME = `E2E Org ${Date.now()}`;
 
 test("create org → lands on timetable → org name visible in navbar", async ({
@@ -31,9 +26,6 @@ test("create org → lands on timetable → org name visible in navbar", async (
 
   // Org name should appear in the navbar org switcher
   await expect(page.getByRole("button", { name: ORG_NAME })).toBeVisible();
-
-  // Breadcrumb should show "Timetable" as the active page
-  await expect(page.locator("[aria-current='page']")).toHaveText("Timetable");
 });
 
 test("delete org → redirected to /", async ({ page }) => {

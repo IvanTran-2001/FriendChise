@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,6 @@ import { TimezoneSelect } from "@/components/ui/timezone-select";
 import type { TimezoneOption } from "@/lib/timezones";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { createOrg, joinFranchise } from "@/app/actions/orgs";
-import { useBreadcrumbOverride } from "@/components/layout/breadcrumb-context";
 
 function timeToMinutes(time: string) {
   const [h, m] = time.split(":").map(Number);
@@ -324,12 +323,6 @@ export default function NewOrgPage({ timezones }: { timezones: TimezoneOption[] 
   const hasTokenParam = searchParams.has("token");
   const initialToken = searchParams.get("token") ?? "";
   const mode = hasTokenParam ? "join" : "create";
-  const { setOverride } = useBreadcrumbOverride();
-
-  useEffect(() => {
-    setOverride(mode === "join" ? "Join Franchise" : "Create Organization");
-    return () => setOverride(null);
-  }, [mode, setOverride]);
 
   function switchToJoin() {
     router.push("/orgs/new?token=");

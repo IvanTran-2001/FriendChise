@@ -1,5 +1,8 @@
 "use client";
 
+// REMOVED FROM PROJECT — breadcrumb feature was removed. File kept for reference.
+// Not imported or used anywhere. Safe to delete in a future cleanup.
+
 /**
  * Breadcrumb override context.
  *

@@ -4,11 +4,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { OrgSwitcher } from "@/components/layout/org-switcher";
-import {
-  NavbarSidebarTrigger,
-  NavbarLogo,
-  NavbarLogoSpacer,
-} from "@/components/layout/navbar-sidebar-trigger";
+import { MobileSidebarTrigger } from "@/components/layout/sidebar";
+import { Logo } from "@/components/layout/logo";
 import { NotificationPanel } from "@/components/notifications";
 import {
   getInvitesForUser,
@@ -70,18 +67,19 @@ export const NavBar = async () => {
 
   return (
     <header
-      className="sticky top-0 z-20 min-h-14 border-b border-border bg-card flex items-end justify-between px-4 pb-0"
+      className="sticky top-0 z-20 min-h-14 border-b border-border bg-card flex items-end justify-between pr-4 pl-0 pb-0"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       {/* inner row always 3.5rem (h-14) tall */}
       <div className="flex w-full items-center justify-between h-14">
-        {/* Left: sidebar toggle, app title, org switcher */}
+        {/* Left: logo + mobile menu trigger + org switcher */}
         <div className="flex items-center gap-2 min-w-0">
-          <NavbarSidebarTrigger />
-          <span className="hidden sm:contents">
-            <NavbarLogo />
-            <NavbarLogoSpacer />
-          </span>
+          <Button variant="ghost" asChild className="h-auto px-2 py-1.5 rounded-md hidden md:flex">
+            <Link href="/">
+              <Logo className="text-foreground" />
+            </Link>
+          </Button>
+          <MobileSidebarTrigger />
           <OrgSwitcher orgs={orgs} />
         </div>
 

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { Logo } from "@/components/layout/logo";
+import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Building2,
@@ -24,25 +24,46 @@ import {
   ShieldCheck,
   Bell,
   Network,
-  PanelLeftClose,
+  HeartHandshake,
+  X,
+  Menu,
 } from "lucide-react";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-  SidebarSeparator,
-  useSidebar,
-} from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
+
+// ─── Mobile sidebar context ───────────────────────────────────────────────────
+
+const MobileSidebarCtx = createContext<{
+  open: boolean;
+  setOpen: (v: boolean) => void;
+}>({ open: false, setOpen: () => {} });
+
+export function GlobalSidebarProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <MobileSidebarCtx.Provider value={{ open, setOpen }}>
+      {children}
+    </MobileSidebarCtx.Provider>
+  );
+}
+
+/** Hamburger trigger rendered in the navbar on mobile. */
+export function MobileSidebarTrigger() {
+  const { setOpen } = useContext(MobileSidebarCtx);
+  return (
+    <button
+      onClick={() => setOpen(true)}
+      aria-label="Open menu"
+      className="md:hidden rounded-md p-1.5 text-foreground/70 hover:text-foreground hover:bg-accent transition-colors"
+    >
+      <Menu className="h-5 w-5" />
+    </button>
+  );
+}
+
+// ─── Nav data ─────────────────────────────────────────────────────────────────
 
 type NavItem = {
   title: string;
@@ -51,11 +72,96 @@ type NavItem = {
   disabled?: boolean;
 };
 
+function getOrgItems(orgId: string): NavItem[] {
+  return [
+    // TODO: remove `disabled: true` when overview page is implemented
+    { title: "Overview", url: `/orgs/${orgId}`, icon: Building2, disabled: true },
+    { title: "Timetable", url: `/orgs/${orgId}/timetable`, icon: Calendar },
+    { title: "Tasks", url: `/orgs/${orgId}/tasks`, icon: ListTodo },
+    { title: "Members", url: `/orgs/${orgId}/memberships`, icon: Users },
+    // TODO: remove `disabled: true` when progress page is implemented
+    { title: "Progress", url: `/orgs/${orgId}/progress`, icon: BarChart2, disabled: true },
+  ];
+}
+
+function getSettingsItems(orgId: string): NavItem[] {
+  return [
+    { title: "Back to Org", url: `/orgs/${orgId}/timetable`, icon: ChevronLeft },
+    { title: "Organization", url: `/orgs/${orgId}/settings/organization`, icon: Building2 },
+    { title: "Roles", url: `/orgs/${orgId}/settings/roles`, icon: ShieldCheck },
+    // TODO: remove `disabled: true` when settings timetable page is implemented
+    { title: "Timetable", url: `/orgs/${orgId}/settings/timetable`, icon: Calendar, disabled: true },
+    // TODO: remove `disabled: true` when settings notification page is implemented
+    { title: "Notification", url: `/orgs/${orgId}/settings/notification`, icon: Bell, disabled: true },
+  ];
+}
+
+function getNavItems(orgId: string, pathname: string): NavItem[] {
+  if (pathname.startsWith(`/orgs/${orgId}/settings`)) return getSettingsItems(orgId);
+  if (pathname.startsWith(`/orgs/${orgId}`)) return getOrgItems(orgId);
+  return [];
+}
+
+function getFooterItems(
+  orgId: string,
+  pathname: string,
+  isParentOwner: boolean,
+  parentOrgId: string | null,
+): NavItem[] {
+  if (pathname.startsWith(`/orgs/${orgId}/settings`)) return [];
+  const franchiseeOrgId = isParentOwner ? orgId : parentOrgId;
+  return [
+    ...(franchiseeOrgId
+      ? [{ title: "Franchisee", url: `/orgs/${franchiseeOrgId}/franchisee`, icon: Network }]
+      : []),
+    { title: "Settings", url: `/orgs/${orgId}/settings`, icon: Settings },
+  ];
+}
+
+// ─── Nav item components ──────────────────────────────────────────────────────
+
 /**
- * A collapsible nav section with a chevron toggle.
- * Used in the global (no-org) sidebar for the Organizations and Help groups.
+ * A single nav row. The icon wrapper is always `w-12` wide so the icon stays
+ * centred in the collapsed (icon-only) strip. The text flows after it and is
+ * clipped by the parent's `overflow-hidden` when collapsed.
  */
-function NavCollapsible({
+function NavRow({
+  title,
+  url,
+  icon: Icon,
+  disabled,
+  isActive,
+  onClick,
+}: NavItem & { isActive: boolean; onClick?: () => void }) {
+  const base =
+    "flex items-center h-9 w-full overflow-hidden rounded-md transition-colors";
+  const active = "bg-sidebar-accent text-sidebar-accent-foreground font-medium";
+  const hover = "hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground";
+  const dis = "opacity-40 pointer-events-none";
+
+  const inner = (
+    <>
+      <span className="w-12 flex items-center justify-center shrink-0">
+        <Icon className="h-4 w-4 text-sidebar-foreground" />
+      </span>
+      <span className="whitespace-nowrap text-sm pr-3 text-sidebar-foreground">
+        {title}
+      </span>
+    </>
+  );
+
+  if (disabled) return <div className={cn(base, dis)}>{inner}</div>;
+  return (
+    <Link href={url} onClick={onClick} className={cn(base, isActive ? active : hover)}>
+      {inner}
+    </Link>
+  );
+}
+
+/**
+ * A collapsible nav section. Only visible/usable when the sidebar is expanded.
+ */
+function NavCollapsibleRow({
   icon: Icon,
   label,
   defaultOpen = false,
@@ -67,144 +173,83 @@ function NavCollapsible({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
-  const subMenuId = `sidebar-section-${label.toLowerCase().replace(/\s+/g, "-")}`;
   return (
-    <SidebarMenuItem>
-      <SidebarMenuButton
+    <div>
+      <button
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        aria-controls={subMenuId}
+        className="flex items-center h-9 w-full overflow-hidden rounded-md hover:bg-sidebar-accent/70 transition-colors"
       >
-        <Icon />
-        <span>{label}</span>
+        <span className="w-12 flex items-center justify-center shrink-0">
+          <Icon className="h-4 w-4 text-sidebar-foreground" />
+        </span>
+        <span className="whitespace-nowrap text-sm text-sidebar-foreground">
+          {label}
+        </span>
         <ChevronRight
           className={cn(
-            "ml-auto transition-transform duration-200",
+            "h-4 w-4 shrink-0 transition-transform duration-200 text-sidebar-foreground ml-auto mr-3",
             open && "rotate-90",
           )}
         />
-      </SidebarMenuButton>
-      {open && <SidebarMenuSub id={subMenuId}>{children}</SidebarMenuSub>}
-    </SidebarMenuItem>
+      </button>
+      {open && <div className="pl-10 flex flex-col gap-0.5 pb-1">{children}</div>}
+    </div>
   );
 }
 
-function getOrgItems(orgId: string): NavItem[] {
-  return [
-    // TODO: remove `disabled: true` when overview page is implemented
-    {
-      title: "Overview",
-      url: `/orgs/${orgId}`,
-      icon: Building2,
-      disabled: true,
-    },
-    { title: "Timetable", url: `/orgs/${orgId}/timetable`, icon: Calendar },
-    { title: "Tasks", url: `/orgs/${orgId}/tasks`, icon: ListTodo },
-    { title: "Members", url: `/orgs/${orgId}/memberships`, icon: Users },
-    {
-      title: "Progress",
-      url: `/orgs/${orgId}/progress`,
-      icon: BarChart2,
-      disabled: true,
-    },
-  ];
+function SubRow({
+  href,
+  icon: Icon,
+  label,
+  isActive,
+  onClick,
+  disabled,
+}: {
+  href?: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  isActive?: boolean;
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
+  const base =
+    "flex items-center gap-2 h-8 px-2 rounded-md text-xs transition-colors text-sidebar-foreground whitespace-nowrap w-full";
+  const active = "bg-sidebar-accent text-sidebar-accent-foreground font-medium";
+  const hover = "hover:bg-sidebar-accent/70";
+  const dis = "opacity-40 pointer-events-none";
+  const inner = (
+    <>
+      <Icon className="h-3.5 w-3.5 shrink-0" />
+      <span>{label}</span>
+    </>
+  );
+  if (disabled) return <div className={cn(base, dis)}>{inner}</div>;
+  if (!href) return <div className={cn(base, hover)}>{inner}</div>;
+  return (
+    <Link href={href} onClick={onClick} className={cn(base, isActive ? active : hover)}>
+      {inner}
+    </Link>
+  );
 }
 
-function getSettingsItems(orgId: string): NavItem[] {
-  return [
-    {
-      title: "Back to Org",
-      url: `/orgs/${orgId}/timetable`,
-      icon: ChevronLeft,
-    },
-    {
-      title: "Organization",
-      url: `/orgs/${orgId}/settings/organization`,
-      icon: Building2,
-    },
-    { title: "Roles", url: `/orgs/${orgId}/settings/roles`, icon: ShieldCheck },
-    {
-      // TODO: remove `disabled: true` when settings timetable page is implemented
-      title: "Timetable",
-      url: `/orgs/${orgId}/settings/timetable`,
-      icon: Calendar,
-      disabled: true,
-    },
-    {
-      // TODO: remove `disabled: true` when settings notification page is implemented
-      title: "Notification",
-      url: `/orgs/${orgId}/settings/notification`,
-      icon: Bell,
-      disabled: true,
-    },
-  ];
-}
+// ─── AppSidebar ───────────────────────────────────────────────────────────────
 
 /**
- * Returns the correct nav items for the current org context.
- * Derives the active mode from pathname so the component doesn't need to.
- */
-function getNavItems(orgId: string, pathname: string): NavItem[] {
-  if (pathname.startsWith(`/orgs/${orgId}/settings`))
-    return getSettingsItems(orgId);
-  return getOrgItems(orgId);
-}
-
-/**
- * Returns footer items (e.g. Settings) when inside an org but not in settings.
- * Empty array otherwise so the footer is hidden.
- */
-function getFooterItems(
-  orgId: string,
-  pathname: string,
-  isParentOwner: boolean,
-  parentOrgId: string | null,
-): NavItem[] {
-  if (pathname.startsWith(`/orgs/${orgId}/settings`)) return [];
-  const franchiseeOrgId = isParentOwner ? orgId : parentOrgId;
-  return [
-    ...(franchiseeOrgId
-      ? [
-          {
-            title: "Franchisee",
-            url: `/orgs/${franchiseeOrgId}/franchisee`,
-            icon: Network,
-          },
-        ]
-      : []),
-    { title: "Settings", url: `/orgs/${orgId}/settings`, icon: Settings },
-  ];
-}
-
-/**
- * Collapsible sidebar rendered in the app layout.
+ * Global sidebar rendered in the app layout.
  *
- * Behaviour:
- * - Outside an org: shows the global workspace nav with collapsible sections
- *   (Organizations with Create + Invitations, and Help with sub-links).
- * - Inside an org: switches to org-scoped nav and shows footer items (e.g. Settings).
- * - Active page is highlighted via `isActive`, derived from the current pathname.
+ * Desktop: a w-12 spacer holds space in the flex layout. An `absolute`-
+ * positioned panel sits over it and expands to w-52 on hover, overlaying
+ * the page content. Icons are always centred in the 48px strip.
+ *
+ * Mobile: hidden by default. A full-screen overlay is toggled via
+ * GlobalSidebarProvider / MobileSidebarTrigger.
  */
 export function AppSidebar() {
-  // orgId is present on any /orgs/[orgId]/... route, undefined otherwise
   const { orgId } = useParams<{ orgId?: string }>();
   const pathname = usePathname();
-  const { toggleSidebar, isMobile, setOpenMobile } = useSidebar();
-  const closeSidebar = () => {
-    if (isMobile) setOpenMobile(false);
-  };
-  // Keep the sidebar open when navigating within the same org (org ↔ settings).
-  // Only close it when the destination is outside the current org context.
-  const handleNavClick = (url: string) => {
-    if (!isMobile) return;
-    if (orgId) {
-      const inSettings = pathname.startsWith(`/orgs/${orgId}/settings`);
-      const goingToSettings = url.startsWith(`/orgs/${orgId}/settings`);
-      // Keep sidebar open only when toggling between org ↔ settings
-      if (inSettings !== goingToSettings) return;
-    }
-    setOpenMobile(false);
-  };
+  const { open: mobileOpen, setOpen: setMobileOpen } = useContext(MobileSidebarCtx);
+
   const [parentOwnerStatus, setParentOwnerStatus] = useState<{
     orgId: string | null;
     isParentOwner: boolean;
@@ -230,7 +275,6 @@ export function AppSidebar() {
     return () => controller.abort();
   }, [orgId]);
 
-  // Only true when the stored status is for the current org (prevents stale flash on org switch)
   const isParentOwner =
     parentOwnerStatus.orgId === orgId && parentOwnerStatus.isParentOwner;
   const parentOrgId =
@@ -241,169 +285,107 @@ export function AppSidebar() {
     ? getFooterItems(orgId, pathname, isParentOwner, parentOrgId)
     : [];
 
-  /**
-   * Returns true when a nav item should be highlighted.
-   * - Org overview uses exact match so it doesn't light up on every org page.
-   * - All other items use prefix matching so nested pages (e.g. /tasks/new)
-   *   still highlight their parent section.
-   */
   const isActiveItem = (url: string) => {
     if (orgId && url === `/orgs/${orgId}`) return pathname === url;
     return pathname === url || pathname.startsWith(`${url}/`);
   };
 
-  return (
-    <Sidebar collapsible="offcanvas">
-      <SidebarHeader className="px-4 py-4">
-        <div className="flex items-center justify-between">
-          <Link
-            href="/"
-            className="rounded-lg px-2 py-1 -mx-2 -my-1 hover:bg-primary/8 hover:ring-1 hover:ring-primary/30 transition-all"
-          >
-            <Logo className="text-sidebar-foreground" />
-          </Link>
-          <button
-            onClick={toggleSidebar}
-            aria-label="Close sidebar"
-            className="cursor-pointer rounded-md p-1.5 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-          >
-            <PanelLeftClose className="h-4 w-4" />
-          </button>
+  const navContent = (mobile: boolean) => {
+    const close = mobile ? () => setMobileOpen(false) : undefined;
+    return (
+      <>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden py-1">
+          <div className="flex flex-col gap-0.5">
+            {orgId ? (
+              navItems.map((item) => (
+                <NavRow
+                  key={item.title}
+                  {...item}
+                  isActive={isActiveItem(item.url)}
+                  onClick={close}
+                />
+              ))
+            ) : (
+              <>
+                <NavRow
+                  title="Workspace"
+                  url="/"
+                  icon={LayoutDashboard}
+                  isActive={pathname === "/"}
+                  onClick={close}
+                />
+                <NavCollapsibleRow icon={Building2} label="Organizations" defaultOpen>
+                  <SubRow icon={ListCheckIcon} label="List" disabled />
+                  <SubRow
+                    icon={PlusCircle}
+                    label="Create"
+                    href="/orgs/new"
+                    isActive={isActiveItem("/orgs/new")}
+                    onClick={close}
+                  />
+                  <SubRow icon={Mail} label="Invitations" disabled />
+                </NavCollapsibleRow>
+                <NavCollapsibleRow icon={HelpCircle} label="Help">
+                  <SubRow icon={BookOpen} label="Instructions" disabled />
+                  <SubRow icon={Info} label="About" disabled />
+                  <SubRow icon={Phone} label="Contact" disabled />
+                </NavCollapsibleRow>
+              </>
+            )}
+          </div>
         </div>
-      </SidebarHeader>
-
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {orgId ? (
-                // ── Org / Settings nav (mutually exclusive, same shape) ──
-                navItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild={!item.disabled}
-                      isActive={isActiveItem(item.url)}
-                      disabled={item.disabled}
-                      className={
-                        item.disabled
-                          ? "opacity-40 cursor-not-allowed pointer-events-none"
-                          : ""
-                      }
-                    >
-                      {item.disabled ? (
-                        <>
-                          <item.icon />
-                          <span>{item.title}</span>
-                        </>
-                      ) : (
-                        <Link
-                          href={item.url}
-                          onClick={() => handleNavClick(item.url)}
-                        >
-                          <item.icon />
-                          <span>{item.title}</span>
-                        </Link>
-                      )}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))
-              ) : (
-                // ── Global workspace nav ─────────────────────────────────
-                <>
-                  {/* Workspace */}
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === "/"}>
-                      <Link href="/" onClick={closeSidebar}>
-                        <LayoutDashboard />
-                        <span>Workspace</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-
-                  {/* Organizations — collapsible, open by default */}
-                  <NavCollapsible
-                    icon={Building2}
-                    label="Organizations"
-                    defaultOpen
-                  >
-                    <SidebarMenuSubItem>
-                      {/* List — stub until feature is implemented */}
-                      <SidebarMenuSubButton title="Coming soon">
-                        <ListCheckIcon />
-                        <span>List</span>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton
-                        asChild
-                        isActive={isActiveItem("/orgs/new")}
-                      >
-                        <Link href="/orgs/new" onClick={closeSidebar}>
-                          <PlusCircle />
-                          <span>Create</span>
-                        </Link>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                    <SidebarMenuSubItem>
-                      {/* Invitations — stub until feature is implemented */}
-                      <SidebarMenuSubButton title="Coming soon">
-                        <Mail />
-                        <span>Invitations</span>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  </NavCollapsible>
-
-                  {/* Help — collapsible, closed by default */}
-                  <NavCollapsible icon={HelpCircle} label="Help">
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton title="Coming soon">
-                        <BookOpen />
-                        <span>Instructions</span>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton title="Coming soon">
-                        <Info />
-                        <span>About</span>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton title="Coming soon">
-                        <Phone />
-                        <span>Contact</span>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  </NavCollapsible>
-                </>
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-
-      {/* Settings footer — only inside an org and not in settings */}
-      {footerItems.length > 0 && (
-        <>
-          <SidebarSeparator className="border-dashed" />
-          <SidebarFooter>
-            <SidebarMenu>
+        {footerItems.length > 0 && (
+          <div className="border-t border-sidebar-border py-1">
+            <div className="flex flex-col gap-0.5">
               {footerItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActiveItem(item.url)}>
-                    <Link
-                      href={item.url}
-                      onClick={() => handleNavClick(item.url)}
-                    >
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <NavRow
+                  key={item.title}
+                  {...item}
+                  isActive={isActiveItem(item.url)}
+                  onClick={close}
+                />
               ))}
-            </SidebarMenu>
-          </SidebarFooter>
-        </>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
+
+  return (
+    <>
+      {/* ── Desktop: spacer + absolute overlay panel ── */}
+      <div className="hidden md:block relative w-12 shrink-0">
+        <div className="absolute inset-y-0 left-0 z-30 flex flex-col w-12 hover:w-52 transition-[width] duration-200 bg-sidebar border-r border-sidebar-border overflow-hidden">
+          {navContent(false)}
+        </div>
+      </div>
+
+      {/* ── Mobile: full-screen overlay ── */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div className="w-64 bg-sidebar flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between h-14 px-4 border-b border-sidebar-border shrink-0">
+              <span className="flex items-center gap-2 text-sm font-semibold text-sidebar-foreground select-none">
+                <span className="flex items-center justify-center rounded-full border-2 border-current p-1.5">
+                  <HeartHandshake className="h-4 w-4" strokeWidth={1.75} />
+                </span>
+                FriendChise
+              </span>
+              <button
+                onClick={() => setMobileOpen(false)}
+                aria-label="Close menu"
+                className="rounded-md p-1.5 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            {navContent(true)}
+          </div>
+          {/* Backdrop */}
+          <div className="flex-1 bg-black/40" onClick={() => setMobileOpen(false)} />
+        </div>
       )}
-    </Sidebar>
+    </>
   );
 }
