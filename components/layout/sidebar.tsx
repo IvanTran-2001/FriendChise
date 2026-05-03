@@ -1,5 +1,19 @@
 "use client";
 
+/**
+ * AppSidebar — global navigation sidebar.
+ *
+ * Desktop: fixed `w-12` strip that hover-expands to `w-52`. Items are
+ * `SidebarNavItem variant="app"` — full-bleed `h-12` rows with a `w-12` icon
+ * well and a label that slides in on expand.
+ *
+ * Mobile: hidden by default; renders as a fixed overlay (`inset-y-0 left-0
+ * z-50`) when the hamburger button in NavBar is tapped. Controlled via
+ * `MobileSidebarCtx`. Clicking outside or navigating closes it.
+ *
+ * Exports `MobileSidebarTrigger` (hamburger button for NavBar) and re-exports
+ * `GlobalSidebarProvider` / `useMobileSidebar` from mobile-sidebar-context.
+ */
 import { useState, useEffect, useContext } from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";

@@ -1,3 +1,7 @@
+/**
+ * OrgsListPage — placeholder for the organizations list (`/orgs`).
+ * Will list all orgs the current user belongs to. Currently a stub.
+ */
 export default function OrgsListPage() {
   return (
     <div className="max-w-md">

@@ -1,3 +1,13 @@
+/**
+ * NavBar — top navigation bar (server component).
+ *
+ * Renders at `min-h-12` (48px) — the universal height unit used across the app.
+ * Contains (left to right): hamburger trigger (mobile), logo, org switcher,
+ * notification bell, and user avatar/dropdown.
+ *
+ * Notification data is fetched server-side on every render so the badge count
+ * is always fresh without a client-side polling loop.
+ */
 import { auth, signOut } from "@/auth";
 import Image from "next/image";
 import Link from "next/link";

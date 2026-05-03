@@ -1,5 +1,23 @@
 "use client";
 
+/**
+ * PageSidebarContext — wires a page-level sidebar panel into the app layout.
+ *
+ * How it works:
+ *  1. `AppLayout` renders a `<PageSidebarSlot>` beside `<main>`. Initially the
+ *     slot is collapsed (zero width).
+ *  2. A page that wants a sidebar calls `<RegisterPageSidebar>` anywhere in its
+ *     tree. That component pushes its children into the slot via context.
+ *  3. `PageSidebarSlot` renders the slot in two states:
+ *     - **Collapsed**: `w-0` with an absolute open-button (`w-12 h-12`,
+ *       `rounded-none`, `border-r border-b`) anchored to the top-left corner.
+ *     - **Expanded**: `w-[260px]` flex column with a close-button (`w-12 h-12`,
+ *       `rounded-none`, `border-b border-l`) at the top-right.
+ *  4. Open/closed state is persisted in `localStorage` via `usePersistedState`
+ *     so the sidebar remembers its position across page navigations.
+ *  5. On mobile (`< md`) the sidebar renders as a fixed overlay (`left-12`) and
+ *     is controlled by `MobileSidebarCtx`.
+ */
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useMobileSidebar } from "@/components/layout/mobile-sidebar-context";

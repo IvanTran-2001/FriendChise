@@ -121,6 +121,9 @@ pnpm prisma migrate dev --name <migration-name>
 # Regenerate the Prisma client after schema changes
 pnpm prisma generate
 
+# Apply pending migrations to the production database
+pnpm migrate:prod
+
 # Seed the database
 pnpm seed
 ```
@@ -241,7 +244,14 @@ app/
     page.tsx              # Home / landing page
     layout.tsx            # Shared layout: SidebarProvider, NavBar, PageHeader
     orgs/
-      new/                # Create org page
+      (organizations)/    # Route group: org-management pages (shared OrgManagementNav sidebar)
+        layout.tsx        # Registers OrgManagementNav as page sidebar for all child routes
+        page.tsx          # /orgs — organizations list (stub)
+        new/              # Create org page
+        join/             # Join as franchisee via one-time token
+        invite/           # Invitations list (stub)
+        _components/
+          org-management-nav.tsx  # Page sidebar nav (Create, Join, Invite, List)
       [orgId]/
         page.tsx          # Org overview
         franchisee/       # Franchise management (parent org owners only)
@@ -305,12 +315,14 @@ app/
 
 components/
   layout/
-    navbar.tsx                  # Top bar (server component)
+    navbar.tsx                  # Top bar — h-12 server component; fetches notification counts server-side
     navbar-context-actions.tsx  # Route-aware action buttons
-    page-header.tsx             # Breadcrumb bar — async server component; resolves IDs to names via Prisma
-    sidebar.tsx                 # Collapsible nav; Progress item is disabled (opacity, pointer-events-none)
+    sidebar.tsx                 # Global app sidebar: desktop hover-expand (w-12→w-52), mobile overlay
+    sidebar-nav-item.tsx        # Shared nav link — variant="app" (icon-well) or variant="page" (inline)
+    mobile-sidebar-context.tsx  # Boolean context for mobile sidebar overlay open/close state
+    page-sidebar-context.tsx    # Slot-based page sidebar: RegisterPageSidebar + PageSidebarSlot
     org-switcher.tsx            # Org selector dropdown
-    toolbar.tsx                 # Sticky sub-header
+    toolbar.tsx                 # h-12 sticky sub-header; cancels main padding with negative margins
     actions/
       tasks-actions.tsx
       members-actions.tsx
@@ -434,6 +446,7 @@ Server Actions call `revalidatePath` to invalidate the Next.js cache so server-r
 | `/`                                              | Signed in                                  | Home                                                                                                |
 | `/signin`                                        | —                                          | Google OAuth sign-in                                                                                |
 | `/orgs/new`                                      | Signed in                                  | Create a new organization                                                                           |
+| `/orgs/join`                                     | Signed in                                  | Join an existing org as a franchisee using a one-time token                                         |
 | `/orgs/[orgId]`                                  | `requireOrgMemberPage`                     | Org overview                                                                                        |
 | `/orgs/[orgId]/franchisee`                       | `requireParentOrgOwnerPage`                | Franchise management — invite tokens + franchisee list                                              |
 | `/orgs/[orgId]/tasks`                            | `requireOrgMemberPage`                     | Task definition list — searchable/sortable table with role filter and per-row actions               |
@@ -481,8 +494,12 @@ A parent org can spawn franchisee orgs using a one-time invite token flow:
 
 ## UI Notes
 
-- **Breadcrumb** — `PageHeader` is an **async server component**. It reads the current URL from the `x-pathname` header set by `proxy.ts` middleware and resolves dynamic id segments to human-readable names via Prisma (task name, user name, role name, template name). No client-side `usePathname()` needed.
-- **Sidebar** — The Progress nav item is disabled (`opacity-40 cursor-not-allowed pointer-events-none`). Active state uses prefix matching; Overview uses exact matching.
+- **Sidebar architecture** — Three context layers work together:
+  - `MobileSidebarContext` — boolean open/close state for the global app sidebar overlay on mobile.
+  - `AppSidebar` — desktop hover-expand strip (`w-12` → `w-52`); mobile fixed overlay. Uses `SidebarNavItem variant="app"`.
+  - `PageSidebarContext` — slot-based system for page-level sidebars. Pages call `<RegisterPageSidebar>` to inject content into the `<PageSidebarSlot>` rendered by the app layout. Open/closed state persisted in `localStorage`.
+- **Unified height system** — `h-12` (48px) is used consistently across: navbar inner row, toolbar, sidebar nav items, page sidebar title rows, and open/close buttons. This ensures every horizontal element lines up on a shared baseline.
+- **Sidebar nav** — The Progress nav item is disabled (`opacity-40 cursor-not-allowed pointer-events-none`). Active state uses prefix matching; Overview uses exact matching.
 - **Colors required** — Both `Role.color` and `Task.color` are non-nullable in the schema and enforced by Zod validators (`/^#[0-9a-fA-F]{6}$/`). Create and edit forms render a native `<input type="color">` with a hex label. The color is submitted as a hidden `<input name="color">` so it flows through `FormData`.
 - **Task form color picker** — Lazy `useState(() => dv?.color ?? randomHex())` initializer prevents React purity errors on random defaults.
 - **Member pages** — Split into view (`[memberId]/page.tsx`) and edit (`[memberId]/edit/page.tsx`) routes. Both share `MemberForm`. The toolbar on the detail page provides Edit and an Actions ▼ dropdown (Restrict / Unrestrict / Delete with confirm dialogs).

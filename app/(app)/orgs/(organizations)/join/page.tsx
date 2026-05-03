@@ -1,3 +1,10 @@
+/**
+ * JoinPage — server wrapper for the franchise join flow (`/orgs/join`).
+ *
+ * Passes the full timezone list to `JoinFranchisePage` at build time to avoid
+ * loading it on the client. Wrapped in `<Suspense>` because the client
+ * component calls `useSearchParams()` to read the `?token=` query param.
+ */
 import { Suspense } from "react";
 import { TIMEZONES } from "@/lib/timezones";
 import JoinFranchisePage from "./join-franchise-client";

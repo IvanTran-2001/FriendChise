@@ -1,3 +1,7 @@
+/**
+ * InvitePage — placeholder for org invitations (`/orgs/invite`).
+ * Will list pending invitations the user has received. Currently a stub.
+ */
 export default function InvitePage() {
   return (
     <div className="max-w-md">

@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * OrgManagementNav — page sidebar content for org-management routes.
+ *
+ * Shown inside `PageSidebarSlot` for all routes under `/orgs/(organizations)`.
+ * Contains links to Create, Join, Invite, and List org actions. Items marked
+ * `disabled` are rendered as non-interactive (coming-soon stubs).
+ */
 import { usePathname } from "next/navigation";
 import { Building2, PlusCircle, Network, Mail } from "lucide-react";
 import { SidebarNavItem } from "@/components/layout/sidebar-nav-item";

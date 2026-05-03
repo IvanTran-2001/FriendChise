@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * SettingsNav — page sidebar content for settings routes.
+ *
+ * Shown inside `PageSidebarSlot` for all routes under `/orgs/[orgId]/settings`.
+ * Links to Organization, Roles, Timetable, and Notification settings. Active
+ * item is highlighted via prefix-match against the current pathname.
+ */
 import { useParams, usePathname } from "next/navigation";
 import { Building2, ShieldCheck, Calendar, Bell } from "lucide-react";
 import { SidebarNavItem } from "@/components/layout/sidebar-nav-item";

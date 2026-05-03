@@ -1,5 +1,18 @@
 "use client";
 
+/**
+ * SidebarNavItem — shared navigation link used in both the app sidebar and
+ * page-level sidebars.
+ *
+ * Variants:
+ *  - `app` (default) — full-bleed `h-12` item with a fixed `w-12` icon well
+ *    and a slide-in label. Used inside the hover-expand global `AppSidebar`.
+ *  - `page` — `h-12 px-4` item with an inline icon+label row. Used inside
+ *    page sidebars (settings, org management).
+ *
+ * Active state is determined by prefix-matching `href` against the current
+ * pathname, except for exact-match items (pass `exact` prop).
+ */
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { ComponentType } from "react";

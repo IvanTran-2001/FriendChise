@@ -1,5 +1,17 @@
 "use client";
 
+/**
+ * JoinFranchisePage — client component for the franchise join flow.
+ *
+ * Reads `?token=` from the URL. If a token is present the form is pre-filled
+ * and the token field is read-only. On submit calls `joinFranchise` server
+ * action which validates the token, clones the parent org's roles/tasks/
+ * timetable settings into the new franchisee org, and redirects to the new
+ * org on success.
+ *
+ * Fields: token, org name, timezone, business hours (open/close times,
+ * working days).
+ */
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
