@@ -62,6 +62,7 @@ function ScheduleFields({
             Time Zone
           </label>
           <TimezoneSelect
+            id="timezone"
             value={timezone}
             onChange={setTimezone}
             timezones={timezones}
@@ -175,8 +176,14 @@ export default function NewOrgPage({ timezones }: { timezones: TimezoneOption[] 
     setError(null);
     setLoading(true);
     try {
+      const trimmedTitle = title.trim();
+      if (!trimmedTitle) {
+        setError("Organization name is required");
+        setLoading(false);
+        return;
+      }
       const result = await createOrg({
-        title,
+        title: trimmedTitle,
         ...buildSchedulePayload(schedule),
       });
       if (!result.ok) {

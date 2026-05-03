@@ -30,7 +30,8 @@ export function MobileSidebarTrigger() {
   return (
     <button
       onClick={() => setOpen(!open)}
-      aria-label="Open menu"
+      aria-label={open ? "Close menu" : "Open menu"}
+      aria-expanded={open}
       className="md:hidden rounded-md p-1.5 text-foreground/70 hover:text-foreground hover:bg-accent transition-colors"
     >
       <Menu className="h-5 w-5" />

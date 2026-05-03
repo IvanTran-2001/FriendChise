@@ -73,7 +73,7 @@ export function PageSidebarSlot() {
 
       {/* Mobile: overlay anchored right of the AppSidebar icon strip */}
       {open && (
-        <div className="md:hidden fixed inset-y-0 left-12 z-50 flex flex-col w-[260px] bg-sidebar border-r border-border overflow-hidden">
+        <div className="md:hidden fixed inset-y-0 left-12 z-50 flex flex-col w-[260px] bg-sidebar border-r border-border overflow-y-auto max-h-screen">
           {sidebar}
         </div>
       )}
