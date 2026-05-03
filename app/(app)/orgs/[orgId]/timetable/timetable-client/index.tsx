@@ -162,6 +162,8 @@ export function TimetableClient({
   return (
     <div className={`flex flex-col${fillHeight ? " flex-1 min-h-0" : ""}`}>
       {/* Combined toolbar */}
+      {/* Note: Uses sm:mb-4 (smaller than Toolbar component's sm:mb-6) to reduce
+           spacing between the navigation controls and the calendar grid below. */}
       <div className="-mx-4 -mt-4 mb-4 border-b bg-card px-4 min-h-12 py-2 shrink-0 flex flex-wrap items-center gap-2 sm:-mx-6 sm:-mt-6 sm:mb-4 sm:px-6">
         {/* Row 1 (always): prev / date label / next + Today */}
         <div className="flex items-center gap-2 w-full sm:w-auto">

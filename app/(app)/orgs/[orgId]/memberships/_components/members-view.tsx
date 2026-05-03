@@ -189,6 +189,7 @@ export function MembersView({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-7 h-8 w-full"
+            aria-label="Search members by name or email"
           />
         </div>
         <SegmentedControl
