@@ -12,6 +12,8 @@ interface TimetableViewPickerProps {
   simpleHref: string;
   dayHref: string;
   weekHref: string;
+  /** Extra classes applied to the outer wrapper (e.g. "flex-col" in sidebars). */
+  className?: string;
 }
 
 export function TimetableViewPicker({
@@ -21,6 +23,7 @@ export function TimetableViewPicker({
   simpleHref,
   dayHref,
   weekHref,
+  className,
 }: TimetableViewPickerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -43,6 +46,7 @@ export function TimetableViewPicker({
       className={cn(
         "flex items-center gap-2",
         isPending && "pointer-events-none opacity-50",
+        className,
       )}
     >
       {/* Day / Week */}

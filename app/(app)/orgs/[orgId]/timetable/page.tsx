@@ -13,10 +13,10 @@ import { getMemberships } from "@/lib/services/memberships";
 import { getRoles } from "@/lib/services/roles";
 import { prisma } from "@/lib/prisma";
 import { TimetableClient } from "./timetable-client";
-import { TimetableViewPicker } from "./timetable-view-picker";
-import { TimetableActions } from "./timetable-actions";
-import { RoleFilterButton } from "./role-filter-button";
 import { TimetablePrefRedirect } from "./timetable-pref-redirect";
+import { TimetableSidebarContent } from "./timetable-sidebar-content";
+import { TimetableMobileDrawer } from "./timetable-mobile-drawer";
+import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
 import { toLocalDateStr, addCalendarDays } from "@/lib/date-utils";
 
 export default async function TimetablePage({
@@ -193,11 +193,35 @@ export default async function TimetablePage({
     return `/orgs/${orgId}/timetable?${params.toString()}`;
   };
 
+  const sidebarProps = {
+    orgId,
+    anchor,
+    mode,
+    span,
+    selectedRoleId: rawRoleId,
+    roles: filterRoles,
+    calendarHref: timetableHref("calendar"),
+    simpleHref: timetableHref("simple"),
+    dayHref: timetableHref(mode, "day"),
+    weekHref: timetableHref(mode, "week"),
+    canManage: canManageTimetable,
+    templates: templates.map((t) => ({
+      id: t.id,
+      name: t.name,
+      cycleLengthDays: t.cycleLengthDays,
+    })),
+    todayStr,
+    userId,
+  };
+
   return (
     <div
       className="flex flex-col"
       style={{ height: "calc(100dvh - 148px)", minHeight: "500px" }}
     >
+      {/* Desktop page sidebar */}
+      <RegisterPageSidebar content={<TimetableSidebarContent {...sidebarProps} />} />
+
       <TimetablePrefRedirect orgId={orgId} />
       <TimetableClient
         orgId={orgId}
@@ -231,37 +255,10 @@ export default async function TimetablePage({
         }
         memberships={clientMemberships}
       >
-        {/* Role filter */}
-        <RoleFilterButton
-          roles={filterRoles}
-          anchor={anchor}
-          mode={mode}
-          span={span}
-          selectedRoleId={rawRoleId}
-          orgId={orgId}
-        />
-        {/* Calendar/Simple + Day/Week pickers */}
-        <TimetableViewPicker
-          mode={mode}
-          span={span}
-          calendarHref={timetableHref("calendar")}
-          simpleHref={timetableHref("simple")}
-          dayHref={timetableHref(mode, "day")}
-          weekHref={timetableHref(mode, "week")}
-        />
-        {canManageTimetable && (
-          <TimetableActions
-            orgId={orgId}
-            templates={templates.map((t) => ({
-              id: t.id,
-              name: t.name,
-              cycleLengthDays: t.cycleLengthDays,
-            }))}
-            anchor={anchor}
-            todayStr={todayStr}
-            userId={userId}
-          />
-        )}
+        {/* Mobile: bottom-sheet trigger (hidden on desktop where the page sidebar is shown) */}
+        <TimetableMobileDrawer>
+          <TimetableSidebarContent {...sidebarProps} />
+        </TimetableMobileDrawer>
       </TimetableClient>
     </div>
   );
