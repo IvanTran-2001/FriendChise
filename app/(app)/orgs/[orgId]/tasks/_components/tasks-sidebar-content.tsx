@@ -103,6 +103,7 @@ export function TasksSidebarContent({
                 variant={roleId ? "secondary" : "outline"}
                 size="sm"
                 className="w-full justify-between gap-2"
+                aria-label="Filter by role"
               >
                 {activeRole ? activeRole.name : "All roles"}
                 <ChevronDown className="h-3.5 w-3.5 shrink-0" />
