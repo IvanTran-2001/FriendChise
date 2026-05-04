@@ -255,20 +255,32 @@ app/
       [orgId]/
         page.tsx          # Org overview
         franchisee/       # Franchise management (parent org owners only)
-        memberships/      # Members list, search, role filter, invite new member
+        memberships/      # Members list, role filter, list/card toggle, invite/add actions
+          layout.tsx            # Registers MembersSidebarShell for all memberships routes
           [memberId]/     # Member detail view (view-only, roles, working days, status)
             page.tsx
             edit/         # Edit member form (working days, roles)
             _components/
               member-toolbar-actions.tsx  # Restrict/Unrestrict + Delete confirm dialogs
           _components/
-            members-view.tsx        # Client component: toolbar, search/filter, list↔card toggle
-            member-form.tsx         # Shared create/edit form (email, working days, RolePicker)
-            role-picker.tsx         # Searchable role input — selecting auto-adds, no + button
+            members-sidebar-shell.tsx   # Persistent sidebar shell (panel title + List nav tab + sub-content slot)
+            members-sidebar-content.tsx # Filters (role dropdown, list/card toggle) + MembersActions
+            members-actions.tsx         # Invite Member + Add Bot buttons; ActionSidebar on desktop, Dialog on mobile
+            invite-member-panel.tsx     # InviteMemberPanel (ActionSidebar form) + InviteMemberDialog (mobile popup)
+            add-bot-panel.tsx           # AddBotPanel (ActionSidebar form) + AddBotDialog (mobile popup)
+            members-view.tsx            # Client component: toolbar (search only), list/card views
+            member-form.tsx             # Shared create/edit form (email, working days, RolePicker)
+            role-picker.tsx             # Searchable role input — selecting auto-adds, no + button
         tasks/            # Task definition list + create form
+          layout.tsx            # Registers TasksSidebarShell for all tasks routes
           [taskId]/       # Task detail view (links from timetable)
             edit/         # Edit task form (includes color picker)
           task-form.tsx   # Shared create/edit form — title, color picker, fields, eligibility
+          _components/
+            tasks-config.ts             # Shared sort constants (SortOption, SORT_OPTIONS) — plain module, no "use client"
+            tasks-sidebar-shell.tsx     # Persistent sidebar shell (panel title + List nav tab + sub-content slot)
+            tasks-sidebar-content.tsx   # Filters (sort dropdown, role filter, view toggle) + Create Task action
+            task-table.tsx              # Client component: toolbar (search only), list/card views
         timetable/        # Weekly timetable, template selector, template editor
           layout.tsx            # Registers TimetableSidebarShell for all timetable routes
           page.tsx              # Server page: fetches week entries, permissions, roles
@@ -327,7 +339,7 @@ components/
     sidebar.tsx                 # Global app sidebar: desktop hover-expand (w-12→w-52), mobile overlay
     sidebar-nav-item.tsx        # Shared nav link — variant="app" (icon-well) or variant="page" (inline)
     mobile-sidebar-context.tsx  # Boolean context for mobile sidebar overlay open/close state
-    page-sidebar-context.tsx    # Slot-based page sidebar: RegisterPageSidebar + PageSidebarSlot + sub-content slot
+    page-sidebar-context.tsx    # Slot-based page sidebar: RegisterPageSidebar + PageSidebarSlot + RegisterPageSidebarSubContent sub-content slot
     action-sidebar-context.tsx  # Transient action panel (ActionSidebarSlot) beside page sidebar; open/close via hook
     org-switcher.tsx            # Org selector dropdown
     toolbar.tsx                 # h-12 sticky sub-header; cancels main padding with negative margins; left-pads when sidebar collapsed
@@ -457,12 +469,12 @@ Server Actions call `revalidatePath` to invalidate the Next.js cache so server-r
 | `/orgs/join`                                     | Signed in                                  | Join an existing org as a franchisee using a one-time token                                         |
 | `/orgs/[orgId]`                                  | `requireOrgMemberPage`                     | Org overview                                                                                        |
 | `/orgs/[orgId]/franchisee`                       | `requireParentOrgOwnerPage`                | Franchise management — invite tokens + franchisee list                                              |
-| `/orgs/[orgId]/tasks`                            | `requireOrgMemberPage`                     | Task definition list — searchable/sortable table with role filter and per-row actions               |
+| `/orgs/[orgId]/tasks`                            | `requireOrgMemberPage`                     | Task definition list — sort, role filter, list/card toggle in sidebar; search in toolbar; Create Task action in sidebar (managers only) |
 | `/orgs/[orgId]/tasks/new`                        | `requireOrgPermissionPage MANAGE_TASKS`    | Create task — includes color picker                                                                 |
 | `/orgs/[orgId]/tasks/[taskId]`                   | `requireOrgMemberPage`                     | Task detail view; clicking a task name in the timetable navigates here                              |
 | `/orgs/[orgId]/tasks/[taskId]/edit`              | `requireOrgPermissionPage MANAGE_TASKS`    | Edit task — color picker pre-filled with current color                                              |
-| `/orgs/[orgId]/memberships`                      | `requireOrgMemberPage`                     | Member list                                                                                         |
-| `/orgs/[orgId]/memberships/new`                  | `requireOrgPermissionPage MANAGE_MEMBERS`  | Invite a new member by email                                                                        |
+| `/orgs/[orgId]/memberships`                      | `requireOrgMemberPage`                     | Member list — role filter, list/card toggle in sidebar; search in toolbar; Invite Member + Add Bot in sidebar (ActionSidebar on desktop, Dialog on mobile) |
+| `/orgs/[orgId]/memberships/new`                  | `requireOrgPermissionPage MANAGE_MEMBERS`  | Invite a new member by email (standalone page, also accessible from sidebar action)                 |
 | `/orgs/[orgId]/memberships/[memberId]`           | `requireOrgMemberPage`                     | Member detail view — avatar, roles (multi-badge), working days, status, join date                   |
 | `/orgs/[orgId]/memberships/[memberId]/edit`      | `requireOrgPermissionPage MANAGE_MEMBERS`  | Edit member — working days, roles (owner role excluded from picker)                                 |
 | `/orgs/[orgId]/timetable`                        | `requireOrgMemberPage`                     | Timetable — calendar or simple mode, week navigation                                                |
@@ -505,7 +517,9 @@ A parent org can spawn franchisee orgs using a one-time invite token flow:
 - **Sidebar architecture** — Three context layers work together:
   - `MobileSidebarContext` — boolean open/close state for the global app sidebar overlay on mobile.
   - `AppSidebar` — desktop hover-expand strip (`w-12` → `w-52`); mobile fixed overlay. Uses `SidebarNavItem variant="app"`.
-  - `PageSidebarContext` — slot-based system for page-level sidebars. Pages call `<RegisterPageSidebar>` to inject content into the `<PageSidebarSlot>` rendered by the app layout. Open/closed state persisted in `localStorage`.
+- **PageSidebarContext** — slot-based system for page-level sidebars. `layout.tsx` calls `<RegisterPageSidebar>` to mount a persistent shell; pages call `<RegisterPageSidebarSubContent>` to swap only the inner filters/actions without unmounting the shell (eliminates sidebar flicker on navigation). Open/closed state persisted in `localStorage`.
+- **Shell + sub-content pattern** — Tasks and Members each have a `*-sidebar-shell.tsx` (client, registered in `layout.tsx`) that renders the panel title, nav tabs, and a `usePageSidebarSubContent()` slot. The per-page sidebar content (`*-sidebar-content.tsx`) is registered via `RegisterPageSidebarSubContent` in `page.tsx` and fills that slot.
+- **ActionSidebar for member actions** — "Invite Member" and "Add Bot" in the members sidebar open an `ActionSidebarSlot` panel on desktop (button highlights blue while active) and a `Dialog` popup on mobile. The dialog is mounted in the same component tree as the button so it is not unmounted when the mobile sidebar overlay closes.
 - **Unified height system** — `h-12` (48px) is used consistently across: navbar inner row, toolbar, sidebar nav items, page sidebar title rows, and open/close buttons. This ensures every horizontal element lines up on a shared baseline.
 - **Sidebar nav** — The Progress nav item is disabled (`opacity-40 cursor-not-allowed pointer-events-none`). Active state uses prefix matching; Overview uses exact matching.
 - **Colors required** — Both `Role.color` and `Task.color` are non-nullable in the schema and enforced by Zod validators (`/^#[0-9a-fA-F]{6}$/`). Create and edit forms render a native `<input type="color">` with a hex label. The color is submitted as a hidden `<input name="color">` so it flows through `FormData`.
@@ -670,7 +684,7 @@ SENTRY_AUTH_TOKEN=   # Required whenever source maps are uploaded at build time 
 
 ## Status
 
-Work in progress. Fully implemented: service layer (all 10 services with 93 integration tests), REST API, auth, member management (list, view, edit, restrict, delete), task management (list, view, create, edit with color), timetable view (calendar + simple, task links), timetable templates (create, rename, duplicate, delete, calendar/simple editor, cycle-length controls, apply to timetable), org settings, role management (list, create, edit, delete, task eligibility, color), franchise management, required colors on tasks and roles, async breadcrumbs with name resolution, fixed-toolbar scroll containment on members and tasks pages, audit log (DB table + Zod-validated service layer, all significant mutations instrumented — UI pending).
+Work in progress. Fully implemented: service layer (all 10 services with 93 integration tests), REST API, auth, member management (list, view, edit, restrict, delete), task management (list, view, create, edit with color), timetable view (calendar + simple, task links), timetable templates (create, rename, duplicate, delete, calendar/simple editor, cycle-length controls, apply to timetable), org settings, role management (list, create, edit, delete, task eligibility, color), franchise management, required colors on tasks and roles, async breadcrumbs with name resolution, fixed-toolbar scroll containment on members and tasks pages, audit log (DB table + Zod-validated service layer, all significant mutations instrumented — UI pending), tasks/members page sidebar redesign (shell + sub-content pattern matching timetable architecture, URL-param-driven filters, ActionSidebar panels for Invite Member + Add Bot with mobile Dialog fallback).
 
 Not yet started: schedule generation (automatic cycle-based rotation), worker "Today" checklist, completion stats, timetable/notification settings pages, real-time notification refresh, audit log UI (activity feed page).
 

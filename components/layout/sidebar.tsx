@@ -65,7 +65,7 @@ type NavItem = {
 
 function getOrgItems(orgId: string): NavItem[] {
   return [
-    { title: "Overview", url: `/orgs/${orgId}`, icon: Building2, disabled: true },
+    { title: "Overview", url: `/orgs/${orgId}`, icon: Building2 },
     { title: "Timetable", url: `/orgs/${orgId}/timetable`, icon: Calendar },
     { title: "Tasks", url: `/orgs/${orgId}/tasks`, icon: ListTodo },
     { title: "Tools", url: `/orgs/${orgId}/tools`, icon: Wrench, disabled: true },

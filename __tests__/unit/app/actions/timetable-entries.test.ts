@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { EntryStatus, PermissionAction } from "@prisma/client";
+import { EntryStatus } from "@prisma/client";
 
 // ─── Mock modules ─────────────────────────────────────────────────────────────
 
