@@ -180,7 +180,7 @@ export function AppSidebar() {
               <>
                 <SidebarNavItem
                   variant="app"
-                  title="Workspace"
+                  title="Hub"
                   url="/"
                   icon={LayoutDashboard}
                   isActive={pathname === "/"}

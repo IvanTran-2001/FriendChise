@@ -150,7 +150,7 @@ export function TaskTable({
         />
       </Toolbar>
 
-      <div className="flex-1 overflow-auto -mx-4 sm:-mx-6 px-4 sm:px-6 pb-4 sm:pb-6">
+      <div className="flex-1 min-h-0 overflow-auto overscroll-contain -mx-4 sm:-mx-6 px-4 sm:px-6 pb-4 sm:pb-6">
         {visible.length === 0 ? (
           <div className="flex items-center justify-center border py-24">
             <div className="flex flex-col items-center gap-3 text-center">

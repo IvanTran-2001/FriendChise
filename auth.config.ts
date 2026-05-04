@@ -27,15 +27,16 @@ export const authConfig: NextAuthConfig = {
       const isAuthed = !!auth?.user;
       if (!isAuthed) {
         const { pathname, origin } = new URL(request.url);
-        // Visiting the home page unauthenticated → redirect with a hint so
-        // the sign-in page can show an explanatory prompt.
+        const url = new URL("/signin", origin);
+        // For the home page, add a hint so sign-in can show an explanatory prompt.
         if (pathname === "/") {
-          const url = new URL("/signin", origin);
           url.searchParams.set("hint", "account_required");
-          return Response.redirect(url);
+        } else {
+          url.searchParams.set("callbackUrl", pathname);
         }
+        return Response.redirect(url);
       }
-      return isAuthed;
+      return true;
     },
     async signIn({ user }) {
       // Normalize email (trim + lowercase) before PrismaAdapter persists it
