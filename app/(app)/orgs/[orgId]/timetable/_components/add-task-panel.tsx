@@ -61,6 +61,10 @@ export function AddTaskPanel({ tasks, orgId, anchor, todayStr }: AddTaskPanelPro
 
   function handleSubmit() {
     if (!selectedTask) return;
+    if (!date) {
+      toast.error("Please select a date.");
+      return;
+    }
     const [hours, minutes] = timeStr.split(":").map(Number);
 
     // Validate parsed time values
