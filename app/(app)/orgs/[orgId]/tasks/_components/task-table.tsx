@@ -9,9 +9,9 @@
  *
  * Toolbar:
  *  - Search input — filters rows by title (case-insensitive).
- *  - Sort dropdown — Name A–Z/Z–A, Duration ↑↓, People ↑↓.
- *  - Filter by role — hidden when no roles exist; highlights when active.
- *  - Actions dropdown — single "Create" link to the new-task form.
+ *
+ * Sort, role filter, and view (list/card) are URL-driven and come from the
+ * page sidebar (TasksSidebarContent) via server-rendered props.
  *
  * Row actions ([...] menu per row):
  *  - Edit — navigates to `/orgs/[orgId]/tasks/[taskId]/edit`.
@@ -23,17 +23,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  ChevronDown,
-  LayoutGrid,
-  List,
-  MoreHorizontal,
-  ListTodo,
-} from "lucide-react";
+import { MoreHorizontal, ListTodo } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Toolbar } from "@/components/layout/toolbar";
 import {
   DropdownMenu,
@@ -52,7 +45,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { deleteTaskAction } from "@/app/actions/tasks";
-import { usePersistedState } from "@/hooks/use-persisted-state";
+import type { SortOption } from "./tasks-config";
 
 // Strip markdown syntax for plain-text previews
 function stripMd(text: string): string {
@@ -78,70 +71,29 @@ type Task = {
   eligibility: { role: { id: string; name: string; color: string | null } }[];
 };
 
-type Role = { id: string; name: string };
-
-type SortOption =
-  | "name-asc"
-  | "name-desc"
-  | "duration-asc"
-  | "duration-desc"
-  | "people-asc"
-  | "people-desc";
-
-const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: "name-asc", label: "Name A–Z" },
-  { value: "name-desc", label: "Name Z–A" },
-  { value: "duration-asc", label: "Duration ↑" },
-  { value: "duration-desc", label: "Duration ↓" },
-  { value: "people-asc", label: "People ↑" },
-  { value: "people-desc", label: "People ↓" },
-];
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface TaskTableProps {
   orgId: string;
   tasks: Task[];
-  roles: Role[];
   canManageTasks: boolean;
+  sort: SortOption;
+  filterRoleId: string | null;
+  view: "list" | "card";
 }
 
 export function TaskTable({
   orgId,
   tasks,
-  roles,
   canManageTasks,
+  sort,
+  filterRoleId,
+  view,
 }: TaskTableProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState("");
-  const [sortRaw, setSortRaw] = usePersistedState<SortOption>(
-    "tasks:sort",
-    "name-asc",
-  );
-  // Validate persisted sort value against SORT_OPTIONS
-  const sort = SORT_OPTIONS.find((o) => o.value === sortRaw)
-    ? sortRaw
-    : "name-asc";
-  const setSort = (value: SortOption) => {
-    // Sanitize updates to only accept values present in SORT_OPTIONS
-    if (SORT_OPTIONS.find((o) => o.value === value)) {
-      setSortRaw(value);
-    }
-  };
-  const [filterRoleId, setFilterRoleId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
-  const [viewRaw, setViewRaw] = usePersistedState<"list" | "card">(
-    "tasks:view",
-    "list",
-  );
-  // Validate persisted view value
-  const view = viewRaw === "list" || viewRaw === "card" ? viewRaw : "list";
-  const setView = (value: "list" | "card") => {
-    if (value === "list" || value === "card") {
-      setViewRaw(value);
-    }
-  };
 
   // Filter by search and role
   let visible = tasks.filter((t) =>
@@ -171,9 +123,6 @@ export function TaskTable({
     }
   });
 
-  const activeSort = SORT_OPTIONS.find((o) => o.value === sort)!;
-  const activeRole = roles.find((r) => r.id === filterRoleId);
-
   function handleDelete() {
     if (!deleteTarget) return;
     const taskId = deleteTarget.id;
@@ -197,73 +146,8 @@ export function TaskTable({
           placeholder="Search by title..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 h-8 min-w-[200px]"
+          className="flex-1 h-7 min-w-50"
         />
-        <SegmentedControl
-          size="sm"
-          value={view}
-          onChange={setView}
-          options={[
-            { value: "list", label: <List className="h-4 w-4" /> },
-            { value: "card", label: <LayoutGrid className="h-4 w-4" /> },
-          ]}
-        />
-        {/* Sort */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
-              {activeSort.label}
-              <ChevronDown className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            {SORT_OPTIONS.map((o) => (
-              <DropdownMenuItem
-                key={o.value}
-                onClick={() => setSort(o.value)}
-              >
-                {o.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Filter by role */}
-        {roles.length > 0 && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant={filterRoleId ? "secondary" : "outline"}
-                size="sm"
-                className="gap-1.5 shrink-0"
-              >
-                {activeRole ? activeRole.name : "Filter by role"}
-                <ChevronDown className="h-3.5 w-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {filterRoleId && (
-                <DropdownMenuItem onClick={() => setFilterRoleId(null)}>
-                  All roles
-                </DropdownMenuItem>
-              )}
-              {roles.map((r) => (
-                <DropdownMenuItem
-                  key={r.id}
-                  onClick={() => setFilterRoleId(r.id)}
-                >
-                  {r.name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-
-        {canManageTasks && (
-          <Button asChild size="sm" className="ml-auto shrink-0">
-            <a href={`/orgs/${orgId}/tasks/new`}>+ Create Task</a>
-          </Button>
-        )}
       </Toolbar>
 
       <div className="flex-1 overflow-auto -mx-4 sm:-mx-6 px-4 sm:px-6 pb-4 sm:pb-6">

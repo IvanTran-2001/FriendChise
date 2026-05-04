@@ -43,9 +43,9 @@ export function TimetableSidebarShell() {
               key={label}
               href={url}
               className={cn(
-                "flex items-center gap-2.5 h-12 px-4 text-sm transition-colors",
+                "relative flex items-center gap-2.5 h-12 px-4 text-sm transition-colors",
                 isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium before:absolute before:top-2 before:left-2 before:w-2.5 before:h-2.5 before:border-t-2 before:border-l-2 before:border-primary after:absolute after:bottom-2 after:right-2 after:w-2.5 after:h-2.5 after:border-b-2 after:border-r-2 after:border-primary"
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
               )}
               aria-current={isActive ? "page" : undefined}

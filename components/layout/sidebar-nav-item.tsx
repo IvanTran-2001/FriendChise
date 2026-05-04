@@ -38,11 +38,12 @@ export function SidebarNavItem({
   variant = "page",
   onClick,
 }: SidebarNavItemProps) {
-  const active = "bg-sidebar-primary text-sidebar-primary-foreground font-medium";
+  const appActive = "bg-sidebar-primary text-sidebar-primary-foreground font-bold after:absolute after:bottom-1.5 after:left-1/2 after:-translate-x-1/2 after:w-5 after:h-0.5 after:rounded-full after:bg-primary";
+  const pageActive = "bg-sidebar-primary text-sidebar-primary-foreground font-medium before:absolute before:top-2 before:left-2 before:w-2.5 before:h-2.5 before:border-t-2 before:border-l-2 before:border-primary after:absolute after:bottom-2 after:right-2 after:w-2.5 after:h-2.5 after:border-b-2 after:border-r-2 after:border-primary";
   const hover = "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
 
   if (variant === "app") {
-    const base = "flex items-center h-12 w-full overflow-hidden rounded-none transition-colors";
+    const base = "relative flex items-center h-12 w-full overflow-hidden rounded-none transition-colors";
     const inner = (
       <>
         <span className="w-12 flex items-center justify-center shrink-0">
@@ -55,14 +56,14 @@ export function SidebarNavItem({
     );
     if (disabled) return <div className={cn(base, "opacity-40 pointer-events-none text-sidebar-foreground")} role="link" aria-disabled="true">{inner}</div>;
     return (
-      <Link href={url} onClick={onClick} className={cn(base, isActive ? active : cn("text-sidebar-foreground", hover))} aria-current={isActive ? "page" : undefined}>
+      <Link href={url} onClick={onClick} className={cn(base, isActive ? appActive : cn("text-sidebar-foreground", hover))} aria-current={isActive ? "page" : undefined}>
         {inner}
       </Link>
     );
   }
 
   // page variant
-  const base = "flex items-center gap-2.5 h-12 px-4 text-sm transition-colors";
+  const base = "relative flex items-center gap-2.5 h-12 px-4 text-sm transition-colors";
   const inner = (
     <>
       <Icon className="h-5 w-5 shrink-0" />
@@ -80,7 +81,7 @@ export function SidebarNavItem({
     <Link
       href={url}
       onClick={onClick}
-      className={cn(base, isActive ? active : cn("text-sidebar-foreground", hover))}
+      className={cn(base, isActive ? pageActive : cn("text-sidebar-foreground", hover))}
       aria-current={isActive ? "page" : undefined}
     >
       {inner}

@@ -1,8 +1,8 @@
 /**
  * MembersView — client component for the org members list page.
  *
- * Renders a toolbar (search, role filter, view toggle, "+ Add Member" button)
- * and the member roster in one of two layouts chosen by the user:
+ * Renders a toolbar (search) and the member roster in one of two layouts chosen
+ * via the page sidebar:
  *
  *   - List view  (`MemberList`)  — compact rows, ideal for many members.
  *   - Card view  (`CardGrid`)    — photo-forward grid, one card per member.
@@ -23,20 +23,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { usePersistedState } from "@/hooks/use-persisted-state";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, LayoutGrid, List, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import { SegmentedControl } from "@/components/ui/segmented-control";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { Toolbar } from "@/components/layout/toolbar";
 import { MemberActions } from "./member-actions";
@@ -138,31 +129,16 @@ export function MembersView({
   members,
   orgId,
   canManage,
+  roleId,
+  view,
 }: {
   members: Member[];
   orgId: string;
   canManage: boolean;
+  roleId: string | null;
+  view: "list" | "card";
 }) {
-  const [view, setView] = usePersistedState<"card" | "list">(
-    "members:view",
-    "card",
-  );
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<string | null>(null);
-
-  const allRoles = useMemo(() => {
-    const seen = new Set<string>();
-    const roles: { id: string; name: string }[] = [];
-    for (const m of members) {
-      for (const { role } of m.memberRoles) {
-        if (!seen.has(role.id)) {
-          seen.add(role.id);
-          roles.push(role);
-        }
-      }
-    }
-    return roles.sort((a, b) => a.name.localeCompare(b.name));
-  }, [members]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -170,74 +146,31 @@ export function MembersView({
       if (q && !(m.user?.name ?? m.botName ?? "").toLowerCase().includes(q))
         return false;
       if (
-        roleFilter &&
-        !m.memberRoles.some(({ role }) => role.id === roleFilter)
+        roleId &&
+        !m.memberRoles.some(({ role }) => role.id === roleId)
       )
         return false;
       return true;
     });
-  }, [members, search, roleFilter]);
+  }, [members, search, roleId]);
 
   return (
     <div className="flex flex-col h-full">
       {/* Toolbar */}
       <Toolbar>
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative flex-1 min-w-50">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
           <Input
             placeholder="Search members…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-7 h-8 w-full"
+            className="pl-7 h-7 w-full"
             aria-label="Search members by name"
           />
         </div>
-        <SegmentedControl
-          size="sm"
-          value={view}
-          onChange={setView}
-          options={[
-            { value: "list", label: <List className="h-4 w-4" /> },
-            { value: "card", label: <LayoutGrid className="h-4 w-4" /> },
-          ]}
-        />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
-              {roleFilter
-                ? (allRoles.find((r) => r.id === roleFilter)?.name ?? "Role")
-                : "All roles"}
-              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuItem onSelect={() => setRoleFilter(null)}>
-              All roles
-            </DropdownMenuItem>
-            {allRoles.map((role) => (
-              <DropdownMenuItem
-                key={role.id}
-                onSelect={() => setRoleFilter(role.id)}
-              >
-                {role.name}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {canManage && (
-          <div className="flex items-center gap-2 ml-auto shrink-0">
-            <Button asChild size="sm">
-              <Link href={`/orgs/${orgId}/memberships/new`}>+ Member</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href={`/orgs/${orgId}/memberships/new?bot=1`}>+ Bot</Link>
-            </Button>
-          </div>
-        )}
       </Toolbar>
 
-      <div className="flex-1 overflow-auto -mx-4 sm:-mx-6 px-4 sm:px-6 pb-4 sm:pb-6">
+      <div className="flex-1 overflow-auto -mx-4 sm:-mx-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-4 sm:pb-6">
         {filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {members.length === 0
