@@ -5,6 +5,15 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  // Allow _-prefixed function parameters to be unused (common TS convention).
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+    },
+  },
   // Relax strict TypeScript rules for test files — mocking requires `as any`
   // and unused destructuring variables (_) are idiomatic in tests.
   {
@@ -13,7 +22,7 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": [
         "warn",
-        { varsIgnorePattern: "^_" },
+        { varsIgnorePattern: "^_", argsIgnorePattern: "^_" },
       ],
     },
   },

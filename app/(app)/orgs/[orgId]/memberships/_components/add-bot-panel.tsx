@@ -61,8 +61,8 @@ export function AddBotPanel({
         }
         toast.success(`Bot "${botName.trim()}" added.`);
         onClose();
-      } catch (error: any) {
-        setErrors({ _: error.message || String(error) });
+      } catch (error: unknown) {
+        setErrors({ _: error instanceof Error ? error.message : String(error) });
         toast.error("Failed to add bot");
       }
     });
