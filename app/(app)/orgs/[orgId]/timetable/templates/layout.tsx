@@ -7,6 +7,9 @@ import { requireOrgPermissionPage } from "@/lib/authz";
  * Any request to /orgs/[orgId]/timetable/templates/** is blocked here if the
  * caller doesn't hold MANAGE_TIMETABLE. Individual pages (list, new, editor)
  * don't need to repeat this check.
+ *
+ * The sidebar shell (nav tabs) is registered by the parent timetable/layout.tsx
+ * and persists across all timetable routes.
  */
 export default async function TemplatesLayout({
   children,

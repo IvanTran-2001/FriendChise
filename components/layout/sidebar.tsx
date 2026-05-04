@@ -30,6 +30,7 @@ import {
   Network,
   Menu,
   HeartHandshake,
+  Wrench,
 } from "lucide-react";
 import { MobileSidebarCtx, useMobileSidebar, GlobalSidebarProvider } from "./mobile-sidebar-context";
 import { useHasPageSidebar } from "./page-sidebar-context";
@@ -64,9 +65,10 @@ type NavItem = {
 
 function getOrgItems(orgId: string): NavItem[] {
   return [
-    { title: "Overview", url: `/orgs/${orgId}`, icon: Building2 },
+    { title: "Overview", url: `/orgs/${orgId}`, icon: Building2, disabled: true },
     { title: "Timetable", url: `/orgs/${orgId}/timetable`, icon: Calendar },
     { title: "Tasks", url: `/orgs/${orgId}/tasks`, icon: ListTodo },
+    { title: "Tools", url: `/orgs/${orgId}/tools`, icon: Wrench, disabled: true },
     { title: "Members", url: `/orgs/${orgId}/memberships`, icon: Users },
     // TODO: remove `disabled: true` when progress page is implemented
     { title: "Progress", url: `/orgs/${orgId}/progress`, icon: BarChart2, disabled: true },

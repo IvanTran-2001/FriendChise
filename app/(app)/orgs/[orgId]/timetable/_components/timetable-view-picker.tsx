@@ -1,5 +1,20 @@
 "use client";
 
+/**
+ * TimetableViewPicker — paired segmented controls for the timetable view mode.
+ *
+ * Renders two SegmentedControl groups:
+ *  - Calendar / Simple  (mode)
+ *  - Day / Week         (span)
+ *
+ * All state is URL-driven — switching calls `router.push()` with the new
+ * href, so mode/span persist across navigation and page refreshes.
+ * A `useTransition` keeps the button interactive while the navigation is
+ * pending.
+ *
+ * Accepts an optional `className` for layout adjustments (e.g. `flex-col
+ * items-start` when rendered in a narrow sidebar vs. the toolbar).
+ */
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -12,6 +27,8 @@ interface TimetableViewPickerProps {
   simpleHref: string;
   dayHref: string;
   weekHref: string;
+  /** Extra classes applied to the outer wrapper (e.g. "flex-col" in sidebars). */
+  className?: string;
 }
 
 export function TimetableViewPicker({
@@ -21,6 +38,7 @@ export function TimetableViewPicker({
   simpleHref,
   dayHref,
   weekHref,
+  className,
 }: TimetableViewPickerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -43,6 +61,7 @@ export function TimetableViewPicker({
       className={cn(
         "flex items-center gap-2",
         isPending && "pointer-events-none opacity-50",
+        className,
       )}
     >
       {/* Day / Week */}

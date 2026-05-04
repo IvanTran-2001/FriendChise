@@ -13,10 +13,9 @@ import { getMemberships } from "@/lib/services/memberships";
 import { getRoles } from "@/lib/services/roles";
 import { prisma } from "@/lib/prisma";
 import { TimetableClient } from "./timetable-client";
-import { TimetableViewPicker } from "./timetable-view-picker";
-import { TimetableActions } from "./timetable-actions";
-import { RoleFilterButton } from "./role-filter-button";
-import { TimetablePrefRedirect } from "./timetable-pref-redirect";
+import { TimetablePrefRedirect } from "./_components/timetable-pref-redirect";
+import { TimetableSidebarContent } from "./_components/timetable-sidebar-content";
+import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
 import { toLocalDateStr, addCalendarDays } from "@/lib/date-utils";
 
 export default async function TimetablePage({
@@ -70,8 +69,8 @@ export default async function TimetablePage({
   // outside a ±4 window. ±6 guarantees the full Mon–Sun is always loaded.
   const rangeStart = addCalendarDays(anchor, -6);
 
-  const mode = modeParam === "simple" ? "simple" : "calendar";
-  const span = spanParam === "day" ? "day" : "week";
+  const mode: "calendar" | "simple" = modeParam === "simple" ? "simple" : "calendar";
+  const span: "day" | "week" = spanParam === "day" ? "day" : "week";
   const [
     instances,
     templates,
@@ -193,11 +192,51 @@ export default async function TimetablePage({
     return `/orgs/${orgId}/timetable?${params.toString()}`;
   };
 
+  const sidebarProps = {
+    orgId,
+    anchor,
+    mode,
+    span,
+    selectedRoleId: rawRoleId,
+    roles: filterRoles,
+    calendarHref: timetableHref("calendar"),
+    simpleHref: timetableHref("simple"),
+    dayHref: timetableHref(mode, "day"),
+    weekHref: timetableHref(mode, "week"),
+    canManage: canManageTimetable,
+    templates: templates.map((t) => ({
+      id: t.id,
+      name: t.name,
+      cycleLengthDays: t.cycleLengthDays,
+    })),
+    todayStr,
+    userId,
+  };
+
+  const availableTasks = canManageTimetable
+    ? tasks.map((t) => {
+        const displayRole = rawRoleId
+          ? t.eligibility.find((e) => e.role.id === rawRoleId)?.role
+          : t.eligibility[0]?.role;
+        return {
+          id: t.id,
+          name: t.name,
+          durationMin: t.durationMin,
+          color: t.color,
+          roleColor: displayRole?.color ?? null,
+          roleName: displayRole?.name ?? null,
+        };
+      })
+    : undefined;
+
   return (
     <div
       className="flex flex-col"
       style={{ height: "calc(100dvh - 148px)", minHeight: "500px" }}
     >
+      {/* Desktop page sidebar */}
+      <RegisterPageSidebarSubContent content={<TimetableSidebarContent {...sidebarProps} tasks={availableTasks} />} />
+
       <TimetablePrefRedirect orgId={orgId} />
       <TimetableClient
         orgId={orgId}
@@ -212,57 +251,9 @@ export default async function TimetablePage({
         roleId={rawRoleId}
         canManage={canManageTimetable}
         userId={userId}
-        availableTasks={
-          canManageTimetable
-            ? tasks.map((t) => {
-                const displayRole = rawRoleId
-                  ? t.eligibility.find((e) => e.role.id === rawRoleId)?.role
-                  : t.eligibility[0]?.role;
-                return {
-                  id: t.id,
-                  name: t.name,
-                  durationMin: t.durationMin,
-                  color: t.color,
-                  roleColor: displayRole?.color ?? null,
-                  roleName: displayRole?.name ?? null,
-                };
-              })
-            : undefined
-        }
+        availableTasks={availableTasks}
         memberships={clientMemberships}
-      >
-        {/* Role filter */}
-        <RoleFilterButton
-          roles={filterRoles}
-          anchor={anchor}
-          mode={mode}
-          span={span}
-          selectedRoleId={rawRoleId}
-          orgId={orgId}
-        />
-        {/* Calendar/Simple + Day/Week pickers */}
-        <TimetableViewPicker
-          mode={mode}
-          span={span}
-          calendarHref={timetableHref("calendar")}
-          simpleHref={timetableHref("simple")}
-          dayHref={timetableHref(mode, "day")}
-          weekHref={timetableHref(mode, "week")}
-        />
-        {canManageTimetable && (
-          <TimetableActions
-            orgId={orgId}
-            templates={templates.map((t) => ({
-              id: t.id,
-              name: t.name,
-              cycleLengthDays: t.cycleLengthDays,
-            }))}
-            anchor={anchor}
-            todayStr={todayStr}
-            userId={userId}
-          />
-        )}
-      </TimetableClient>
+      />
     </div>
   );
 }
