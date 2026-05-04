@@ -57,6 +57,9 @@ export function InviteMemberPanel({
         );
         return;
       }
+      setEmail("");
+      setRoleIds([]);
+      setWorkingDays([]);
       toast.success("Invite sent!");
       onClose();
     });
@@ -67,10 +70,11 @@ export function InviteMemberPanel({
       {errors._ && <p className="text-sm text-destructive">{errors._}</p>}
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium">
+        <label htmlFor="invite-email" className="text-sm font-medium">
           Email <span className="text-destructive">*</span>
         </label>
         <Input
+          id="invite-email"
           type="email"
           placeholder="member@example.com"
           value={email}
@@ -81,8 +85,8 @@ export function InviteMemberPanel({
         )}
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium">Working Days</label>
+      <fieldset className="flex flex-col gap-2">
+        <legend className="text-sm font-medium">Working Days</legend>
         <div className="flex flex-wrap gap-2">
           {DAYS.map(({ key, label }) => (
             <button
@@ -99,11 +103,11 @@ export function InviteMemberPanel({
             </button>
           ))}
         </div>
-      </div>
+      </fieldset>
 
       <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium">Roles</label>
-        <RolePicker allRoles={roles} selectedIds={roleIds} onChange={setRoleIds} />
+        <label id="invite-roles-label" className="text-sm font-medium">Roles</label>
+        <RolePicker allRoles={roles} selectedIds={roleIds} onChange={setRoleIds} aria-labelledby="invite-roles-label" />
       </div>
 
       <Button onClick={handleSubmit} disabled={isPending} className="w-full">

@@ -41,29 +41,35 @@ export function AddBotPanel({
     );
   }
 
-  function handleSubmit() {
+  function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     if (!botName.trim()) {
       setErrors({ botName: "Name is required" });
       return;
     }
     setErrors({});
     startTransition(async () => {
-      const result = await createBotAction(orgId, {
-        botName: botName.trim(),
-        roleIds,
-        workingDays,
-      });
-      if (!result.ok) {
-        setErrors({ _: result.error });
-        return;
+      try {
+        const result = await createBotAction(orgId, {
+          botName: botName.trim(),
+          roleIds,
+          workingDays,
+        });
+        if (!result.ok) {
+          setErrors({ _: result.error });
+          return;
+        }
+        toast.success(`Bot "${botName.trim()}" added.`);
+        onClose();
+      } catch (error: any) {
+        setErrors({ _: error.message || String(error) });
+        toast.error("Failed to add bot");
       }
-      toast.success(`Bot "${botName.trim()}" added.`);
-      onClose();
     });
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {errors._ && <p className="text-sm text-destructive">{errors._}</p>}
 
       <div className="flex flex-col gap-1.5">
@@ -89,6 +95,7 @@ export function AddBotPanel({
               key={key}
               type="button"
               onClick={() => toggleDay(key)}
+              aria-pressed={workingDays.includes(key)}
               className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                 workingDays.includes(key)
                   ? "bg-primary text-primary-foreground border-primary"
@@ -106,10 +113,10 @@ export function AddBotPanel({
         <RolePicker allRoles={roles} selectedIds={roleIds} onChange={setRoleIds} />
       </div>
 
-      <Button onClick={handleSubmit} disabled={isPending} className="w-full">
+      <Button type="submit" disabled={isPending} className="w-full">
         {isPending ? "Adding…" : "Add Bot"}
       </Button>
-    </div>
+    </form>
   );
 }
 
