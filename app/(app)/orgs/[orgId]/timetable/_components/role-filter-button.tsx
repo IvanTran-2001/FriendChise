@@ -68,10 +68,10 @@ export function RoleFilterButton({
         <Button
           variant={selectedRole ? "default" : "outline"}
           size="sm"
-          className="gap-1.5"
+          className="w-full justify-between gap-1.5"
         >
-          {selectedRole ? selectedRole.name : "Filter"}{" "}
-          <ChevronDown className="h-3.5 w-3.5" />
+          <span>{selectedRole ? selectedRole.name : "Filter"}</span>
+          <ChevronDown className="h-3.5 w-3.5 shrink-0" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">

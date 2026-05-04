@@ -202,8 +202,14 @@ export function TimeGrid<
     col: TColumnKey,
   ) {
     e.preventDefault();
-    const data = dragDataRef.current;
+    let data = dragDataRef.current;
     dragDataRef.current = null;
+    // Fallback: task drags originating outside this component tree
+    // (e.g. from the ActionSidebar) communicate via dataTransfer.
+    if (!data) {
+      const taskId = e.dataTransfer.getData("timetable/taskId");
+      if (taskId) data = { type: "task", taskId };
+    }
     if (!data) return;
     const offsetMin = data.type === "move" ? data.offsetMin : 0;
     onDrop(

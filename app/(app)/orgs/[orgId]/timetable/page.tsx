@@ -13,10 +13,9 @@ import { getMemberships } from "@/lib/services/memberships";
 import { getRoles } from "@/lib/services/roles";
 import { prisma } from "@/lib/prisma";
 import { TimetableClient } from "./timetable-client";
-import { TimetablePrefRedirect } from "./timetable-pref-redirect";
-import { TimetableSidebarContent } from "./timetable-sidebar-content";
-import { TimetableMobileDrawer } from "./timetable-mobile-drawer";
-import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
+import { TimetablePrefRedirect } from "./_components/timetable-pref-redirect";
+import { TimetableSidebarContent } from "./_components/timetable-sidebar-content";
+import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
 import { toLocalDateStr, addCalendarDays } from "@/lib/date-utils";
 
 export default async function TimetablePage({
@@ -70,8 +69,8 @@ export default async function TimetablePage({
   // outside a ±4 window. ±6 guarantees the full Mon–Sun is always loaded.
   const rangeStart = addCalendarDays(anchor, -6);
 
-  const mode = modeParam === "simple" ? "simple" : "calendar";
-  const span = spanParam === "day" ? "day" : "week";
+  const mode: "calendar" | "simple" = modeParam === "simple" ? "simple" : "calendar";
+  const span: "day" | "week" = spanParam === "day" ? "day" : "week";
   const [
     instances,
     templates,
@@ -214,13 +213,29 @@ export default async function TimetablePage({
     userId,
   };
 
+  const availableTasks = canManageTimetable
+    ? tasks.map((t) => {
+        const displayRole = rawRoleId
+          ? t.eligibility.find((e) => e.role.id === rawRoleId)?.role
+          : t.eligibility[0]?.role;
+        return {
+          id: t.id,
+          name: t.name,
+          durationMin: t.durationMin,
+          color: t.color,
+          roleColor: displayRole?.color ?? null,
+          roleName: displayRole?.name ?? null,
+        };
+      })
+    : undefined;
+
   return (
     <div
       className="flex flex-col"
       style={{ height: "calc(100dvh - 148px)", minHeight: "500px" }}
     >
       {/* Desktop page sidebar */}
-      <RegisterPageSidebar content={<TimetableSidebarContent {...sidebarProps} />} />
+      <RegisterPageSidebarSubContent content={<TimetableSidebarContent {...sidebarProps} tasks={availableTasks} />} />
 
       <TimetablePrefRedirect orgId={orgId} />
       <TimetableClient
@@ -236,30 +251,9 @@ export default async function TimetablePage({
         roleId={rawRoleId}
         canManage={canManageTimetable}
         userId={userId}
-        availableTasks={
-          canManageTimetable
-            ? tasks.map((t) => {
-                const displayRole = rawRoleId
-                  ? t.eligibility.find((e) => e.role.id === rawRoleId)?.role
-                  : t.eligibility[0]?.role;
-                return {
-                  id: t.id,
-                  name: t.name,
-                  durationMin: t.durationMin,
-                  color: t.color,
-                  roleColor: displayRole?.color ?? null,
-                  roleName: displayRole?.name ?? null,
-                };
-              })
-            : undefined
-        }
+        availableTasks={availableTasks}
         memberships={clientMemberships}
-      >
-        {/* Mobile: bottom-sheet trigger (hidden on desktop where the page sidebar is shown) */}
-        <TimetableMobileDrawer>
-          <TimetableSidebarContent {...sidebarProps} />
-        </TimetableMobileDrawer>
-      </TimetableClient>
+      />
     </div>
   );
 }

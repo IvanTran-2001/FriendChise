@@ -106,8 +106,8 @@ export function SegmentedControl<T extends string>({
           disabled={disabled}
           aria-current={isActive(value) ? "true" : undefined}
           className={cn(
-            size === "sm" ? "p-1.5" : "px-3 py-1",
-            "transition-colors cursor-pointer select-none",
+            size === "sm" ? "p-1.5" : "px-3 py-1 flex-1",
+            "transition-colors cursor-pointer select-none text-center",
             "disabled:pointer-events-none disabled:opacity-50",
             i > 0 && "border-l",
             isActive(value)

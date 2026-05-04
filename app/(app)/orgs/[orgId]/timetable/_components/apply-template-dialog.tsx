@@ -76,8 +76,10 @@ function formatDateRange(startDateStr: string, totalDays: number): string {
  * Dialog for selecting and applying a template to the live timetable.
  * Reactively fetches the count of existing entries in the target range so
  * the replacement warning is only shown when there is actually something to overwrite.
+ *
+ * Also exported for use in the ActionSidebar (outside a Dialog wrapper).
  */
-function ApplyTemplateForm({
+export function ApplyTemplateForm({
   onOpenChange,
   orgId,
   templates,

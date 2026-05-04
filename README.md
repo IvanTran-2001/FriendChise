@@ -242,7 +242,7 @@ All routes are prefixed with `/api`. Permissions refer to `PermissionAction` enu
 app/
   (app)/                  # Authenticated app shell (navbar + sidebar layout)
     page.tsx              # Home / landing page
-    layout.tsx            # Shared layout: SidebarProvider, NavBar, PageHeader
+    layout.tsx            # Shared layout: SidebarProvider, NavBar, ActionSidebarSlot
     orgs/
       (organizations)/    # Route group: org-management pages (shared OrgManagementNav sidebar)
         layout.tsx        # Registers OrgManagementNav as page sidebar for all child routes
@@ -270,16 +270,23 @@ app/
             edit/         # Edit task form (includes color picker)
           task-form.tsx   # Shared create/edit form — title, color picker, fields, eligibility
         timetable/        # Weekly timetable, template selector, template editor
+          layout.tsx            # Registers TimetableSidebarShell for all timetable routes
           page.tsx              # Server page: fetches week entries, permissions, roles
-          timetable-client.tsx  # Client root: CalendarView / SimpleView, CalendarEditPopup
-          timetable-actions.tsx # "Actions" dropdown (Apply Template, Templates link)
-          apply-template-dialog.tsx  # Modal for selecting and applying a template
-          role-filter-button.tsx     # Role filter dropdown (URL-state driven)
-          _shared/              # Shared grid primitives
+          _components/          # Page-specific components (sidebar, actions, filters)
+            timetable-sidebar-shell.tsx   # Persistent sidebar shell with Schedule/Templates tabs
+            timetable-sidebar-content.tsx # Filters + action buttons for the schedule page
+            timetable-actions.tsx         # Apply Template + Add Task buttons (ActionSidebar on desktop, fallback on mobile)
+            add-task-panel.tsx            # Two-mode panel: searchable/draggable task list → schedule form
+            apply-template-dialog.tsx     # Form for applying a template to a date range
+            role-filter-button.tsx        # Role filter dropdown (URL-state driven)
+            timetable-view-picker.tsx     # Calendar/Simple + Day/Week segmented controls
+            timetable-pref-redirect.tsx   # Restores mode/span from localStorage on first load
+          _shared/              # Shared grid primitives (used by timetable + template editor)
             time-grid.tsx       # Drag-and-drop time grid
-            task-panel.tsx      # Sidebar panel listing draggable tasks
+            task-panel.tsx      # Sidebar panel listing draggable tasks (mobile sheet + template editor)
             grid-utils.ts       # Pure utilities: snap, layout, date helpers
             types.ts            # Shared TypeScript types
+          timetable-client/     # CalendarView / SimpleView client components
           templates/            # Template list and editor sub-pages
         settings/
           page.tsx        # Redirects to /settings/organization
@@ -320,9 +327,10 @@ components/
     sidebar.tsx                 # Global app sidebar: desktop hover-expand (w-12→w-52), mobile overlay
     sidebar-nav-item.tsx        # Shared nav link — variant="app" (icon-well) or variant="page" (inline)
     mobile-sidebar-context.tsx  # Boolean context for mobile sidebar overlay open/close state
-    page-sidebar-context.tsx    # Slot-based page sidebar: RegisterPageSidebar + PageSidebarSlot
+    page-sidebar-context.tsx    # Slot-based page sidebar: RegisterPageSidebar + PageSidebarSlot + sub-content slot
+    action-sidebar-context.tsx  # Transient action panel (ActionSidebarSlot) beside page sidebar; open/close via hook
     org-switcher.tsx            # Org selector dropdown
-    toolbar.tsx                 # h-12 sticky sub-header; cancels main padding with negative margins
+    toolbar.tsx                 # h-12 sticky sub-header; cancels main padding with negative margins; left-pads when sidebar collapsed
     actions/
       tasks-actions.tsx
       members-actions.tsx

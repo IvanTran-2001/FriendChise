@@ -254,6 +254,16 @@ export function CalendarView({
     return () => ro.disconnect();
   }, []);
 
+  useEffect(() => {
+    if (!hasPanel) return;
+    function handleOpenTaskPanel() {
+      setTaskPanelOpen(true);
+    }
+    window.addEventListener("timetable:open-task-panel", handleOpenTaskPanel);
+    return () =>
+      window.removeEventListener("timetable:open-task-panel", handleOpenTaskPanel);
+  }, [hasPanel]);
+
   return (
     <>
       <div
@@ -297,7 +307,7 @@ export function CalendarView({
                         </button>
                       ) : (
                         <p className="text-sm text-muted-foreground">
-                          Drag a task from the panel to get started
+                          Use &ldquo;Add Task&rdquo; in the sidebar to get started
                         </p>
                       ))}
                   </div>
@@ -385,7 +395,7 @@ export function CalendarView({
             onBlockClick={(inst) =>
               router.push(`/orgs/${orgId}/tasks/${inst.taskId}?ref=timetable`)
             }
-            draggable={hasPanel}
+            draggable={canManage}
             initialScrollMin={initialScrollMin}
             fillHeight={fillHeight}
             columnHighlightClass={(dayStr) =>
@@ -400,22 +410,6 @@ export function CalendarView({
             onTapPlace={isMobile ? handleTapPlace : undefined}
           />
         </div>
-        {hasPanel && !isMobile && (
-          <TaskPanel
-            tasks={availableTasks}
-            fillHeight={fillHeight}
-            onDragStart={(taskId, e) => {
-              dragDataRef.current = { type: "task", taskId };
-              e.dataTransfer.effectAllowed = "copy";
-              setIsDragging(true);
-            }}
-            onDragEnd={() => {
-              dragDataRef.current = null;
-              setDragOver(null);
-              setIsDragging(false);
-            }}
-          />
-        )}
       </div>
 
       {/* Mobile: floating Tasks button + Sheet */}

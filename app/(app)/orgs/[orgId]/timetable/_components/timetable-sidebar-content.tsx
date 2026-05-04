@@ -10,6 +10,7 @@ import { RoleFilterButton } from "./role-filter-button";
 import { TimetableViewPicker } from "./timetable-view-picker";
 import { TimetableActions } from "./timetable-actions";
 import { type TemplateOption } from "./apply-template-dialog";
+import type { SharedTask } from "../_shared/types";
 
 interface TimetableSidebarContentProps {
   orgId: string;
@@ -26,6 +27,7 @@ interface TimetableSidebarContentProps {
   templates: TemplateOption[];
   todayStr: string;
   userId?: string;
+  tasks?: SharedTask[];
 }
 
 export function TimetableSidebarContent({
@@ -43,16 +45,10 @@ export function TimetableSidebarContent({
   templates,
   todayStr,
   userId,
+  tasks,
 }: TimetableSidebarContentProps) {
   return (
-    <aside className="flex flex-col flex-1 overflow-y-auto">
-      {/* Panel header */}
-      <div className="h-12 flex items-center px-4 border-b border-border shrink-0">
-        <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
-          Timetable
-        </span>
-      </div>
-
+    <div className="flex flex-col flex-1 overflow-y-auto">
       {/* Filters section */}
       <div className="px-3 pt-3 pb-2">
         <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
@@ -74,7 +70,7 @@ export function TimetableSidebarContent({
             simpleHref={simpleHref}
             dayHref={dayHref}
             weekHref={weekHref}
-            className="flex-col"
+            className="flex-col items-start"
           />
         </div>
       </div>
@@ -92,10 +88,11 @@ export function TimetableSidebarContent({
               anchor={anchor}
               todayStr={todayStr}
               userId={userId}
+              tasks={tasks}
             />
           </div>
         </div>
       )}
-    </aside>
+    </div>
   );
 }

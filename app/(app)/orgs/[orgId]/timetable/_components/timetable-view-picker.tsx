@@ -1,5 +1,20 @@
 "use client";
 
+/**
+ * TimetableViewPicker — paired segmented controls for the timetable view mode.
+ *
+ * Renders two SegmentedControl groups:
+ *  - Calendar / Simple  (mode)
+ *  - Day / Week         (span)
+ *
+ * All state is URL-driven — switching calls `router.push()` with the new
+ * href, so mode/span persist across navigation and page refreshes.
+ * A `useTransition` keeps the button interactive while the navigation is
+ * pending.
+ *
+ * Accepts an optional `className` for layout adjustments (e.g. `flex-col
+ * items-start` when rendered in a narrow sidebar vs. the toolbar).
+ */
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
