@@ -62,21 +62,32 @@ export function AddTaskPanel({ tasks, orgId, anchor, todayStr }: AddTaskPanelPro
   function handleSubmit() {
     if (!selectedTask) return;
     const [hours, minutes] = timeStr.split(":").map(Number);
+
+    // Validate parsed time values
+    if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      toast.error("Invalid time format. Please enter a valid time.");
+      return;
+    }
+
     const startTimeMin = hours * 60 + minutes;
     startTransition(async () => {
-      const result = await createTimetableEntryAction(
-        orgId,
-        selectedTask.id,
-        date,
-        startTimeMin,
-      );
-      if (!result.ok) {
-        toast.error(result.error ?? "Something went wrong");
-        return;
+      try {
+        const result = await createTimetableEntryAction(
+          orgId,
+          selectedTask.id,
+          date,
+          startTimeMin,
+        );
+        if (!result.ok) {
+          toast.error(result.error ?? "Something went wrong");
+          return;
+        }
+        router.refresh();
+        setMode("list");
+        setSelectedTask(null);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Something went wrong");
       }
-      router.refresh();
-      setMode("list");
-      setSelectedTask(null);
     });
   }
 
@@ -117,10 +128,11 @@ export function AddTaskPanel({ tasks, orgId, anchor, todayStr }: AddTaskPanelPro
         {/* Date + time inputs */}
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <label htmlFor="date-input" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Date
             </label>
             <Input
+              id="date-input"
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
@@ -128,10 +140,11 @@ export function AddTaskPanel({ tasks, orgId, anchor, todayStr }: AddTaskPanelPro
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <label htmlFor="start-time-input" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Start time
             </label>
             <Input
+              id="start-time-input"
               type="time"
               value={timeStr}
               onChange={(e) => setTimeStr(e.target.value)}
@@ -153,10 +166,12 @@ export function AddTaskPanel({ tasks, orgId, anchor, todayStr }: AddTaskPanelPro
       <div className="relative">
         <SearchIcon className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
         <Input
+          id="search-input"
           placeholder="Search tasks…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-7 h-8 text-sm"
+          aria-label="Search tasks"
         />
       </div>
 
