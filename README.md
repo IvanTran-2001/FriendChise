@@ -450,10 +450,10 @@ LIMIT 100;
 
 The app uses two mutation paths depending on the caller:
 
-| Path               | Used by                                | Location       |
-| ------------------ | -------------------------------------- | -------------- |
-| **Server Actions** | Web UI forms and buttons               | `app/actions/` |
-| **API Routes**     | Session-authenticated HTTP endpoints   | `app/api/`     |
+| Path               | Used by                              | Location       |
+| ------------------ | ------------------------------------ | -------------- |
+| **Server Actions** | Web UI forms and buttons             | `app/actions/` |
+| **API Routes**     | Session-authenticated HTTP endpoints | `app/api/`     |
 
 Both are thin wrappers — they handle auth, validate input, then delegate to `lib/services/`. The service layer holds all database logic and is shared between both paths.
 
@@ -461,33 +461,33 @@ Server Actions call `revalidatePath` to invalidate the Next.js cache so server-r
 
 ## Pages
 
-| Route                                            | Guard                                      | Description                                                                                         |
-| ------------------------------------------------ | ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| `/`                                              | Signed in                                  | Home                                                                                                |
-| `/signin`                                        | —                                          | Google OAuth sign-in                                                                                |
-| `/orgs/new`                                      | Signed in                                  | Create a new organization                                                                           |
-| `/orgs/join`                                     | Signed in                                  | Join an existing org as a franchisee using a one-time token                                         |
-| `/orgs/[orgId]`                                  | `requireOrgMemberPage`                     | Org overview                                                                                        |
-| `/orgs/[orgId]/franchisee`                       | `requireParentOrgOwnerPage`                | Franchise management — invite tokens + franchisee list                                              |
-| `/orgs/[orgId]/tasks`                            | `requireOrgMemberPage`                     | Task definition list — sort, role filter, list/card toggle in sidebar; search in toolbar; Create Task action in sidebar (managers only) |
-| `/orgs/[orgId]/tasks/new`                        | `requireOrgPermissionPage MANAGE_TASKS`    | Create task — includes color picker                                                                 |
-| `/orgs/[orgId]/tasks/[taskId]`                   | `requireOrgMemberPage`                     | Task detail view; clicking a task name in the timetable navigates here                              |
-| `/orgs/[orgId]/tasks/[taskId]/edit`              | `requireOrgPermissionPage MANAGE_TASKS`    | Edit task — color picker pre-filled with current color                                              |
+| Route                                            | Guard                                      | Description                                                                                                                                                |
+| ------------------------------------------------ | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                                              | Signed in                                  | Home                                                                                                                                                       |
+| `/signin`                                        | —                                          | Google OAuth sign-in                                                                                                                                       |
+| `/orgs/new`                                      | Signed in                                  | Create a new organization                                                                                                                                  |
+| `/orgs/join`                                     | Signed in                                  | Join an existing org as a franchisee using a one-time token                                                                                                |
+| `/orgs/[orgId]`                                  | `requireOrgMemberPage`                     | Org overview                                                                                                                                               |
+| `/orgs/[orgId]/franchisee`                       | `requireParentOrgOwnerPage`                | Franchise management — invite tokens + franchisee list                                                                                                     |
+| `/orgs/[orgId]/tasks`                            | `requireOrgMemberPage`                     | Task definition list — sort, role filter, list/card toggle in sidebar; search in toolbar; Create Task action in sidebar (managers only)                    |
+| `/orgs/[orgId]/tasks/new`                        | `requireOrgPermissionPage MANAGE_TASKS`    | Create task — includes color picker                                                                                                                        |
+| `/orgs/[orgId]/tasks/[taskId]`                   | `requireOrgMemberPage`                     | Task detail view; clicking a task name in the timetable navigates here                                                                                     |
+| `/orgs/[orgId]/tasks/[taskId]/edit`              | `requireOrgPermissionPage MANAGE_TASKS`    | Edit task — color picker pre-filled with current color                                                                                                     |
 | `/orgs/[orgId]/memberships`                      | `requireOrgMemberPage`                     | Member list — role filter, list/card toggle in sidebar; search in toolbar; Invite Member + Add Bot in sidebar (ActionSidebar on desktop, Dialog on mobile) |
-| `/orgs/[orgId]/memberships/new`                  | `requireOrgPermissionPage MANAGE_MEMBERS`  | Invite a new member by email (standalone page, also accessible from sidebar action)                 |
-| `/orgs/[orgId]/memberships/[memberId]`           | `requireOrgMemberPage`                     | Member detail view — avatar, roles (multi-badge), working days, status, join date                   |
-| `/orgs/[orgId]/memberships/[memberId]/edit`      | `requireOrgPermissionPage MANAGE_MEMBERS`  | Edit member — working days, roles (owner role excluded from picker)                                 |
-| `/orgs/[orgId]/timetable`                        | `requireOrgMemberPage`                     | Timetable — calendar or simple mode, week navigation                                                |
-| `/orgs/[orgId]/timetable/templates`              | `requireOrgMemberPage`                     | Timetable template list — card or list view; MANAGE_TASKS holders can rename, duplicate, and delete |
-| `/orgs/[orgId]/timetable/templates/new`          | `requireOrgMemberPage`                     | Create a new timetable template                                                                     |
-| `/orgs/[orgId]/timetable/templates/[templateId]` | `requireOrgMemberPage`                     | Template editor — Calendar (drag-and-drop grid) or Simple (day table) view; cycle-length controls   |
-| `/orgs/[orgId]/settings`                         | —                                          | Redirects to `/settings/organization`                                                               |
-| `/orgs/[orgId]/settings/organization`            | `requireOrgPermissionPage MANAGE_SETTINGS` | Org info, timezone, hours, transfer, delete                                                         |
-| `/orgs/[orgId]/settings/roles`                   | `requireOrgPermissionPage MANAGE_ROLES`    | Role list + delete custom roles                                                                     |
-| `/orgs/[orgId]/settings/roles/new`               | `requireOrgPermissionPage MANAGE_ROLES`    | Create a new custom role (name, color, permissions, task eligibility)                               |
-| `/orgs/[orgId]/settings/roles/[roleId]/edit`     | `requireOrgPermissionPage MANAGE_ROLES`    | Edit a custom role                                                                                  |
-| `/orgs/[orgId]/settings/timetable`               | —                                          | Timetable display settings (stub)                                                                   |
-| `/orgs/[orgId]/settings/notification`            | —                                          | Notification preferences (stub)                                                                     |
+| `/orgs/[orgId]/memberships/new`                  | `requireOrgPermissionPage MANAGE_MEMBERS`  | Invite a new member by email (standalone page, also accessible from sidebar action)                                                                        |
+| `/orgs/[orgId]/memberships/[memberId]`           | `requireOrgMemberPage`                     | Member detail view — avatar, roles (multi-badge), working days, status, join date                                                                          |
+| `/orgs/[orgId]/memberships/[memberId]/edit`      | `requireOrgPermissionPage MANAGE_MEMBERS`  | Edit member — working days, roles (owner role excluded from picker)                                                                                        |
+| `/orgs/[orgId]/timetable`                        | `requireOrgMemberPage`                     | Timetable — calendar or simple mode, week navigation                                                                                                       |
+| `/orgs/[orgId]/timetable/templates`              | `requireOrgMemberPage`                     | Timetable template list — card or list view; MANAGE_TASKS holders can rename, duplicate, and delete                                                        |
+| `/orgs/[orgId]/timetable/templates/new`          | `requireOrgMemberPage`                     | Create a new timetable template                                                                                                                            |
+| `/orgs/[orgId]/timetable/templates/[templateId]` | `requireOrgMemberPage`                     | Template editor — Calendar (drag-and-drop grid) or Simple (day table) view; cycle-length controls                                                          |
+| `/orgs/[orgId]/settings`                         | —                                          | Redirects to `/settings/organization`                                                                                                                      |
+| `/orgs/[orgId]/settings/organization`            | `requireOrgPermissionPage MANAGE_SETTINGS` | Org info, timezone, hours, transfer, delete                                                                                                                |
+| `/orgs/[orgId]/settings/roles`                   | `requireOrgPermissionPage MANAGE_ROLES`    | Role list + delete custom roles                                                                                                                            |
+| `/orgs/[orgId]/settings/roles/new`               | `requireOrgPermissionPage MANAGE_ROLES`    | Create a new custom role (name, color, permissions, task eligibility)                                                                                      |
+| `/orgs/[orgId]/settings/roles/[roleId]/edit`     | `requireOrgPermissionPage MANAGE_ROLES`    | Edit a custom role                                                                                                                                         |
+| `/orgs/[orgId]/settings/timetable`               | —                                          | Timetable display settings (stub)                                                                                                                          |
+| `/orgs/[orgId]/settings/notification`            | —                                          | Notification preferences (stub)                                                                                                                            |
 
 All `/orgs/[orgId]/*` pages are guarded by at least `requireOrgMemberPage` — users not in the org are redirected.
 
@@ -626,18 +626,18 @@ pnpm test:e2e
 
 Integration tests live in `__tests__/integration/` and run sequentially against the live dev database (`DATABASE_URL`). They require `INTEGRATION_TEST_USER_EMAIL` (or fall back to the seed user). The global setup reseeds the dev database before each run to guarantee a clean baseline.
 
-| Test file                                                      | Service covered                  | Tests |
-| -------------------------------------------------------------- | -------------------------------- | ----- |
-| `__tests__/integration/lib/services/orgs.test.ts`              | `orgs.ts`                        | 2     |
-| `__tests__/integration/lib/services/memberships.test.ts`       | `memberships.ts`                 | 6     |
-| `__tests__/integration/lib/services/roles.test.ts`             | `roles.ts`                       | 7     |
-| `__tests__/integration/lib/services/tasks.test.ts`             | `tasks.ts`                       | 8     |
-| `__tests__/integration/lib/services/timetable-entries.test.ts` | `timetable-entries.ts`           | 14    |
-| `__tests__/integration/lib/services/assignees.test.ts`         | `assignees.ts`                   | 8     |
-| `__tests__/integration/lib/services/templates.test.ts`         | `templates.ts`                   | 18    |
-| `__tests__/integration/lib/services/invites.test.ts`           | `invites.ts`                     | 11    |
-| `__tests__/integration/lib/services/bots.test.ts`              | `bots.ts`                        | 13    |
-| `__tests__/integration/lib/services/audit-log.test.ts`         | `audit-log.ts`                   | 6     |
+| Test file                                                      | Service covered        | Tests |
+| -------------------------------------------------------------- | ---------------------- | ----- |
+| `__tests__/integration/lib/services/orgs.test.ts`              | `orgs.ts`              | 2     |
+| `__tests__/integration/lib/services/memberships.test.ts`       | `memberships.ts`       | 6     |
+| `__tests__/integration/lib/services/roles.test.ts`             | `roles.ts`             | 7     |
+| `__tests__/integration/lib/services/tasks.test.ts`             | `tasks.ts`             | 8     |
+| `__tests__/integration/lib/services/timetable-entries.test.ts` | `timetable-entries.ts` | 14    |
+| `__tests__/integration/lib/services/assignees.test.ts`         | `assignees.ts`         | 8     |
+| `__tests__/integration/lib/services/templates.test.ts`         | `templates.ts`         | 18    |
+| `__tests__/integration/lib/services/invites.test.ts`           | `invites.ts`           | 11    |
+| `__tests__/integration/lib/services/bots.test.ts`              | `bots.ts`              | 13    |
+| `__tests__/integration/lib/services/audit-log.test.ts`         | `audit-log.ts`         | 6     |
 
 CI runs on every push/PR to `master` via GitHub Actions (`.github/workflows/ci.yml`):
 

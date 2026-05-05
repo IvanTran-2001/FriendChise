@@ -39,7 +39,12 @@ export async function POST(
     );
   }
 
-  const task = await createTask(orgId, parsed.data, authz.userId, authz.userEmail);
+  const task = await createTask(
+    orgId,
+    parsed.data,
+    authz.userId,
+    authz.userEmail,
+  );
   return NextResponse.json(task, { status: 201 });
 }
 
@@ -72,7 +77,12 @@ export async function DELETE(
     );
   }
 
-  const result = await deleteTask(orgId, parsed.data.id, authz.userId, authz.userEmail);
+  const result = await deleteTask(
+    orgId,
+    parsed.data.id,
+    authz.userId,
+    authz.userEmail,
+  );
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 404 });
   }

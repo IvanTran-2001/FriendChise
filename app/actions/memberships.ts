@@ -99,7 +99,12 @@ export async function deleteMembershipAction(
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const result = await deleteMembership(orgId, membershipId, authz.userId, authz.userEmail);
+  const result = await deleteMembership(
+    orgId,
+    membershipId,
+    authz.userId,
+    authz.userEmail,
+  );
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/memberships`);

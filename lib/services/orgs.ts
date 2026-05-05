@@ -97,7 +97,11 @@ async function bootstrapRoles(tx: Tx, orgId: string, userId: string) {
  *
  * All steps are atomic — if any step fails, nothing is persisted.
  */
-export async function createOrg(userId: string, data: CreateOrgInput, actorEmail?: string | null) {
+export async function createOrg(
+  userId: string,
+  data: CreateOrgInput,
+  actorEmail?: string | null,
+) {
   const result = await prisma.$transaction(async (tx) => {
     const org = await tx.organization.create({
       data: {

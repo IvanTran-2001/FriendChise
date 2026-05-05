@@ -51,9 +51,7 @@ export function InviteMemberPanel({
       });
       if (!result.ok) {
         setErrors(
-          result.field
-            ? { [result.field]: result.error }
-            : { _: result.error },
+          result.field ? { [result.field]: result.error } : { _: result.error },
         );
         return;
       }
@@ -106,8 +104,15 @@ export function InviteMemberPanel({
       </fieldset>
 
       <div className="flex flex-col gap-2">
-        <label id="invite-roles-label" className="text-sm font-medium">Roles</label>
-        <RolePicker allRoles={roles} selectedIds={roleIds} onChange={setRoleIds} aria-labelledby="invite-roles-label" />
+        <label id="invite-roles-label" className="text-sm font-medium">
+          Roles
+        </label>
+        <RolePicker
+          allRoles={roles}
+          selectedIds={roleIds}
+          onChange={setRoleIds}
+          aria-labelledby="invite-roles-label"
+        />
       </div>
 
       <Button onClick={handleSubmit} disabled={isPending} className="w-full">

@@ -23,7 +23,11 @@ const makeReq = (body: unknown) =>
     body: JSON.stringify(body),
   });
 
-const authenticated = { ok: true as const, userId: "user-1", userEmail: "user@example.com" };
+const authenticated = {
+  ok: true as const,
+  userId: "user-1",
+  userEmail: "user@example.com",
+};
 const unauthenticated = {
   ok: false as const,
   response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),

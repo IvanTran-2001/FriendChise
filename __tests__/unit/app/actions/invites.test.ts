@@ -87,7 +87,11 @@ describe("acceptMemberInviteAction", () => {
     const result = await acceptMemberInviteAction("inv-1");
 
     expect(result).toEqual({ ok: true });
-    expect(acceptMemberInviteService).toHaveBeenCalledWith("inv-1", "user-1", "user-1@example.com");
+    expect(acceptMemberInviteService).toHaveBeenCalledWith(
+      "inv-1",
+      "user-1",
+      "user-1@example.com",
+    );
     expect(revalidatePath).toHaveBeenCalledWith("/");
   });
 

@@ -51,7 +51,11 @@ function makeDateUtils(tz: string) {
     return d.toISOString().slice(0, 10);
   }
 
-  function utcEntry(offsetDays: number, localHHMM: string, durationMin: number) {
+  function utcEntry(
+    offsetDays: number,
+    localHHMM: string,
+    durationMin: number,
+  ) {
     const { utcDate, utcStartTimeMin } = localToUTC(
       localDateForOffset(offsetDays),
       timeToMin(localHHMM),
@@ -457,7 +461,9 @@ async function main() {
       await prisma.organization.delete({ where: { id: existing.id } });
       console.log("  ✓ Deleted");
     } else {
-      console.log(`  ℹ Org already exists (id: ${existing.id}). Use --reset to recreate.`);
+      console.log(
+        `  ℹ Org already exists (id: ${existing.id}). Use --reset to recreate.`,
+      );
       return;
     }
   }
@@ -477,69 +483,75 @@ async function main() {
 
   // ── Roles ──────────────────────────────────────────────────────────────────
   console.log("→ Creating roles...");
-  const [roleOwner, roleWorker, roleFryer, roleCounter, roleShiftLead, roleTrainee] =
-    await Promise.all([
-      prisma.role.create({
-        data: {
-          orgId: org.id,
-          name: "Owner",
-          key: ROLE_KEYS.OWNER,
-          color: "#ef4444",
-          isDeletable: false,
-          isDefault: false,
-        },
-      }),
-      prisma.role.create({
-        data: {
-          orgId: org.id,
-          name: "Default Member",
-          key: ROLE_KEYS.DEFAULT_MEMBER,
-          color: "#6b7280",
-          isDeletable: false,
-          isDefault: true,
-        },
-      }),
-      prisma.role.create({
-        data: {
-          orgId: org.id,
-          name: "Fryer Operator",
-          key: "fryer_op",
-          color: "#F97316",
-          isDeletable: true,
-          isDefault: false,
-        },
-      }),
-      prisma.role.create({
-        data: {
-          orgId: org.id,
-          name: "Counter Staff",
-          key: "counter_staff",
-          color: "#06B6D4",
-          isDeletable: true,
-          isDefault: false,
-        },
-      }),
-      prisma.role.create({
-        data: {
-          orgId: org.id,
-          name: "Shift Lead",
-          key: "shift_lead",
-          color: "#8B5CF6",
-          isDeletable: true,
-          isDefault: false,
-        },
-      }),
-      prisma.role.create({
-        data: {
-          orgId: org.id,
-          name: "Trainee",
-          key: "trainee",
-          color: "#84CC16",
-          isDeletable: true,
-          isDefault: false,
-        },
-      }),
-    ]);
+  const [
+    roleOwner,
+    roleWorker,
+    roleFryer,
+    roleCounter,
+    roleShiftLead,
+    roleTrainee,
+  ] = await Promise.all([
+    prisma.role.create({
+      data: {
+        orgId: org.id,
+        name: "Owner",
+        key: ROLE_KEYS.OWNER,
+        color: "#ef4444",
+        isDeletable: false,
+        isDefault: false,
+      },
+    }),
+    prisma.role.create({
+      data: {
+        orgId: org.id,
+        name: "Default Member",
+        key: ROLE_KEYS.DEFAULT_MEMBER,
+        color: "#6b7280",
+        isDeletable: false,
+        isDefault: true,
+      },
+    }),
+    prisma.role.create({
+      data: {
+        orgId: org.id,
+        name: "Fryer Operator",
+        key: "fryer_op",
+        color: "#F97316",
+        isDeletable: true,
+        isDefault: false,
+      },
+    }),
+    prisma.role.create({
+      data: {
+        orgId: org.id,
+        name: "Counter Staff",
+        key: "counter_staff",
+        color: "#06B6D4",
+        isDeletable: true,
+        isDefault: false,
+      },
+    }),
+    prisma.role.create({
+      data: {
+        orgId: org.id,
+        name: "Shift Lead",
+        key: "shift_lead",
+        color: "#8B5CF6",
+        isDeletable: true,
+        isDefault: false,
+      },
+    }),
+    prisma.role.create({
+      data: {
+        orgId: org.id,
+        name: "Trainee",
+        key: "trainee",
+        color: "#84CC16",
+        isDeletable: true,
+        isDefault: false,
+      },
+    }),
+  ]);
   console.log("  ✓ 6 roles created");
 
   // ── Permissions ────────────────────────────────────────────────────────────
@@ -547,7 +559,10 @@ async function main() {
   await prisma.permission.createMany({
     data: [
       // Owner — all
-      ...ALL_OWNER_PERMISSIONS.map((action) => ({ roleId: roleOwner.id, action })),
+      ...ALL_OWNER_PERMISSIONS.map((action) => ({
+        roleId: roleOwner.id,
+        action,
+      })),
       // Default Member — view only
       { roleId: roleWorker.id, action: PermissionAction.VIEW_TIMETABLE },
       // Fryer Operator — view timetable + manage tasks
@@ -570,41 +585,91 @@ async function main() {
   console.log("→ Creating memberships...");
   const [mIvan, mJordan, mCasey, mRiley, mAlex] = await Promise.all([
     prisma.membership.create({
-      data: { orgId: org.id, userId: ivan.id, workingDays: ["mon", "tue", "wed", "thu", "fri"] },
+      data: {
+        orgId: org.id,
+        userId: ivan.id,
+        workingDays: ["mon", "tue", "wed", "thu", "fri"],
+      },
     }),
     prisma.membership.create({
-      data: { orgId: org.id, userId: jordan.id, workingDays: ["mon", "tue", "wed", "thu", "fri"] },
+      data: {
+        orgId: org.id,
+        userId: jordan.id,
+        workingDays: ["mon", "tue", "wed", "thu", "fri"],
+      },
     }),
     prisma.membership.create({
-      data: { orgId: org.id, userId: casey.id, workingDays: ["tue", "wed", "thu", "fri", "sat"] },
+      data: {
+        orgId: org.id,
+        userId: casey.id,
+        workingDays: ["tue", "wed", "thu", "fri", "sat"],
+      },
     }),
     prisma.membership.create({
-      data: { orgId: org.id, userId: riley.id, workingDays: ["mon", "wed", "fri", "sat"] },
+      data: {
+        orgId: org.id,
+        userId: riley.id,
+        workingDays: ["mon", "wed", "fri", "sat"],
+      },
     }),
     prisma.membership.create({
-      data: { orgId: org.id, userId: alex.id, workingDays: ["tue", "thu", "sat", "sun"] },
+      data: {
+        orgId: org.id,
+        userId: alex.id,
+        workingDays: ["tue", "thu", "sat", "sun"],
+      },
     }),
   ]);
 
   // 5 bots
-  const [mBotOpenSlot, mBotMorningRunner, mBotFryerBackup, mBotCounterFloat, mBotWeekendFill] =
-    await Promise.all([
-      prisma.membership.create({
-        data: { orgId: org.id, userId: null, botName: "Open Slot", workingDays: ["mon", "wed", "fri"] },
-      }),
-      prisma.membership.create({
-        data: { orgId: org.id, userId: null, botName: "Morning Runner", workingDays: ["tue", "thu", "sat"] },
-      }),
-      prisma.membership.create({
-        data: { orgId: org.id, userId: null, botName: "Fryer Backup", workingDays: ["mon", "tue", "wed"] },
-      }),
-      prisma.membership.create({
-        data: { orgId: org.id, userId: null, botName: "Counter Float", workingDays: ["wed", "fri", "sun"] },
-      }),
-      prisma.membership.create({
-        data: { orgId: org.id, userId: null, botName: "Weekend Fill", workingDays: ["sat", "sun"] },
-      }),
-    ]);
+  const [
+    mBotOpenSlot,
+    mBotMorningRunner,
+    mBotFryerBackup,
+    mBotCounterFloat,
+    mBotWeekendFill,
+  ] = await Promise.all([
+    prisma.membership.create({
+      data: {
+        orgId: org.id,
+        userId: null,
+        botName: "Open Slot",
+        workingDays: ["mon", "wed", "fri"],
+      },
+    }),
+    prisma.membership.create({
+      data: {
+        orgId: org.id,
+        userId: null,
+        botName: "Morning Runner",
+        workingDays: ["tue", "thu", "sat"],
+      },
+    }),
+    prisma.membership.create({
+      data: {
+        orgId: org.id,
+        userId: null,
+        botName: "Fryer Backup",
+        workingDays: ["mon", "tue", "wed"],
+      },
+    }),
+    prisma.membership.create({
+      data: {
+        orgId: org.id,
+        userId: null,
+        botName: "Counter Float",
+        workingDays: ["wed", "fri", "sun"],
+      },
+    }),
+    prisma.membership.create({
+      data: {
+        orgId: org.id,
+        userId: null,
+        botName: "Weekend Fill",
+        workingDays: ["sat", "sun"],
+      },
+    }),
+  ]);
   console.log("  ✓ 5 members + 5 bots created");
 
   // ── Member Roles ───────────────────────────────────────────────────────────
@@ -647,65 +712,197 @@ async function main() {
   };
 
   const createdTasks = await Promise.all(
-    TASKS.map(([name, color, durationMin, description, roleKey, preferredStart, minWait, maxWait]) =>
-      prisma.task.create({
-        data: {
-          orgId: org.id,
-          name,
-          color,
-          durationMin,
-          description,
-          preferredStartTimeMin: timeToMin(preferredStart),
-          minPeople: 1,
-          minWaitDays: minWait,
-          maxWaitDays: maxWait,
-        },
-      }).then(async (task) => {
-        await prisma.taskEligibility.create({
-          data: { taskId: task.id, roleId: roleByKey[roleKey] },
-        });
-        return { task, roleKey };
-      })
-    )
+    TASKS.map(
+      ([
+        name,
+        color,
+        durationMin,
+        description,
+        roleKey,
+        preferredStart,
+        minWait,
+        maxWait,
+      ]) =>
+        prisma.task
+          .create({
+            data: {
+              orgId: org.id,
+              name,
+              color,
+              durationMin,
+              description,
+              preferredStartTimeMin: timeToMin(preferredStart),
+              minPeople: 1,
+              minWaitDays: minWait,
+              maxWaitDays: maxWait,
+            },
+          })
+          .then(async (task) => {
+            await prisma.taskEligibility.create({
+              data: { taskId: task.id, roleId: roleByKey[roleKey] },
+            });
+            return { task, roleKey };
+          }),
+    ),
   );
   console.log(`  ✓ ${createdTasks.length} tasks + eligibilities created`);
 
   // Quick lookup helpers
-  const tByName = Object.fromEntries(createdTasks.map(({ task }) => [task.name, task]));
+  const tByName = Object.fromEntries(
+    createdTasks.map(({ task }) => [task.name, task]),
+  );
   const t = (name: string) => tByName[name];
 
   // ── Templates ──────────────────────────────────────────────────────────────
   console.log("→ Creating templates...");
 
   const [tplWeek1, tplWeekend, tplCleaning] = await Promise.all([
-    prisma.template.create({ data: { orgId: org.id, name: "Weekday Rotation", cycleLengthDays: 5 } }),
-    prisma.template.create({ data: { orgId: org.id, name: "Weekend Shift", cycleLengthDays: 2 } }),
-    prisma.template.create({ data: { orgId: org.id, name: "Weekly Cleaning Schedule", cycleLengthDays: 7 } }),
+    prisma.template.create({
+      data: { orgId: org.id, name: "Weekday Rotation", cycleLengthDays: 5 },
+    }),
+    prisma.template.create({
+      data: { orgId: org.id, name: "Weekend Shift", cycleLengthDays: 2 },
+    }),
+    prisma.template.create({
+      data: {
+        orgId: org.id,
+        name: "Weekly Cleaning Schedule",
+        cycleLengthDays: 7,
+      },
+    }),
   ]);
 
   await prisma.templateEntry.createMany({
     data: [
       // Weekday Rotation (5-day cycle)
-      { templateId: tplWeek1.id, taskId: t("Open Shop Checklist").id, dayIndex: 0, startTimeMin: timeToMin("06:00"), endTimeMin: timeToMin("06:30") },
-      { templateId: tplWeek1.id, taskId: t("Fry Morning Batches").id, dayIndex: 0, startTimeMin: timeToMin("07:00"), endTimeMin: timeToMin("08:00") },
-      { templateId: tplWeek1.id, taskId: t("Mid-Day Stock Check").id, dayIndex: 0, startTimeMin: timeToMin("12:00"), endTimeMin: timeToMin("12:20") },
-      { templateId: tplWeek1.id, taskId: t("Fry Afternoon Batches").id, dayIndex: 0, startTimeMin: timeToMin("13:00"), endTimeMin: timeToMin("13:45") },
-      { templateId: tplWeek1.id, taskId: t("Close Shop Checklist").id, dayIndex: 0, startTimeMin: timeToMin("17:00"), endTimeMin: timeToMin("17:45") },
-      { templateId: tplWeek1.id, taskId: t("Fryer Oil Quality Check").id, dayIndex: 2, startTimeMin: timeToMin("07:30"), endTimeMin: timeToMin("07:45") },
-      { templateId: tplWeek1.id, taskId: t("Quality Check — Display & Products").id, dayIndex: 2, startTimeMin: timeToMin("10:00"), endTimeMin: timeToMin("10:20") },
-      { templateId: tplWeek1.id, taskId: t("Restock Packaging & Supplies").id, dayIndex: 4, startTimeMin: timeToMin("11:00"), endTimeMin: timeToMin("11:25") },
+      {
+        templateId: tplWeek1.id,
+        taskId: t("Open Shop Checklist").id,
+        dayIndex: 0,
+        startTimeMin: timeToMin("06:00"),
+        endTimeMin: timeToMin("06:30"),
+      },
+      {
+        templateId: tplWeek1.id,
+        taskId: t("Fry Morning Batches").id,
+        dayIndex: 0,
+        startTimeMin: timeToMin("07:00"),
+        endTimeMin: timeToMin("08:00"),
+      },
+      {
+        templateId: tplWeek1.id,
+        taskId: t("Mid-Day Stock Check").id,
+        dayIndex: 0,
+        startTimeMin: timeToMin("12:00"),
+        endTimeMin: timeToMin("12:20"),
+      },
+      {
+        templateId: tplWeek1.id,
+        taskId: t("Fry Afternoon Batches").id,
+        dayIndex: 0,
+        startTimeMin: timeToMin("13:00"),
+        endTimeMin: timeToMin("13:45"),
+      },
+      {
+        templateId: tplWeek1.id,
+        taskId: t("Close Shop Checklist").id,
+        dayIndex: 0,
+        startTimeMin: timeToMin("17:00"),
+        endTimeMin: timeToMin("17:45"),
+      },
+      {
+        templateId: tplWeek1.id,
+        taskId: t("Fryer Oil Quality Check").id,
+        dayIndex: 2,
+        startTimeMin: timeToMin("07:30"),
+        endTimeMin: timeToMin("07:45"),
+      },
+      {
+        templateId: tplWeek1.id,
+        taskId: t("Quality Check — Display & Products").id,
+        dayIndex: 2,
+        startTimeMin: timeToMin("10:00"),
+        endTimeMin: timeToMin("10:20"),
+      },
+      {
+        templateId: tplWeek1.id,
+        taskId: t("Restock Packaging & Supplies").id,
+        dayIndex: 4,
+        startTimeMin: timeToMin("11:00"),
+        endTimeMin: timeToMin("11:25"),
+      },
       // Weekend Shift (2-day cycle)
-      { templateId: tplWeekend.id, taskId: t("Open Shop Checklist").id, dayIndex: 0, startTimeMin: timeToMin("06:00"), endTimeMin: timeToMin("06:30") },
-      { templateId: tplWeekend.id, taskId: t("Fry Morning Batches").id, dayIndex: 0, startTimeMin: timeToMin("07:00"), endTimeMin: timeToMin("08:00") },
-      { templateId: tplWeekend.id, taskId: t("Mid-Day Stock Check").id, dayIndex: 0, startTimeMin: timeToMin("12:00"), endTimeMin: timeToMin("12:20") },
-      { templateId: tplWeekend.id, taskId: t("Close Shop Checklist").id, dayIndex: 1, startTimeMin: timeToMin("17:00"), endTimeMin: timeToMin("17:45") },
+      {
+        templateId: tplWeekend.id,
+        taskId: t("Open Shop Checklist").id,
+        dayIndex: 0,
+        startTimeMin: timeToMin("06:00"),
+        endTimeMin: timeToMin("06:30"),
+      },
+      {
+        templateId: tplWeekend.id,
+        taskId: t("Fry Morning Batches").id,
+        dayIndex: 0,
+        startTimeMin: timeToMin("07:00"),
+        endTimeMin: timeToMin("08:00"),
+      },
+      {
+        templateId: tplWeekend.id,
+        taskId: t("Mid-Day Stock Check").id,
+        dayIndex: 0,
+        startTimeMin: timeToMin("12:00"),
+        endTimeMin: timeToMin("12:20"),
+      },
+      {
+        templateId: tplWeekend.id,
+        taskId: t("Close Shop Checklist").id,
+        dayIndex: 1,
+        startTimeMin: timeToMin("17:00"),
+        endTimeMin: timeToMin("17:45"),
+      },
       // Weekly Cleaning
-      { templateId: tplCleaning.id, taskId: t("Clean Ice Cream Machine").id, dayIndex: 0, startTimeMin: timeToMin("14:00"), endTimeMin: timeToMin("14:30") },
-      { templateId: tplCleaning.id, taskId: t("Deep Clean Hatco (Hot Jam) Unit").id, dayIndex: 1, startTimeMin: timeToMin("14:30"), endTimeMin: timeToMin("15:15") },
-      { templateId: tplCleaning.id, taskId: t("Deep Clean All Fridges").id, dayIndex: 3, startTimeMin: timeToMin("14:00"), endTimeMin: timeToMin("15:00") },
-      { templateId: tplCleaning.id, taskId: t("Deep Clean Doughnut Display").id, dayIndex: 4, startTimeMin: timeToMin("15:00"), endTimeMin: timeToMin("15:30") },
-      { templateId: tplCleaning.id, taskId: t("Clean & Tidy Storeroom").id, dayIndex: 6, startTimeMin: timeToMin("15:00"), endTimeMin: timeToMin("15:30") },
-      { templateId: tplCleaning.id, taskId: t("Clean Fryer (End of Day)").id, dayIndex: 0, startTimeMin: timeToMin("17:30"), endTimeMin: timeToMin("18:10") },
+      {
+        templateId: tplCleaning.id,
+        taskId: t("Clean Ice Cream Machine").id,
+        dayIndex: 0,
+        startTimeMin: timeToMin("14:00"),
+        endTimeMin: timeToMin("14:30"),
+      },
+      {
+        templateId: tplCleaning.id,
+        taskId: t("Deep Clean Hatco (Hot Jam) Unit").id,
+        dayIndex: 1,
+        startTimeMin: timeToMin("14:30"),
+        endTimeMin: timeToMin("15:15"),
+      },
+      {
+        templateId: tplCleaning.id,
+        taskId: t("Deep Clean All Fridges").id,
+        dayIndex: 3,
+        startTimeMin: timeToMin("14:00"),
+        endTimeMin: timeToMin("15:00"),
+      },
+      {
+        templateId: tplCleaning.id,
+        taskId: t("Deep Clean Doughnut Display").id,
+        dayIndex: 4,
+        startTimeMin: timeToMin("15:00"),
+        endTimeMin: timeToMin("15:30"),
+      },
+      {
+        templateId: tplCleaning.id,
+        taskId: t("Clean & Tidy Storeroom").id,
+        dayIndex: 6,
+        startTimeMin: timeToMin("15:00"),
+        endTimeMin: timeToMin("15:30"),
+      },
+      {
+        templateId: tplCleaning.id,
+        taskId: t("Clean Fryer (End of Day)").id,
+        dayIndex: 0,
+        startTimeMin: timeToMin("17:30"),
+        endTimeMin: timeToMin("18:10"),
+      },
     ],
   });
   console.log("  ✓ 3 templates created");
@@ -748,42 +945,114 @@ async function main() {
   add("Close Shop Checklist", -30, "17:00", EntryStatus.DONE, mRiley.id);
 
   // Day -29
-  add("Open Shop Checklist", -29, "06:00", EntryStatus.DONE, mBotMorningRunner.id);
+  add(
+    "Open Shop Checklist",
+    -29,
+    "06:00",
+    EntryStatus.DONE,
+    mBotMorningRunner.id,
+  );
   add("Fry Morning Batches", -29, "07:00", EntryStatus.DONE, mCasey.id);
   add("Fryer Oil Quality Check", -29, "07:30", EntryStatus.DONE, mCasey.id);
-  add("Mid-Day Stock Check", -29, "12:00", EntryStatus.DONE, mBotCounterFloat.id);
+  add(
+    "Mid-Day Stock Check",
+    -29,
+    "12:00",
+    EntryStatus.DONE,
+    mBotCounterFloat.id,
+  );
   add("Close Shop Checklist", -29, "17:00", EntryStatus.DONE, mJordan.id);
 
   // Day -28
   add("Open Shop Checklist", -28, "06:00", EntryStatus.DONE, mJordan.id);
-  add("Fry Morning Batches", -28, "07:00", EntryStatus.DONE, mBotFryerBackup.id);
+  add(
+    "Fry Morning Batches",
+    -28,
+    "07:00",
+    EntryStatus.DONE,
+    mBotFryerBackup.id,
+  );
   add("Make Biscoff Filling", -28, "07:00", EntryStatus.DONE, mCasey.id);
-  add("Clean Ice Cream Machine", -28, "14:00", EntryStatus.DONE, mBotCounterFloat.id);
+  add(
+    "Clean Ice Cream Machine",
+    -28,
+    "14:00",
+    EntryStatus.DONE,
+    mBotCounterFloat.id,
+  );
   add("Close Shop Checklist", -28, "17:00", EntryStatus.DONE, mRiley.id);
 
   // Day -27
   add("Open Shop Checklist", -27, "06:00", EntryStatus.DONE, mBotOpenSlot.id);
   add("Fry Morning Batches", -27, "07:00", EntryStatus.DONE, mCasey.id);
-  add("Deep Clean Hatco (Hot Jam) Unit", -27, "14:30", EntryStatus.DONE, mCasey.id);
+  add(
+    "Deep Clean Hatco (Hot Jam) Unit",
+    -27,
+    "14:30",
+    EntryStatus.DONE,
+    mCasey.id,
+  );
   add("Close Shop Checklist", -27, "17:00", EntryStatus.DONE, mJordan.id);
 
   // Day -26
   add("Open Shop Checklist", -26, "06:00", EntryStatus.DONE, mJordan.id);
-  add("Fry Morning Batches", -26, "07:00", EntryStatus.DONE, mBotFryerBackup.id);
+  add(
+    "Fry Morning Batches",
+    -26,
+    "07:00",
+    EntryStatus.DONE,
+    mBotFryerBackup.id,
+  );
   add("Fry Afternoon Batches", -26, "13:00", EntryStatus.DONE, mCasey.id);
-  add("Restock Packaging & Supplies", -26, "11:00", EntryStatus.DONE, mBotMorningRunner.id);
+  add(
+    "Restock Packaging & Supplies",
+    -26,
+    "11:00",
+    EntryStatus.DONE,
+    mBotMorningRunner.id,
+  );
   add("Close Shop Checklist", -26, "17:00", EntryStatus.DONE, mRiley.id);
 
   // Day -25
-  add("Open Shop Checklist", -25, "06:00", EntryStatus.DONE, mBotMorningRunner.id);
+  add(
+    "Open Shop Checklist",
+    -25,
+    "06:00",
+    EntryStatus.DONE,
+    mBotMorningRunner.id,
+  );
   add("Fry Morning Batches", -25, "07:00", EntryStatus.DONE, mCasey.id);
-  add("Quality Check — Display & Products", -25, "10:00", EntryStatus.DONE, mJordan.id);
-  add("Mid-Day Stock Check", -25, "12:00", EntryStatus.DONE, mBotCounterFloat.id);
-  add("Close Shop Checklist", -25, "17:00", EntryStatus.SKIPPED, mBotWeekendFill.id);
+  add(
+    "Quality Check — Display & Products",
+    -25,
+    "10:00",
+    EntryStatus.DONE,
+    mJordan.id,
+  );
+  add(
+    "Mid-Day Stock Check",
+    -25,
+    "12:00",
+    EntryStatus.DONE,
+    mBotCounterFloat.id,
+  );
+  add(
+    "Close Shop Checklist",
+    -25,
+    "17:00",
+    EntryStatus.SKIPPED,
+    mBotWeekendFill.id,
+  );
 
   // Day -24
   add("Open Shop Checklist", -24, "06:00", EntryStatus.DONE, mAlex.id);
-  add("Fry Morning Batches", -24, "07:00", EntryStatus.DONE, mBotFryerBackup.id);
+  add(
+    "Fry Morning Batches",
+    -24,
+    "07:00",
+    EntryStatus.DONE,
+    mBotFryerBackup.id,
+  );
   add("Make Choc Custard Cream", -24, "06:45", EntryStatus.DONE, mCasey.id);
   add("Close Shop Checklist", -24, "17:00", EntryStatus.DONE, mJordan.id);
 
@@ -795,29 +1064,83 @@ async function main() {
 
   // Day -22
   add("Open Shop Checklist", -22, "06:00", EntryStatus.DONE, mBotOpenSlot.id);
-  add("Fry Morning Batches", -22, "07:00", EntryStatus.DONE, mBotFryerBackup.id);
+  add(
+    "Fry Morning Batches",
+    -22,
+    "07:00",
+    EntryStatus.DONE,
+    mBotFryerBackup.id,
+  );
   add("Fryer Oil Quality Check", -22, "07:30", EntryStatus.DONE, mCasey.id);
-  add("Clean Ice Cream Machine", -22, "14:00", EntryStatus.DONE, mBotCounterFloat.id);
+  add(
+    "Clean Ice Cream Machine",
+    -22,
+    "14:00",
+    EntryStatus.DONE,
+    mBotCounterFloat.id,
+  );
   add("Close Shop Checklist", -22, "17:00", EntryStatus.DONE, mJordan.id);
 
   // Day -21
   add("Open Shop Checklist", -21, "06:00", EntryStatus.DONE, mJordan.id);
   add("Fry Morning Batches", -21, "07:00", EntryStatus.DONE, mCasey.id);
-  add("Make Nutella Filling", -21, "07:00", EntryStatus.DONE, mBotFryerBackup.id);
+  add(
+    "Make Nutella Filling",
+    -21,
+    "07:00",
+    EntryStatus.DONE,
+    mBotFryerBackup.id,
+  );
   add("Deep Clean All Fridges", -21, "14:00", EntryStatus.DONE, mRiley.id);
-  add("Close Shop Checklist", -21, "17:00", EntryStatus.DONE, mBotWeekendFill.id);
+  add(
+    "Close Shop Checklist",
+    -21,
+    "17:00",
+    EntryStatus.DONE,
+    mBotWeekendFill.id,
+  );
 
   // Day -20
-  add("Open Shop Checklist", -20, "06:00", EntryStatus.DONE, mBotMorningRunner.id);
+  add(
+    "Open Shop Checklist",
+    -20,
+    "06:00",
+    EntryStatus.DONE,
+    mBotMorningRunner.id,
+  );
   add("Fry Morning Batches", -20, "07:00", EntryStatus.DONE, mCasey.id);
-  add("Fry Afternoon Batches", -20, "13:00", EntryStatus.DONE, mBotFryerBackup.id);
-  add("Deep Clean Doughnut Display", -20, "15:00", EntryStatus.DONE, mJordan.id);
+  add(
+    "Fry Afternoon Batches",
+    -20,
+    "13:00",
+    EntryStatus.DONE,
+    mBotFryerBackup.id,
+  );
+  add(
+    "Deep Clean Doughnut Display",
+    -20,
+    "15:00",
+    EntryStatus.DONE,
+    mJordan.id,
+  );
   add("Close Shop Checklist", -20, "17:00", EntryStatus.DONE, mRiley.id);
 
   // Day -19
   add("Open Shop Checklist", -19, "06:00", EntryStatus.DONE, mAlex.id);
-  add("Fry Morning Batches", -19, "07:00", EntryStatus.DONE, mBotFryerBackup.id);
-  add("Mid-Day Stock Check", -19, "12:00", EntryStatus.DONE, mBotCounterFloat.id);
+  add(
+    "Fry Morning Batches",
+    -19,
+    "07:00",
+    EntryStatus.DONE,
+    mBotFryerBackup.id,
+  );
+  add(
+    "Mid-Day Stock Check",
+    -19,
+    "12:00",
+    EntryStatus.DONE,
+    mBotCounterFloat.id,
+  );
   add("Shift Handover", -19, "13:00", EntryStatus.DONE, mJordan.id);
   add("Close Shop Checklist", -19, "17:00", EntryStatus.DONE, mJordan.id);
 
@@ -830,50 +1153,140 @@ async function main() {
 
   // Day -17
   add("Open Shop Checklist", -17, "06:00", EntryStatus.DONE, mJordan.id);
-  add("Fry Morning Batches", -17, "07:00", EntryStatus.DONE, mBotFryerBackup.id);
-  add("Fryer Oil Quality Check", -17, "07:30", EntryStatus.DONE, mBotFryerBackup.id);
-  add("Quality Check — Display & Products", -17, "10:00", EntryStatus.DONE, mRiley.id);
+  add(
+    "Fry Morning Batches",
+    -17,
+    "07:00",
+    EntryStatus.DONE,
+    mBotFryerBackup.id,
+  );
+  add(
+    "Fryer Oil Quality Check",
+    -17,
+    "07:30",
+    EntryStatus.DONE,
+    mBotFryerBackup.id,
+  );
+  add(
+    "Quality Check — Display & Products",
+    -17,
+    "10:00",
+    EntryStatus.DONE,
+    mRiley.id,
+  );
   add("Close Shop Checklist", -17, "17:00", EntryStatus.DONE, mJordan.id);
 
   // Day -16
-  add("Open Shop Checklist", -16, "06:00", EntryStatus.DONE, mBotMorningRunner.id);
+  add(
+    "Open Shop Checklist",
+    -16,
+    "06:00",
+    EntryStatus.DONE,
+    mBotMorningRunner.id,
+  );
   add("Fry Morning Batches", -16, "07:00", EntryStatus.DONE, mCasey.id);
   add("Prepare Biscoff Fondant", -16, "07:30", EntryStatus.DONE, mCasey.id);
   add("Close Shop Checklist", -16, "17:00", EntryStatus.DONE, mRiley.id);
 
   // Day -15
   add("Open Shop Checklist", -15, "06:00", EntryStatus.DONE, mAlex.id);
-  add("Fry Morning Batches", -15, "07:00", EntryStatus.DONE, mBotFryerBackup.id);
-  add("Make Raspberry Cheesecake Filling", -15, "07:00", EntryStatus.DONE, mCasey.id);
-  add("Restock Packaging & Supplies", -15, "11:00", EntryStatus.DONE, mBotMorningRunner.id);
+  add(
+    "Fry Morning Batches",
+    -15,
+    "07:00",
+    EntryStatus.DONE,
+    mBotFryerBackup.id,
+  );
+  add(
+    "Make Raspberry Cheesecake Filling",
+    -15,
+    "07:00",
+    EntryStatus.DONE,
+    mCasey.id,
+  );
+  add(
+    "Restock Packaging & Supplies",
+    -15,
+    "11:00",
+    EntryStatus.DONE,
+    mBotMorningRunner.id,
+  );
   add("Close Shop Checklist", -15, "17:00", EntryStatus.DONE, mJordan.id);
 
   // Day -14
   add("Open Shop Checklist", -14, "06:00", EntryStatus.DONE, mBotOpenSlot.id);
   add("Fry Morning Batches", -14, "07:00", EntryStatus.DONE, mCasey.id);
-  add("Clean Ice Cream Machine", -14, "14:00", EntryStatus.DONE, mBotCounterFloat.id);
-  add("Close Shop Checklist", -14, "17:00", EntryStatus.SKIPPED, mBotWeekendFill.id);
+  add(
+    "Clean Ice Cream Machine",
+    -14,
+    "14:00",
+    EntryStatus.DONE,
+    mBotCounterFloat.id,
+  );
+  add(
+    "Close Shop Checklist",
+    -14,
+    "17:00",
+    EntryStatus.SKIPPED,
+    mBotWeekendFill.id,
+  );
 
   // Day -13
   add("Open Shop Checklist", -13, "06:00", EntryStatus.DONE, mJordan.id);
-  add("Fry Morning Batches", -13, "07:00", EntryStatus.DONE, mBotFryerBackup.id);
+  add(
+    "Fry Morning Batches",
+    -13,
+    "07:00",
+    EntryStatus.DONE,
+    mBotFryerBackup.id,
+  );
   add("Make Custard Cream", -13, "06:30", EntryStatus.DONE, mCasey.id);
   add("Fry Afternoon Batches", -13, "13:00", EntryStatus.DONE, mCasey.id);
-  add("Deep Clean Hatco (Hot Jam) Unit", -13, "14:30", EntryStatus.DONE, mCasey.id);
+  add(
+    "Deep Clean Hatco (Hot Jam) Unit",
+    -13,
+    "14:30",
+    EntryStatus.DONE,
+    mCasey.id,
+  );
   add("Close Shop Checklist", -13, "17:00", EntryStatus.DONE, mRiley.id);
 
   // Day -12
-  add("Open Shop Checklist", -12, "06:00", EntryStatus.DONE, mBotMorningRunner.id);
+  add(
+    "Open Shop Checklist",
+    -12,
+    "06:00",
+    EntryStatus.DONE,
+    mBotMorningRunner.id,
+  );
   add("Fry Morning Batches", -12, "07:00", EntryStatus.DONE, mCasey.id);
   add("Fryer Oil Quality Check", -12, "07:30", EntryStatus.DONE, mCasey.id);
   add("Prepare Chocolate Fondant", -12, "07:30", EntryStatus.DONE, mCasey.id);
-  add("Mid-Day Stock Check", -12, "12:00", EntryStatus.DONE, mBotCounterFloat.id);
+  add(
+    "Mid-Day Stock Check",
+    -12,
+    "12:00",
+    EntryStatus.DONE,
+    mBotCounterFloat.id,
+  );
   add("Close Shop Checklist", -12, "17:00", EntryStatus.DONE, mJordan.id);
 
   // Day -11
   add("Open Shop Checklist", -11, "06:00", EntryStatus.DONE, mAlex.id);
-  add("Fry Morning Batches", -11, "07:00", EntryStatus.DONE, mBotFryerBackup.id);
-  add("Quality Check — Display & Products", -11, "10:00", EntryStatus.DONE, mRiley.id);
+  add(
+    "Fry Morning Batches",
+    -11,
+    "07:00",
+    EntryStatus.DONE,
+    mBotFryerBackup.id,
+  );
+  add(
+    "Quality Check — Display & Products",
+    -11,
+    "10:00",
+    EntryStatus.DONE,
+    mRiley.id,
+  );
   add("Close Shop Checklist", -11, "17:00", EntryStatus.DONE, mJordan.id);
 
   // Day -10
@@ -891,7 +1304,13 @@ async function main() {
   add("Close Shop Checklist", -9, "17:00", EntryStatus.DONE, mJordan.id);
 
   // Day -8
-  add("Open Shop Checklist", -8, "06:00", EntryStatus.DONE, mBotMorningRunner.id);
+  add(
+    "Open Shop Checklist",
+    -8,
+    "06:00",
+    EntryStatus.DONE,
+    mBotMorningRunner.id,
+  );
   add("Fry Morning Batches", -8, "07:00", EntryStatus.DONE, mCasey.id);
   add("Deep Clean Doughnut Display", -8, "15:00", EntryStatus.DONE, mJordan.id);
   add("Close Shop Checklist", -8, "17:00", EntryStatus.DONE, mRiley.id);
@@ -899,16 +1318,40 @@ async function main() {
   // Day -7
   add("Open Shop Checklist", -7, "06:00", EntryStatus.DONE, mAlex.id);
   add("Fry Morning Batches", -7, "07:00", EntryStatus.DONE, mBotFryerBackup.id);
-  add("Fryer Oil Quality Check", -7, "07:30", EntryStatus.DONE, mBotFryerBackup.id);
-  add("Mid-Day Stock Check", -7, "12:00", EntryStatus.DONE, mBotCounterFloat.id);
+  add(
+    "Fryer Oil Quality Check",
+    -7,
+    "07:30",
+    EntryStatus.DONE,
+    mBotFryerBackup.id,
+  );
+  add(
+    "Mid-Day Stock Check",
+    -7,
+    "12:00",
+    EntryStatus.DONE,
+    mBotCounterFloat.id,
+  );
   add("Shift Handover", -7, "13:00", EntryStatus.DONE, mRiley.id);
-  add("Close Shop Checklist", -7, "17:00", EntryStatus.SKIPPED, mBotWeekendFill.id);
+  add(
+    "Close Shop Checklist",
+    -7,
+    "17:00",
+    EntryStatus.SKIPPED,
+    mBotWeekendFill.id,
+  );
 
   // Day -6
   add("Open Shop Checklist", -6, "06:00", EntryStatus.DONE, mBotOpenSlot.id);
   add("Fry Morning Batches", -6, "07:00", EntryStatus.DONE, mCasey.id);
   add("Make Choc Custard Cream", -6, "06:45", EntryStatus.DONE, mCasey.id);
-  add("Clean Ice Cream Machine", -6, "14:00", EntryStatus.DONE, mBotCounterFloat.id);
+  add(
+    "Clean Ice Cream Machine",
+    -6,
+    "14:00",
+    EntryStatus.DONE,
+    mBotCounterFloat.id,
+  );
   add("Clean & Tidy Storeroom", -6, "15:00", EntryStatus.DONE, mRiley.id);
   add("Close Shop Checklist", -6, "17:00", EntryStatus.DONE, mJordan.id);
 
@@ -916,28 +1359,58 @@ async function main() {
   add("Open Shop Checklist", -5, "06:00", EntryStatus.DONE, mJordan.id);
   add("Fry Morning Batches", -5, "07:00", EntryStatus.DONE, mBotFryerBackup.id);
   add("Prepare Classic Glaze", -5, "07:30", EntryStatus.DONE, mCasey.id);
-  add("Quality Check — Display & Products", -5, "10:00", EntryStatus.DONE, mJordan.id);
+  add(
+    "Quality Check — Display & Products",
+    -5,
+    "10:00",
+    EntryStatus.DONE,
+    mJordan.id,
+  );
   add("Close Shop Checklist", -5, "17:00", EntryStatus.DONE, mRiley.id);
 
   // Day -4
-  add("Open Shop Checklist", -4, "06:00", EntryStatus.DONE, mBotMorningRunner.id);
+  add(
+    "Open Shop Checklist",
+    -4,
+    "06:00",
+    EntryStatus.DONE,
+    mBotMorningRunner.id,
+  );
   add("Fry Morning Batches", -4, "07:00", EntryStatus.DONE, mCasey.id);
   add("Fry Afternoon Batches", -4, "13:00", EntryStatus.DONE, mCasey.id);
-  add("Deep Clean Hatco (Hot Jam) Unit", -4, "14:30", EntryStatus.DONE, mCasey.id);
+  add(
+    "Deep Clean Hatco (Hot Jam) Unit",
+    -4,
+    "14:30",
+    EntryStatus.DONE,
+    mCasey.id,
+  );
   add("Close Shop Checklist", -4, "17:00", EntryStatus.DONE, mJordan.id);
 
   // Day -3
   add("Open Shop Checklist", -3, "06:00", EntryStatus.DONE, mAlex.id);
   add("Fry Morning Batches", -3, "07:00", EntryStatus.DONE, mBotFryerBackup.id);
   add("Make Custard Cream", -3, "06:30", EntryStatus.DONE, mCasey.id);
-  add("Restock Packaging & Supplies", -3, "11:00", EntryStatus.DONE, mBotMorningRunner.id);
+  add(
+    "Restock Packaging & Supplies",
+    -3,
+    "11:00",
+    EntryStatus.DONE,
+    mBotMorningRunner.id,
+  );
   add("Close Shop Checklist", -3, "17:00", EntryStatus.DONE, mJordan.id);
 
   // Day -2
   add("Open Shop Checklist", -2, "06:00", EntryStatus.DONE, mBotOpenSlot.id);
   add("Fry Morning Batches", -2, "07:00", EntryStatus.DONE, mCasey.id);
   add("Fryer Oil Quality Check", -2, "07:30", EntryStatus.DONE, mCasey.id);
-  add("Mid-Day Stock Check", -2, "12:00", EntryStatus.DONE, mBotCounterFloat.id);
+  add(
+    "Mid-Day Stock Check",
+    -2,
+    "12:00",
+    EntryStatus.DONE,
+    mBotCounterFloat.id,
+  );
   add("Clean Fryer (End of Day)", -2, "17:30", EntryStatus.DONE, mCasey.id);
   add("Close Shop Checklist", -2, "17:00", EntryStatus.DONE, mRiley.id);
 
@@ -946,17 +1419,35 @@ async function main() {
   add("Fry Morning Batches", -1, "07:00", EntryStatus.DONE, mBotFryerBackup.id);
   add("Make Nutella Filling", -1, "07:00", EntryStatus.DONE, mCasey.id);
   add("Prepare Biscoff Fondant", -1, "07:30", EntryStatus.DONE, mCasey.id);
-  add("Quality Check — Display & Products", -1, "10:00", EntryStatus.DONE, mRiley.id);
+  add(
+    "Quality Check — Display & Products",
+    -1,
+    "10:00",
+    EntryStatus.DONE,
+    mRiley.id,
+  );
   add("Close Shop Checklist", -1, "17:00", EntryStatus.DONE, mJordan.id);
 
   // ── Today ──────────────────────────────────────────────────────────────────
-  add("Open Shop Checklist", 0, "06:00", EntryStatus.DONE, mBotMorningRunner.id);
+  add(
+    "Open Shop Checklist",
+    0,
+    "06:00",
+    EntryStatus.DONE,
+    mBotMorningRunner.id,
+  );
   add("Make Custard Cream", 0, "06:30", EntryStatus.DONE, mCasey.id);
   add("Fry Morning Batches", 0, "07:00", EntryStatus.IN_PROGRESS, mCasey.id);
   add("Fryer Oil Quality Check", 0, "07:30", EntryStatus.TODO, mCasey.id);
   add("Mid-Day Stock Check", 0, "12:00", EntryStatus.TODO, mBotCounterFloat.id);
   add("Shift Handover", 0, "13:00", EntryStatus.TODO, mJordan.id);
-  add("Fry Afternoon Batches", 0, "13:00", EntryStatus.TODO, mBotFryerBackup.id);
+  add(
+    "Fry Afternoon Batches",
+    0,
+    "13:00",
+    EntryStatus.TODO,
+    mBotFryerBackup.id,
+  );
   add("Close Shop Checklist", 0, "17:00", EntryStatus.TODO, mRiley.id);
 
   // ── Future: Days +1 to +14 ─────────────────────────────────────────────────
@@ -964,28 +1455,64 @@ async function main() {
   add("Open Shop Checklist", 1, "06:00", EntryStatus.TODO, mJordan.id);
   add("Fry Morning Batches", 1, "07:00", EntryStatus.TODO, mBotFryerBackup.id);
   add("Make Biscoff Filling", 1, "07:00", EntryStatus.TODO, mCasey.id);
-  add("Quality Check — Display & Products", 1, "10:00", EntryStatus.TODO, mRiley.id);
+  add(
+    "Quality Check — Display & Products",
+    1,
+    "10:00",
+    EntryStatus.TODO,
+    mRiley.id,
+  );
   add("Close Shop Checklist", 1, "17:00", EntryStatus.TODO, mBotOpenSlot.id);
 
   // +2
-  add("Open Shop Checklist", 2, "06:00", EntryStatus.TODO, mBotMorningRunner.id);
+  add(
+    "Open Shop Checklist",
+    2,
+    "06:00",
+    EntryStatus.TODO,
+    mBotMorningRunner.id,
+  );
   add("Fry Morning Batches", 2, "07:00", EntryStatus.TODO, mCasey.id);
   add("Prepare Classic Glaze", 2, "07:30", EntryStatus.TODO, mCasey.id);
   add("Mid-Day Stock Check", 2, "12:00", EntryStatus.TODO, mBotCounterFloat.id);
-  add("Clean Ice Cream Machine", 2, "14:00", EntryStatus.TODO, mBotCounterFloat.id);
+  add(
+    "Clean Ice Cream Machine",
+    2,
+    "14:00",
+    EntryStatus.TODO,
+    mBotCounterFloat.id,
+  );
 
   // +3
   add("Open Shop Checklist", 3, "06:00", EntryStatus.TODO, mAlex.id);
   add("Fry Morning Batches", 3, "07:00", EntryStatus.TODO, mBotFryerBackup.id);
-  add("Fryer Oil Quality Check", 3, "07:30", EntryStatus.TODO, mBotFryerBackup.id);
-  add("Deep Clean Hatco (Hot Jam) Unit", 3, "14:30", EntryStatus.TODO, mCasey.id);
+  add(
+    "Fryer Oil Quality Check",
+    3,
+    "07:30",
+    EntryStatus.TODO,
+    mBotFryerBackup.id,
+  );
+  add(
+    "Deep Clean Hatco (Hot Jam) Unit",
+    3,
+    "14:30",
+    EntryStatus.TODO,
+    mCasey.id,
+  );
   add("Close Shop Checklist", 3, "17:00", EntryStatus.TODO, mJordan.id);
 
   // +4
   add("Open Shop Checklist", 4, "06:00", EntryStatus.TODO, mBotOpenSlot.id);
   add("Fry Morning Batches", 4, "07:00", EntryStatus.TODO, mCasey.id);
   add("Make Choc Custard Cream", 4, "06:45", EntryStatus.TODO, mCasey.id);
-  add("Restock Packaging & Supplies", 4, "11:00", EntryStatus.TODO, mBotMorningRunner.id);
+  add(
+    "Restock Packaging & Supplies",
+    4,
+    "11:00",
+    EntryStatus.TODO,
+    mBotMorningRunner.id,
+  );
   add("Close Shop Checklist", 4, "17:00", EntryStatus.TODO, mRiley.id);
 
   // +5
@@ -997,7 +1524,13 @@ async function main() {
   add("Close Shop Checklist", 5, "17:00", EntryStatus.TODO, mBotWeekendFill.id);
 
   // +6
-  add("Open Shop Checklist", 6, "06:00", EntryStatus.TODO, mBotMorningRunner.id);
+  add(
+    "Open Shop Checklist",
+    6,
+    "06:00",
+    EntryStatus.TODO,
+    mBotMorningRunner.id,
+  );
   add("Fry Morning Batches", 6, "07:00", EntryStatus.TODO, mCasey.id);
   add("Deep Clean Doughnut Display", 6, "15:00", EntryStatus.TODO, mJordan.id);
   add("Clean & Tidy Storeroom", 6, "15:00", EntryStatus.TODO, mRiley.id);
@@ -1014,12 +1547,30 @@ async function main() {
   add("Open Shop Checklist", 8, "06:00", EntryStatus.TODO, mJordan.id);
   add("Fry Morning Batches", 8, "07:00", EntryStatus.TODO, mCasey.id);
   add("Prepare Biscoff Fondant", 8, "07:30", EntryStatus.TODO, mCasey.id);
-  add("Quality Check — Display & Products", 8, "10:00", EntryStatus.TODO, mRiley.id);
-  add("Clean Ice Cream Machine", 8, "14:00", EntryStatus.TODO, mBotCounterFloat.id);
+  add(
+    "Quality Check — Display & Products",
+    8,
+    "10:00",
+    EntryStatus.TODO,
+    mRiley.id,
+  );
+  add(
+    "Clean Ice Cream Machine",
+    8,
+    "14:00",
+    EntryStatus.TODO,
+    mBotCounterFloat.id,
+  );
   add("Close Shop Checklist", 8, "17:00", EntryStatus.TODO, mRiley.id);
 
   // +9
-  add("Open Shop Checklist", 9, "06:00", EntryStatus.TODO, mBotMorningRunner.id);
+  add(
+    "Open Shop Checklist",
+    9,
+    "06:00",
+    EntryStatus.TODO,
+    mBotMorningRunner.id,
+  );
   add("Fry Morning Batches", 9, "07:00", EntryStatus.TODO, mBotFryerBackup.id);
   add("Mid-Day Stock Check", 9, "12:00", EntryStatus.TODO, mBotCounterFloat.id);
   add("Shift Handover", 9, "13:00", EntryStatus.TODO, mJordan.id);
@@ -1028,15 +1579,39 @@ async function main() {
   // +10
   add("Open Shop Checklist", 10, "06:00", EntryStatus.TODO, mAlex.id);
   add("Fry Morning Batches", 10, "07:00", EntryStatus.TODO, mCasey.id);
-  add("Make Raspberry Cheesecake Filling", 10, "07:00", EntryStatus.TODO, mCasey.id);
-  add("Fry Afternoon Batches", 10, "13:00", EntryStatus.TODO, mBotFryerBackup.id);
+  add(
+    "Make Raspberry Cheesecake Filling",
+    10,
+    "07:00",
+    EntryStatus.TODO,
+    mCasey.id,
+  );
+  add(
+    "Fry Afternoon Batches",
+    10,
+    "13:00",
+    EntryStatus.TODO,
+    mBotFryerBackup.id,
+  );
   add("Close Shop Checklist", 10, "17:00", EntryStatus.TODO, mJordan.id);
 
   // +11
   add("Open Shop Checklist", 11, "06:00", EntryStatus.TODO, mBotOpenSlot.id);
   add("Fry Morning Batches", 11, "07:00", EntryStatus.TODO, mBotFryerBackup.id);
-  add("Fryer Oil Quality Check", 11, "07:30", EntryStatus.TODO, mBotFryerBackup.id);
-  add("Restock Packaging & Supplies", 11, "11:00", EntryStatus.TODO, mBotMorningRunner.id);
+  add(
+    "Fryer Oil Quality Check",
+    11,
+    "07:30",
+    EntryStatus.TODO,
+    mBotFryerBackup.id,
+  );
+  add(
+    "Restock Packaging & Supplies",
+    11,
+    "11:00",
+    EntryStatus.TODO,
+    mBotMorningRunner.id,
+  );
   add("Close Shop Checklist", 11, "17:00", EntryStatus.TODO, mRiley.id);
 
   // +12
@@ -1046,17 +1621,41 @@ async function main() {
   add("Close Shop Checklist", 12, "17:00", EntryStatus.TODO, mJordan.id);
 
   // +13
-  add("Open Shop Checklist", 13, "06:00", EntryStatus.TODO, mBotMorningRunner.id);
+  add(
+    "Open Shop Checklist",
+    13,
+    "06:00",
+    EntryStatus.TODO,
+    mBotMorningRunner.id,
+  );
   add("Fry Morning Batches", 13, "07:00", EntryStatus.TODO, mBotFryerBackup.id);
-  add("Quality Check — Display & Products", 13, "10:00", EntryStatus.TODO, mRiley.id);
-  add("Deep Clean Hatco (Hot Jam) Unit", 13, "14:30", EntryStatus.TODO, mCasey.id);
+  add(
+    "Quality Check — Display & Products",
+    13,
+    "10:00",
+    EntryStatus.TODO,
+    mRiley.id,
+  );
+  add(
+    "Deep Clean Hatco (Hot Jam) Unit",
+    13,
+    "14:30",
+    EntryStatus.TODO,
+    mCasey.id,
+  );
   add("Close Shop Checklist", 13, "17:00", EntryStatus.TODO, mAlex.id);
 
   // +14
   add("Open Shop Checklist", 14, "06:00", EntryStatus.TODO, mBotOpenSlot.id);
   add("Fry Morning Batches", 14, "07:00", EntryStatus.TODO, mCasey.id);
   add("Make Custard Cream", 14, "06:30", EntryStatus.TODO, mCasey.id);
-  add("Fry Afternoon Batches", 14, "13:00", EntryStatus.TODO, mBotFryerBackup.id);
+  add(
+    "Fry Afternoon Batches",
+    14,
+    "13:00",
+    EntryStatus.TODO,
+    mBotFryerBackup.id,
+  );
   add("Close Shop Checklist", 14, "17:00", EntryStatus.TODO, mRiley.id);
 
   await Promise.all(entries);

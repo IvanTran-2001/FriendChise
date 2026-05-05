@@ -177,7 +177,12 @@ describe("deleteBotAction", () => {
     const result = await deleteBotAction("org-1", "mem-bot");
 
     expect(result).toEqual({ ok: true });
-    expect(deleteBotService).toHaveBeenCalledWith("org-1", "mem-bot", "u-1", "user@example.com");
+    expect(deleteBotService).toHaveBeenCalledWith(
+      "org-1",
+      "mem-bot",
+      "u-1",
+      "user@example.com",
+    );
     expect(revalidatePath).toHaveBeenCalled();
   });
 

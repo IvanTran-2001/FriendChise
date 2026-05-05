@@ -145,10 +145,7 @@ export function MembersView({
     return members.filter((m) => {
       if (q && !(m.user?.name ?? m.botName ?? "").toLowerCase().includes(q))
         return false;
-      if (
-        roleId &&
-        !m.memberRoles.some(({ role }) => role.id === roleId)
-      )
+      if (roleId && !m.memberRoles.some(({ role }) => role.id === roleId))
         return false;
       return true;
     });

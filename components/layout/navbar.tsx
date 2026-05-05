@@ -84,7 +84,11 @@ export const NavBar = async () => {
       <div className="flex w-full items-center justify-between h-12">
         {/* Left: logo + mobile menu trigger + org switcher */}
         <div className="flex items-center gap-2 min-w-0 pl-3 md:pl-0">
-          <Button variant="ghost" asChild className="h-auto px-2 py-1.5 rounded-md hidden md:flex hover:bg-blue-100 hover:text-blue-700 transition-colors">
+          <Button
+            variant="ghost"
+            asChild
+            className="h-auto px-2 py-1.5 rounded-md hidden md:flex hover:bg-blue-100 hover:text-blue-700 transition-colors"
+          >
             <Link href="/">
               <Logo className="text-current" />
             </Link>

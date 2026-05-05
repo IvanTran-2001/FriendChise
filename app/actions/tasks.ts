@@ -85,7 +85,12 @@ export async function createTaskAction(
     };
   }
 
-  const task = await createTask(orgId, parsed.data, authz.userId, authz.userEmail);
+  const task = await createTask(
+    orgId,
+    parsed.data,
+    authz.userId,
+    authz.userEmail,
+  );
   const roleIds = formData
     .getAll("roleIds")
     .filter((v): v is string => typeof v === "string");
@@ -153,7 +158,13 @@ export async function updateTaskAction(
     };
   }
 
-  const result = await updateTask(orgId, taskId, parsed.data, authz.userId, authz.userEmail);
+  const result = await updateTask(
+    orgId,
+    taskId,
+    parsed.data,
+    authz.userId,
+    authz.userEmail,
+  );
   if (!result.ok) return { ok: false, errors: { _: [result.error] } };
 
   revalidatePath(`/orgs/${orgId}/tasks`);

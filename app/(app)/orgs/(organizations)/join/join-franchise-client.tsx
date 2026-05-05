@@ -136,8 +136,25 @@ function useScheduleState() {
   const [address, setAddress] = useState("");
   const [openTime, setOpenTime] = useState("");
   const [closeTime, setCloseTime] = useState("");
-  const [days, setDays] = useState<DayKey[]>(["mon", "tue", "wed", "thu", "fri"]);
-  return { timezone, setTimezone, address, setAddress, openTime, setOpenTime, closeTime, setCloseTime, days, setDays };
+  const [days, setDays] = useState<DayKey[]>([
+    "mon",
+    "tue",
+    "wed",
+    "thu",
+    "fri",
+  ]);
+  return {
+    timezone,
+    setTimezone,
+    address,
+    setAddress,
+    openTime,
+    setOpenTime,
+    closeTime,
+    setCloseTime,
+    days,
+    setDays,
+  };
 }
 
 function buildSchedulePayload(s: ReturnType<typeof useScheduleState>) {
@@ -155,7 +172,11 @@ function buildSchedulePayload(s: ReturnType<typeof useScheduleState>) {
   };
 }
 
-export default function JoinFranchisePage({ timezones }: { timezones: TimezoneOption[] }) {
+export default function JoinFranchisePage({
+  timezones,
+}: {
+  timezones: TimezoneOption[];
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialToken = searchParams.get("token") ?? "";
@@ -227,7 +248,9 @@ export default function JoinFranchisePage({ timezones }: { timezones: TimezoneOp
           <Separator />
 
           <div className="text-center">
-            <span className="text-sm text-muted-foreground">Starting fresh? </span>
+            <span className="text-sm text-muted-foreground">
+              Starting fresh?{" "}
+            </span>
             <Link
               href="/orgs/new"
               className="text-sm font-medium text-primary hover:underline"

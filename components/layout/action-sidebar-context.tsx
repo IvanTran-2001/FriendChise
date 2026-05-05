@@ -50,7 +50,9 @@ export function ActionSidebarProvider({ children }: { children: ReactNode }) {
   const close = () => setPanel(null);
 
   return (
-    <ActionSidebarCtx.Provider value={{ open, close, activeTitle: panel?.title ?? null }}>
+    <ActionSidebarCtx.Provider
+      value={{ open, close, activeTitle: panel?.title ?? null }}
+    >
       <ActionSidebarPanelCtx.Provider value={{ panel, close }}>
         {children}
       </ActionSidebarPanelCtx.Provider>
@@ -83,16 +85,18 @@ export function ActionSidebarSlot() {
   return (
     <div className="hidden md:flex flex-col w-65 shrink-0 border-r border-border bg-sidebar overflow-hidden">
       {/* Header */}
-      <div className={`h-12 flex items-center justify-between border-b border-border shrink-0 pr-4 ${sidebarCollapsed ? "pl-14" : "pl-4"}`}>
+      <div
+        className={`h-12 flex items-center justify-between border-b border-border shrink-0 ${sidebarCollapsed ? "pl-14" : "pl-4"}`}
+      >
         <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
           {panel.title}
         </span>
         <button
           onClick={close}
-          className="flex items-center justify-center w-8 h-8 rounded-md text-sidebar-foreground/60 hover:text-primary hover:bg-primary/8 transition-colors cursor-pointer"
+          className="w-12 h-12 shrink-0 rounded-none border-l border-border flex items-center justify-center text-primary hover:bg-primary/8 transition-colors cursor-pointer"
           aria-label="Close panel"
         >
-          <X className="h-4 w-4" />
+          <X className="h-5 w-5" />
         </button>
       </div>
 

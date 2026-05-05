@@ -60,7 +60,15 @@ interface Props {
 
 // ─── Org Info Form ────────────────────────────────────────────────────────────
 
-function OrgInfoForm({ org, orgId, timezones }: { org: OrgData; orgId: string; timezones: TimezoneOption[] }) {
+function OrgInfoForm({
+  org,
+  orgId,
+  timezones,
+}: {
+  org: OrgData;
+  orgId: string;
+  timezones: TimezoneOption[];
+}) {
   const [address, setAddress] = useState(org.address ?? "");
   const [timezone, setTimezone] = useState(org.timezone);
   const [openTime, setOpenTime] = useState(minToTime(org.openTimeMin));
@@ -110,7 +118,11 @@ function OrgInfoForm({ org, orgId, timezones }: { org: OrgData; orgId: string; t
           <label className="w-full sm:w-36 text-sm text-muted-foreground shrink-0">
             Timezone
           </label>
-          <TimezoneSelect value={timezone} onChange={setTimezone} timezones={timezones} />
+          <TimezoneSelect
+            value={timezone}
+            onChange={setTimezone}
+            timezones={timezones}
+          />
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4">

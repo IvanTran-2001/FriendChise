@@ -125,7 +125,12 @@ export async function transferOrgOwnership(
   if (!parsed.success) return { ok: false, error: "Validation failed" };
 
   try {
-    await transferOrgOwnershipService(orgId, userId, parsed.data.newOwnerId, userEmail);
+    await transferOrgOwnershipService(
+      orgId,
+      userId,
+      parsed.data.newOwnerId,
+      userEmail,
+    );
     // Revalidate the org's own pages as well as the root layout so both the
     // outgoing and incoming owner see updated sidebar state immediately.
     revalidatePath(`/orgs/${orgId}`, "layout");

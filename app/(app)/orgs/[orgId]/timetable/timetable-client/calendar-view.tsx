@@ -261,7 +261,10 @@ export function CalendarView({
     }
     window.addEventListener("timetable:open-task-panel", handleOpenTaskPanel);
     return () =>
-      window.removeEventListener("timetable:open-task-panel", handleOpenTaskPanel);
+      window.removeEventListener(
+        "timetable:open-task-panel",
+        handleOpenTaskPanel,
+      );
   }, [hasPanel]);
 
   return (
@@ -307,7 +310,8 @@ export function CalendarView({
                         </button>
                       ) : (
                         <p className="text-sm text-muted-foreground">
-                          Use &ldquo;Add Task&rdquo; in the sidebar to get started
+                          Use &ldquo;Add Task&rdquo; in the sidebar to get
+                          started
                         </p>
                       ))}
                   </div>
