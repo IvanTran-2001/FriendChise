@@ -738,8 +738,14 @@ async function main() {
             },
           })
           .then(async (task) => {
+            const roleId = roleByKey[roleKey];
+            if (roleId === undefined) {
+              throw new Error(
+                `Role key "${roleKey}" not found in roleByKey lookup for task "${task.name}". Available keys: ${Object.keys(roleByKey).join(", ")}`,
+              );
+            }
             await prisma.taskEligibility.create({
-              data: { taskId: task.id, roleId: roleByKey[roleKey] },
+              data: { taskId: task.id, roleId },
             });
             return { task, roleKey };
           }),
@@ -751,7 +757,15 @@ async function main() {
   const tByName = Object.fromEntries(
     createdTasks.map(({ task }) => [task.name, task]),
   );
-  const t = (name: string) => tByName[name];
+  const t = (name: string) => {
+    const task = tByName[name];
+    if (task === undefined) {
+      throw new Error(
+        `Task "${name}" not found in tByName lookup. Available tasks: ${Object.keys(tByName).join(", ")}`,
+      );
+    }
+    return task;
+  };
 
   // ── Templates ──────────────────────────────────────────────────────────────
   console.log("→ Creating templates...");

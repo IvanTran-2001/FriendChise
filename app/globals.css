@@ -2,8 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-html,
-body {
+.app-root {
   overflow: hidden;
   height: 100%;
 }
