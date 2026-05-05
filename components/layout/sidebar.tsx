@@ -32,7 +32,11 @@ import {
   HeartHandshake,
   Wrench,
 } from "lucide-react";
-import { MobileSidebarCtx, useMobileSidebar, GlobalSidebarProvider } from "./mobile-sidebar-context";
+import {
+  MobileSidebarCtx,
+  useMobileSidebar,
+  GlobalSidebarProvider,
+} from "./mobile-sidebar-context";
 import { useHasPageSidebar } from "./page-sidebar-context";
 import { Logo } from "./logo";
 import { SidebarNavItem } from "./sidebar-nav-item";
@@ -68,10 +72,20 @@ function getOrgItems(orgId: string): NavItem[] {
     { title: "Overview", url: `/orgs/${orgId}`, icon: Building2 },
     { title: "Timetable", url: `/orgs/${orgId}/timetable`, icon: Calendar },
     { title: "Tasks", url: `/orgs/${orgId}/tasks`, icon: ListTodo },
-    { title: "Tools", url: `/orgs/${orgId}/tools`, icon: Wrench, disabled: true },
+    {
+      title: "Tools",
+      url: `/orgs/${orgId}/tools`,
+      icon: Wrench,
+      disabled: true,
+    },
     { title: "Members", url: `/orgs/${orgId}/memberships`, icon: Users },
     // TODO: remove `disabled: true` when progress page is implemented
-    { title: "Progress", url: `/orgs/${orgId}/progress`, icon: BarChart2, disabled: true },
+    {
+      title: "Progress",
+      url: `/orgs/${orgId}/progress`,
+      icon: BarChart2,
+      disabled: true,
+    },
   ];
 }
 
@@ -89,7 +103,13 @@ function getFooterItems(
   const franchiseeOrgId = isParentOwner ? orgId : parentOrgId;
   return [
     ...(franchiseeOrgId
-      ? [{ title: "Franchisee", url: `/orgs/${franchiseeOrgId}/franchisee`, icon: Network }]
+      ? [
+          {
+            title: "Franchisee",
+            url: `/orgs/${franchiseeOrgId}/franchisee`,
+            icon: Network,
+          },
+        ]
       : []),
     { title: "Settings", url: `/orgs/${orgId}/settings`, icon: Settings },
   ];
@@ -234,20 +254,28 @@ export function AppSidebar() {
       {/* ── Mobile: overlay, shown when hamburger is open ── */}
       {open && (
         <>
-          <div className="md:hidden fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className={cn(
-            "md:hidden fixed inset-y-0 left-0 z-50 bg-sidebar border-r border-sidebar-border flex flex-col overflow-hidden",
-            !hasSidebar ? "w-52" : "w-12",
-          )}>
+          <div
+            className="md:hidden fixed inset-0 z-40"
+            onClick={() => setOpen(false)}
+          />
+          <div
+            className={cn(
+              "md:hidden fixed inset-y-0 left-0 z-50 bg-sidebar border-r border-sidebar-border flex flex-col overflow-hidden",
+              !hasSidebar ? "w-52" : "w-12",
+            )}
+          >
             <Link
               href="/"
               onClick={() => setOpen(false)}
               className="flex items-center h-12 shrink-0 text-foreground px-2"
             >
-              {!hasSidebar
-                ? <Logo className="text-foreground" />
-                : <span className="flex items-center justify-center w-full rounded-full border-2 border-current p-1.5"><HeartHandshake className="h-4 w-4" strokeWidth={1.75} /></span>
-              }
+              {!hasSidebar ? (
+                <Logo className="text-foreground" />
+              ) : (
+                <span className="flex items-center justify-center w-full rounded-full border-2 border-current p-1.5">
+                  <HeartHandshake className="h-4 w-4" strokeWidth={1.75} />
+                </span>
+              )}
             </Link>
             {navContent()}
           </div>

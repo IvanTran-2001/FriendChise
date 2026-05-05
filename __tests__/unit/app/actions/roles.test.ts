@@ -61,7 +61,12 @@ describe("deleteRoleAction", () => {
     const result = await deleteRoleAction("org-1", "role-1");
 
     expect(result).toEqual({ ok: true });
-    expect(deleteRoleService).toHaveBeenCalledWith("org-1", "role-1", "u-1", "user@example.com");
+    expect(deleteRoleService).toHaveBeenCalledWith(
+      "org-1",
+      "role-1",
+      "u-1",
+      "user@example.com",
+    );
     expect(revalidatePath).toHaveBeenCalled();
   });
 

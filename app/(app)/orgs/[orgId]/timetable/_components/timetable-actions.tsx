@@ -22,7 +22,11 @@ import { Button } from "@/components/ui/button";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useMobileSidebar } from "@/components/layout/mobile-sidebar-context";
-import { ApplyTemplateForm, ApplyTemplateDialog, type TemplateOption } from "./apply-template-dialog";
+import {
+  ApplyTemplateForm,
+  ApplyTemplateDialog,
+  type TemplateOption,
+} from "./apply-template-dialog";
 import { AddTaskPanel } from "./add-task-panel";
 import type { SharedTask } from "../_shared/types";
 

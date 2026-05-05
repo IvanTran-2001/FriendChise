@@ -69,7 +69,8 @@ export default async function TimetablePage({
   // outside a ±4 window. ±6 guarantees the full Mon–Sun is always loaded.
   const rangeStart = addCalendarDays(anchor, -6);
 
-  const mode: "calendar" | "simple" = modeParam === "simple" ? "simple" : "calendar";
+  const mode: "calendar" | "simple" =
+    modeParam === "simple" ? "simple" : "calendar";
   const span: "day" | "week" = spanParam === "day" ? "day" : "week";
   const [
     instances,
@@ -235,7 +236,11 @@ export default async function TimetablePage({
       style={{ height: "calc(100dvh - 148px)", minHeight: "500px" }}
     >
       {/* Desktop page sidebar */}
-      <RegisterPageSidebarSubContent content={<TimetableSidebarContent {...sidebarProps} tasks={availableTasks} />} />
+      <RegisterPageSidebarSubContent
+        content={
+          <TimetableSidebarContent {...sidebarProps} tasks={availableTasks} />
+        }
+      />
 
       <TimetablePrefRedirect orgId={orgId} />
       <TimetableClient

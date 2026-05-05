@@ -13,27 +13,21 @@
  *   "Copy of <original>" (with a numeric suffix on collision).
  * - **Delete** — opens an AlertDialog confirmation; commits via `deleteTemplateAction`.
  *
- * View preference (card vs list) is persisted in localStorage via `usePersistedState`.
+ * View preference (card vs list) is URL-driven via the `view` prop.
  */
 
-import { usePersistedState } from "@/hooks/use-persisted-state";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CalendarDays,
   Copy,
-  LayoutGrid,
-  List,
   MoreHorizontal,
   Pencil,
-  Plus,
   Trash2,
 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Toolbar } from "@/components/layout/toolbar";
-import { SegmentedControl } from "@/components/ui/segmented-control";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -74,6 +68,7 @@ type Template = {
 interface TemplatesClientProps {
   orgId: string;
   templates: Template[];
+  view: "card" | "list";
 }
 
 // ---------------------------------------------------------------------------
@@ -256,65 +251,27 @@ function TemplateMenu({
 // Main client component
 // ---------------------------------------------------------------------------
 
-export function TemplatesClient({ orgId, templates }: TemplatesClientProps) {
-  const [view, setView] = usePersistedState<"card" | "list">(
-    "templates:view",
-    "card",
-  );
-
-  const viewToggle = (
-    <SegmentedControl
-      size="sm"
-      value={view}
-      onChange={setView}
-      options={[
-        { value: "list", label: <List className="h-4 w-4" /> },
-        { value: "card", label: <LayoutGrid className="h-4 w-4" /> },
-      ]}
-    />
-  );
-
+export function TemplatesClient({
+  orgId,
+  templates,
+  view,
+}: TemplatesClientProps) {
   if (templates.length === 0) {
     return (
-      <>
-        <Toolbar>
-          <div className="flex items-center gap-2 ml-auto">
-            <Button asChild size="sm" className="gap-1.5">
-              <Link href={`/orgs/${orgId}/timetable/templates/new`}>
-                <Plus className="h-3.5 w-3.5" /> New Template
-              </Link>
-            </Button>
-            {viewToggle}
-          </div>
-        </Toolbar>
-        <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
-          <CalendarDays className="h-10 w-10 opacity-30" />
-          <p className="text-sm">
-            No templates yet. Create one to get started.
-          </p>
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/orgs/${orgId}/timetable/templates/new`}>
-              Create Template
-            </Link>
-          </Button>
-        </div>
-      </>
+      <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
+        <CalendarDays className="h-10 w-10 opacity-30" />
+        <p className="text-sm">No templates yet. Create one to get started.</p>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/orgs/${orgId}/timetable/templates/new`}>
+            Create Template
+          </Link>
+        </Button>
+      </div>
     );
   }
 
   return (
     <>
-      <Toolbar>
-        <div className="flex items-center gap-2 ml-auto">
-          <Button asChild size="sm" className="gap-1.5">
-            <Link href={`/orgs/${orgId}/timetable/templates/new`}>
-              <Plus className="h-3.5 w-3.5" /> New Template
-            </Link>
-          </Button>
-          {viewToggle}
-        </div>
-      </Toolbar>
-
       {/* Card view */}
       {view === "card" ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

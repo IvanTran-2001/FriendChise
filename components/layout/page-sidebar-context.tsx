@@ -18,7 +18,13 @@
  *  5. On mobile (`< md`) the sidebar renders as a fixed overlay (`left-12`) and
  *     is controlled by `MobileSidebarCtx`.
  */
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type ReactNode,
+} from "react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useMobileSidebar } from "@/components/layout/mobile-sidebar-context";
 import { usePersistedState } from "@/hooks/use-persisted-state";
@@ -44,9 +50,21 @@ const PageSidebarCtx = createContext<PageSidebarCtxValue>({
 export function PageSidebarProvider({ children }: { children: ReactNode }) {
   const [sidebar, setSidebar] = useState<ReactNode | null>(null);
   const [subContent, setSubContent] = useState<ReactNode | null>(null);
-  const [collapsed, setCollapsed] = usePersistedState("page-sidebar-collapsed", false);
+  const [collapsed, setCollapsed] = usePersistedState(
+    "page-sidebar-collapsed",
+    false,
+  );
   return (
-    <PageSidebarCtx.Provider value={{ sidebar, setSidebar, subContent, setSubContent, collapsed, setCollapsed }}>
+    <PageSidebarCtx.Provider
+      value={{
+        sidebar,
+        setSidebar,
+        subContent,
+        setSubContent,
+        collapsed,
+        setCollapsed,
+      }}
+    >
       {children}
     </PageSidebarCtx.Provider>
   );
@@ -82,7 +100,7 @@ export function PageSidebarSlot() {
         <div className="hidden md:block relative w-0 shrink-0">
           <button
             onClick={() => setCollapsed(false)}
-            className="absolute top-0 left-0 z-10 flex items-center justify-center w-12 h-12 rounded-none bg-sidebar border-r border-b border-border text-sidebar-foreground/60 hover:text-primary hover:bg-primary/8 transition-colors cursor-pointer"
+            className="absolute top-0 left-0 z-10 flex items-center justify-center w-12 h-12 rounded-none bg-sidebar border-r border-b border-border text-primary hover:bg-primary/8 transition-colors cursor-pointer"
             aria-label="Expand sidebar"
           >
             <PanelLeftOpen className="h-5 w-5" />
@@ -96,7 +114,7 @@ export function PageSidebarSlot() {
           </div>
           <button
             onClick={() => setCollapsed(true)}
-            className="absolute top-0 right-0 z-10 flex items-center justify-center w-12 h-12 rounded-none border-b border-l border-border text-sidebar-foreground/60 hover:text-primary hover:bg-primary/8 transition-colors cursor-pointer"
+            className="absolute top-0 right-0 z-10 flex items-center justify-center w-12 h-12 rounded-none border-b border-l border-border text-primary hover:bg-primary/8 transition-colors cursor-pointer"
             aria-label="Collapse sidebar"
           >
             <PanelLeftClose className="h-5 w-5" />
@@ -133,7 +151,11 @@ export function RegisterPageSidebar({ content }: { content: ReactNode }) {
  * swaps the inner content — the shell (e.g. nav tabs) stays mounted and
  * visible during navigation, eliminating sidebar flicker.
  */
-export function RegisterPageSidebarSubContent({ content }: { content: ReactNode }) {
+export function RegisterPageSidebarSubContent({
+  content,
+}: {
+  content: ReactNode;
+}) {
   const { setSubContent } = useContext(PageSidebarCtx);
   useEffect(() => {
     setSubContent(content);

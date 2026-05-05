@@ -184,7 +184,11 @@ describe("createTaskSchema", () => {
 
   describe("wait-day cross-field validation", () => {
     it("rejects when both minWaitDays and maxWaitDays are missing", () => {
-      const { minWaitDays: _minWaitDays, maxWaitDays: _maxWaitDays, ...rest } = validCreate;
+      const {
+        minWaitDays: _minWaitDays,
+        maxWaitDays: _maxWaitDays,
+        ...rest
+      } = validCreate;
       const result = createTaskSchema.safeParse(rest);
       expect(result.success).toBe(false);
       expect(issueMessages(result)).toContain(
@@ -293,7 +297,11 @@ describe("updateTaskSchema", () => {
   });
 
   it("applies same wait-day cross-field rule as create", () => {
-    const { minWaitDays: _minWaitDays, maxWaitDays: _maxWaitDays, ...rest } = validUpdate;
+    const {
+      minWaitDays: _minWaitDays,
+      maxWaitDays: _maxWaitDays,
+      ...rest
+    } = validUpdate;
     const result = updateTaskSchema.safeParse(rest);
     expect(result.success).toBe(false);
   });

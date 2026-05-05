@@ -24,7 +24,9 @@ export function OrgManagementNav() {
   return (
     <aside className="flex flex-col flex-1 overflow-y-auto">
       <div className="h-12 flex items-center px-4 border-b border-border shrink-0">
-        <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">Organizations</span>
+        <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
+          Organizations
+        </span>
       </div>
       {items.map(({ title, url, icon, disabled }) => (
         <SidebarNavItem

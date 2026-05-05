@@ -69,7 +69,12 @@ describe("listTimetableEntries", () => {
     const task = await prisma.task.findFirstOrThrow({
       where: { orgId: org.id },
     });
-    const created = await createTimetableEntry(org.id, task.id, "2026-08-02", 480);
+    const created = await createTimetableEntry(
+      org.id,
+      task.id,
+      "2026-08-02",
+      480,
+    );
     expect(created.ok).toBe(true);
     if (!created.ok) return;
 

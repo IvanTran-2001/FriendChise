@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { PermissionAction } from "@prisma/client";
 import { log } from "@/lib/observability";
-import {
-  getAuthUser,
-  getOrgMembership,
-  memberHasPermission,
-} from "./_shared";
+import { getAuthUser, getOrgMembership, memberHasPermission } from "./_shared";
 
 /**
  * Auth guard helpers for API route handlers.

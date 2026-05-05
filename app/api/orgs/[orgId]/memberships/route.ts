@@ -46,7 +46,12 @@ export async function POST(
     );
   }
 
-  const result = await createMembership(orgId, parsed.data, authz.userId, authz.userEmail);
+  const result = await createMembership(
+    orgId,
+    parsed.data,
+    authz.userId,
+    authz.userEmail,
+  );
   if (!result.ok) {
     const status = result.code === "CONFLICT" ? 409 : 400;
     return NextResponse.json({ error: result.error }, { status });

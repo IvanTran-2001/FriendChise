@@ -105,7 +105,11 @@ describe("createTaskAction", () => {
 
     expect(createTask).toHaveBeenCalledWith(
       "org-1",
-      expect.objectContaining({ title: "Task A", color: "#6366f1", durationMin: 30 }),
+      expect.objectContaining({
+        title: "Task A",
+        color: "#6366f1",
+        durationMin: 30,
+      }),
       "u-1",
       "user@example.com",
     );
@@ -172,7 +176,12 @@ describe("deleteTaskAction", () => {
 
     await deleteTaskAction("org-1", "task-xyz");
 
-    expect(deleteTask).toHaveBeenCalledWith("org-1", "task-xyz", "u-1", "user@example.com");
+    expect(deleteTask).toHaveBeenCalledWith(
+      "org-1",
+      "task-xyz",
+      "u-1",
+      "user@example.com",
+    );
   });
 });
 

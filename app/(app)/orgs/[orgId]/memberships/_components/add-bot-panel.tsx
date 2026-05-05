@@ -62,7 +62,9 @@ export function AddBotPanel({
         toast.success(`Bot "${botName.trim()}" added.`);
         onClose();
       } catch (error: unknown) {
-        setErrors({ _: error instanceof Error ? error.message : String(error) });
+        setErrors({
+          _: error instanceof Error ? error.message : String(error),
+        });
         toast.error("Failed to add bot");
       }
     });
@@ -110,7 +112,11 @@ export function AddBotPanel({
 
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium">Roles</label>
-        <RolePicker allRoles={roles} selectedIds={roleIds} onChange={setRoleIds} />
+        <RolePicker
+          allRoles={roles}
+          selectedIds={roleIds}
+          onChange={setRoleIds}
+        />
       </div>
 
       <Button type="submit" disabled={isPending} className="w-full">

@@ -164,7 +164,11 @@ function buildSchedulePayload(s: ReturnType<typeof useScheduleState>) {
 
 // ─── Create Org Form ────────────────────────────────────────────────────────
 
-export default function NewOrgPage({ timezones }: { timezones: TimezoneOption[] }) {
+export default function NewOrgPage({
+  timezones,
+}: {
+  timezones: TimezoneOption[];
+}) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [error, setError] = useState<string | null>(null);

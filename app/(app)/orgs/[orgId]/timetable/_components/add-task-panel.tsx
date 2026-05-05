@@ -26,7 +26,12 @@ interface AddTaskPanelProps {
  * Designed to render inside ActionSidebarSlot. Drag events set
  * `dataTransfer` so TimeGrid can pick them up as task drops.
  */
-export function AddTaskPanel({ tasks, orgId, anchor, todayStr }: AddTaskPanelProps) {
+export function AddTaskPanel({
+  tasks,
+  orgId,
+  anchor,
+  todayStr,
+}: AddTaskPanelProps) {
   const router = useRouter();
   const [mode, setMode] = useState<"list" | "schedule">("list");
   const [selectedTask, setSelectedTask] = useState<SharedTask | null>(null);
@@ -68,7 +73,14 @@ export function AddTaskPanel({ tasks, orgId, anchor, todayStr }: AddTaskPanelPro
     const [hours, minutes] = timeStr.split(":").map(Number);
 
     // Validate parsed time values
-    if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    if (
+      isNaN(hours) ||
+      isNaN(minutes) ||
+      hours < 0 ||
+      hours > 23 ||
+      minutes < 0 ||
+      minutes > 59
+    ) {
       toast.error("Invalid time format. Please enter a valid time.");
       return;
     }
@@ -90,7 +102,9 @@ export function AddTaskPanel({ tasks, orgId, anchor, todayStr }: AddTaskPanelPro
         setMode("list");
         setSelectedTask(null);
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Something went wrong");
+        toast.error(
+          error instanceof Error ? error.message : "Something went wrong",
+        );
       }
     });
   }
@@ -132,7 +146,10 @@ export function AddTaskPanel({ tasks, orgId, anchor, todayStr }: AddTaskPanelPro
         {/* Date + time inputs */}
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="date-input" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <label
+              htmlFor="date-input"
+              className="text-xs font-medium text-muted-foreground uppercase tracking-wider"
+            >
               Date
             </label>
             <Input
@@ -144,7 +161,10 @@ export function AddTaskPanel({ tasks, orgId, anchor, todayStr }: AddTaskPanelPro
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="start-time-input" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <label
+              htmlFor="start-time-input"
+              className="text-xs font-medium text-muted-foreground uppercase tracking-wider"
+            >
               Start time
             </label>
             <Input
@@ -204,8 +224,7 @@ export function AddTaskPanel({ tasks, orgId, anchor, todayStr }: AddTaskPanelPro
               <span
                 className="absolute left-4 inset-y-0 w-1 rounded-r-sm"
                 style={{
-                  backgroundColor:
-                    task.roleColor ?? task.color ?? "#9ca3af",
+                  backgroundColor: task.roleColor ?? task.color ?? "#9ca3af",
                 }}
               />
               <div className="pl-3 text-sm font-medium">{task.name}</div>

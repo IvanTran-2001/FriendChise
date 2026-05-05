@@ -24,7 +24,10 @@ export default async function NewRolePage({
   return (
     <div className="max-w-2xl mx-auto">
       <h1 className="text-xl font-semibold mb-6">Create Role</h1>
-      <RoleForm orgId={orgId} tasks={tasks.map((t) => ({ id: t.id, name: t.name }))} />
+      <RoleForm
+        orgId={orgId}
+        tasks={tasks.map((t) => ({ id: t.id, name: t.name }))}
+      />
     </div>
   );
 }

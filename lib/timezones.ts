@@ -3,7 +3,9 @@ import { rawTimeZones } from "@vvo/tzdb";
 function fmtOffset(minutes: number): string {
   const sign = minutes >= 0 ? "+" : "-";
   const abs = Math.abs(minutes);
-  const h = Math.floor(abs / 60).toString().padStart(2, "0");
+  const h = Math.floor(abs / 60)
+    .toString()
+    .padStart(2, "0");
   const m = (abs % 60).toString().padStart(2, "0");
   return `UTC${sign}${h}:${m}`;
 }

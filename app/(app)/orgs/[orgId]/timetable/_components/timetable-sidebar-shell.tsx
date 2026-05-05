@@ -15,8 +15,18 @@ import { cn } from "@/lib/utils";
 import { usePageSidebarSubContent } from "@/components/layout/page-sidebar-context";
 
 const tabs = [
-  { label: "Schedule", icon: Calendar, href: (orgId: string) => `/orgs/${orgId}/timetable`, exact: true },
-  { label: "Templates", icon: LayoutList, href: (orgId: string) => `/orgs/${orgId}/timetable/templates`, exact: false },
+  {
+    label: "Schedule",
+    icon: Calendar,
+    href: (orgId: string) => `/orgs/${orgId}/timetable`,
+    exact: true,
+  },
+  {
+    label: "Templates",
+    icon: LayoutList,
+    href: (orgId: string) => `/orgs/${orgId}/timetable/templates`,
+    exact: false,
+  },
 ];
 
 export function TimetableSidebarShell() {

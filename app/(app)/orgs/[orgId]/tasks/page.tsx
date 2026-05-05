@@ -10,10 +10,7 @@ import { PermissionAction } from "@prisma/client";
 import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
 import { TaskTable } from "./_components/task-table";
 import { TasksSidebarContent } from "./_components/tasks-sidebar-content";
-import {
-  SORT_OPTIONS,
-  type SortOption,
-} from "./_components/tasks-config";
+import { SORT_OPTIONS, type SortOption } from "./_components/tasks-config";
 
 /**
  * Tasks list page — server component.

@@ -70,76 +70,77 @@ export function TasksSidebarContent({
           Filters
         </p>
         <div className="flex flex-col gap-2">
-
-        {/* Sort */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full justify-between gap-2"
-            >
-              {activeSort.label}
-              <ChevronDown className="h-3.5 w-3.5 shrink-0" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-40">
-            {SORT_OPTIONS.map((o) => (
-              <DropdownMenuItem
-                key={o.value}
-                onClick={() => router.push(buildHref({ sort: o.value }))}
-              >
-                {o.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Role filter */}
-        {roles.length > 0 && (
+          {/* Sort */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                variant={roleId ? "secondary" : "outline"}
+                variant="outline"
                 size="sm"
                 className="w-full justify-between gap-2"
-                aria-label="Filter by role"
               >
-                {activeRole ? activeRole.name : "All roles"}
+                {activeSort.label}
                 <ChevronDown className="h-3.5 w-3.5 shrink-0" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-40">
-              {roleId && (
+              {SORT_OPTIONS.map((o) => (
                 <DropdownMenuItem
-                  onClick={() => router.push(buildHref({ roleId: null }))}
+                  key={o.value}
+                  onClick={() => router.push(buildHref({ sort: o.value }))}
                 >
-                  All roles
-                </DropdownMenuItem>
-              )}
-              {roles.map((r) => (
-                <DropdownMenuItem
-                  key={r.id}
-                  onClick={() => router.push(buildHref({ roleId: r.id }))}
-                >
-                  {r.name}
+                  {o.label}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
 
-        {/* View toggle */}
-        <SegmentedControl
-          size="sm"
-          className="w-fit"
-          value={view}
-          onChange={(v) => router.push(buildHref({ view: v as "list" | "card" }))}
-          options={[
-            { value: "list", label: <List className="h-4 w-4" /> },
-            { value: "card", label: <LayoutGrid className="h-4 w-4" /> },
-          ]}
-        />
+          {/* Role filter */}
+          {roles.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={roleId ? "secondary" : "outline"}
+                  size="sm"
+                  className="w-full justify-between gap-2"
+                  aria-label="Filter by role"
+                >
+                  {activeRole ? activeRole.name : "All roles"}
+                  <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-40">
+                {roleId && (
+                  <DropdownMenuItem
+                    onClick={() => router.push(buildHref({ roleId: null }))}
+                  >
+                    All roles
+                  </DropdownMenuItem>
+                )}
+                {roles.map((r) => (
+                  <DropdownMenuItem
+                    key={r.id}
+                    onClick={() => router.push(buildHref({ roleId: r.id }))}
+                  >
+                    {r.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {/* View toggle */}
+          <SegmentedControl
+            size="sm"
+            className="w-fit"
+            value={view}
+            onChange={(v) =>
+              router.push(buildHref({ view: v as "list" | "card" }))
+            }
+            options={[
+              { value: "list", label: <List className="h-4 w-4" /> },
+              { value: "card", label: <LayoutGrid className="h-4 w-4" /> },
+            ]}
+          />
         </div>
       </div>
 

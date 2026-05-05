@@ -4,7 +4,7 @@
  * @file template-editor-client.tsx
  * Client root for the timetable template editor page.
  *
- * Supports two view modes (persisted in localStorage via `usePersistedState`):
+ * Supports two view modes (`mode` prop, URL-driven):
  * - **Calendar** — drag-and-drop time grid using `TimeGrid`. Tasks are dragged from
  *   the `TaskPanel` sidebar (desktop) or a bottom Sheet (mobile). Entries can be
  *   repositioned by dragging. Column count adapts to container width via ResizeObserver.
@@ -22,33 +22,35 @@
  * `router.refresh()` to sync server state.
  */
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
-  LayoutList,
-  Minus,
   MoreHorizontal,
   Plus,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Toolbar } from "@/components/layout/toolbar";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { usePersistedState } from "@/hooks/use-persisted-state";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { SegmentedControl } from "@/components/ui/segmented-control";
 import {
   addTemplateInstanceAction,
   removeTemplateInstanceAction,
   updateTemplateInstanceAction,
-  updateTemplateDaysAction,
   addInstanceAssigneeAction,
   removeInstanceAssigneeAction,
 } from "@/app/actions/templates";
@@ -283,6 +285,10 @@ interface TemplateEditorClientProps {
   openTimeMin: number;
   closeTimeMin: number;
   fillHeight?: boolean;
+  mode: "calendar" | "simple";
+  span: "day" | "week";
+  /** Rendered at the end of the toolbar (template name / metadata). */
+  title?: ReactNode;
 }
 
 export function TemplateEditorClient({
@@ -295,19 +301,16 @@ export function TemplateEditorClient({
   openTimeMin,
   closeTimeMin,
   fillHeight,
+  mode,
+  span,
+  title,
 }: TemplateEditorClientProps) {
   const router = useRouter();
   const [, startT] = useTransition();
   const isMobile = useIsMobile();
 
-  // ── View mode (calendar / simple) ─────────────────────────────────────
-  const [mode, setMode] = usePersistedState<"calendar" | "simple">(
-    "template-editor:mode",
-    "calendar",
-  );
-
-  // ── Span & adaptive column count (mirrors calendar-view) ──────────────
-  const [span, setSpan] = useState<"day" | "week">("week");
+  // ── Span & adaptive column count ──────────────────────────────────────
+  // span and mode come from URL params via props
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(600);
 
@@ -378,6 +381,13 @@ export function TemplateEditorClient({
     return () => window.removeEventListener("resize", update);
   }, []);
 
+  useEffect(() => {
+    const handler = () => setTaskPanelOpen(true);
+    window.addEventListener("template:open-task-panel", handler);
+    return () =>
+      window.removeEventListener("template:open-task-panel", handler);
+  }, []);
+
   // ── Filter visible instances ──────────────────────────────────────────
   const visibleInstances = instances.filter((inst) =>
     visibleDays.includes(inst.dayIndex),
@@ -391,20 +401,6 @@ export function TemplateEditorClient({
   }
 
   // ── Handlers ──────────────────────────────────────────────────────────
-  function handleAddDay() {
-    startT(async () => {
-      await updateTemplateDaysAction(orgId, templateId, templateDays + 1);
-      router.refresh();
-    });
-  }
-
-  function handleRemoveDay() {
-    if (templateDays <= 1) return;
-    startT(async () => {
-      await updateTemplateDaysAction(orgId, templateId, templateDays - 1);
-      router.refresh();
-    });
-  }
 
   function handleDrop(col: string, timeMin: number, data: DragData) {
     const day = parseInt(col, 10);
@@ -470,92 +466,44 @@ export function TemplateEditorClient({
         fillHeight ? "flex flex-col flex-1 min-h-0" : "flex flex-col gap-4"
       }
     >
-      {/* ── Toolbar (same two-row pattern as TimetableClient) ── */}
-      <div className="-mx-4 -mt-4 mb-4 border-b bg-card px-4 py-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:-mx-6 sm:-mt-6 sm:mb-4 sm:px-6">
-        {/* Row 1 (always): prev / day label / next + Start */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-0.5">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() =>
-                setStartDay(Math.max(0, clampedStartDay - pageSize))
-              }
-              disabled={!canPrev}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-medium min-w-44 text-center px-1">
-              {navLabel}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => setStartDay(clampedStartDay + pageSize)}
-              disabled={!canNext}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+      {/* ── Navigation toolbar ── */}
+      <Toolbar>
+        <div className="flex items-center gap-0.5">
           <Button
             variant="outline"
-            size="sm"
-            className={`h-7 text-xs shrink-0 transition-opacity duration-200${clampedStartDay === 0 ? " opacity-0 pointer-events-none" : ""}`}
-            onClick={() => setStartDay(0)}
-            disabled={clampedStartDay === 0}
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setStartDay(Math.max(0, clampedStartDay - pageSize))}
+            disabled={!canPrev}
           >
-            Start
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm font-medium min-w-44 text-center px-1">
+            {navLabel}
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setStartDay(clampedStartDay + pageSize)}
+            disabled={!canNext}
+          >
+            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-
-        {/* Row 2 (mobile) / same row (sm+): span picker + cycle controls */}
-        <div className="flex flex-wrap items-center gap-2 sm:flex-1 sm:justify-end">
-          <SegmentedControl
-            size="sm"
-            value={span}
-            onChange={setSpan}
-            options={[
-              { value: "day", label: "Day" },
-              { value: "week", label: "Week" },
-            ]}
-          />
-          <SegmentedControl
-            size="sm"
-            value={mode}
-            onChange={setMode}
-            options={[
-              { value: "calendar", label: "Calendar" },
-              { value: "simple", label: "Simple" },
-            ]}
-          />
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-7 w-7"
-              onClick={handleRemoveDay}
-              disabled={templateDays <= 1}
-              title="Remove last day"
-            >
-              <Minus className="h-3.5 w-3.5" />
-            </Button>
-            <span className="text-xs font-medium text-muted-foreground min-w-14 text-center">
-              {templateDays} day{templateDays !== 1 ? "s" : ""}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-7 w-7"
-              onClick={handleAddDay}
-              title="Add day"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </div>
-      </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className={`h-7 text-xs shrink-0 transition-opacity duration-200${
+            clampedStartDay === 0 ? " opacity-0 pointer-events-none" : ""
+          }`}
+          onClick={() => setStartDay(0)}
+          disabled={clampedStartDay === 0}
+        >
+          Start
+        </Button>
+        {title && <div className="ml-auto">{title}</div>}
+      </Toolbar>
 
       {/* ── Simple list view ── */}
       {mode === "simple" &&
@@ -756,31 +704,13 @@ export function TemplateEditorClient({
               onTapPlace={isMobile ? handleTapPlace : undefined}
             />
           </div>
-
-          {/* Desktop task panel */}
-          {!isMobile && (
-            <TaskPanel
-              tasks={availableTasks}
-              fillHeight={fillHeight}
-              onDragStart={(taskId, e) => {
-                dragDataRef.current = { type: "task", taskId };
-                e.dataTransfer.effectAllowed = "copy";
-                setIsDragging(true);
-              }}
-              onDragEnd={() => {
-                dragDataRef.current = null;
-                setDragOver(null);
-                setIsDragging(false);
-              }}
-            />
-          )}
         </div>
       )}
 
-      {/* Mobile: floating Tasks button + Sheet */}
+      {/* Mobile: cancel tap-to-place button + Sheet */}
       {isMobile && (
         <>
-          {selectedTaskId ? (
+          {selectedTaskId && (
             <button
               onClick={() => setSelectedTaskId(null)}
               className="fixed bottom-6 right-4 z-40 flex items-center gap-2 rounded-full bg-destructive text-destructive-foreground shadow-lg px-4 py-2.5 text-sm font-medium active:scale-95 transition-transform"
@@ -789,16 +719,6 @@ export function TemplateEditorClient({
             >
               <X className="h-4 w-4" />
               Cancel
-            </button>
-          ) : (
-            <button
-              onClick={() => setTaskPanelOpen(true)}
-              className="fixed bottom-6 right-4 z-40 flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-lg px-4 py-2.5 text-sm font-medium active:scale-95 transition-transform"
-              style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
-              aria-label="Open task list"
-            >
-              <LayoutList className="h-4 w-4" />
-              Tasks
             </button>
           )}
 

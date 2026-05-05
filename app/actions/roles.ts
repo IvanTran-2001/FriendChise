@@ -66,7 +66,12 @@ export async function createRoleAction(
     };
   }
 
-  const result = await createRole(orgId, parsed.data, authz.userId, authz.userEmail);
+  const result = await createRole(
+    orgId,
+    parsed.data,
+    authz.userId,
+    authz.userEmail,
+  );
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/settings/roles`);
@@ -104,7 +109,13 @@ export async function updateRoleAction(
     };
   }
 
-  const result = await updateRole(orgId, roleId, parsed.data, authz.userId, authz.userEmail);
+  const result = await updateRole(
+    orgId,
+    roleId,
+    parsed.data,
+    authz.userId,
+    authz.userEmail,
+  );
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/settings/roles`);
