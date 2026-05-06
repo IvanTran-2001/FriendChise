@@ -23,11 +23,13 @@ import {
   Copy,
   MoreHorizontal,
   Pencil,
+  Search,
   Trash2,
 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Toolbar } from "@/components/layout/toolbar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,6 +59,13 @@ import {
   duplicateTemplateAction,
   deleteTemplateAction,
 } from "@/app/actions/templates";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { CreateTemplateForm } from "./_components/create-template-form";
 
 type Template = {
   id: string;
@@ -256,26 +265,63 @@ export function TemplatesClient({
   templates,
   view,
 }: TemplatesClientProps) {
+  const [query, setQuery] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setCreateOpen(true);
+    window.addEventListener("templates:open-create", handler);
+    return () => window.removeEventListener("templates:open-create", handler);
+  }, []);
+  const filtered = query.trim()
+    ? templates.filter((t) =>
+        t.name.toLowerCase().includes(query.trim().toLowerCase()),
+      )
+    : templates;
+
   if (templates.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
-        <CalendarDays className="h-10 w-10 opacity-30" />
-        <p className="text-sm">No templates yet. Create one to get started.</p>
-        <Button asChild variant="outline" size="sm">
-          <Link href={`/orgs/${orgId}/timetable/templates/new`}>
-            Create Template
-          </Link>
-        </Button>
-      </div>
+      <>
+        <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
+          <CalendarDays className="h-10 w-10 opacity-30" />
+          <p className="text-sm">No templates yet. Create one to get started.</p>
+        </div>
+        <Sheet open={createOpen} onOpenChange={setCreateOpen}>
+          <SheetContent side="bottom" className="p-0 flex flex-col rounded-t-2xl overflow-hidden">
+            <SheetHeader className="px-4 pt-4 pb-2 border-b shrink-0">
+              <SheetTitle>New Template</SheetTitle>
+            </SheetHeader>
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              <CreateTemplateForm orgId={orgId} />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </>
     );
   }
 
   return (
     <>
+      <Toolbar>
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search templates…"
+            className="pl-8 h-8 text-sm"
+          />
+        </div>
+      </Toolbar>
       {/* Card view */}
       {view === "card" ? (
+        filtered.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-10 text-center">
+            No templates match &ldquo;{query}&rdquo;.
+          </p>
+        ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {templates.map((t) => (
+          {filtered.map((t) => (
             <div
               key={t.id}
               className="group relative border bg-card hover:shadow-md transition-all overflow-hidden"
@@ -307,8 +353,14 @@ export function TemplatesClient({
             </div>
           ))}
         </div>
+        )
       ) : (
         /* List view */
+        filtered.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-10 text-center">
+            No templates match &ldquo;{query}&rdquo;.
+          </p>
+        ) : (
         <div className="border bg-card overflow-hidden">
           <table className="w-full text-sm">
             <thead>
@@ -326,7 +378,7 @@ export function TemplatesClient({
               </tr>
             </thead>
             <tbody>
-              {templates.map((t) => (
+              {filtered.map((t) => (
                 <tr
                   key={t.id}
                   className="border-b last:border-0 hover:bg-primary/5 transition-colors group"
@@ -353,7 +405,19 @@ export function TemplatesClient({
             </tbody>
           </table>
         </div>
+        )
       )}
+      {/* Mobile create sheet — rendered here so it survives sidebar close */}
+      <Sheet open={createOpen} onOpenChange={setCreateOpen}>
+        <SheetContent side="bottom" className="p-0 flex flex-col rounded-t-2xl overflow-hidden">
+          <SheetHeader className="px-4 pt-4 pb-2 border-b shrink-0">
+            <SheetTitle>New Template</SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            <CreateTemplateForm orgId={orgId} />
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 }

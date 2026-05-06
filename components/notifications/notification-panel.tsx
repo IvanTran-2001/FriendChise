@@ -69,7 +69,7 @@ export function NotificationPanel({
         <SheetTrigger asChild>{BellButton}</SheetTrigger>
         <SheetContent
           side="bottom"
-          className="data-[side=bottom]:h-[calc(100dvh-4rem)] p-0 flex flex-col rounded-t-2xl"
+          className="p-0 flex flex-col rounded-t-2xl"
         >
           <SheetHeader className="sr-only">
             <SheetTitle>Notifications</SheetTitle>

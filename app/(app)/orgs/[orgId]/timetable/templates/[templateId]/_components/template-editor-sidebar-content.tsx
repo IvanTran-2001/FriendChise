@@ -39,7 +39,7 @@ export function TemplateEditorSidebarContent({
 }: TemplateEditorSidebarContentProps) {
   const router = useRouter();
   const [isPending, startT] = useTransition();
-  const { open, close, activeTitle } = useActionSidebar();
+  const { open, activeTitle } = useActionSidebar();
   const isMobile = useIsMobile();
   const { setOpen: setMobileSidebarOpen } = useMobileSidebar();
   const taskPanelKeyRef = useRef(0);
@@ -83,8 +83,24 @@ export function TemplateEditorSidebarContent({
 
   return (
     <div className="flex flex-col flex-1 overflow-y-auto">
+      {/* View section */}
+      <div className="px-3 pt-3 pb-3">
+        <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
+          View
+        </p>
+        <TimetableViewPicker
+          mode={mode}
+          span={span}
+          calendarHref={calendarHref}
+          simpleHref={simpleHref}
+          dayHref={dayHref}
+          weekHref={weekHref}
+          className="flex-col items-start"
+        />
+      </div>
+
       {/* Actions section */}
-      <div className="px-3 pt-3 pb-2">
+      <div className="px-3 pt-2 pb-3 border-t border-border">
         <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
           Actions
         </p>
@@ -128,22 +144,6 @@ export function TemplateEditorSidebarContent({
             <Plus className="h-3.5 w-3.5" />
           </Button>
         </div>
-      </div>
-
-      {/* View section — mirrors TimetableSidebarContent */}
-      <div className="px-3 pt-2 pb-2 border-t border-border">
-        <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
-          View
-        </p>
-        <TimetableViewPicker
-          mode={mode}
-          span={span}
-          calendarHref={calendarHref}
-          simpleHref={simpleHref}
-          dayHref={dayHref}
-          weekHref={weekHref}
-          className="flex-col items-start"
-        />
       </div>
     </div>
   );

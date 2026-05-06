@@ -446,7 +446,7 @@ export function CalendarView({
               className={
                 isLandscape
                   ? "w-64 p-0 flex flex-col"
-                  : "data-[side=bottom]:h-[80dvh] p-0 flex flex-col"
+                  : "p-0 flex flex-col"
               }
             >
               <SheetHeader className="px-4 pt-4 pb-2 border-b shrink-0">

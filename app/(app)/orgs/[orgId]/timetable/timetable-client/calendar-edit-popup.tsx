@@ -414,7 +414,7 @@ export function CalendarEditPopup({
         >
           <SheetContent
             side="bottom"
-            className="h-[calc(100dvh-4rem)] p-0 flex flex-col rounded-t-2xl overflow-hidden"
+            className="p-0 flex flex-col rounded-t-2xl overflow-hidden"
           >
             <SheetHeader className="px-4 pt-4 pb-2 border-b shrink-0">
               <SheetTitle>{instance.task.title}</SheetTitle>

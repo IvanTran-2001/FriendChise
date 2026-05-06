@@ -22,6 +22,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -353,22 +359,24 @@ export function ApplyTemplateDialog({
   userId,
 }: ApplyTemplateDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Apply Template</DialogTitle>
-        </DialogHeader>
-        {open && (
-          <ApplyTemplateForm
-            onOpenChange={onOpenChange}
-            orgId={orgId}
-            templates={templates}
-            defaultStartDate={defaultStartDate}
-            todayStr={todayStr}
-            userId={userId}
-          />
-        )}
-      </DialogContent>
-    </Dialog>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="p-0 flex flex-col rounded-t-2xl overflow-hidden">
+        <SheetHeader className="px-4 pt-4 pb-2 border-b shrink-0">
+          <SheetTitle>Apply Template</SheetTitle>
+        </SheetHeader>
+        <div className="flex-1 overflow-y-auto px-4 py-4">
+          {open && (
+            <ApplyTemplateForm
+              onOpenChange={onOpenChange}
+              orgId={orgId}
+              templates={templates}
+              defaultStartDate={defaultStartDate}
+              todayStr={todayStr}
+              userId={userId}
+            />
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

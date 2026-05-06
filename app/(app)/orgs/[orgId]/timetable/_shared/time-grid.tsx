@@ -322,7 +322,7 @@ export function TimeGrid<
                   {/* Outside-hours shading */}
                   {openTimeMin !== undefined && openTimeMin > 0 && (
                     <div
-                      className="absolute inset-x-0 bg-muted/40 pointer-events-none z-0"
+                      className={`absolute inset-x-0 pointer-events-none z-0 ${highlightClass ? "bg-muted/70" : "bg-muted/40"}`}
                       style={{
                         top: 0,
                         height: (openTimeMin / 60) * HOUR_HEIGHT,
@@ -331,7 +331,7 @@ export function TimeGrid<
                   )}
                   {closeTimeMin !== undefined && closeTimeMin < 1440 && (
                     <div
-                      className="absolute inset-x-0 bg-muted/40 pointer-events-none z-0"
+                      className={`absolute inset-x-0 pointer-events-none z-0 ${highlightClass ? "bg-muted/70" : "bg-muted/40"}`}
                       style={{
                         top: (closeTimeMin / 60) * HOUR_HEIGHT,
                         height: totalHeight - (closeTimeMin / 60) * HOUR_HEIGHT,
