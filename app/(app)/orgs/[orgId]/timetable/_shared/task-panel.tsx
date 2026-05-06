@@ -42,7 +42,7 @@ export function TaskPanel({
 
   return (
     <div
-      className={`${fullWidth ? "w-full" : "w-56"} shrink-0 rounded-xl border bg-card flex flex-col overflow-hidden${fillHeight ? " min-h-0" : ""}`}
+      className={`${fullWidth ? "w-full" : "w-56"} rounded-xl border bg-card flex flex-col overflow-hidden${fillHeight ? " flex-1 min-h-0" : " shrink-0"}`}
     >
       <div className="px-3 py-2.5 font-medium text-sm border-b shrink-0">
         Tasks

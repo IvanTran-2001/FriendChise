@@ -34,9 +34,17 @@
 
 import { useState, useTransition, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, LayoutList, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toolbar } from "@/components/layout/toolbar";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { TaskPanel } from "../_shared/task-panel";
 import { addDays, getDayName, getMonthName } from "../_shared/grid-utils";
 import { getMondayOf, formatDayRange } from "./helpers";
 import { CalendarView } from "./calendar-view";
@@ -97,6 +105,27 @@ export function TimetableClient({
   const [isNavPending, startNavTransition] = useTransition();
   const navigate = (href: string) =>
     startNavTransition(() => router.push(href));
+
+  // ── Mobile task panel (works for both calendar and simple view) ──────────
+  const isMobile = useIsMobile();
+  const hasPanel = !!availableTasks;
+  const [taskPanelOpen, setTaskPanelOpen] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [isLandscape, setIsLandscape] = useState(false);
+
+  useEffect(() => {
+    const update = () => setIsLandscape(window.innerWidth > window.innerHeight);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  useEffect(() => {
+    if (!hasPanel) return;
+    const handler = () => setTaskPanelOpen(true);
+    window.addEventListener("timetable:open-task-panel", handler);
+    return () => window.removeEventListener("timetable:open-task-panel", handler);
+  }, [hasPanel]);
 
   // Track the actual column count reported by CalendarView (ResizeObserver).
   const [navColCount, setNavColCount] = useState(7);
@@ -229,6 +258,9 @@ export function TimetableClient({
             memberships={memberships}
             userId={userId}
             onVisibleRangeChange={(count) => setNavColCount(count)}
+            selectedTaskId={selectedTaskId}
+            onSelectedTaskIdChange={setSelectedTaskId}
+            onOpenTaskPanel={() => setTaskPanelOpen(true)}
           />
         ) : (
           <SimpleView
@@ -242,6 +274,61 @@ export function TimetableClient({
           />
         )}
       </div>
+
+      {/* Mobile: floating Tasks / Cancel button + Sheet — always mounted so it
+          works regardless of calendar vs. simple view mode */}
+      {hasPanel && isMobile && (
+        <>
+          {selectedTaskId ? (
+            <button
+              onClick={() => setSelectedTaskId(null)}
+              className="fixed bottom-6 right-4 z-40 flex items-center gap-2 rounded-full bg-destructive text-destructive-foreground shadow-lg px-4 py-2.5 text-sm font-medium active:scale-95 transition-transform"
+              style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
+              aria-label="Cancel task placement"
+            >
+              <X className="h-4 w-4" />
+              Cancel
+            </button>
+          ) : (
+            <button
+              onClick={() => setTaskPanelOpen(true)}
+              className="fixed bottom-6 right-4 z-40 flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-lg px-4 py-2.5 text-sm font-medium active:scale-95 transition-transform"
+              style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
+              aria-label="Open task list"
+            >
+              <LayoutList className="h-4 w-4" />
+              Tasks
+            </button>
+          )}
+          <Sheet open={taskPanelOpen} onOpenChange={setTaskPanelOpen}>
+            <SheetContent
+              side={isLandscape ? "right" : "bottom"}
+              className={
+                isLandscape
+                  ? "w-64 p-0 flex flex-col overflow-hidden"
+                  : "p-0 flex flex-col overflow-hidden"
+              }
+            >
+              <SheetHeader className="px-4 pt-4 pb-2 border-b shrink-0">
+                <SheetTitle>Tasks</SheetTitle>
+              </SheetHeader>
+              <TaskPanel
+                tasks={availableTasks!}
+                fullWidth={true}
+                fillHeight={true}
+                tapToPlaceMode={true}
+                selectedTaskId={selectedTaskId}
+                onTaskSelect={(taskId) => {
+                  setSelectedTaskId(taskId);
+                  if (taskId) setTaskPanelOpen(false);
+                }}
+                onDragStart={() => {}}
+                onDragEnd={() => setTaskPanelOpen(false)}
+              />
+            </SheetContent>
+          </Sheet>
+        </>
+      )}
     </div>
   );
 }

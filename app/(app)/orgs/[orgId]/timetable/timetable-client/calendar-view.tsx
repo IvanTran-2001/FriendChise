@@ -3,15 +3,9 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, LayoutList, Plus, X } from "lucide-react";
+import { CalendarDays, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -27,7 +21,6 @@ import {
   updateTimetableEntryAction,
 } from "@/app/actions/timetable-entries";
 import { TimeGrid } from "../_shared/time-grid";
-import { TaskPanel } from "../_shared/task-panel";
 import { addDays, getDayName, minToHHMM } from "../_shared/grid-utils";
 import { STATUS_LABELS, statusDotClass, getMondayOf } from "./helpers";
 import { CalendarEditPopup } from "./calendar-edit-popup";
@@ -63,6 +56,12 @@ export interface CalendarViewProps {
   ) => void;
   /** Current user's ID — used to scope the past-drop warning suppression per user. */
   userId?: string;
+  /** Controlled: which task is selected for tap-to-place (managed by TimetableClient). */
+  selectedTaskId?: string | null;
+  /** Called when the grid wants to clear the selected task (after successful tap-place). */
+  onSelectedTaskIdChange?: (id: string | null) => void;
+  /** Called when the empty-state "Add task" button is tapped (opens task panel Sheet). */
+  onOpenTaskPanel?: () => void;
 }
 
 export function CalendarView({
@@ -79,6 +78,9 @@ export function CalendarView({
   memberships,
   onVisibleRangeChange,
   userId,
+  selectedTaskId = null,
+  onSelectedTaskIdChange,
+  onOpenTaskPanel,
 }: CalendarViewProps) {
   function effStatus(inst: ClientTimetableInstance) {
     return inst.status === "TODO" && inst.date < todayStr
@@ -147,7 +149,6 @@ export function CalendarView({
   } | null>(null);
   const [editingInstance, setEditingInstance] =
     useState<ClientTimetableInstance | null>(null);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
   type PendingDrop =
@@ -221,8 +222,7 @@ export function CalendarView({
         toast.error(result.error ?? "Something went wrong");
         return;
       }
-      setSelectedTaskId(null);
-      setTaskPanelOpen(false);
+      onSelectedTaskIdChange?.(null);
       router.refresh();
     });
   }
@@ -236,14 +236,6 @@ export function CalendarView({
   }
 
   const isMobile = useIsMobile();
-  const [taskPanelOpen, setTaskPanelOpen] = useState(false);
-  const [isLandscape, setIsLandscape] = useState(false);
-  useEffect(() => {
-    const update = () => setIsLandscape(window.innerWidth > window.innerHeight);
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -253,19 +245,6 @@ export function CalendarView({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-
-  useEffect(() => {
-    if (!hasPanel) return;
-    function handleOpenTaskPanel() {
-      setTaskPanelOpen(true);
-    }
-    window.addEventListener("timetable:open-task-panel", handleOpenTaskPanel);
-    return () =>
-      window.removeEventListener(
-        "timetable:open-task-panel",
-        handleOpenTaskPanel,
-      );
-  }, [hasPanel]);
 
   return (
     <>
@@ -302,7 +281,7 @@ export function CalendarView({
                     {hasPanel &&
                       (isMobile ? (
                         <button
-                          onClick={() => setTaskPanelOpen(true)}
+                          onClick={() => onOpenTaskPanel?.()}
                           className="flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-md px-4 py-2.5 text-sm font-medium active:scale-95 transition-transform"
                         >
                           <Plus className="h-4 w-4" />
@@ -415,69 +394,6 @@ export function CalendarView({
           />
         </div>
       </div>
-
-      {/* Mobile: floating Tasks button + Sheet */}
-      {hasPanel && isMobile && (
-        <>
-          {selectedTaskId ? (
-            <button
-              onClick={() => setSelectedTaskId(null)}
-              className="fixed bottom-6 right-4 z-40 flex items-center gap-2 rounded-full bg-destructive text-destructive-foreground shadow-lg px-4 py-2.5 text-sm font-medium active:scale-95 transition-transform"
-              style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
-              aria-label="Cancel task placement"
-            >
-              <X className="h-4 w-4" />
-              Cancel
-            </button>
-          ) : (
-            <button
-              onClick={() => setTaskPanelOpen(true)}
-              className="fixed bottom-6 right-4 z-40 flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-lg px-4 py-2.5 text-sm font-medium active:scale-95 transition-transform"
-              style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
-              aria-label="Open task list"
-            >
-              <LayoutList className="h-4 w-4" />
-              Tasks
-            </button>
-          )}
-          <Sheet open={taskPanelOpen} onOpenChange={setTaskPanelOpen}>
-            <SheetContent
-              side={isLandscape ? "right" : "bottom"}
-              className={
-                isLandscape
-                  ? "w-64 p-0 flex flex-col"
-                  : "p-0 flex flex-col"
-              }
-            >
-              <SheetHeader className="px-4 pt-4 pb-2 border-b shrink-0">
-                <SheetTitle>Tasks</SheetTitle>
-              </SheetHeader>
-              <TaskPanel
-                tasks={availableTasks}
-                fullWidth={true}
-                fillHeight={true}
-                tapToPlaceMode={true}
-                selectedTaskId={selectedTaskId}
-                onTaskSelect={(taskId) => {
-                  setSelectedTaskId(taskId);
-                  if (taskId) setTaskPanelOpen(false);
-                }}
-                onDragStart={(taskId, e) => {
-                  dragDataRef.current = { type: "task", taskId };
-                  e.dataTransfer.effectAllowed = "copy";
-                  setIsDragging(true);
-                }}
-                onDragEnd={() => {
-                  dragDataRef.current = null;
-                  setDragOver(null);
-                  setTaskPanelOpen(false);
-                  setIsDragging(false);
-                }}
-              />
-            </SheetContent>
-          </Sheet>
-        </>
-      )}
 
       {editingInstance && memberships && (
         <CalendarEditPopup
