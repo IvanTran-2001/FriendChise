@@ -153,6 +153,8 @@ model Organization {
   franchiseTokens     FranchiseToken[]
   invites             Invite[]
   auditLogs           AuditLog[]
+  toolItems           ToolItem[]
+  conversionSets      ConversionSet[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -588,4 +590,133 @@ model AuditLog {
   @@index([orgId, createdAt])
   @@index([orgId, targetType, targetId])
   @@index([orgId, actorId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TOOL ITEMS
+// Shared ingredient/product catalogue scoped to an org.
+// Used as the common anchor for conversion sets and (future) data logs.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ToolItem {
+  id        String   @id @default(cuid())
+  name      String
+  unit      String   // user-typed label, e.g. "each", "g", "ml"
+  orgId     String
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  ratesFrom            ConversionRate[]          @relation("RateFromItem")
+  ratesTo              ConversionRate[]          @relation("RateToItem")
+  templateEntries      ConversionTemplateEntry[]
+  visibilityOverrides  ConversionTemplateOutputVisibility[]
+
+  @@unique([orgId, name])
+  @@index([orgId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONVERSION SET
+// Named grouping that owns its own rates.
+// e.g. "Donut Production", "Bread Production"
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ConversionSet {
+  id        String   @id @default(cuid())
+  name      String
+  orgId     String
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rates     ConversionRate[]
+  templates ConversionTemplate[]
+
+  @@unique([orgId, name])
+  @@index([orgId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONVERSION RATE
+// 1-to-many: one fromItem can produce multiple toItems within a set.
+// Rate is scoped to the set — same item pair can have different rates per set.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ConversionRate {
+  id         String  @id @default(cuid())
+  setId      String
+  fromItemId String
+  toItemId   String
+  rate       Float   // toItem quantity per 1 unit of fromItem
+
+  set      ConversionSet @relation(fields: [setId], references: [id], onDelete: Cascade)
+  fromItem ToolItem      @relation("RateFromItem", fields: [fromItemId], references: [id], onDelete: Cascade)
+  toItem   ToolItem      @relation("RateToItem",   fields: [toItemId],   references: [id], onDelete: Cascade)
+
+  @@unique([setId, fromItemId, toItemId])
+  @@index([setId])
+  @@index([fromItemId])
+  @@index([toItemId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONVERSION TEMPLATE
+// Named preset of input quantities for a conversion set.
+// e.g. "Monday Batch" with 200 donuts.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ConversionTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  setId     String
+  set       ConversionSet @relation(fields: [setId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entries            ConversionTemplateEntry[]
+  outputVisibilities ConversionTemplateOutputVisibility[]
+
+  @@unique([setId, name])
+  @@index([setId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONVERSION TEMPLATE ENTRY
+// Stores the input quantity per item for a template.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ConversionTemplateEntry {
+  id         String  @id @default(cuid())
+  templateId String
+  itemId     String
+  quantity   Float
+
+  template ConversionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  item     ToolItem            @relation(fields: [itemId],     references: [id], onDelete: Cascade)
+
+  @@unique([templateId, itemId])
+  @@index([templateId])
+  @@index([itemId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONVERSION TEMPLATE OUTPUT VISIBILITY
+// Persists which output items are shown or hidden per template.
+// Unmentioned items default to visible.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ConversionTemplateOutputVisibility {
+  id         String  @id @default(cuid())
+  templateId String
+  itemId     String
+  visible    Boolean @default(true)
+
+  template ConversionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  item     ToolItem            @relation(fields: [itemId],     references: [id], onDelete: Cascade)
+
+  @@unique([templateId, itemId])
+  @@index([templateId])
+  @@index([itemId])
 }
