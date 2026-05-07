@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Calendar, ListTodo, Users, ShieldCheck, Settings, MapPin, Clock, ArrowRight } from "lucide-react";
 import { requireOrgMemberPage } from "@/lib/authz";
 import { getAuthUserId } from "@/lib/authz/_shared";
@@ -13,7 +14,7 @@ function minTo12h(min: number) {
   const h = Math.floor(min / 60);
   const m = min % 60;
   const ampm = h < 12 ? "am" : "pm";
-  return `${((h - 1) % 12) + 1}:${String(m).padStart(2, "0")}${ampm}`;
+  return `${(h % 12 || 12)}:${String(m).padStart(2, "0")}${ampm}`;
 }
 
 function statusDotClass(s: string) {
@@ -60,7 +61,7 @@ const Page = async ({ params }: { params: Promise<{ orgId: string }> }) => {
       },
     },
   });
-  if (!org) return null;
+  if (!org) notFound();
 
   const todayStr = toLocalDateStr(new Date(), org.timezone);
   const todayInstances = await getRangeTimetableInstances(orgId, org.timezone, todayStr, 1);

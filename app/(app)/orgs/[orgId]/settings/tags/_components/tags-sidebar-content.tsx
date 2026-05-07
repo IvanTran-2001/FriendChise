@@ -15,12 +15,11 @@ export function TagsSidebarContent({ orgId }: { orgId: string }) {
   const formKeyRef = useRef(0);
 
   function handleCreate() {
-    if (isMobile) {
-      setMobileSidebarOpen(false);
-      return;
-    }
     const k = ++formKeyRef.current;
     open("New Tag", <CreateTagForm key={k} orgId={orgId} />);
+    if (isMobile) {
+      setMobileSidebarOpen(false);
+    }
   }
 
   return (

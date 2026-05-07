@@ -44,7 +44,7 @@ function InviteHubCard({
           toast.error("Invalid franchise invite token");
           return;
         }
-        router.push(`/orgs/new?token=${token}`);
+        router.push(`/orgs/new?token=${encodeURIComponent(token)}`);
         return;
       }
       const result = await acceptMemberInviteAction(invite.id);

@@ -33,7 +33,7 @@ export async function createTagAction(
   if (!authz.ok) return { ok: false, error: "Unauthorized." };
 
   const name = String(formData.get("name") ?? "").trim();
-  const color = String(formData.get("color") ?? "#6B7280").trim();
+  const color = (String(formData.get("color") ?? "") || "#6B7280").trim();
 
   if (!name) return { ok: false, error: "Tag name is required." };
 
@@ -93,6 +93,7 @@ export async function addTagToTaskAction(
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/tasks`);
+  revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);
   return { ok: true };
 }
 
@@ -108,5 +109,6 @@ export async function removeTagFromTaskAction(
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/tasks`);
+  revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);
   return { ok: true };
 }

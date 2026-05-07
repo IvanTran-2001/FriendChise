@@ -150,8 +150,9 @@ interface Props {
 
 export function TagsClient({ orgId, tags }: Props) {
   const [query, setQuery] = useState("");
-  const filtered = query.trim()
-    ? tags.filter((t) => t.name.toLowerCase().includes(query.toLowerCase()))
+  const trimmedQuery = query.trim().toLowerCase();
+  const filtered = trimmedQuery
+    ? tags.filter((t) => t.name.toLowerCase().includes(trimmedQuery))
     : tags;
 
   return (

@@ -148,7 +148,7 @@ export default async function HubPage({
     include: {
       organization: {
         include: {
-          _count: { select: { memberships: true } },
+          _count: { select: { memberships: { where: { userId: { not: null } } } } },
         },
       },
     },

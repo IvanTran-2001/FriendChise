@@ -104,6 +104,7 @@ function TagPanel(props: TagPanelProps) {
   };
 
   const createNew = (name: string) => {
+    if (!isEdit) return;
     startTransition(async () => {
       const res = await createAndAddTagAction(props.orgId, props.taskId, name);
       if (res.ok) setTags((prev) => [...prev, res.tag]);
