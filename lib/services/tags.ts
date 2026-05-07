@@ -233,6 +233,8 @@ export async function setTagTasks(
   tagId: string,
   taskIds: string[],
 ): Promise<void> {
+  if (taskIds.length === 0) return;
+
   const validTasks = await prisma.task.findMany({
     where: { id: { in: taskIds }, orgId },
     select: { id: true },

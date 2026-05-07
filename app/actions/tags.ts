@@ -43,7 +43,12 @@ export async function createTagAction(
 
   const taskIds = (formData.getAll("taskIds") as string[]).filter(Boolean);
   if (taskIds.length > 0) {
-    await setTagTasks(orgId, result.data.id, taskIds);
+    try {
+      await setTagTasks(orgId, result.data.id, taskIds);
+    } catch (error) {
+      revalidatePath(`/orgs/${orgId}/settings/tags`);
+      return { ok: false, error: "Tag created, but failed to associate tasks." };
+    }
   }
 
   revalidatePath(`/orgs/${orgId}/settings/tags`);

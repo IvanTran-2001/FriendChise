@@ -160,6 +160,7 @@ export function CreateTagForm({
 }) {
   const [name, setName] = useState("");
   const [color, setColor] = useState("#3B82F6");
+  const [resetKey, setResetKey] = useState(0);
 
   const boundAction = createTagAction.bind(null, orgId);
   const [state, dispatch, pending] = useActionState<ActionResult | null, FormData>(
@@ -175,6 +176,7 @@ export function CreateTagForm({
       startTransition(() => {
         setName("");
         setColor("#3B82F6");
+        setResetKey((prev) => prev + 1);
       });
       onSuccess?.();
     } else {
@@ -219,7 +221,7 @@ export function CreateTagForm({
         <ColorPicker value={color} onChange={setColor} />
       </div>
 
-      <TaskPanel mode="create" allTasks={allTasks} />
+      <TaskPanel key={resetKey} mode="create" allTasks={allTasks} />
 
       <Button
         type="submit"
