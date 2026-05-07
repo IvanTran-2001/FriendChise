@@ -694,9 +694,9 @@ model ConversionTemplateEntry {
   id               String  @id @default(cuid())
   templateId       String
   itemId           String
-  quantity         Float?  // saved input quantity; null for output-only rows
-  overrideQuantity Float?  // manual output override; null when not overridden
-  visible          Boolean @default(true) // false = user hid this output
+  quantity     Float?  // saved input quantity; null for output-only rows
+  pinnedOutput Float?  // user-pinned output value; null = use computed; diff from computed = over/underflow
+  visible      Boolean @default(true) // false = user hid this output
 
   template ConversionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   item     ToolItem            @relation(fields: [itemId],     references: [id], onDelete: Cascade)
