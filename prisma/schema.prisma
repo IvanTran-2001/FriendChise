@@ -611,7 +611,6 @@ model ToolItem {
   ratesFrom            ConversionRate[]          @relation("RateFromItem")
   ratesTo              ConversionRate[]          @relation("RateToItem")
   templateEntries      ConversionTemplateEntry[]
-  visibilityOverrides  ConversionTemplateOutputVisibility[]
 
   @@unique([orgId, name])
   @@index([orgId])
@@ -676,7 +675,6 @@ model ConversionTemplate {
   updatedAt DateTime @updatedAt
 
   entries            ConversionTemplateEntry[]
-  outputVisibilities ConversionTemplateOutputVisibility[]
 
   @@unique([setId, name])
   @@index([setId])
@@ -684,34 +682,21 @@ model ConversionTemplate {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONVERSION TEMPLATE ENTRY
-// Stores the input quantity per item for a template.
+// One row per (template, item) — only exists when there is something non-default
+// to store. Rows serve three purposes (any combination):
+//   quantity         — input value saved in the template (e.g. 200 donuts)
+//   overrideQuantity — user manually changed a computed output (e.g. 400g custard)
+//                      excess = overrideQuantity - (input * rate), computed on load
+//   visible          — false when user hid this output item; defaults to true
 // ─────────────────────────────────────────────────────────────────────────────
 
 model ConversionTemplateEntry {
-  id         String  @id @default(cuid())
-  templateId String
-  itemId     String
-  quantity   Float
-
-  template ConversionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  item     ToolItem            @relation(fields: [itemId],     references: [id], onDelete: Cascade)
-
-  @@unique([templateId, itemId])
-  @@index([templateId])
-  @@index([itemId])
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CONVERSION TEMPLATE OUTPUT VISIBILITY
-// Persists which output items are shown or hidden per template.
-// Unmentioned items default to visible.
-// ─────────────────────────────────────────────────────────────────────────────
-
-model ConversionTemplateOutputVisibility {
-  id         String  @id @default(cuid())
-  templateId String
-  itemId     String
-  visible    Boolean @default(true)
+  id               String  @id @default(cuid())
+  templateId       String
+  itemId           String
+  quantity         Float?  // saved input quantity; null for output-only rows
+  overrideQuantity Float?  // manual output override; null when not overridden
+  visible          Boolean @default(true) // false = user hid this output
 
   template ConversionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   item     ToolItem            @relation(fields: [itemId],     references: [id], onDelete: Cascade)
