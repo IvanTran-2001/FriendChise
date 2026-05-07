@@ -21,6 +21,20 @@ DROP INDEX "TaskTag_taskId_idx";
 ALTER TABLE "Tag" ADD COLUMN     "isDefault" BOOLEAN NOT NULL DEFAULT false;
 
 -- DropTable
+-- Archive any existing rows to _archive_* tables before dropping,
+-- preventing silent data loss if the tables are non-empty.
+-- The archive tables are intentionally left in place for manual review
+-- and can be dropped once the team confirms no data recovery is needed.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM "TaskTool" LIMIT 1) THEN
+    CREATE TABLE IF NOT EXISTS "_archive_TaskTool" AS SELECT * FROM "TaskTool";
+  END IF;
+  IF EXISTS (SELECT 1 FROM "Tool" LIMIT 1) THEN
+    CREATE TABLE IF NOT EXISTS "_archive_Tool" AS SELECT * FROM "Tool";
+  END IF;
+END $$;
+
 DROP TABLE "TaskTool";
 
 -- DropTable

@@ -249,7 +249,8 @@ export async function createAndAddTagAction(
     authz.userEmail,
   );
   if (!tagResult.ok) return { ok: false, error: tagResult.error };
-  await addTagToTask(orgId, taskId, tagResult.data.id);
+  const addResult = await addTagToTask(orgId, taskId, tagResult.data.id);
+  if (!addResult.ok) return { ok: false, error: addResult.error };
   revalidatePath(`/orgs/${orgId}/tasks`);
   revalidatePath(`/orgs/${orgId}/tasks/${taskId}/edit`);
   return { ok: true, tag: tagResult.data };

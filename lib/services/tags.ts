@@ -27,18 +27,21 @@ export async function createTag(
   actorId?: string | null,
   actorEmail?: string | null,
 ): Promise<ServiceResult<{ id: string; name: string; color: string; isDefault: boolean }>> {
-  const existing = await prisma.tag.findUnique({
-    where: { orgId_name: { orgId, name: data.name } },
-  });
-  if (existing) return { ok: false, error: "A tag with that name already exists.", code: "CONFLICT" };
-
-  const tag = await prisma.tag.create({
-    data: {
-      orgId,
-      name: data.name,
-      color: data.color ?? "#6B7280",
-    },
-  });
+  let tag;
+  try {
+    tag = await prisma.tag.create({
+      data: {
+        orgId,
+        name: data.name,
+        color: data.color ?? "#6B7280",
+      },
+    });
+  } catch (e: unknown) {
+    if ((e as { code?: string }).code === "P2002") {
+      return { ok: false, error: "A tag with that name already exists.", code: "CONFLICT" };
+    }
+    throw e;
+  }
 
   log.info("Tag created", { orgId, tagId: tag.id });
   recordAudit({
@@ -111,13 +114,21 @@ export async function updateTag(
     if (conflict) return { ok: false, error: "A tag with that name already exists.", code: "CONFLICT" };
   }
 
-  const tag = await prisma.tag.update({
-    where: { id: tagId },
-    data: {
-      ...(data.name ? { name: data.name } : {}),
-      ...(data.color ? { color: data.color } : {}),
-    },
-  });
+  let tag;
+  try {
+    tag = await prisma.tag.update({
+      where: { id: tagId },
+      data: {
+        ...(data.name ? { name: data.name } : {}),
+        ...(data.color ? { color: data.color } : {}),
+      },
+    });
+  } catch (e: unknown) {
+    if ((e as { code?: string }).code === "P2002") {
+      return { ok: false, error: "A tag with that name already exists.", code: "CONFLICT" };
+    }
+    throw e;
+  }
 
   log.info("Tag updated", { orgId, tagId });
   recordAudit({
