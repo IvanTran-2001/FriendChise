@@ -8,7 +8,13 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useMobileSidebar } from "@/components/layout/mobile-sidebar-context";
 import { CreateTagForm } from "./tag-form";
 
-export function TagsSidebarContent({ orgId }: { orgId: string }) {
+export function TagsSidebarContent({
+  orgId,
+  allTasks,
+}: {
+  orgId: string;
+  allTasks: { id: string; name: string; color: string }[];
+}) {
   const { open, activeTitle } = useActionSidebar();
   const isMobile = useIsMobile();
   const { setOpen: setMobileSidebarOpen } = useMobileSidebar();
@@ -16,7 +22,7 @@ export function TagsSidebarContent({ orgId }: { orgId: string }) {
 
   function handleCreate() {
     const k = ++formKeyRef.current;
-    open("New Tag", <CreateTagForm key={k} orgId={orgId} />);
+    open("New Tag", <CreateTagForm key={k} orgId={orgId} allTasks={allTasks} />);
     if (isMobile) {
       setMobileSidebarOpen(false);
     }

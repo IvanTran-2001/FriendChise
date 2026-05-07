@@ -230,3 +230,15 @@ export async function setTaskEligibilities(
     skipDuplicates: true,
   });
 }
+
+/**
+ * Returns a minimal list of all tasks for an org (id, name, color).
+ * Used for lightweight dropdowns and selectors.
+ */
+export async function getTasksSimple(orgId: string) {
+  return prisma.task.findMany({
+    where: { orgId },
+    select: { id: true, name: true, color: true },
+    orderBy: { name: "asc" },
+  });
+}

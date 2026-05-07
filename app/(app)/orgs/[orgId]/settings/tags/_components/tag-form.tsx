@@ -3,9 +3,13 @@
 import { useState, useActionState, useTransition, useEffect } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { createTagAction, updateTagAction } from "@/app/actions/tags";
+import { createTagAction, updateTagAction, addTagToTaskAction, removeTagFromTaskAction } from "@/app/actions/tags";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  SearchableCombobox,
+  type ComboboxItem,
+} from "@/components/ui/searchable-combobox";
 
 // ─── Color presets ────────────────────────────────────────────────────────────
 
@@ -48,17 +52,115 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (c: string)
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
+type Task = { id: string; name: string; color: string };
+
+// ─── Task panel ───────────────────────────────────────────────────────────────
+//
+// create mode: tasks held in local state, emitted as hidden <input name="taskIds">
+// edit mode:   add/remove fire server actions immediately
+
+type TaskPanelProps =
+  | { mode: "create"; allTasks: Task[] }
+  | { mode: "edit"; orgId: string; tagId: string; allTasks: Task[]; tagTasks: Task[] };
+
+function TaskPanel(props: TaskPanelProps) {
+  const isEdit = props.mode === "edit";
+  const [tasks, setTasks] = useState<Task[]>(isEdit ? props.tagTasks : []);
+  const [isPending, startTransition] = useTransition();
+
+  const taskIds = new Set(tasks.map((t) => t.id));
+  const availableItems: ComboboxItem[] = props.allTasks
+    .filter((t) => !taskIds.has(t.id))
+    .map((t) => ({ id: t.id, name: t.name, color: t.color }));
+
+  const add = (item: ComboboxItem) => {
+    const task = props.allTasks.find((t) => t.id === item.id);
+    if (!task) return;
+    if (isEdit) {
+      startTransition(async () => {
+        const res = await addTagToTaskAction(props.orgId, task.id, props.tagId);
+        if (res.ok) setTasks((prev) => [...prev, task]);
+        else toast.error(res.error);
+      });
+    } else {
+      setTasks((prev) => [...prev, task]);
+    }
+  };
+
+  const remove = (taskId: string) => {
+    if (isEdit) {
+      startTransition(async () => {
+        const res = await removeTagFromTaskAction(props.orgId, taskId, props.tagId);
+        if (res.ok) setTasks((prev) => prev.filter((t) => t.id !== taskId));
+        else toast.error(res.error);
+      });
+    } else {
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <span className="text-sm font-medium">Tasks</span>
+
+      {/* Hidden inputs for create mode */}
+      {!isEdit &&
+        tasks.map((task) => (
+          <input key={task.id} type="hidden" name="taskIds" value={task.id} />
+        ))}
+
+      <SearchableCombobox
+        items={availableItems}
+        onSelect={add}
+        triggerLabel="Add task"
+        placeholder="Search tasks…"
+        emptyText="No tasks found"
+        disabled={isPending}
+      />
+
+      {tasks.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {tasks.map((task) => (
+            <span
+              key={task.id}
+              className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs"
+            >
+              <span
+                className="inline-block w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: task.color }}
+              />
+              {task.name}
+              <button
+                type="button"
+                className="ml-0.5 hover:text-destructive transition-colors leading-none"
+                onClick={() => remove(task.id)}
+                disabled={isPending}
+                aria-label={`Remove ${task.name}`}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Create Tag Form ──────────────────────────────────────────────────────────
 
 export function CreateTagForm({
   orgId,
+  allTasks,
   onSuccess,
 }: {
   orgId: string;
+  allTasks: Task[];
   onSuccess?: () => void;
 }) {
   const [name, setName] = useState("");
   const [color, setColor] = useState("#3B82F6");
+  const [resetKey, setResetKey] = useState(0);
 
   const boundAction = createTagAction.bind(null, orgId);
   const [state, dispatch, pending] = useActionState<ActionResult | null, FormData>(
@@ -74,6 +176,7 @@ export function CreateTagForm({
       startTransition(() => {
         setName("");
         setColor("#3B82F6");
+        setResetKey((prev) => prev + 1);
       });
       onSuccess?.();
     } else {
@@ -118,6 +221,8 @@ export function CreateTagForm({
         <ColorPicker value={color} onChange={setColor} />
       </div>
 
+      <TaskPanel key={resetKey} mode="create" allTasks={allTasks} />
+
       <Button
         type="submit"
         size="sm"
@@ -138,6 +243,8 @@ export function EditTagForm({
   defaultName,
   defaultColor,
   isDefault,
+  allTasks,
+  tagTasks,
   onSuccess,
 }: {
   orgId: string;
@@ -145,6 +252,8 @@ export function EditTagForm({
   defaultName: string;
   defaultColor: string;
   isDefault: boolean;
+  allTasks: Task[];
+  tagTasks: Task[];
   onSuccess?: () => void;
 }) {
   const [name, setName] = useState(defaultName);
@@ -211,6 +320,14 @@ export function EditTagForm({
         </div>
         <ColorPicker value={color} onChange={setColor} />
       </div>
+
+      <TaskPanel
+        mode="edit"
+        orgId={orgId}
+        tagId={tagId}
+        allTasks={allTasks}
+        tagTasks={tagTasks}
+      />
 
       <Button
         type="submit"

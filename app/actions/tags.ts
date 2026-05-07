@@ -17,6 +17,7 @@ import {
   deleteTag,
   addTagToTask,
   removeTagFromTask,
+  setTagTasks,
 } from "@/lib/services/tags";
 import { revalidatePath } from "next/cache";
 
@@ -39,6 +40,16 @@ export async function createTagAction(
 
   const result = await createTag(orgId, { name, color }, authz.userId, authz.userEmail);
   if (!result.ok) return { ok: false, error: result.error };
+
+  const taskIds = (formData.getAll("taskIds") as string[]).filter(Boolean);
+  if (taskIds.length > 0) {
+    try {
+      await setTagTasks(orgId, result.data.id, taskIds);
+    } catch {
+      revalidatePath(`/orgs/${orgId}/settings/tags`);
+      return { ok: false, error: "Tag created, but failed to associate tasks." };
+    }
+  }
 
   revalidatePath(`/orgs/${orgId}/settings/tags`);
   return { ok: true };
