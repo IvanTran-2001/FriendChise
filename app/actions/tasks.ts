@@ -21,6 +21,12 @@ import {
   removeTaskEligibility,
   setTaskEligibilities,
 } from "@/lib/services/tasks";
+import {
+  addTagToTask,
+  removeTagFromTask,
+  setTaskTags,
+  createTag,
+} from "@/lib/services/tags";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validators/task";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -97,6 +103,12 @@ export async function createTaskAction(
   if (roleIds.length > 0) {
     await setTaskEligibilities(orgId, task.id, roleIds);
   }
+  const tagIds = formData
+    .getAll("tagIds")
+    .filter((v): v is string => typeof v === "string");
+  if (tagIds.length > 0) {
+    await setTaskTags(orgId, task.id, tagIds);
+  }
   revalidatePath(`/orgs/${orgId}/tasks`);
   redirect(`/orgs/${orgId}/tasks`);
 }
@@ -170,6 +182,77 @@ export async function updateTaskAction(
   revalidatePath(`/orgs/${orgId}/tasks`);
   revalidatePath(`/orgs/${orgId}/tasks/${taskId}/edit`);
   return { ok: true };
+}
+
+/**
+ * Attaches an existing tag to a task. Requires `MANAGE_TASKS`.
+ */
+export async function addTagAction(
+  orgId: string,
+  taskId: string,
+  tagId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  const result = await addTagToTask(orgId, taskId, tagId);
+  if (!result.ok) return { ok: false, error: result.error };
+  revalidatePath(`/orgs/${orgId}/tasks`);
+  revalidatePath(`/orgs/${orgId}/tasks/${taskId}/edit`);
+  return { ok: true };
+}
+
+/**
+ * Removes a tag from a task. Requires `MANAGE_TASKS`.
+ */
+export async function removeTagAction(
+  orgId: string,
+  taskId: string,
+  tagId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  const result = await removeTagFromTask(orgId, taskId, tagId);
+  if (!result.ok) return { ok: false, error: result.error };
+  revalidatePath(`/orgs/${orgId}/tasks`);
+  revalidatePath(`/orgs/${orgId}/tasks/${taskId}/edit`);
+  return { ok: true };
+}
+
+/**
+ * Creates a new org-scoped tag and immediately attaches it to a task.
+ * Used from the edit-mode TagPanel when a user types a name that doesn't exist.
+ * Requires `MANAGE_TASKS`.
+ */
+export async function createAndAddTagAction(
+  orgId: string,
+  taskId: string,
+  name: string,
+): Promise<
+  | { ok: true; tag: { id: string; name: string; color: string } }
+  | { ok: false; error: string }
+> {
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  const tagResult = await createTag(
+    orgId,
+    { name: name.trim() },
+    authz.userId,
+    authz.userEmail,
+  );
+  if (!tagResult.ok) return { ok: false, error: tagResult.error };
+  await addTagToTask(orgId, taskId, tagResult.data.id);
+  revalidatePath(`/orgs/${orgId}/tasks`);
+  revalidatePath(`/orgs/${orgId}/tasks/${taskId}/edit`);
+  return { ok: true, tag: tagResult.data };
 }
 
 /**

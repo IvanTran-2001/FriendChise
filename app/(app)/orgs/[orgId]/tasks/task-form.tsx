@@ -20,7 +20,6 @@ import {
   useEffect,
   useTransition,
   useState,
-  useRef,
 } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -29,18 +28,27 @@ import {
   updateTaskAction,
   addEligibilityAction,
   removeEligibilityAction,
+  addTagAction,
+  removeTagAction,
+  createAndAddTagAction,
 } from "@/app/actions/tasks";
 import type { CreateTaskFormState, TaskFormState } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  SearchableCombobox,
+  type ComboboxItem,
+} from "@/components/ui/searchable-combobox";
 
 type Role = { id: string; name: string; color: string | null };
+type Tag = { id: string; name: string; color: string };
 
 type TaskFormProps =
   | {
       mode: "create";
       orgId: string;
       allRoles: Role[];
+      allTags: Tag[];
     }
   | {
       mode: "edit";
@@ -48,6 +56,8 @@ type TaskFormProps =
       taskId: string;
       allRoles: Role[];
       eligibleRoles: Role[];
+      allTags: Tag[];
+      taskTags: Tag[];
       defaultValues: {
         color: string;
         title: string;
@@ -59,6 +69,111 @@ type TaskFormProps =
         maxWaitDays?: number | null;
       };
     };
+
+// ─── Tag panel ───────────────────────────────────────────────────────────────
+//
+// create mode: tags held in local state, emitted as hidden `<input name="tagIds">`
+//              elements that travel with FormData on submit (same as roleIds).
+// edit mode:   add/remove existing tags fire server actions immediately;
+//              typing a new name shows "Create 'X'" which creates + attaches.
+
+type TagPanelProps =
+  | { mode: "create"; allTags: Tag[] }
+  | { mode: "edit"; orgId: string; taskId: string; allTags: Tag[]; taskTags: Tag[] };
+
+function TagPanel(props: TagPanelProps) {
+  const isEdit = props.mode === "edit";
+  const [tags, setTags] = useState<Tag[]>(isEdit ? props.taskTags : []);
+  const [isPending, startTransition] = useTransition();
+
+  const tagIds = new Set(tags.map((t) => t.id));
+  const availableItems = props.allTags.filter((t) => !tagIds.has(t.id));
+
+  const add = (item: ComboboxItem) => {
+    const tag = props.allTags.find((t) => t.id === item.id);
+    if (!tag) return;
+    if (isEdit) {
+      startTransition(async () => {
+        const res = await addTagAction(props.orgId, props.taskId, tag.id);
+        if (res.ok) setTags((prev) => [...prev, tag]);
+        else toast.error(res.error);
+      });
+    } else {
+      setTags((prev) => [...prev, tag]);
+    }
+  };
+
+  const createNew = (name: string) => {
+    startTransition(async () => {
+      const res = await createAndAddTagAction(props.orgId, props.taskId, name);
+      if (res.ok) setTags((prev) => [...prev, res.tag]);
+      else toast.error(res.error);
+    });
+  };
+
+  const remove = (tagId: string) => {
+    if (isEdit) {
+      startTransition(async () => {
+        const res = await removeTagAction(props.orgId, props.taskId, tagId);
+        if (res.ok) setTags((prev) => prev.filter((t) => t.id !== tagId));
+        else toast.error(res.error);
+      });
+    } else {
+      setTags((prev) => prev.filter((t) => t.id !== tagId));
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <span className="text-sm font-medium">Tags</span>
+
+      {/* Hidden inputs for create mode — picked up by FormData on submit */}
+      {!isEdit &&
+        tags.map((tag) => (
+          <input key={tag.id} type="hidden" name="tagIds" value={tag.id} />
+        ))}
+
+      <SearchableCombobox
+        items={availableItems}
+        onSelect={add}
+        onCreate={isEdit ? createNew : undefined}
+        triggerLabel="Add tag"
+        placeholder={isEdit ? "Search or create tags…" : "Search tags…"}
+        emptyText="No tags found"
+        disabled={isPending}
+      />
+
+      {/* Current tag chips */}
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {tags.map((tag) => (
+            <span
+              key={tag.id}
+              className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs"
+            >
+              {tag.color && (
+                <span
+                  className="inline-block w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: tag.color }}
+                />
+              )}
+              {tag.name}
+              <button
+                type="button"
+                className="ml-0.5 hover:text-destructive transition-colors leading-none"
+                onClick={() => remove(tag.id)}
+                disabled={isPending}
+                aria-label={`Remove ${tag.name}`}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Shared eligibility panel ─────────────────────────────────────────────────
 //
@@ -89,21 +204,14 @@ type EligibilityPanelProps =
 function EligibilityPanel(props: EligibilityPanelProps) {
   const isEdit = props.mode === "edit";
   const [roles, setRoles] = useState<Role[]>(isEdit ? props.eligibleRoles : []);
-  const [search, setSearch] = useState("");
-  const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const roleIds = new Set(roles.map((r) => r.id));
-  const filtered = props.allRoles.filter(
-    (r) =>
-      !roleIds.has(r.id) && r.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const availableItems = props.allRoles.filter((r) => !roleIds.has(r.id));
 
-  const add = (role: Role) => {
-    setSearch("");
-    setOpen(false);
-    inputRef.current?.blur();
+  const add = (item: ComboboxItem) => {
+    const role = props.allRoles.find((r) => r.id === item.id);
+    if (!role) return;
     if (isEdit) {
       startTransition(async () => {
         const res = await addEligibilityAction(
@@ -145,87 +253,45 @@ function EligibilityPanel(props: EligibilityPanelProps) {
           <input key={role.id} type="hidden" name="roleIds" value={role.id} />
         ))}
 
-      {/* Searchable role dropdown */}
-      <div className="relative">
-        <Input
-          ref={inputRef}
-          placeholder="Search roles..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setOpen(true);
-          }}
-          onFocus={() => setOpen(true)}
-          onBlur={() => setTimeout(() => setOpen(false), 150)}
-          className="h-8 text-sm"
-          disabled={isPending}
-        />
-        {open && filtered.length > 0 && (
-          <div className="absolute z-20 top-full mt-1 w-full rounded-md border bg-popover shadow-md max-h-48 overflow-y-auto">
-            {filtered.map((role) => (
-              <button
-                key={role.id}
-                type="button"
-                className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  add(role);
-                }}
-              >
-                {role.color && (
-                  <span
-                    className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
-                    style={{ backgroundColor: role.color }}
-                  />
-                )}
-                {role.name}
-              </button>
-            ))}
-          </div>
-        )}
-        {open && filtered.length === 0 && search.trim() !== "" && (
-          <div className="absolute z-20 top-full mt-1 w-full rounded-md border bg-popover shadow-md px-3 py-2 text-sm text-muted-foreground">
-            No roles found
-          </div>
-        )}
-      </div>
+      <SearchableCombobox
+        items={availableItems}
+        onSelect={add}
+        triggerLabel="Add role"
+        placeholder="Search roles\u2026"
+        emptyText="No roles found"
+        disabled={isPending}
+      />
 
-      {/* Current role list */}
-      <div className="rounded-md border min-h-20">
-        {roles.length === 0 ? (
-          <p className="px-3 py-4 text-sm text-muted-foreground text-center">
-            All roles eligible
-          </p>
-        ) : (
-          <ul>
-            {roles.map((role) => (
-              <li
-                key={role.id}
-                className="flex items-center justify-between px-3 py-2 border-b last:border-0 text-sm"
+      {/* Current role chips */}
+      {roles.length === 0 ? (
+        <p className="text-xs text-muted-foreground">All roles eligible</p>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {roles.map((role) => (
+            <span
+              key={role.id}
+              className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs"
+            >
+              {role.color && (
+                <span
+                  className="inline-block w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: role.color }}
+                />
+              )}
+              {role.name}
+              <button
+                type="button"
+                className="ml-0.5 hover:text-destructive transition-colors leading-none"
+                onClick={() => remove(role.id)}
+                disabled={isPending}
+                aria-label={`Remove ${role.name}`}
               >
-                <span className="flex items-center gap-2">
-                  {role.color && (
-                    <span
-                      className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: role.color }}
-                    />
-                  )}
-                  {role.name}
-                </span>
-                <button
-                  type="button"
-                  className="text-xs text-muted-foreground hover:text-destructive leading-none px-1 py-0.5 rounded transition-colors"
-                  onClick={() => remove(role.id)}
-                  disabled={isPending}
-                  aria-label={`Remove ${role.name}`}
-                >
-                  ×
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -624,6 +690,21 @@ export function TaskForm(props: TaskFormProps) {
               ? "Save"
               : "Create Task"}
         </Button>
+      </div>
+
+      {/* ── Tags panel ────────────────────────────────────────────────────── */}
+      <div className="rounded-xl border bg-card p-5">
+        {isEdit ? (
+          <TagPanel
+            mode="edit"
+            orgId={props.orgId}
+            taskId={props.taskId}
+            allTags={props.allTags}
+            taskTags={props.taskTags}
+          />
+        ) : (
+          <TagPanel mode="create" allTags={props.allTags} />
+        )}
       </div>
 
       {/* ── Eligibility panel ─────────────────────────────────────────────── */}

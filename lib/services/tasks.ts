@@ -88,6 +88,11 @@ const taskInclude = {
       role: { select: { id: true, name: true, color: true } },
     },
   },
+  tags: {
+    select: {
+      tag: { select: { id: true, name: true, color: true } },
+    },
+  },
 } as const;
 
 /**
