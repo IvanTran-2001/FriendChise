@@ -20,7 +20,7 @@ async function createOrg(page: Page, orgName: string): Promise<string> {
   await expect(page).toHaveURL(/\/orgs\/(?!new$|join$)[^/]+$/);
 
   const url = page.url();
-  const orgId = url.match(/\/orgs\/(?!new|join)([^/]+)$/)?.[1];
+  const orgId = url.match(/\/orgs\/(?!new$|join$)([^/]+)$/)?.[1];
   if (!orgId) throw new Error("Could not extract orgId from URL");
   return orgId;
 }

@@ -39,7 +39,7 @@ test("delete org → redirected to /", async ({ page }) => {
 
   // Extract the orgId from the URL
   const url = page.url();
-  const orgId = url.match(/\/orgs\/(?!new|join)([^/]+)$/)?.[1];
+  const orgId = url.match(/\/orgs\/(?!new$|join$)([^/]+)$/)?.[1];
   expect(orgId).toBeTruthy();
 
   // Navigate to org settings → organization tab
@@ -83,7 +83,7 @@ test("delete org with wrong name → button stays disabled", async ({ page }) =>
   await expect(page).toHaveURL(/\/orgs\/(?!new$|join$)[^/]+$/);
 
   const url = page.url();
-  const orgId = url.match(/\/orgs\/(?!new|join)([^/]+)$/)?.[1];
+  const orgId = url.match(/\/orgs\/(?!new$|join$)([^/]+)$/)?.[1];
   expect(orgId).toBeTruthy();
 
   await page.goto(`/orgs/${orgId}/settings/organization`);
