@@ -10,7 +10,7 @@ import { test, expect } from "@playwright/test";
 
 const ORG_NAME = `E2E Org ${Date.now()}`;
 
-test("create org → lands on timetable → org name visible in navbar", async ({
+test("create org → lands on overview → org name visible in navbar", async ({
   page,
 }) => {
   await page.goto("/orgs/new");
@@ -22,7 +22,7 @@ test("create org → lands on timetable → org name visible in navbar", async (
   await page.getByRole("button", { name: /create organization/i }).click();
 
   // Should redirect to the new org's overview
-  await expect(page).toHaveURL(/\/orgs\/[^/]+$/);
+  await expect(page).toHaveURL(/\/orgs\/(?!new$|join$)[^/]+$/);
 
   // Org name should appear in the navbar org switcher
   await expect(page.getByRole("button", { name: ORG_NAME })).toBeVisible();
@@ -35,11 +35,11 @@ test("delete org → redirected to /", async ({ page }) => {
   await page.goto("/orgs/new");
   await page.getByLabel(/org name/i).fill(deleteOrgName);
   await page.getByRole("button", { name: /create organization/i }).click();
-  await expect(page).toHaveURL(/\/orgs\/(.+)\/timetable$/);
+  await expect(page).toHaveURL(/\/orgs\/(?!new$|join$)[^/]+$/);
 
   // Extract the orgId from the URL
   const url = page.url();
-  const orgId = url.match(/\/orgs\/([^/]+)\/timetable/)?.[1];
+  const orgId = url.match(/\/orgs\/(?!new|join)([^/]+)$/)?.[1];
   expect(orgId).toBeTruthy();
 
   // Navigate to org settings → organization tab
@@ -55,9 +55,8 @@ test("delete org → redirected to /", async ({ page }) => {
   await expect(deleteButton).toBeEnabled();
   await deleteButton.click();
 
-  // Should redirect back to the app root after deletion, which itself
-  // redirects authenticated users to /orgs/new (no orgs left)
-  await expect(page).toHaveURL("/orgs/new");
+  // Should redirect back to the app root after deletion (hub page)
+  await expect(page).toHaveURL("/");
 });
 
 test("create org without a name → stays on page, does not submit", async ({
@@ -81,10 +80,10 @@ test("delete org with wrong name → button stays disabled", async ({ page }) =>
   await page.goto("/orgs/new");
   await page.getByLabel(/org name/i).fill(deleteOrgName);
   await page.getByRole("button", { name: /create organization/i }).click();
-  await expect(page).toHaveURL(/\/orgs\/(.+)\/timetable$/);
+  await expect(page).toHaveURL(/\/orgs\/(?!new$|join$)[^/]+$/);
 
   const url = page.url();
-  const orgId = url.match(/\/orgs\/([^/]+)\/timetable/)?.[1];
+  const orgId = url.match(/\/orgs\/(?!new|join)([^/]+)$/)?.[1];
   expect(orgId).toBeTruthy();
 
   await page.goto(`/orgs/${orgId}/settings/organization`);
