@@ -7,7 +7,7 @@
     "build": "prisma generate && next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "migrate:prod": "dotenv -e .env -- prisma migrate deploy",
+    "migrate:prod": "SKIP_DOTENV_LOCAL=1 dotenv -e .env -- prisma migrate deploy",
     "seed": "prisma db seed",
     "seed:dev": "tsx prisma/seed.ts development",
     "seed:prod": "tsx prisma/seed.ts production",

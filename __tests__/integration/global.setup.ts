@@ -35,5 +35,7 @@ export default function globalSetup() {
 
   console.log("\n[integration setup] Reseeding dev database...");
   execSync("pnpm seed:dev", { stdio: "inherit", env: process.env });
+  console.log("[integration setup] Running Donut Shop A seed...");
+  execSync("pnpm seed:donut-a:reset", { stdio: "inherit", env: process.env });
   console.log("[integration setup] Seed complete.\n");
 }
