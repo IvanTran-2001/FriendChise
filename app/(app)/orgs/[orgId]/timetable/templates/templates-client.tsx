@@ -23,9 +23,9 @@ import {
   Copy,
   MoreHorizontal,
   Pencil,
-  Search,
   Trash2,
 } from "lucide-react";
+import { SearchInput } from "@/components/ui/search-input";
 import { useState, useTransition, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -303,15 +303,13 @@ export function TemplatesClient({
   return (
     <>
       <Toolbar>
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search templates…"
-            className="pl-8 h-8 text-sm"
-          />
-        </div>
+        <SearchInput
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search templates…"
+          className="h-8 text-sm"
+          containerClassName="flex-1 max-w-xs"
+        />
       </Toolbar>
       {/* Card view */}
       {view === "card" ? (

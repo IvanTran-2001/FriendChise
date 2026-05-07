@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ArrowLeft, Search as SearchIcon } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { SearchInput } from "@/components/ui/search-input";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -187,17 +188,14 @@ export function AddTaskPanel({
   // ── Task list ────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-2">
-      <div className="relative">
-        <SearchIcon className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-        <Input
-          id="search-input"
-          placeholder="Search tasks…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-7 h-8 text-sm"
-          aria-label="Search tasks"
-        />
-      </div>
+      <SearchInput
+        id="search-input"
+        placeholder="Search tasks…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="h-8 text-sm"
+        aria-label="Search tasks"
+      />
 
       <div className="flex flex-col -mx-4">
         {filtered.length === 0 ? (
