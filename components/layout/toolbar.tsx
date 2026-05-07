@@ -9,17 +9,17 @@
  */
 "use client";
 
-import { ReactNode, useRef, useEffect, useState } from "react";
+import { ReactNode, useRef, useLayoutEffect, useState } from "react";
 import { usePageSidebarCollapsed } from "@/components/layout/page-sidebar-context";
 
 const ROW = 48; // h-12
 
-export function Toolbar({ children }: { children: ReactNode }) {
+export function Toolbar({ children }: { children?: ReactNode }) {
   const sidebarCollapsed = usePageSidebarCollapsed();
   const innerRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(ROW);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = innerRef.current;
     if (!el) return;
     const measure = () => {

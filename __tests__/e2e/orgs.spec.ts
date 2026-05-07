@@ -21,8 +21,8 @@ test("create org → lands on timetable → org name visible in navbar", async (
   // Submit
   await page.getByRole("button", { name: /create organization/i }).click();
 
-  // Should redirect to the new org's timetable
-  await expect(page).toHaveURL(/\/orgs\/.+\/timetable$/);
+  // Should redirect to the new org's overview
+  await expect(page).toHaveURL(/\/orgs\/[^/]+$/);
 
   // Org name should appear in the navbar org switcher
   await expect(page.getByRole("button", { name: ORG_NAME })).toBeVisible();

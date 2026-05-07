@@ -14,7 +14,7 @@ export default function Page() {
     <Suspense
       fallback={
         <div className="max-w-md mx-auto mt-12 pb-16">
-          <div className="rounded-xl border bg-card p-6 shadow-sm h-[500px]" />
+          <div className="rounded-xl border bg-card p-6 shadow-sm h-125" />
         </div>
       }
     >

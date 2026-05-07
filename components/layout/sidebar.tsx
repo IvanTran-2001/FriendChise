@@ -24,7 +24,6 @@ import {
   ListTodo,
   Users,
   Calendar,
-  BarChart2,
   Settings,
   HelpCircle,
   Network,
@@ -76,20 +75,8 @@ function getOrgItems(orgId: string): NavItem[] {
     { title: "Overview", url: `/orgs/${orgId}`, icon: Building2 },
     { title: "Timetable", url: `/orgs/${orgId}/timetable`, icon: Calendar },
     { title: "Tasks", url: `/orgs/${orgId}/tasks`, icon: ListTodo },
-    {
-      title: "Tools",
-      url: `/orgs/${orgId}/tools`,
-      icon: Wrench,
-      disabled: true,
-    },
+    { title: "Tools", url: `/orgs/${orgId}/tools`, icon: Wrench },
     { title: "Members", url: `/orgs/${orgId}/memberships`, icon: Users },
-    // TODO: remove `disabled: true` when progress page is implemented
-    {
-      title: "Progress",
-      url: `/orgs/${orgId}/progress`,
-      icon: BarChart2,
-      disabled: true,
-    },
   ];
 }
 

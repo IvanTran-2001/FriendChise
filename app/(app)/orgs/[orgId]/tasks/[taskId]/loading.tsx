@@ -4,7 +4,7 @@ export default function TaskDetailLoading() {
   return (
     <div className="flex flex-col gap-6">
       {/* Toolbar */}
-      <div className="-mx-4 -mt-4 mb-0 border-b bg-card px-4 py-2 flex items-center justify-between gap-2 sm:-mx-6 sm:-mt-6 sm:px-6">
+      <div className="-mx-4 -mt-4 mb-4 h-12 border-b bg-card px-4 flex items-center justify-between gap-2 sm:-mx-6 sm:-mt-6 sm:mb-6 sm:px-6">
         <Skeleton className="h-5 w-20 rounded" />
         <div className="flex gap-2">
           <Skeleton className="h-7 w-16 rounded-md" />

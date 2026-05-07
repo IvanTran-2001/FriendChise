@@ -201,7 +201,7 @@ export default function JoinFranchisePage({
         setError(result.error);
         return;
       }
-      router.push(`/orgs/${result.orgId}/timetable`);
+      router.push(`/orgs/${result.orgId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
