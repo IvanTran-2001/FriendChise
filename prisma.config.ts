@@ -5,7 +5,10 @@ import { config } from "dotenv";
 import { defineConfig } from "prisma/config";
 
 // Mirror Next.js behaviour: .env.local overrides .env
-config({ path: ".env.local", override: true });
+// Skip when SKIP_DOTENV_LOCAL=1 (e.g. migrate:prod uses .env directly)
+if (!process.env.SKIP_DOTENV_LOCAL) {
+  config({ path: ".env.local", override: true });
+}
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
