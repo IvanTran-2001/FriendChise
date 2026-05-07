@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { UnauthorizedToast } from "./unauthorized-toast";
+import { RecordLastOrg } from "./record-last-org";
 
 /**
  * Org-scoped layout.
@@ -8,9 +9,17 @@ import { UnauthorizedToast } from "./unauthorized-toast";
  * redirect that appends ?unauthorized=1 shows feedback regardless of which
  * sub-page the user lands on.
  */
-export default function OrgLayout({ children }: { children: React.ReactNode }) {
+export default async function OrgLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ orgId: string }>;
+}) {
+  const { orgId } = await params;
   return (
     <>
+      <RecordLastOrg orgId={orgId} />
       <Suspense>
         <UnauthorizedToast />
       </Suspense>
