@@ -13,7 +13,12 @@ export async function getOrgTags(orgId: string) {
   return prisma.tag.findMany({
     where: { orgId },
     orderBy: [{ isDefault: "desc" }, { name: "asc" }],
-    include: { _count: { select: { tasks: true } } },
+    include: {
+      _count: { select: { tasks: true } },
+      tasks: {
+        select: { task: { select: { id: true, name: true, color: true } } },
+      },
+    },
   });
 }
 
@@ -217,4 +222,24 @@ export async function setTaskTags(
       skipDuplicates: true,
     }),
   ]);
+}
+
+/**
+ * Bulk-attaches tasks to a tag (used on tag creation when tasks are pre-selected).
+ * Task ids that don't belong to `orgId` are silently ignored.
+ */
+export async function setTagTasks(
+  orgId: string,
+  tagId: string,
+  taskIds: string[],
+): Promise<void> {
+  const validTasks = await prisma.task.findMany({
+    where: { id: { in: taskIds }, orgId },
+    select: { id: true },
+  });
+  const validIds = validTasks.map((t) => t.id);
+  await prisma.taskTag.createMany({
+    data: validIds.map((taskId) => ({ taskId, tagId })),
+    skipDuplicates: true,
+  });
 }

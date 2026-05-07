@@ -23,17 +23,28 @@ import { EditTagForm } from "./_components/tag-form";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type Task = { id: string; name: string; color: string };
+
 type Tag = {
   id: string;
   name: string;
   color: string;
   isDefault: boolean;
   _count: { tasks: number };
+  tasks: { task: Task }[];
 };
 
 // ─── Tag row ──────────────────────────────────────────────────────────────────
 
-function TagRow({ orgId, tag }: { orgId: string; tag: Tag }) {
+function TagRow({
+  orgId,
+  tag,
+  allTasks,
+}: {
+  orgId: string;
+  tag: Tag;
+  allTasks: Task[];
+}) {
   const { open, close } = useActionSidebar();
   const [isPending, startTransition] = useTransition();
   const editKeyRef = useRef(0);
@@ -49,6 +60,8 @@ function TagRow({ orgId, tag }: { orgId: string; tag: Tag }) {
         defaultName={tag.name}
         defaultColor={tag.color}
         isDefault={tag.isDefault}
+        allTasks={allTasks}
+        tagTasks={tag.tasks.map((tt) => tt.task)}
         onSuccess={close}
       />,
     );
@@ -146,9 +159,10 @@ function TagRow({ orgId, tag }: { orgId: string; tag: Tag }) {
 interface Props {
   orgId: string;
   tags: Tag[];
+  allTasks: Task[];
 }
 
-export function TagsClient({ orgId, tags }: Props) {
+export function TagsClient({ orgId, tags, allTasks }: Props) {
   const [query, setQuery] = useState("");
   const trimmedQuery = query.trim().toLowerCase();
   const filtered = trimmedQuery
@@ -189,7 +203,7 @@ export function TagsClient({ orgId, tags }: Props) {
             </div>
             {filtered.map((tag, i) => (
               <div key={tag.id} className={i < filtered.length - 1 ? "border-b" : ""}>
-                <TagRow orgId={orgId} tag={tag} />
+                <TagRow orgId={orgId} tag={tag} allTasks={allTasks} />
               </div>
             ))}
           </div>
