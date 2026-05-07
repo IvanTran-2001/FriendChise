@@ -17,9 +17,6 @@ ALTER TABLE "Tool" DROP CONSTRAINT "Tool_orgId_fkey";
 -- DropIndex
 DROP INDEX "TaskTag_taskId_idx";
 
--- AlterTable
-ALTER TABLE "Tag" ADD COLUMN     "isDefault" BOOLEAN NOT NULL DEFAULT false;
-
 -- DropTable
 -- Archive any existing rows to _archive_* tables before dropping,
 -- preventing silent data loss if the tables are non-empty.
