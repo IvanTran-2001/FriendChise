@@ -24,13 +24,16 @@ import {
   ListTodo,
   Users,
   Calendar,
-  BarChart2,
   Settings,
   HelpCircle,
   Network,
   Menu,
   HeartHandshake,
   Wrench,
+  ShieldCheck,
+  Bell,
+  Tag,
+  ChevronLeft,
 } from "lucide-react";
 import {
   MobileSidebarCtx,
@@ -72,20 +75,8 @@ function getOrgItems(orgId: string): NavItem[] {
     { title: "Overview", url: `/orgs/${orgId}`, icon: Building2 },
     { title: "Timetable", url: `/orgs/${orgId}/timetable`, icon: Calendar },
     { title: "Tasks", url: `/orgs/${orgId}/tasks`, icon: ListTodo },
-    {
-      title: "Tools",
-      url: `/orgs/${orgId}/tools`,
-      icon: Wrench,
-      disabled: true,
-    },
+    { title: "Tools", url: `/orgs/${orgId}/tools`, icon: Wrench },
     { title: "Members", url: `/orgs/${orgId}/memberships`, icon: Users },
-    // TODO: remove `disabled: true` when progress page is implemented
-    {
-      title: "Progress",
-      url: `/orgs/${orgId}/progress`,
-      icon: BarChart2,
-      disabled: true,
-    },
   ];
 }
 
@@ -112,6 +103,16 @@ function getFooterItems(
         ]
       : []),
     { title: "Settings", url: `/orgs/${orgId}/settings`, icon: Settings },
+  ];
+}
+
+function getSettingsItems(orgId: string): NavItem[] {
+  return [
+    { title: "Organization", url: `/orgs/${orgId}/settings/organization`, icon: Building2 },
+    { title: "Roles", url: `/orgs/${orgId}/settings/roles`, icon: ShieldCheck },
+    { title: "Tags", url: `/orgs/${orgId}/settings/tags`, icon: Tag },
+    { title: "Timetable", url: `/orgs/${orgId}/settings/timetable`, icon: Calendar, disabled: true },
+    { title: "Notification", url: `/orgs/${orgId}/settings/notification`, icon: Bell, disabled: true },
   ];
 }
 
@@ -177,12 +178,44 @@ export function AppSidebar() {
     ? getFooterItems(orgId, pathname, isParentOwner, parentOrgId)
     : [];
 
+  const isSettingsRoute = !!orgId && pathname.startsWith(`/orgs/${orgId}/settings`);
+  const settingsItems = orgId ? getSettingsItems(orgId) : [];
+
   const isActiveItem = (url: string) => {
     if (orgId && url === `/orgs/${orgId}`) return pathname === url;
     return pathname === url || pathname.startsWith(`${url}/`);
   };
 
   const navContent = () => {
+    // ── Settings mode ──────────────────────────────────────────────────────
+    if (isSettingsRoute && orgId) {
+      return (
+        <>
+          {/* Back button */}
+          <Link
+            href={`/orgs/${orgId}`}
+            className="flex items-center h-12 shrink-0 gap-3 px-3 text-sm font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors border-b border-sidebar-border"
+          >
+            <ChevronLeft className="h-4 w-4 shrink-0" />
+            <span className="whitespace-nowrap overflow-hidden">Back</span>
+          </Link>
+          <div className="flex-1 overflow-y-auto overflow-x-hidden">
+            <div className="flex flex-col">
+              {settingsItems.map((item) => (
+                <SidebarNavItem
+                  key={item.title}
+                  variant="app"
+                  {...item}
+                  isActive={isActiveItem(item.url)}
+                />
+              ))}
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    // ── Normal mode ────────────────────────────────────────────────────────
     return (
       <>
         <div className="flex-1 overflow-y-auto overflow-x-hidden">

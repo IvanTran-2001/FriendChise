@@ -146,6 +146,7 @@ model Organization {
   memberships         Membership[]
   roles               Role[]
   tasks               Task[]
+  tags                Tag[]
   timetableEntries    TimetableEntry[]
   timetableSettings   TimetableSettings?
   templates           Template[]
@@ -279,6 +280,7 @@ model Task {
   maxWaitDays           Int?
 
   eligibility           TaskEligibility[]
+  tags                  TaskTag[]
   timetableEntries      TimetableEntry[]
   templateEntries       TemplateEntry[]
 
@@ -307,7 +309,46 @@ model TaskEligibility {
 }
 
 // ─────────────────────────────────────
-// 9. TIMETABLE ENTRY
+// 9. TAG
+// ─────────────────────────────────────
+
+model Tag {
+  id          String   @id @default(cuid())
+  name        String
+  color       String   @default("#6B7280")
+
+  // Protects built-in tags (e.g. "Task") from being deleted
+  isDefault   Boolean  @default(false)
+
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  tasks       TaskTag[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([orgId, name])
+  @@index([orgId])
+}
+
+// ─────────────────────────────────────
+// 10. TASK TAG
+// ─────────────────────────────────────
+
+model TaskTag {
+  taskId  String
+  tagId   String
+
+  task    Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tag     Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, tagId])
+  @@index([tagId])
+}
+
+// ─────────────────────────────────────
+// 11. TIMETABLE ENTRY
 // ─────────────────────────────────────
 
 model TimetableEntry {
@@ -345,7 +386,7 @@ model TimetableEntry {
 }
 
 // ─────────────────────────────────────
-// 10. TIMETABLE ENTRY ASSIGNEE
+// 12. TIMETABLE ENTRY ASSIGNEE
 // ─────────────────────────────────────
 
 model TimetableEntryAssignee {
@@ -363,7 +404,7 @@ model TimetableEntryAssignee {
 }
 
 // ─────────────────────────────────────
-// 11. TIMETABLE SETTINGS
+// 13. TIMETABLE SETTINGS
 // ─────────────────────────────────────
 
 model TimetableSettings {
@@ -381,7 +422,7 @@ model TimetableSettings {
 }
 
 // ─────────────────────────────────────
-// 12. TEMPLATE
+// 14. TEMPLATE
 // ─────────────────────────────────────
 
 model Template {
@@ -440,7 +481,7 @@ model TemplateEntryAssignee {
 }
 
 // ─────────────────────────────────────
-// 13. FRANCHISE TOKEN
+// 15. FRANCHISE TOKEN
 // ─────────────────────────────────────
 
 model FranchiseToken {
@@ -460,7 +501,7 @@ model FranchiseToken {
 }
 
 // ─────────────────────────────────────
-// 14. INVITE
+// 16. INVITE
 // ─────────────────────────────────────
 
 model Invite {

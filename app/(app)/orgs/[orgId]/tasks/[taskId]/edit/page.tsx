@@ -11,6 +11,7 @@ import { requireOrgPermissionPage } from "@/lib/authz";
 import { PermissionAction } from "@prisma/client";
 import { getTaskById } from "@/lib/services/tasks";
 import { getRoles } from "@/lib/services/roles";
+import { getOrgTags } from "@/lib/services/tags";
 import { TaskForm } from "../../task-form";
 import { Toolbar } from "@/components/layout/toolbar";
 import { BackButton } from "@/components/layout/back-button";
@@ -24,14 +25,16 @@ const EditTaskPage = async ({
 
   await requireOrgPermissionPage(orgId, PermissionAction.MANAGE_TASKS);
 
-  const [task, allRoles] = await Promise.all([
+  const [task, allRoles, allTags] = await Promise.all([
     getTaskById(orgId, taskId),
     getRoles(orgId),
+    getOrgTags(orgId),
   ]);
 
   if (!task) notFound();
 
   const eligibleRoles = task.eligibility.map((e) => e.role);
+  const taskTags = task.tags.map((t) => t.tag);
 
   return (
     <>
@@ -53,6 +56,8 @@ const EditTaskPage = async ({
             taskId={taskId}
             allRoles={allRoles}
             eligibleRoles={eligibleRoles}
+            allTags={allTags}
+            taskTags={taskTags}
             defaultValues={{
               color: task.color,
               title: task.name,

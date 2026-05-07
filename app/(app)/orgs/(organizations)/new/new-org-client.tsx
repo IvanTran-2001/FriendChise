@@ -194,7 +194,7 @@ export default function NewOrgPage({
         setError(result.error);
         return;
       }
-      router.push(`/orgs/${result.orgId}/timetable`);
+      router.push(`/orgs/${result.orgId}`);
     } catch (error) {
       setError(error instanceof Error ? error.message : "Something went wrong");
     } finally {

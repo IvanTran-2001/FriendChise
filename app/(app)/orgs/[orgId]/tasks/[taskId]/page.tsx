@@ -65,6 +65,7 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
     : false;
 
   const eligibleRoles = task.eligibility.map((e) => e.role);
+  const taskTags = task.tags.map((t) => t.tag);
 
   return (
     <>
@@ -149,6 +150,27 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
             </p>
           </div>
         </div>
+
+        {/* Tags */}
+        {taskTags.length > 0 && (
+          <div className="rounded-lg border bg-card p-6">
+            <h2 className="text-sm font-medium mb-3">Tags</h2>
+            <div className="flex flex-wrap gap-2">
+              {taskTags.map((tag) => (
+                <span
+                  key={tag.id}
+                  className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs"
+                >
+                  <span
+                    className="inline-block w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: tag.color }}
+                  />
+                  {tag.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Eligible roles */}
         <div className="rounded-lg border bg-card p-6">

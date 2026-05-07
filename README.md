@@ -253,7 +253,13 @@ app/
         _components/
           org-management-nav.tsx  # Page sidebar nav (Create, Join, Invite, List)
       [orgId]/
-        page.tsx          # Org overview
+        page.tsx          # Org overview — stat cards, today's schedule, org header
+        loading.tsx       # Overview page skeleton
+        tools/            # Tools page
+          page.tsx
+          tools-client.tsx
+          _components/
+            tools-sidebar-content.tsx  # Search input + placeholder tool list
         franchisee/       # Franchise management (parent org owners only)
         memberships/      # Members list, role filter, list/card toggle, invite/add actions
           layout.tsx            # Registers MembersSidebarShell for all memberships routes
@@ -342,7 +348,7 @@ components/
     page-sidebar-context.tsx    # Slot-based page sidebar: RegisterPageSidebar + PageSidebarSlot + RegisterPageSidebarSubContent sub-content slot
     action-sidebar-context.tsx  # Transient action panel (ActionSidebarSlot) beside page sidebar; open/close via hook
     org-switcher.tsx            # Org selector dropdown
-    toolbar.tsx                 # h-12 sticky sub-header; cancels main padding with negative margins; left-pads when sidebar collapsed
+    toolbar.tsx                 # h-12 sticky sub-header; cancels main padding with negative margins; left-pads when sidebar collapsed; uses useLayoutEffect to avoid height flash on load; children are optional (renders as empty bar)
     actions/
       tasks-actions.tsx
       members-actions.tsx
@@ -467,7 +473,8 @@ Server Actions call `revalidatePath` to invalidate the Next.js cache so server-r
 | `/signin`                                        | —                                          | Google OAuth sign-in                                                                                                                                       |
 | `/orgs/new`                                      | Signed in                                  | Create a new organization                                                                                                                                  |
 | `/orgs/join`                                     | Signed in                                  | Join an existing org as a franchisee using a one-time token                                                                                                |
-| `/orgs/[orgId]`                                  | `requireOrgMemberPage`                     | Org overview                                                                                                                                               |
+| `/orgs/[orgId]`                                  | `requireOrgMemberPage`                     | Org overview — stat cards (members, tasks, roles, today's schedule completion), today's schedule list, org header (name, address, timezone, settings link for owner) |
+| `/orgs/[orgId]/tools`                            | `requireOrgMemberPage`                     | Tools page — sidebar with search + placeholder tool list; content area stub                                                                                |
 | `/orgs/[orgId]/franchisee`                       | `requireParentOrgOwnerPage`                | Franchise management — invite tokens + franchisee list                                                                                                     |
 | `/orgs/[orgId]/tasks`                            | `requireOrgMemberPage`                     | Task definition list — sort, role filter, list/card toggle in sidebar; search in toolbar; Create Task action in sidebar (managers only)                    |
 | `/orgs/[orgId]/tasks/new`                        | `requireOrgPermissionPage MANAGE_TASKS`    | Create task — includes color picker                                                                                                                        |
@@ -521,7 +528,7 @@ A parent org can spawn franchisee orgs using a one-time invite token flow:
 - **Shell + sub-content pattern** — Tasks and Members each have a `*-sidebar-shell.tsx` (client, registered in `layout.tsx`) that renders the panel title, nav tabs, and a `usePageSidebarSubContent()` slot. The per-page sidebar content (`*-sidebar-content.tsx`) is registered via `RegisterPageSidebarSubContent` in `page.tsx` and fills that slot.
 - **ActionSidebar for member actions** — "Invite Member" and "Add Bot" in the members sidebar open an `ActionSidebarSlot` panel on desktop (button highlights blue while active) and a `Dialog` popup on mobile. The dialog is mounted in the same component tree as the button so it is not unmounted when the mobile sidebar overlay closes.
 - **Unified height system** — `h-12` (48px) is used consistently across: navbar inner row, toolbar, sidebar nav items, page sidebar title rows, and open/close buttons. This ensures every horizontal element lines up on a shared baseline.
-- **Sidebar nav** — The Progress nav item is disabled (`opacity-40 cursor-not-allowed pointer-events-none`). Active state uses prefix matching; Overview uses exact matching.
+- **Sidebar nav** — Active state uses prefix matching; Overview uses exact matching. The nav contains: Overview, Timetable, Tasks, Tools, Members.
 - **Colors required** — Both `Role.color` and `Task.color` are non-nullable in the schema and enforced by Zod validators (`/^#[0-9a-fA-F]{6}$/`). Create and edit forms render a native `<input type="color">` with a hex label. The color is submitted as a hidden `<input name="color">` so it flows through `FormData`.
 - **Task form color picker** — Lazy `useState(() => dv?.color ?? randomHex())` initializer prevents React purity errors on random defaults.
 - **Member pages** — Split into view (`[memberId]/page.tsx`) and edit (`[memberId]/edit/page.tsx`) routes. Both share `MemberForm`. The toolbar on the detail page provides Edit and an Actions ▼ dropdown (Restrict / Unrestrict / Delete with confirm dialogs).

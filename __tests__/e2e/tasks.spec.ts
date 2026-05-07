@@ -17,10 +17,10 @@ async function createOrg(page: Page, orgName: string): Promise<string> {
   await page.goto("/orgs/new");
   await page.getByLabel(/org name/i).fill(orgName);
   await page.getByRole("button", { name: /create organization/i }).click();
-  await expect(page).toHaveURL(/\/orgs\/(.+)\/timetable$/);
+  await expect(page).toHaveURL(/\/orgs\/(?!new$|join$)[^/]+$/);
 
   const url = page.url();
-  const orgId = url.match(/\/orgs\/([^/]+)\/timetable/)?.[1];
+  const orgId = url.match(/\/orgs\/(?!new$|join$)([^/]+)$/)?.[1];
   if (!orgId) throw new Error("Could not extract orgId from URL");
   return orgId;
 }
@@ -252,6 +252,7 @@ test("create task with role → role badge visible in task list", async ({
   await page.getByLabel(/min wait days/i).fill("1");
 
   // Type the role name into the eligibility search and click it
+  await page.getByRole("button", { name: /add role/i }).click();
   await page.getByPlaceholder(/search roles/i).fill(roleName);
   await page.getByRole("button", { name: roleName }).click();
 
@@ -293,6 +294,7 @@ test("edit task to add role → role badge visible in task list", async ({
   await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+\/edit$/);
 
   // Add the role via the eligibility panel
+  await page.getByRole("button", { name: /add role/i }).click();
   await page.getByPlaceholder(/search roles/i).fill(roleName);
   await page.getByRole("button", { name: roleName }).click();
 
@@ -321,6 +323,7 @@ test("edit task to remove role → role badge no longer visible in task list", a
   await page.goto(`/orgs/${orgId}/tasks/new`);
   await page.getByLabel(/title/i).fill(taskTitle);
   await page.getByLabel(/min wait days/i).fill("1");
+  await page.getByRole("button", { name: /add role/i }).click();
   await page.getByPlaceholder(/search roles/i).fill(roleName);
   await page.getByRole("button", { name: roleName }).click();
   await page.getByRole("button", { name: /create task/i }).click();
@@ -388,6 +391,7 @@ test("role filter → only tasks with that role visible", async ({ page }) => {
   await page.goto(`/orgs/${orgId}/tasks/new`);
   await page.getByLabel(/title/i).fill(taskWithRole);
   await page.getByLabel(/min wait days/i).fill("1");
+  await page.getByRole("button", { name: /add role/i }).click();
   await page.getByPlaceholder(/search roles/i).fill(roleName);
   await page.getByRole("button", { name: roleName }).click();
   await page.getByRole("button", { name: /create task/i }).click();

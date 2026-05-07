@@ -25,8 +25,7 @@
 import { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Toolbar } from "@/components/layout/toolbar";
@@ -155,16 +154,14 @@ export function MembersView({
     <div className="flex flex-col h-full">
       {/* Toolbar */}
       <Toolbar>
-        <div className="relative flex-1 min-w-50">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder="Search members…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-7 h-7 w-full"
-            aria-label="Search members by name"
-          />
-        </div>
+        <SearchInput
+          placeholder="Search members…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="h-7"
+          containerClassName="flex-1 min-w-50"
+          aria-label="Search members by name"
+        />
       </Toolbar>
 
       <div className="flex-1 min-h-0 overflow-auto -mx-4 sm:-mx-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-4 sm:pb-6">

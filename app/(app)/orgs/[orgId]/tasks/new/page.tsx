@@ -8,6 +8,7 @@
 import { requireOrgPermissionPage } from "@/lib/authz";
 import { PermissionAction } from "@prisma/client";
 import { getRoles } from "@/lib/services/roles";
+import { getOrgTags } from "@/lib/services/tags";
 import { TaskForm } from "../task-form";
 import { Toolbar } from "@/components/layout/toolbar";
 import { BackButton } from "@/components/layout/back-button";
@@ -21,7 +22,10 @@ const NewTaskPage = async ({
 
   await requireOrgPermissionPage(orgId, PermissionAction.MANAGE_TASKS);
 
-  const allRoles = await getRoles(orgId);
+  const [allRoles, allTags] = await Promise.all([
+    getRoles(orgId),
+    getOrgTags(orgId),
+  ]);
 
   return (
     <>
@@ -37,7 +41,7 @@ const NewTaskPage = async ({
       <div className="w-full max-w-3xl mx-auto flex flex-col gap-6">
         <h1 className="text-2xl font-semibold">Create Task</h1>
         <div className="w-full rounded-lg border bg-card p-6">
-          <TaskForm mode="create" orgId={orgId} allRoles={allRoles} />
+          <TaskForm mode="create" orgId={orgId} allRoles={allRoles} allTags={allTags} />
         </div>
       </div>
     </>
