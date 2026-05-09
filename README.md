@@ -309,9 +309,12 @@ app/
         settings/
           page.tsx        # Redirects to /settings/organization
           organization/   # Org info, timezone, hours, transfer, delete
-          roles/          # Role list, create, edit (MANAGE_ROLES)
-            new/          # Create role form (name, color, permissions, task eligibility)
-            [roleId]/edit/# Edit role form
+          roles/          # Role list (MANAGE_ROLES)
+            _components/
+              role-form.tsx               # Shared create/edit form (name, color, permissions, task eligibility picker)
+              roles-sidebar-content.tsx   # Page sidebar: "+ Create Role" button → opens RoleForm in ActionSidebar
+            page.tsx                      # Registers RolesSidebarContent as page sidebar; table rendered by RolesClient
+            roles-client.tsx              # Table of roles; row ··· menu Edit → ActionSidebar, Delete → AlertDialog
           timetable/      # Timetable display settings (stub)
           notification/   # Notification preferences (stub)
   (auth)/
@@ -490,9 +493,7 @@ Server Actions call `revalidatePath` to invalidate the Next.js cache so server-r
 | `/orgs/[orgId]/timetable/templates/[templateId]` | `requireOrgMemberPage`                     | Template editor — Calendar (drag-and-drop grid) or Simple (day table) view; cycle-length controls                                                          |
 | `/orgs/[orgId]/settings`                         | —                                          | Redirects to `/settings/organization`                                                                                                                      |
 | `/orgs/[orgId]/settings/organization`            | `requireOrgPermissionPage MANAGE_SETTINGS` | Org info, timezone, hours, transfer, delete                                                                                                                |
-| `/orgs/[orgId]/settings/roles`                   | `requireOrgPermissionPage MANAGE_ROLES`    | Role list + delete custom roles                                                                                                                            |
-| `/orgs/[orgId]/settings/roles/new`               | `requireOrgPermissionPage MANAGE_ROLES`    | Create a new custom role (name, color, permissions, task eligibility)                                                                                      |
-| `/orgs/[orgId]/settings/roles/[roleId]/edit`     | `requireOrgPermissionPage MANAGE_ROLES`    | Edit a custom role                                                                                                                                         |
+| `/orgs/[orgId]/settings/roles`                   | `requireOrgPermissionPage MANAGE_ROLES`    | Role list with page sidebar — "+ Create Role" opens the form in the action sidebar; row ··· menu "Edit" also opens in action sidebar |
 | `/orgs/[orgId]/settings/timetable`               | —                                          | Timetable display settings (stub)                                                                                                                          |
 | `/orgs/[orgId]/settings/notification`            | —                                          | Notification preferences (stub)                                                                                                                            |
 
@@ -542,7 +543,7 @@ A parent org can spawn franchisee orgs using a one-time invite token flow:
 - **Template list management** — MANAGE_TASKS holders see a ··· dropdown on each template (card and list view) with Rename (inline Dialog), Duplicate ("Copy of …" with collision suffix), and Delete (AlertDialog confirmation). Mutations call `revalidatePath` so the list refreshes without a full reload.
 - **Task descriptions** — Task descriptions are stored as GFM markdown and rendered via `react-markdown` + `remark-gfm` on the task detail page. The task list (card and table views) strips markdown via a lightweight `stripMd()` helper for plain-text previews.
 - **Task table** — `TaskTable` client component: search, sort (name/duration/people), role filter, row `···` menu (Edit / Duplicate / Delete with confirm). Clicking the row navigates to the task detail page.
-- **Roles page** — System roles show a `system` badge and cannot be deleted; Owner also cannot be edited. Custom roles have a `···` menu with Edit and Delete (AlertDialog). Role create/edit form has a two-column task eligibility picker.
+- **Roles page** — System roles show a `system` badge and cannot be deleted; Owner also cannot be edited. "+ Create Role" in the page sidebar opens an `ActionSidebar` panel with the full role form (name, color, permissions, task eligibility). The row `···` menu's "Edit" item opens the same form pre-filled in the action sidebar — no standalone `/new` or `/[roleId]/edit` pages. On success the panel closes and `router.refresh()` updates the table in place.
 - **Role security** — `createRole` and `updateRole` validate `taskIds` against tasks scoped to `orgId` inside a transaction. Cross-tenant IDs abort the transaction with an `INVALID` error.
 
 ## Timetable
@@ -691,7 +692,7 @@ SENTRY_AUTH_TOKEN=   # Required whenever source maps are uploaded at build time 
 
 ## Status
 
-Work in progress. Fully implemented: service layer (all 10 services with 93 integration tests), REST API, auth, member management (list, view, edit, restrict, delete), task management (list, view, create, edit with color), timetable view (calendar + simple, task links), timetable templates (create, rename, duplicate, delete, calendar/simple editor, cycle-length controls, apply to timetable), org settings, role management (list, create, edit, delete, task eligibility, color), franchise management, required colors on tasks and roles, async breadcrumbs with name resolution, fixed-toolbar scroll containment on members and tasks pages, audit log (DB table + Zod-validated service layer, all significant mutations instrumented — UI pending), tasks/members page sidebar redesign (shell + sub-content pattern matching timetable architecture, URL-param-driven filters, ActionSidebar panels for Invite Member + Add Bot with mobile Dialog fallback).
+Work in progress. Fully implemented: service layer (all 10 services with 93 integration tests), REST API, auth, member management (list, view, edit, restrict, delete), task management (list, view, create, edit with color), timetable view (calendar + simple, task links), timetable templates (create, rename, duplicate, delete, calendar/simple editor, cycle-length controls, apply to timetable), org settings, role management (list, create, edit, delete, task eligibility, color — all via action sidebar panels; no standalone create/edit pages), franchise management, required colors on tasks and roles, async breadcrumbs with name resolution, fixed-toolbar scroll containment on members and tasks pages, audit log (DB table + Zod-validated service layer, all significant mutations instrumented — UI pending), tasks/members/roles page sidebar redesign (shell + sub-content pattern matching timetable architecture, URL-param-driven filters, ActionSidebar panels for Invite Member + Add Bot + Create Role + Edit Role with mobile Dialog fallback).
 
 Not yet started: schedule generation (automatic cycle-based rotation), worker "Today" checklist, completion stats, timetable/notification settings pages, real-time notification refresh, audit log UI (activity feed page).
 

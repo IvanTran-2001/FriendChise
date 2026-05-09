@@ -1,5 +1,15 @@
 "use client";
 
+/**
+ * RolesSidebarContent — page sidebar for the roles settings page.
+ *
+ * Renders a "+ Create Role" button in the Actions section. Clicking it opens
+ * `RoleForm` inside the `ActionSidebar` panel. On success the panel closes and
+ * the page data is refreshed via `router.refresh()`. While the panel is open the
+ * button highlights (filled variant) to indicate it is the active panel.
+ *
+ * Registered via `<RegisterPageSidebar>` in `roles/page.tsx`.
+ */
 import { useRef } from "react";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";

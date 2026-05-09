@@ -9,9 +9,14 @@ import { RolesClient } from "./roles-client";
 /**
  * Roles settings page — server component.
  *
- * Guards access with `MANAGE_ROLES`; only members whose role grants that
- * permission can view this page. Fetches all roles for the org (with their
- * associated permissions) and delegates rendering to `RolesClient`.
+ * Guards access with `MANAGE_ROLES`. Fetches all roles (with permissions and
+ * task eligibility) and all org tasks in parallel — tasks are needed to
+ * populate the eligibility picker inside the create/edit panel.
+ *
+ * Registers `RolesSidebarContent` as the page sidebar (provides the
+ * "+ Create Role" action). Role creation and editing both happen inside
+ * `ActionSidebar` panels — there are no standalone `/new` or `/[roleId]/edit`
+ * pages for roles.
  */
 export default async function RolesPage({
   params,

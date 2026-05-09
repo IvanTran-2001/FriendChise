@@ -3,8 +3,16 @@
 /**
  * Shared form for creating and editing a role.
  *
+ * Used in two contexts:
+ *  1. **Create** — opened via the page sidebar "+ Create Role" button; rendered
+ *     inside the `ActionSidebar` panel. `onSuccess` closes the panel and
+ *     refreshes the roles table; `onCancel` closes the panel.
+ *  2. **Edit** — opened from the `···` row menu in `RolesClient`; same panel
+ *     mechanism, pre-filled with the role’s current values.
+ *
  * When `role` is supplied the form is in edit mode and pre-fills all fields.
- * On success it navigates back to the roles list.
+ * `onSuccess`/`onCancel` fall back to `router.push` to the roles list when not
+ * provided (e.g. if the form is ever embedded in a standalone page context).
  *
  * Fields:
  *  - Name — required, max 50 chars.

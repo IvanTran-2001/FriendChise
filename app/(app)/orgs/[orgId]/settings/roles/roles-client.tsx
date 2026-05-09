@@ -8,8 +8,12 @@
  *  - The list of permissions granted to the role as small chips.
  *  - A `···` dropdown menu with Edit and Delete actions.
  *
- * The Delete action is hidden for system roles (`isDeletable: false`).
- * Clicking Delete opens an AlertDialog confirmation before calling `deleteRoleAction`.
+ * **Edit** — opens `RoleForm` in the ActionSidebar panel (pre-filled with the role’s
+ *   current values). On success the panel closes and the table refreshes via
+ *   `router.refresh()`. The Owner role cannot be edited and its row omits the menu.
+ *
+ * **Delete** — hidden for system roles (`isDeletable: false`). Clicking opens an
+ *   AlertDialog confirmation before calling `deleteRoleAction`.
  */
 import { useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";

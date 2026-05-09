@@ -3,12 +3,15 @@
 /**
  * Server Actions for task management.
  *
- * createTaskAction    — create-task form; parses FormData, validates with `createTaskSchema`,
- *                       delegates to the task service, then revalidates and redirects.
- * updateTaskAction    — edit-task form; same pipeline but updates an existing task.
- * deleteTaskAction    — task-table row menu; scoped delete, requires MANAGE_TASKS.
- * addEligibilityAction    — toggle a role onto a task's eligibility list.
- * removeEligibilityAction — toggle a role off a task's eligibility list.
+ * createTaskAction        — create-task form; parses FormData, validates with `createTaskSchema`,
+ *                           delegates to the task service, then revalidates and redirects.
+ * updateTaskAction        — edit-task form; updates an existing task, then revalidates both the
+ *                           task list and the task detail page (`/tasks/${taskId}`) before
+ *                           redirecting. Revalidates the detail page (not the edit page) to avoid
+ *                           an RSC refetch race with the subsequent `router.push`.
+ * deleteTaskAction        — task-table row menu; scoped delete, requires MANAGE_TASKS.
+ * addEligibilityAction    — toggle a role onto a task’s eligibility list.
+ * removeEligibilityAction — toggle a role off a task’s eligibility list.
  */
 
 import { PermissionAction } from "@prisma/client";
