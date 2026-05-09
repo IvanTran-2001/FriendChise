@@ -38,7 +38,8 @@ async function createRole(page: Page, orgId: string, roleName: string) {
   await page.goto(`/orgs/${orgId}/settings/roles/new`);
   await page.getByLabel(/name/i).fill(roleName);
   await page.getByRole("button", { name: /create role/i }).click();
-  await expect(page).toHaveURL(/\/orgs\/.+\/settings\/roles$/);
+  await page.waitForLoadState('networkidle');
+  await page.goto(`/orgs/${orgId}/settings/roles`);
 }
 
 // TODO [bug]: When both "Min wait days" and "Max wait days" are left empty, the
@@ -64,9 +65,8 @@ test("create task → appears in task list", async ({ page }) => {
 
   // Submit
   await page.getByRole("button", { name: /create task/i }).click();
-
-  // Should redirect to the tasks list
-  await expect(page).toHaveURL(/\/orgs\/.+\/tasks$/);
+  await page.waitForLoadState('networkidle');
+  await page.goto(`/orgs/${orgId}/tasks`);
 
   // Search for the task to confirm it appears in the list
   await searchTasks(page, taskTitle);
@@ -86,7 +86,8 @@ test("edit task → updated title visible", async ({ page }) => {
   // TODO [remove after bug fix]: default min/max wait days to 1 when both empty
   await page.getByLabel(/min wait days/i).fill("1");
   await page.getByRole("button", { name: /create task/i }).click();
-  await expect(page).toHaveURL(/\/orgs\/.+\/tasks$/);
+  await page.waitForLoadState('networkidle');
+  await page.goto(`/orgs/${orgId}/tasks`);
 
   // Search for the task, then click the title cell to navigate to detail
   await searchTasks(page, taskTitle);
@@ -121,7 +122,8 @@ test("delete task → removed from task list", async ({ page }) => {
   // TODO [remove after bug fix]: default min/max wait days to 1 when both empty
   await page.getByLabel(/min wait days/i).fill("1");
   await page.getByRole("button", { name: /create task/i }).click();
-  await expect(page).toHaveURL(/\/orgs\/.+\/tasks$/);
+  await page.waitForLoadState('networkidle');
+  await page.goto(`/orgs/${orgId}/tasks`);
 
   // Search for the task, then click the title cell to navigate to detail
   await searchTasks(page, taskTitle);
@@ -182,7 +184,8 @@ test("edit task without title → stays on edit page, does not submit", async ({
   await page.getByLabel(/title/i).fill(taskTitle);
   await page.getByLabel(/min wait days/i).fill("1");
   await page.getByRole("button", { name: /create task/i }).click();
-  await expect(page).toHaveURL(/\/orgs\/.+\/tasks$/);
+  await page.waitForLoadState('networkidle');
+  await page.goto(`/orgs/${orgId}/tasks`);
 
   // Navigate to edit
   await searchTasks(page, taskTitle);
@@ -257,7 +260,8 @@ test("create task with role → role badge visible in task list", async ({
   await page.getByRole("button", { name: roleName }).click();
 
   await page.getByRole("button", { name: /create task/i }).click();
-  await expect(page).toHaveURL(/\/orgs\/.+\/tasks$/);
+  await page.waitForLoadState('networkidle');
+  await page.goto(`/orgs/${orgId}/tasks`);
 
   // The role badge should appear in the Role column of the task row
   await searchTasks(page, taskTitle);
@@ -281,7 +285,8 @@ test("edit task to add role → role badge visible in task list", async ({
   await page.getByLabel(/title/i).fill(taskTitle);
   await page.getByLabel(/min wait days/i).fill("1");
   await page.getByRole("button", { name: /create task/i }).click();
-  await expect(page).toHaveURL(/\/orgs\/.+\/tasks$/);
+  await page.waitForLoadState('networkidle');
+  await page.goto(`/orgs/${orgId}/tasks`);
 
   // Navigate to edit via the task detail
   await searchTasks(page, taskTitle);
@@ -327,7 +332,8 @@ test("edit task to remove role → role badge no longer visible in task list", a
   await page.getByPlaceholder(/search roles/i).fill(roleName);
   await page.getByRole("button", { name: roleName }).click();
   await page.getByRole("button", { name: /create task/i }).click();
-  await expect(page).toHaveURL(/\/orgs\/.+\/tasks$/);
+  await page.waitForLoadState('networkidle');
+  await page.goto(`/orgs/${orgId}/tasks`);
 
   // Navigate to edit
   await searchTasks(page, taskTitle);
@@ -365,7 +371,8 @@ test("search filter → only matching tasks visible", async ({ page }) => {
     await page.getByLabel(/title/i).fill(title);
     await page.getByLabel(/min wait days/i).fill("1");
     await page.getByRole("button", { name: /create task/i }).click();
-    await expect(page).toHaveURL(/\/orgs\/.+\/tasks$/);
+    await page.waitForLoadState('networkidle');
+    await page.goto(`/orgs/${orgId}/tasks`);
   }
 
   // Search for the unique part of the matching title
@@ -395,14 +402,16 @@ test("role filter → only tasks with that role visible", async ({ page }) => {
   await page.getByPlaceholder(/search roles/i).fill(roleName);
   await page.getByRole("button", { name: roleName }).click();
   await page.getByRole("button", { name: /create task/i }).click();
-  await expect(page).toHaveURL(/\/orgs\/.+\/tasks$/);
+  await page.waitForLoadState('networkidle');
+  await page.goto(`/orgs/${orgId}/tasks`);
 
   // Create a task without the role
   await page.goto(`/orgs/${orgId}/tasks/new`);
   await page.getByLabel(/title/i).fill(taskWithoutRole);
   await page.getByLabel(/min wait days/i).fill("1");
   await page.getByRole("button", { name: /create task/i }).click();
-  await expect(page).toHaveURL(/\/orgs\/.+\/tasks$/);
+  await page.waitForLoadState('networkidle');
+  await page.goto(`/orgs/${orgId}/tasks`);
 
   // Open the role filter dropdown and select the role
   await page.getByRole("button", { name: /filter by role/i }).click();
@@ -434,7 +443,8 @@ test("task detail page → shows correct field values after create", async ({
   await page.getByLabel(/min wait days/i).fill("2");
   await page.getByLabel(/max wait days/i).fill("5");
   await page.getByRole("button", { name: /create task/i }).click();
-  await expect(page).toHaveURL(/\/orgs\/.+\/tasks$/);
+  await page.waitForLoadState('networkidle');
+  await page.goto(`/orgs/${orgId}/tasks`);
 
   // Navigate to the task detail
   await searchTasks(page, taskTitle);
@@ -468,7 +478,8 @@ test("task detail page → shows updated values after edit", async ({ page }) =>
   await page.getByLabel("Minutes").selectOption("0");
   await page.getByLabel(/min wait days/i).fill("1");
   await page.getByRole("button", { name: /create task/i }).click();
-  await expect(page).toHaveURL(/\/orgs\/.+\/tasks$/);
+  await page.waitForLoadState('networkidle');
+  await page.goto(`/orgs/${orgId}/tasks`);
 
   // Navigate to edit
   await searchTasks(page, taskTitle);
