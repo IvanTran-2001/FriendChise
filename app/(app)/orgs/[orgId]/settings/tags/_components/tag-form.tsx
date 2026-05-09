@@ -134,6 +134,7 @@ export function CreateTagForm({
 
   // Set random color on mount (client-only) to avoid hydration mismatch
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setColor(randomColor());
   }, []);
 

@@ -149,7 +149,7 @@ export function CalendarView({
   } | null>(null);
   const [editingInstance, setEditingInstance] =
     useState<ClientTimetableInstance | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isDragging, _setIsDragging] = useState(false);
 
   type PendingDrop =
     | { kind: "drop"; col: string; timeMin: number; data: DragData }
