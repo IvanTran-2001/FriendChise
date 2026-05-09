@@ -40,9 +40,13 @@ interface RoleFormProps {
   role?: RoleWithPermissions;
   /** All tasks for this org — used to populate the eligibility picker. */
   tasks: { id: string; name: string }[];
+  /** Called after a successful create/update. Falls back to router.push to the roles list. */
+  onSuccess?: () => void;
+  /** Called when the user cancels. Falls back to router.push to the roles list. */
+  onCancel?: () => void;
 }
 
-export function RoleForm({ orgId, role, tasks }: RoleFormProps) {
+export function RoleForm({ orgId, role, tasks, onSuccess, onCancel }: RoleFormProps) {
   const nameId = useId();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -94,7 +98,11 @@ export function RoleForm({ orgId, role, tasks }: RoleFormProps) {
 
       if (result.ok) {
         toast.success(role ? "Role updated." : "Role created.");
-        router.push(`/orgs/${orgId}/settings/roles`);
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          router.push(`/orgs/${orgId}/settings/roles`);
+        }
       } else {
         setError(result.error);
       }
@@ -232,7 +240,11 @@ export function RoleForm({ orgId, role, tasks }: RoleFormProps) {
         <Button
           type="button"
           variant="outline"
-          onClick={() => router.push(`/orgs/${orgId}/settings/roles`)}
+          onClick={() =>
+            onCancel
+              ? onCancel()
+              : router.push(`/orgs/${orgId}/settings/roles`)
+          }
           disabled={isPending}
         >
           Cancel

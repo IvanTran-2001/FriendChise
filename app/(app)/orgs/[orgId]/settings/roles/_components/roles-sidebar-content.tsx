@@ -1,0 +1,64 @@
+"use client";
+
+import { useRef } from "react";
+import { Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { RoleForm } from "./role-form";
+
+export function RolesSidebarContent({
+  orgId,
+  tasks,
+}: {
+  orgId: string;
+  tasks: { id: string; name: string }[];
+}) {
+  const { open, close, activeTitle } = useActionSidebar();
+  const router = useRouter();
+  const formKeyRef = useRef(0);
+
+  function handleCreate() {
+    const k = ++formKeyRef.current;
+    open(
+      "Create Role",
+      <div key={k} className="p-4">
+        <RoleForm
+          orgId={orgId}
+          tasks={tasks}
+          onSuccess={() => {
+            close();
+            router.refresh();
+          }}
+          onCancel={close}
+        />
+      </div>,
+    );
+  }
+
+  return (
+    <div className="flex flex-col overflow-y-auto">
+      <div className="h-12 flex items-center px-4 border-b border-border shrink-0">
+        <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
+          Roles
+        </span>
+      </div>
+      <div className="px-3 pt-3 pb-3">
+        <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
+          Actions
+        </p>
+        <div className="flex flex-col gap-2">
+          <Button
+            variant={activeTitle === "Create Role" ? "default" : "outline"}
+            size="sm"
+            onClick={handleCreate}
+            className="w-full justify-start gap-2"
+          >
+            <Plus className="h-4 w-4 shrink-0" />
+            Create Role
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}

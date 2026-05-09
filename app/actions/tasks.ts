@@ -180,7 +180,7 @@ export async function updateTaskAction(
   if (!result.ok) return { ok: false, errors: { _: [result.error] } };
 
   revalidatePath(`/orgs/${orgId}/tasks`);
-  revalidatePath(`/orgs/${orgId}/tasks/${taskId}/edit`);
+  revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);
   return { ok: true };
 }
 

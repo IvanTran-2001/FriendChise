@@ -55,6 +55,7 @@ export const NavBar = async () => {
         .then((ms) =>
           ms
             .map((m) => m.organization)
+            .filter((org) => org !== null)
             .sort((a, b) => a.name.localeCompare(b.name)),
         )
         .catch((error) => {

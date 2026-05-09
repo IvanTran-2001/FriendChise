@@ -11,7 +11,8 @@
  * The Delete action is hidden for system roles (`isDeletable: false`).
  * Clicking Delete opens an AlertDialog confirmation before calling `deleteRoleAction`.
  */
-import { useTransition } from "react";
+import { useRef, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { type PermissionAction } from "@/lib/constants";
@@ -34,10 +35,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { deleteRoleAction } from "@/app/actions/roles";
 import type { RoleWithPermissions } from "@/lib/services/roles";
 import { ROLE_KEYS } from "@/lib/rbac";
 import { cn } from "@/lib/utils";
+import { RoleForm } from "./_components/role-form";
 
 // ─── Permission label formatter ──────────────────────────────────────────────
 
@@ -52,11 +55,35 @@ function formatPermissionLabel(action: PermissionAction): string {
 function RoleRowActions({
   orgId,
   role,
+  tasks,
 }: {
   orgId: string;
   role: RoleWithPermissions;
+  tasks: { id: string; name: string }[];
 }) {
   const [isPending, startTransition] = useTransition();
+  const { open, close } = useActionSidebar();
+  const router = useRouter();
+  const formKeyRef = useRef(0);
+
+  function handleEdit() {
+    const k = ++formKeyRef.current;
+    open(
+      `Edit Role`,
+      <div key={k} className="p-4">
+        <RoleForm
+          orgId={orgId}
+          role={role}
+          tasks={tasks}
+          onSuccess={() => {
+            close();
+            router.refresh();
+          }}
+          onCancel={close}
+        />
+      </div>,
+    );
+  }
 
   function handleDelete() {
     startTransition(async () => {
@@ -83,11 +110,9 @@ function RoleRowActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem asChild>
-            <a href={`/orgs/${orgId}/settings/roles/${role.id}/edit`}>
-              <Pencil className="mr-2 h-4 w-4" />
-              Edit
-            </a>
+          <DropdownMenuItem onSelect={handleEdit}>
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit
           </DropdownMenuItem>
           {role.isDeletable && (
             <>
@@ -136,9 +161,10 @@ function RoleRowActions({
 interface Props {
   orgId: string;
   roles: RoleWithPermissions[];
+  tasks: { id: string; name: string }[];
 }
 
-export function RolesClient({ orgId, roles }: Props) {
+export function RolesClient({ orgId, roles, tasks }: Props) {
   if (roles.length === 0) {
     return <p className="text-sm text-muted-foreground">No roles yet.</p>;
   }
@@ -244,7 +270,7 @@ export function RolesClient({ orgId, roles }: Props) {
               </td>
               <td className="px-2 py-2">
                 {role.key !== ROLE_KEYS.OWNER && (
-                  <RoleRowActions orgId={orgId} role={role} />
+                  <RoleRowActions orgId={orgId} role={role} tasks={tasks} />
                 )}
               </td>
             </tr>
