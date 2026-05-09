@@ -177,7 +177,7 @@ export function ApplyTemplateForm({
 
   if (showPastWarning) {
     return (
-      <>
+      <div className="flex flex-col gap-4 p-4">
         <div className="flex flex-col gap-4">
           <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 flex gap-3">
             <TriangleAlertIcon className="h-5 w-5 shrink-0 mt-0.5 text-destructive" />
@@ -221,12 +221,12 @@ export function ApplyTemplateForm({
             {isPending ? "Applying…" : "Apply Anyway"}
           </Button>
         </DialogFooter>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="flex flex-col gap-3 p-4">
       <div className="flex flex-col gap-3">
         {/* Template select */}
         <div className="flex flex-col gap-1">
@@ -345,7 +345,7 @@ export function ApplyTemplateForm({
           {isPending ? "Applying…" : "Apply"}
         </Button>
       </DialogFooter>
-    </>
+    </div>
   );
 }
 

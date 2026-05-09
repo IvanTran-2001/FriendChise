@@ -5,8 +5,6 @@ import { LayoutGrid, List, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useMobileSidebar } from "@/components/layout/mobile-sidebar-context";
 import { CreateTemplateForm } from "./create-template-form";
 
 interface TemplatesSidebarContentProps {
@@ -24,15 +22,8 @@ export function TemplatesSidebarContent({
 }: TemplatesSidebarContentProps) {
   const router = useRouter();
   const { open, activeTitle } = useActionSidebar();
-  const isMobile = useIsMobile();
-  const { setOpen: setMobileSidebarOpen } = useMobileSidebar();
 
   function handleCreate() {
-    if (isMobile) {
-      setMobileSidebarOpen(false);
-      window.dispatchEvent(new CustomEvent("templates:open-create"));
-      return;
-    }
     open("New Template", <CreateTemplateForm orgId={orgId} />);
   }
 

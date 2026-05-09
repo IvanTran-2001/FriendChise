@@ -1,24 +1,17 @@
 "use client";
 
 /**
- * AddBotPanel — inline bot-creation form for the ActionSidebar (desktop) or
- * AddBotDialog (mobile sheet).
+ * AddBotPanel — inline bot-creation form for the ActionSidebar.
  */
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { RolePicker } from "./role-picker";
-import { DAYS } from "../_constants";
+import { RolePicker } from "../role-picker";
+import { DAYS } from "../../_constants";
 import { createBotAction } from "@/app/actions/bots";
 
-type Role = { id: string; name: string };
+type Role = { id: string; name: string; color: string };
 
 export function AddBotPanel({
   orgId,
@@ -71,7 +64,7 @@ export function AddBotPanel({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
       {errors._ && <p className="text-sm text-destructive">{errors._}</p>}
 
       <div className="flex flex-col gap-1.5">
@@ -126,31 +119,4 @@ export function AddBotPanel({
   );
 }
 
-export function AddBotDialog({
-  open,
-  onOpenChange,
-  orgId,
-  roles,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  orgId: string;
-  roles: Role[];
-}) {
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="p-0 flex flex-col rounded-t-2xl overflow-hidden">
-        <SheetHeader className="px-4 pt-4 pb-2 border-b shrink-0">
-          <SheetTitle>Add Bot</SheetTitle>
-        </SheetHeader>
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          <AddBotPanel
-            orgId={orgId}
-            roles={roles}
-            onClose={() => onOpenChange(false)}
-          />
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
+

@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { X } from "lucide-react";
 
-type Role = { id: string; name: string };
+type Role = { id: string; name: string; color: string };
 
 interface RolePickerProps {
   allRoles: Role[];
@@ -44,24 +44,29 @@ export function RolePicker({
   return (
     <div className="flex flex-col gap-2">
       {selected.length > 0 && (
-        <ul className="flex flex-col divide-y rounded-lg border overflow-hidden">
+        <div className="flex flex-wrap gap-1.5">
           {selected.map((role) => (
-            <li
+            <span
               key={role.id}
-              className="flex items-center justify-between px-3 py-2 text-sm"
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+              style={{ backgroundColor: role.color + "22", color: role.color }}
             >
-              <span>{role.name}</span>
+              <span
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                style={{ backgroundColor: role.color }}
+              />
+              {role.name}
               <button
                 type="button"
                 onClick={() => removeRole(role.id)}
-                className="text-muted-foreground hover:text-destructive transition-colors"
+                className="ml-0.5 hover:opacity-60 transition-opacity"
                 aria-label={`Remove ${role.name}`}
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3 w-3" />
               </button>
-            </li>
+            </span>
           ))}
-        </ul>
+        </div>
       )}
 
       {available.length > 0 && (
@@ -89,8 +94,12 @@ export function RolePicker({
                       e.preventDefault();
                       addRole(r.id);
                     }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                    className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
                   >
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: r.color }}
+                    />
                     {r.name}
                   </button>
                 </li>

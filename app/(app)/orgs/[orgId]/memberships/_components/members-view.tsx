@@ -24,19 +24,24 @@
 
 import { useState, useMemo } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { SearchInput } from "@/components/ui/search-input";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Toolbar } from "@/components/layout/toolbar";
+import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { MemberActions } from "./member-actions";
+import { MemberViewPanel } from "./action-sidebar/member-view-panel";
+
+type Role = { id: string; name: string; color: string };
 
 type Member = {
   id: string;
   userId: string | null;
   botName: string | null;
   status: "ACTIVE" | "RESTRICTED";
-  user: { id: string; name: string | null; image: string | null } | null;
+  workingDays: string[];
+  joinedAt: Date;
+  user: { id: string; name: string | null; email: string | null; image: string | null } | null;
   memberRoles: { role: { id: string; name: string; color: string } }[];
 };
 
@@ -105,6 +110,22 @@ function RolesBadge({
 }) {
   if (roles.length === 0)
     return <span className="text-xs text-muted-foreground">No role</span>;
+  if (roles.length > 2) {
+    return (
+      <div className="flex flex-wrap gap-1 justify-center">
+        {roles.map((r) => (
+          <span
+            key={r.id}
+            title={r.name}
+            className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold shrink-0"
+            style={{ backgroundColor: r.color + "22", color: r.color }}
+          >
+            {r.name[0].toUpperCase()}
+          </span>
+        ))}
+      </div>
+    );
+  }
   return (
     <div className="flex flex-wrap gap-1 justify-center">
       {roles.map((r) => (
@@ -128,16 +149,19 @@ export function MembersView({
   members,
   orgId,
   canManage,
+  allRoles,
   roleId,
   view,
 }: {
   members: Member[];
   orgId: string;
   canManage: boolean;
+  allRoles: Role[];
   roleId: string | null;
   view: "list" | "card";
 }) {
   const [search, setSearch] = useState("");
+  const { open } = useActionSidebar();
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -149,6 +173,29 @@ export function MembersView({
       return true;
     });
   }, [members, search, roleId]);
+
+  function handleView(m: Member) {
+    const displayName = m.user?.name ?? m.botName ?? "Member";
+    const roles = m.memberRoles.map(({ role }) => role);
+    open(
+      displayName,
+      <MemberViewPanel
+        orgId={orgId}
+        membershipId={m.id}
+        name={displayName}
+        email={m.user?.email ?? null}
+        image={m.user?.image ?? null}
+        isBot={m.userId === null}
+        workingDays={m.workingDays}
+        roles={roles}
+        status={m.status}
+        joinedAt={m.joinedAt}
+        canManage={canManage}
+        allRoles={allRoles}
+        initialRoleIds={m.memberRoles.map(({ role }) => role.id)}
+      />,
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -172,26 +219,39 @@ export function MembersView({
               : "No members match your search."}
           </p>
         ) : view === "card" ? (
-          <CardGrid members={filtered} orgId={orgId} canManage={canManage} />
+          <CardGrid members={filtered} orgId={orgId} canManage={canManage} allRoles={allRoles} onView={handleView} />
         ) : (
-          <MemberList members={filtered} orgId={orgId} canManage={canManage} />
+          <MemberList members={filtered} orgId={orgId} canManage={canManage} allRoles={allRoles} onView={handleView} />
         )}
       </div>
     </div>
   );
 }
 
+function abbreviateName(name: string, maxLen = 12): string {
+  if (name.length <= maxLen) return name;
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, maxLen);
+  const first = parts[0].slice(0, 4);
+  const last = parts[parts.length - 1].slice(0, 4);
+  return `${first}. ${last}.`;
+}
+
 function CardGrid({
   members,
   orgId,
   canManage,
+  allRoles,
+  onView,
 }: {
   members: Member[];
   orgId: string;
   canManage: boolean;
+  allRoles: Role[];
+  onView: (m: Member) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+    <div className="flex flex-wrap gap-4 justify-center">
       {members.map((m) => {
         const roles = m.memberRoles.map(({ role }) => ({
           id: role.id,
@@ -199,12 +259,12 @@ function CardGrid({
           color: role.color,
         }));
         return (
-          <Link
+          <div
             key={m.id}
-            href={`/orgs/${orgId}/memberships/${m.id}`}
-            className="group"
+            className="group relative cursor-pointer w-44 h-56 shrink-0"
+            onClick={() => onView(m)}
           >
-            <Card className="items-center text-center transition-all group-hover:shadow-md group-hover:border-primary/20 cursor-pointer">
+            <Card className="h-full items-center text-center transition-all group-hover:shadow-md group-hover:border-primary/20 cursor-pointer overflow-hidden">
               <div className="pt-4 flex justify-center">
                 <Avatar
                   name={m.user?.name ?? m.botName}
@@ -214,7 +274,7 @@ function CardGrid({
               </div>
               <CardContent className="flex flex-col items-center gap-1.5 pb-4 pt-3">
                 <CardTitle className="text-sm leading-tight flex items-center gap-1.5">
-                  {m.user?.name ?? m.botName ?? "Unnamed"}
+                  {abbreviateName(m.user?.name ?? m.botName ?? "Unnamed")}
                   {m.userId === null && (
                     <span className="text-xs font-bold font-mono text-red-500 tracking-tight">
                       [Bot]
@@ -223,23 +283,26 @@ function CardGrid({
                 </CardTitle>
                 <RolesBadge roles={roles} />
                 <StatusBadge status={m.status} />
-                {canManage && (
-                  <div
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                  >
-                    <MemberActions
-                      orgId={orgId}
-                      membershipId={m.id}
-                      memberName={m.user?.name ?? m.botName}
-                    />
-                  </div>
-                )}
               </CardContent>
             </Card>
-          </Link>
+            {canManage && (
+              <div
+                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MemberActions
+                  orgId={orgId}
+                  membershipId={m.id}
+                  memberName={m.user?.name ?? m.botName}
+                  allRoles={allRoles}
+                  isCurrentlyBot={m.userId === null}
+                  initialRoleIds={m.memberRoles.map(({ role }) => role.id)}
+                  initialWorkingDays={m.workingDays}
+                  image={m.user?.image ?? null}
+                />
+              </div>
+            )}
+          </div>
         );
       })}
     </div>
@@ -250,10 +313,14 @@ function MemberList({
   members,
   orgId,
   canManage,
+  allRoles,
+  onView,
 }: {
   members: Member[];
   orgId: string;
   canManage: boolean;
+  allRoles: Role[];
+  onView: (m: Member) => void;
 }) {
   return (
     <ul className="flex flex-col divide-y rounded-xl border bg-card overflow-hidden shadow-sm">
@@ -268,9 +335,9 @@ function MemberList({
             key={m.id}
             className="flex items-center hover:bg-primary/5 transition-colors"
           >
-            <Link
-              href={`/orgs/${orgId}/memberships/${m.id}`}
-              className="flex items-center gap-3 px-4 py-3 flex-1 min-w-0"
+            <button
+              onClick={() => onView(m)}
+              className="flex items-center gap-3 px-4 py-3 flex-1 min-w-0 text-left"
             >
               <Avatar
                 name={m.user?.name ?? m.botName}
@@ -289,13 +356,18 @@ function MemberList({
                 <RolesBadge roles={roles} />
               </div>
               <StatusBadge status={m.status} />
-            </Link>
+            </button>
             {canManage && (
               <div className="pr-3 shrink-0">
                 <MemberActions
                   orgId={orgId}
                   membershipId={m.id}
                   memberName={m.user?.name ?? m.botName}
+                  allRoles={allRoles}
+                  isCurrentlyBot={m.userId === null}
+                  initialRoleIds={m.memberRoles.map(({ role }) => role.id)}
+                  initialWorkingDays={m.workingDays}
+                  image={m.user?.image ?? null}
                 />
               </div>
             )}

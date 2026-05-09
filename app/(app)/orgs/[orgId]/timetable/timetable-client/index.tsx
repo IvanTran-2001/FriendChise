@@ -314,8 +314,6 @@ export function TimetableClient({
               </SheetHeader>
               <TaskPanel
                 tasks={availableTasks!}
-                fullWidth={true}
-                fillHeight={true}
                 tapToPlaceMode={true}
                 selectedTaskId={selectedTaskId}
                 onTaskSelect={(taskId) => {

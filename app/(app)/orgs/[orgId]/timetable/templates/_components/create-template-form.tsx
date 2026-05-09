@@ -36,7 +36,7 @@ export function CreateTemplateForm({ orgId }: { orgId: string }) {
     state && !state.ok ? (state.errors[field]?.[0] ?? null) : null;
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5 p-4">
       {err("_") && (
         <p role="alert" className="text-sm text-destructive">
           {err("_")}

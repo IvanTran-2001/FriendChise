@@ -2,8 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { MoreHorizontal } from "lucide-react";
+import { MoreVertical } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,11 +22,20 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { deleteMembershipAction } from "@/app/actions/memberships";
+import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { MemberForm } from "./member-form";
+
+type Role = { id: string; name: string; color: string };
 
 interface MemberActionsProps {
   orgId: string;
   membershipId: string;
   memberName: string | null;
+  allRoles: Role[];
+  isCurrentlyBot: boolean;
+  initialRoleIds: string[];
+  initialWorkingDays: string[];
+  image: string | null;
 }
 
 /**
@@ -39,10 +47,34 @@ export function MemberActions({
   orgId,
   membershipId,
   memberName,
+  allRoles,
+  isCurrentlyBot,
+  initialRoleIds,
+  initialWorkingDays,
+  image,
 }: MemberActionsProps) {
   const router = useRouter();
+  const { open, close } = useActionSidebar();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  function handleEdit() {
+    open(
+      "Edit Member",
+      <MemberForm
+        orgId={orgId}
+        allRoles={allRoles}
+        mode="edit"
+        membershipId={membershipId}
+        isCurrentlyBot={isCurrentlyBot}
+        initialRoleIds={initialRoleIds}
+        initialWorkingDays={initialWorkingDays}
+        name={memberName}
+        image={image}
+        onSuccess={close}
+      />,
+    );
+  }
 
   function handleDelete() {
     startTransition(async () => {
@@ -67,13 +99,11 @@ export function MemberActions({
           className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           aria-label="Member actions"
         >
-          <MoreHorizontal className="h-4 w-4" />
+          <MoreVertical className="h-4 w-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem asChild>
-            <Link href={`/orgs/${orgId}/memberships/${membershipId}/edit`}>
-              Edit
-            </Link>
+          <DropdownMenuItem onSelect={handleEdit}>
+            Edit
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={(e) => {

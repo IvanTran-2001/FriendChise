@@ -20,9 +20,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MembersActions } from "./members-actions";
+import { MembersActions } from "../action-sidebar/members-panel-triggers";
 
-type Role = { id: string; name: string };
+type Role = { id: string; name: string; color: string };
 
 interface MembersSidebarContentProps {
   orgId: string;

@@ -1,15 +1,25 @@
 "use client";
 
 /**
- * ActionSidebarContext — a transient panel that slides in beside the page
- * sidebar when an action button is clicked.
+ * ActionSidebarContext — imperative panel system for contextual detail/edit
+ * views that appear beside the page sidebar on demand.
  *
- * Usage:
- *   const { open, close } = useActionSidebar();
- *   open("Apply Template", <ApplyTemplateForm onOpenChange={close} ... />);
+ * How it works:
+ *   1. `ActionSidebarProvider` wraps the layout and holds a single `panel`
+ *      state — either null (closed) or { title, content }.
+ *   2. Any client component calls `useActionSidebar().open(title, <Panel />)`
+ *      to swap in new content, or `.close()` to dismiss it.
+ *   3. `ActionSidebarSlot` reads the panel state and renders it:
+ *        - Desktop → inline sidebar column (hidden md:flex)
+ *        - Mobile  → bottom Sheet
+ *   4. The panel auto-closes on route change.
  *
- * The X button (or close()) dismisses the panel.
- * The panel auto-closes on route change.
+ * Two contexts are used intentionally:
+ *   - `ActionSidebarCtx` — public API (open/close/activeTitle), exposed via
+ *     `useActionSidebar`. Wide audience: any trigger button can call it.
+ *   - `ActionSidebarPanelCtx` — internal panel state, only consumed by
+ *     `ActionSidebarSlot`. Kept separate so triggers don't re-render when
+ *     panel content changes.
  */
 import {
   createContext,
@@ -21,26 +31,42 @@ import {
 import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { usePageSidebarCollapsed } from "@/components/layout/page-sidebar-context";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type ActionPanel = { title: string; content: ReactNode } | null;
 
 type ActionSidebarCtxValue = {
   open: (title: string, content: ReactNode) => void;
   close: () => void;
+  /** Title of the currently open panel, or null if closed. Useful for
+   *  highlighting the trigger button that opened the panel. */
   activeTitle: string | null;
 };
 
+// ── Contexts ──────────────────────────────────────────────────────────────────
+
+/** Public API context — consumed by trigger buttons via `useActionSidebar`. */
 const ActionSidebarCtx = createContext<ActionSidebarCtxValue>({
   open: () => {},
   close: () => {},
   activeTitle: null,
 });
 
-/** Internal context that holds the panel state (consumed by the slot). */
+/** Internal context — consumed only by `ActionSidebarSlot` to render the panel. */
 const ActionSidebarPanelCtx = createContext<{
   panel: ActionPanel;
   close: () => void;
 }>({ panel: null, close: () => {} });
+
+// ── Provider ──────────────────────────────────────────────────────────────────
 
 export function ActionSidebarProvider({ children }: { children: ReactNode }) {
   const [panel, setPanel] = useState<ActionPanel>(null);
@@ -60,7 +86,9 @@ export function ActionSidebarProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/** Hook for opening/closing the action sidebar from any client component. */
+// ── Hook ──────────────────────────────────────────────────────────────────────
+
+/** Call from any client component to open or close the action sidebar panel. */
 export function useActionSidebar() {
   return useContext(ActionSidebarCtx);
 }
@@ -73,6 +101,7 @@ export function ActionSidebarSlot() {
   const { panel, close } = useContext(ActionSidebarPanelCtx);
   const pathname = usePathname();
   const sidebarCollapsed = usePageSidebarCollapsed();
+  const isMobile = useIsMobile();
 
   // Auto-close when the user navigates to a different page.
   useEffect(() => {
@@ -80,6 +109,32 @@ export function ActionSidebarSlot() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
+  // ── Mobile: bottom sheet ──────────────────────────────────────────────────
+  if (isMobile) {
+    return (
+      <Sheet open={!!panel} onOpenChange={(o) => !o && close()}>
+        <SheetContent side="bottom" showCloseButton={false} className="px-0 pb-0 gap-0">
+          <SheetHeader className="h-12 flex-row items-center justify-between border-b border-border px-4 py-0 shrink-0">
+            <SheetTitle className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
+              {panel?.title}
+            </SheetTitle>
+            <button
+              onClick={close}
+              className="w-10 h-10 shrink-0 rounded-md flex items-center justify-center text-primary hover:bg-primary/8 transition-colors cursor-pointer"
+              aria-label="Close panel"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </SheetHeader>
+          <div className="flex flex-col overflow-y-auto overflow-x-hidden gap-4">
+            {panel?.content}
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  // ── Desktop: inline sidebar ───────────────────────────────────────────────
   if (!panel) return null;
 
   return (
@@ -101,7 +156,7 @@ export function ActionSidebarSlot() {
       </div>
 
       {/* Content */}
-      <div className="flex flex-col flex-1 overflow-y-auto p-4 gap-4">
+      <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden gap-4">
         {panel.content}
       </div>
     </div>

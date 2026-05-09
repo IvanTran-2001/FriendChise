@@ -736,8 +736,6 @@ export function TemplateEditorClient({
               </SheetHeader>
               <TaskPanel
                 tasks={availableTasks}
-                fullWidth={true}
-                fillHeight={true}
                 tapToPlaceMode={true}
                 selectedTaskId={selectedTaskId}
                 onTaskSelect={(taskId) => {

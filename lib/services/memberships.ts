@@ -166,7 +166,7 @@ export async function getMemberships(orgId: string) {
       status: true,
       joinedAt: true,
       workingDays: true,
-      user: { select: { id: true, name: true, image: true } },
+      user: { select: { id: true, name: true, email: true, image: true } },
       memberRoles: { include: { role: true } },
     },
     orderBy: { joinedAt: "desc" },

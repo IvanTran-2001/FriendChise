@@ -2,7 +2,6 @@
 
 import { useState, useActionState, useTransition, useEffect } from "react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { createTagAction, updateTagAction, addTagToTaskAction, removeTagFromTaskAction } from "@/app/actions/tags";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,43 +9,7 @@ import {
   SearchableCombobox,
   type ComboboxItem,
 } from "@/components/ui/searchable-combobox";
-
-// ─── Color presets ────────────────────────────────────────────────────────────
-
-export const TAG_COLORS = [
-  "#EF4444", "#F97316", "#EAB308", "#22C55E",
-  "#14B8A6", "#3B82F6", "#8B5CF6", "#EC4899",
-  "#6B7280", "#0F172A", "#92400E", "#166534",
-];
-
-const COLOR_LABELS: Record<string, string> = {
-  "#EF4444": "Red",    "#F97316": "Orange",  "#EAB308": "Yellow",  "#22C55E": "Green",
-  "#14B8A6": "Teal",   "#3B82F6": "Blue",    "#8B5CF6": "Violet",  "#EC4899": "Pink",
-  "#6B7280": "Gray",   "#0F172A": "Dark",    "#92400E": "Brown",   "#166534": "Forest",
-};
-
-// ─── Color picker ─────────────────────────────────────────────────────────────
-
-function ColorPicker({ value, onChange }: { value: string; onChange: (c: string) => void }) {
-  return (
-    <div className="grid grid-cols-6 gap-2">
-      {TAG_COLORS.map((hex) => (
-        <button
-          key={hex}
-          type="button"
-          className={cn(
-            "w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 focus-visible:outline-none",
-            value === hex ? "border-foreground scale-110" : "border-transparent",
-          )}
-          style={{ backgroundColor: hex }}
-          onClick={() => onChange(hex)}
-          aria-label={COLOR_LABELS[hex] ?? hex}
-          title={COLOR_LABELS[hex] ?? hex}
-        />
-      ))}
-    </div>
-  );
-}
+import { ColorPicker, randomColor } from "@/components/ui/color-picker";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -159,7 +122,7 @@ export function CreateTagForm({
   onSuccess?: () => void;
 }) {
   const [name, setName] = useState("");
-  const [color, setColor] = useState("#3B82F6");
+  const [color, setColor] = useState(() => randomColor());
   const [resetKey, setResetKey] = useState(0);
 
   const boundAction = createTagAction.bind(null, orgId);
@@ -175,7 +138,7 @@ export function CreateTagForm({
       toast.success("Tag created.");
       startTransition(() => {
         setName("");
-        setColor("#3B82F6");
+        setColor(randomColor());
         setResetKey((prev) => prev + 1);
       });
       onSuccess?.();
@@ -210,15 +173,9 @@ export function CreateTagForm({
         />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium">Color</label>
-          <span
-            className="inline-block w-4 h-4 rounded-full border border-border shrink-0"
-            style={{ backgroundColor: color }}
-          />
-        </div>
-        <ColorPicker value={color} onChange={setColor} />
+      <div className="flex flex-col gap-1.5">
+        <label className="text-sm font-medium">Color</label>
+        <ColorPicker value={color} onChange={setColor} disabled={pending} />
       </div>
 
       <TaskPanel key={resetKey} mode="create" allTasks={allTasks} />
@@ -310,15 +267,9 @@ export function EditTagForm({
         )}
       </div>
 
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium">Color</label>
-          <span
-            className="inline-block w-4 h-4 rounded-full border border-border shrink-0"
-            style={{ backgroundColor: color }}
-          />
-        </div>
-        <ColorPicker value={color} onChange={setColor} />
+      <div className="flex flex-col gap-1.5">
+        <label className="text-sm font-medium">Color</label>
+        <ColorPicker value={color} onChange={setColor} disabled={pending} />
       </div>
 
       <TaskPanel

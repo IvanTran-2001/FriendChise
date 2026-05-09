@@ -5,7 +5,7 @@ import { memberHasPermission, getOrgMembership } from "@/lib/authz/_shared";
 import { PermissionAction } from "@prisma/client";
 import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
 import { MembersView } from "./_components/members-view";
-import { MembersSidebarContent } from "./_components/members-sidebar-content";
+import { MembersSidebarContent } from "./_components/page-sidebar/members-sidebar-content";
 
 /**
  * Members list page — server component.
@@ -69,11 +69,14 @@ const MembersPage = async ({
           userId: m.userId,
           botName: m.botName,
           status: m.status,
+          workingDays: m.workingDays,
+          joinedAt: m.joinedAt,
           user: m.user,
           memberRoles: m.memberRoles,
         }))}
         orgId={orgId}
         canManage={canManage}
+        allRoles={roles}
         roleId={roleId}
         view={view}
       />

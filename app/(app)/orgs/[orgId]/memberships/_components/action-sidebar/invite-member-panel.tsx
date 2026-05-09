@@ -1,24 +1,17 @@
 "use client";
 
 /**
- * InviteMemberPanel — inline invite form for the ActionSidebar (desktop) or
- * InviteMemberDialog (mobile sheet).
+ * InviteMemberPanel — inline invite form for the ActionSidebar.
  */
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { RolePicker } from "./role-picker";
-import { DAYS } from "../_constants";
+import { RolePicker } from "../role-picker";
+import { DAYS } from "../../_constants";
 import { sendMemberInviteAction } from "@/app/actions/memberships";
 
-type Role = { id: string; name: string };
+type Role = { id: string; name: string; color: string };
 
 export function InviteMemberPanel({
   orgId,
@@ -64,7 +57,7 @@ export function InviteMemberPanel({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 p-4">
       {errors._ && <p className="text-sm text-destructive">{errors._}</p>}
 
       <div className="flex flex-col gap-1.5">
@@ -122,31 +115,4 @@ export function InviteMemberPanel({
   );
 }
 
-export function InviteMemberDialog({
-  open,
-  onOpenChange,
-  orgId,
-  roles,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  orgId: string;
-  roles: Role[];
-}) {
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="p-0 flex flex-col rounded-t-2xl overflow-hidden">
-        <SheetHeader className="px-4 pt-4 pb-2 border-b shrink-0">
-          <SheetTitle>Invite Member</SheetTitle>
-        </SheetHeader>
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          <InviteMemberPanel
-            orgId={orgId}
-            roles={roles}
-            onClose={() => onOpenChange(false)}
-          />
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
+

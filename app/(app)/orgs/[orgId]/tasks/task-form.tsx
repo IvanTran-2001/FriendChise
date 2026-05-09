@@ -35,6 +35,7 @@ import {
 import type { CreateTaskFormState, TaskFormState } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ColorPicker, randomColor } from "@/components/ui/color-picker";
 import {
   SearchableCombobox,
   type ComboboxItem,
@@ -428,17 +429,13 @@ export function TaskForm(props: TaskFormProps) {
 
   const dv = isEdit ? props.defaultValues : null;
 
-  const [color, setColor] = useState(() => dv?.color ?? "#6366f1");
+  const [color, setColor] = useState(() => dv?.color ?? randomColor());
 
   useEffect(() => {
     if (!isEdit) {
       // Randomize color on mount only (stable fallback used during SSR to avoid hydration mismatch)
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setColor(
-        `#${Math.floor(Math.random() * 0xffffff)
-          .toString(16)
-          .padStart(6, "0")}`,
-      );
+      setColor(randomColor());
     }
   }, [isEdit]);
 
@@ -526,18 +523,11 @@ export function TaskForm(props: TaskFormProps) {
           </label>
           <div className="flex items-center gap-3">
             <input type="hidden" name="color" value={color} />
-            <input
+            <ColorPicker
               id="color"
-              type="color"
               value={color}
-              onChange={(e) => setColor(e.target.value)}
-              aria-invalid={!!err("color")}
-              aria-describedby={err("color") ? "color-error" : undefined}
-              className="h-9 w-14 cursor-pointer rounded-md border border-input p-0.5 bg-background"
+              onChange={setColor}
             />
-            <span className="text-sm text-muted-foreground font-mono">
-              {color}
-            </span>
           </div>
           {err("color") && (
             <p id="color-error" className="text-xs text-destructive">
@@ -682,15 +672,6 @@ export function TaskForm(props: TaskFormProps) {
           At least one of min or max wait days is required.
         </p>
 
-        <Button type="submit" disabled={pending}>
-          {pending
-            ? isEdit
-              ? "Saving..."
-              : "Creating..."
-            : isEdit
-              ? "Save"
-              : "Create Task"}
-        </Button>
       </div>
 
       {/* ── Tags panel ────────────────────────────────────────────────────── */}
@@ -722,6 +703,16 @@ export function TaskForm(props: TaskFormProps) {
           <EligibilityPanel mode="create" allRoles={props.allRoles} />
         )}
       </div>
+
+      <Button type="submit" disabled={pending}>
+        {pending
+          ? isEdit
+            ? "Saving..."
+            : "Creating..."
+          : isEdit
+            ? "Save"
+            : "Create Task"}
+      </Button>
     </form>
   );
 }

@@ -8,8 +8,6 @@ import { TimetableViewPicker } from "../../../_components/timetable-view-picker"
 import { TaskPanel } from "../../../_shared/task-panel";
 import { updateTemplateDaysAction } from "@/app/actions/templates";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useMobileSidebar } from "@/components/layout/mobile-sidebar-context";
 import type { SharedTask } from "../../../_shared/types";
 
 interface TemplateEditorSidebarContentProps {
@@ -40,23 +38,15 @@ export function TemplateEditorSidebarContent({
   const router = useRouter();
   const [isPending, startT] = useTransition();
   const { open, activeTitle } = useActionSidebar();
-  const isMobile = useIsMobile();
-  const { setOpen: setMobileSidebarOpen } = useMobileSidebar();
   const taskPanelKeyRef = useRef(0);
 
   function handleAddTask() {
-    if (isMobile) {
-      setMobileSidebarOpen(false);
-      window.dispatchEvent(new CustomEvent("template:open-task-panel"));
-      return;
-    }
     const k = ++taskPanelKeyRef.current;
     open(
       "Add Task",
       <TaskPanel
         key={k}
         tasks={availableTasks}
-        fillHeight
         onDragStart={(taskId, e) => {
           e.dataTransfer.setData("timetable/taskId", taskId);
           e.dataTransfer.effectAllowed = "copy";

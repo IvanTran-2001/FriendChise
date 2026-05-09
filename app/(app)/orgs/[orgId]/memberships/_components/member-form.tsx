@@ -18,7 +18,7 @@ import {
   updateBotAction,
 } from "@/app/actions/bots";
 
-type Role = { id: string; name: string };
+type Role = { id: string; name: string; color: string };
 
 interface MemberFormProps {
   orgId: string;
@@ -33,6 +33,8 @@ interface MemberFormProps {
   name?: string | null;
   email?: string;
   image?: string | null;
+  /** Called after a successful edit — use to close the action sidebar panel. */
+  onSuccess?: () => void;
 }
 
 /**
@@ -54,6 +56,7 @@ export function MemberForm({
   name,
   email: initialEmail,
   image,
+  onSuccess,
 }: MemberFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -130,7 +133,12 @@ export function MemberForm({
           return;
         }
         toast.success(`${name ?? "Member"} updated.`);
-        router.push(`/orgs/${orgId}/memberships/${membershipId}`);
+        if (onSuccess) {
+          router.refresh();
+          onSuccess();
+        } else {
+          router.push(`/orgs/${orgId}/memberships/${membershipId}`);
+        }
       }
     });
   }
@@ -153,7 +161,12 @@ export function MemberForm({
         return;
       }
       toast.success("Bot updated.");
-      router.push(`/orgs/${orgId}/memberships/${membershipId}`);
+      if (onSuccess) {
+        router.refresh();
+        onSuccess();
+      } else {
+        router.push(`/orgs/${orgId}/memberships/${membershipId}`);
+      }
     });
   }
 
@@ -172,8 +185,13 @@ export function MemberForm({
         setInviteErrors({ email: result.error });
         return;
       }
-      toast.success("Invite sent! They\'ll be slotted in when they accept.");
-      router.push(`/orgs/${orgId}/memberships/${membershipId}`);
+      toast.success("Invite sent! They'll be slotted in when they accept.");
+      if (onSuccess) {
+        router.refresh();
+        onSuccess();
+      } else {
+        router.push(`/orgs/${orgId}/memberships/${membershipId}`);
+      }
     });
   }
 
@@ -187,9 +205,9 @@ export function MemberForm({
   // ── Bot edit mode: two separate sections ───────────────────────────────────
   if (mode === "edit" && isCurrentlyBot) {
     return (
-      <div className="flex flex-col gap-4">
+      <>
         {/* Section 1: Bot settings */}
-        <div className="rounded-xl border bg-card p-6 flex flex-col gap-6">
+        <div className="flex flex-col gap-6 p-4 border-b border-border">
           <h3 className="text-sm font-semibold text-foreground">
             Bot Settings
           </h3>
@@ -257,7 +275,7 @@ export function MemberForm({
         </div>
 
         {/* Section 2: Invite to fill slot */}
-        <div className="rounded-xl border bg-card p-6 flex flex-col gap-4">
+        <div className="flex flex-col gap-4 p-4">
           <div>
             <h3 className="text-sm font-semibold text-foreground">
               Invite to Fill Slot
@@ -293,13 +311,13 @@ export function MemberForm({
             {isInvitePending ? "Sending Invite…" : "Send Invite"}
           </Button>
         </div>
-      </div>
+      </>
     );
   }
 
   // ── Create mode / normal member edit ───────────────────────────────────────
   return (
-    <div className="rounded-xl border bg-card p-6 flex flex-col gap-6">
+    <div className="flex flex-col gap-6 p-4">
       {errors._ && <p className="text-sm text-destructive">{errors._}</p>}
 
       {/* Email (create) or user info display (edit) */}
