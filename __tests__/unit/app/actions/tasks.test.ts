@@ -238,7 +238,7 @@ describe("updateTaskAction", () => {
     );
     expect(revalidatePath).toHaveBeenCalledWith("/orgs/org-1/tasks");
     expect(revalidatePath).toHaveBeenCalledWith(
-      "/orgs/org-1/tasks/task-1/edit",
+      "/orgs/org-1/tasks/task-1",
     );
   });
 });

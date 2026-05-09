@@ -46,6 +46,9 @@ function beforeSendLog(log: Sentry.Log): Sentry.Log | null {
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
 
+  // Fully disabled in dev — no events queued or sent.
+  enabled: process.env.NODE_ENV === "production",
+
   // Only trace and log in production — dev sessions would burn free quota fast.
   tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 0,
 

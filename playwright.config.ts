@@ -37,9 +37,10 @@ export default defineConfig({
     command: "pnpm dev",
     env: { TEST_MODE: "1" },
     url: "http://localhost:3000",
-    // Never reuse an existing server — it may not have TEST_MODE=1, which
-    // would cause /api/test/login to return 404 and break auth.setup.ts.
-    reuseExistingServer: false,
+    // CI: always start fresh. Locally: reuse an already-running server to skip
+    // the cold-start cost (~15–30s). Run `TEST_MODE=1 pnpm dev` beforehand and
+    // leave it running between test runs.
+    reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
 });
