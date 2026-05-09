@@ -612,6 +612,7 @@ model ToolItem {
   ratesTo              ConversionRate[]          @relation("RateToItem")
   templateEntries      ConversionTemplateEntry[]
 
+  @@unique([orgId, id])
   @@unique([orgId, name])
   @@index([orgId])
 }
@@ -644,20 +645,22 @@ model ConversionSet {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model ConversionRate {
-  id         String  @id @default(cuid())
-  setId      String
-  fromItemId String
-  toItemId   String
-  rate       Float   // toItem quantity per 1 unit of fromItem
+  id             String  @id @default(cuid())
+  setId          String
+  fromItemId     String
+  fromItemOrgId  String
+  toItemId       String
+  toItemOrgId    String
+  rate           Float   // toItem quantity per 1 unit of fromItem
 
   set      ConversionSet @relation(fields: [setId], references: [id], onDelete: Cascade)
-  fromItem ToolItem      @relation("RateFromItem", fields: [fromItemId], references: [id], onDelete: Cascade)
-  toItem   ToolItem      @relation("RateToItem",   fields: [toItemId],   references: [id], onDelete: Cascade)
+  fromItem ToolItem      @relation("RateFromItem", fields: [fromItemOrgId, fromItemId], references: [orgId, id], onDelete: Cascade)
+  toItem   ToolItem      @relation("RateToItem",   fields: [toItemOrgId, toItemId],   references: [orgId, id], onDelete: Cascade)
 
   @@unique([setId, fromItemId, toItemId])
   @@index([setId])
-  @@index([fromItemId])
-  @@index([toItemId])
+  @@index([fromItemOrgId, fromItemId])
+  @@index([toItemOrgId, toItemId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -691,17 +694,18 @@ model ConversionTemplate {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model ConversionTemplateEntry {
-  id               String  @id @default(cuid())
-  templateId       String
-  itemId           String
+  id           String  @id @default(cuid())
+  templateId   String
+  itemId       String
+  itemOrgId    String
   quantity     Float?  // saved input quantity; null for output-only rows
   pinnedOutput Float?  // user-pinned output value; null = use computed; diff from computed = over/underflow
   visible      Boolean @default(true) // false = user hid this output
 
   template ConversionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  item     ToolItem            @relation(fields: [itemId],     references: [id], onDelete: Cascade)
+  item     ToolItem            @relation(fields: [itemOrgId, itemId], references: [orgId, id], onDelete: Cascade)
 
   @@unique([templateId, itemId])
   @@index([templateId])
-  @@index([itemId])
+  @@index([itemOrgId, itemId])
 }

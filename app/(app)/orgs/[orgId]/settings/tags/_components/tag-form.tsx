@@ -122,7 +122,7 @@ export function CreateTagForm({
   onSuccess?: () => void;
 }) {
   const [name, setName] = useState("");
-  const [color, setColor] = useState(() => randomColor());
+  const [color, setColor] = useState("#808080");
   const [resetKey, setResetKey] = useState(0);
 
   const boundAction = createTagAction.bind(null, orgId);
@@ -131,6 +131,11 @@ export function CreateTagForm({
     null,
   );
   const [, startTransition] = useTransition();
+
+  // Set random color on mount (client-only) to avoid hydration mismatch
+  useEffect(() => {
+    setColor(randomColor());
+  }, []);
 
   useEffect(() => {
     if (!state) return;

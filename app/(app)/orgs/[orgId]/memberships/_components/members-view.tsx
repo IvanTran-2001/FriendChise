@@ -294,6 +294,7 @@ function CardGrid({
                   orgId={orgId}
                   membershipId={m.id}
                   memberName={m.user?.name ?? m.botName}
+                  email={m.user?.email ?? undefined}
                   allRoles={allRoles}
                   isCurrentlyBot={m.userId === null}
                   initialRoleIds={m.memberRoles.map(({ role }) => role.id)}
@@ -363,6 +364,7 @@ function MemberList({
                   orgId={orgId}
                   membershipId={m.id}
                   memberName={m.user?.name ?? m.botName}
+                  email={m.user?.email ?? undefined}
                   allRoles={allRoles}
                   isCurrentlyBot={m.userId === null}
                   initialRoleIds={m.memberRoles.map(({ role }) => role.id)}

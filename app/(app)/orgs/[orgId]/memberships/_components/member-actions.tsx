@@ -31,6 +31,7 @@ interface MemberActionsProps {
   orgId: string;
   membershipId: string;
   memberName: string | null;
+  email?: string;
   allRoles: Role[];
   isCurrentlyBot: boolean;
   initialRoleIds: string[];
@@ -47,6 +48,7 @@ export function MemberActions({
   orgId,
   membershipId,
   memberName,
+  email,
   allRoles,
   isCurrentlyBot,
   initialRoleIds,
@@ -70,6 +72,7 @@ export function MemberActions({
         initialRoleIds={initialRoleIds}
         initialWorkingDays={initialWorkingDays}
         name={memberName}
+        email={email}
         image={image}
         onSuccess={close}
       />,
