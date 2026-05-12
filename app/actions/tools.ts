@@ -17,7 +17,6 @@ import { PermissionAction, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireOrgPermissionAction } from "@/lib/authz";
 import {
-  createConversionSet,
   createConversionSetWithDefault,
   deleteConversionSet,
   renameConversionSet,
@@ -75,9 +74,16 @@ export async function deleteConversionSetAction(orgId: string, id: string) {
   const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!auth.ok) return { ok: false as const };
 
-  await deleteConversionSet(orgId, id);
-  revalidatePath(`/orgs/${orgId}/tools/conversion`);
-  return { ok: true as const };
+  try {
+    await deleteConversionSet(orgId, id);
+    revalidatePath(`/orgs/${orgId}/tools/conversion`);
+    return { ok: true as const };
+  } catch (err: unknown) {
+    const mappedError = mapPrismaError(err, {
+      P2025: "Set not found.",
+    });
+    return { ok: false as const, error: mappedError ?? "Failed to delete set." };
+  }
 }
 
 /** Renames a ConversionSet. */
