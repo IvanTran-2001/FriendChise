@@ -13,24 +13,147 @@
  */
 "use client";
 
-import { useState, useTransition } from "react";
-import { ArrowRight, Trash2 } from "lucide-react";
+import { useRef, useState, useTransition } from "react";
+import { ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
+import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import {
   createConversionRateAction,
   deleteConversionRateAction,
+  updateConversionRateAction,
 } from "@/app/actions/tools";
 
 type ToolItem = { id: string; name: string; unit: string };
 type Rate = {
   id: string;
-  rate: number;
+  fromQty: number;
+  toQty: number;
   fromItem: ToolItem;
   toItem: ToolItem;
 };
+
+// ─── Edit form ────────────────────────────────────────────────────────────────
+
+function EditRateForm({
+  orgId,
+  setId,
+  rate,
+  onUpdate,
+  onDelete,
+  onBack,
+}: {
+  orgId: string;
+  setId: string;
+  rate: Rate;
+  onUpdate: (id: string, fromQty: number, toQty: number) => void;
+  onDelete: (id: string) => void;
+  onBack: () => void;
+}) {
+  const [fromQty, setFromQty] = useState(rate.fromQty.toString());
+  const [toQty, setToQty] = useState(rate.toQty.toString());
+  const [isPending, startTransition] = useTransition();
+
+  const canSave =
+    parseFloat(fromQty) > 0 &&
+    parseFloat(toQty) > 0 &&
+    Number.isFinite(parseFloat(fromQty)) &&
+    Number.isFinite(parseFloat(toQty));
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    startTransition(async () => {
+      const result = await updateConversionRateAction(
+        orgId,
+        setId,
+        rate.id,
+        parseFloat(fromQty),
+        parseFloat(toQty),
+      );
+      if (!result.ok) {
+        toast.error("error" in result ? result.error : "Failed to update rate.");
+        return;
+      }
+      onUpdate(rate.id, result.fromQty, result.toQty);
+      toast.success("Rate updated.");
+      onBack();
+    });
+  }
+
+  function handleDelete() {
+    startTransition(async () => {
+      const result = await deleteConversionRateAction(orgId, setId, rate.id);
+      if (!result.ok) {
+        toast.error("error" in result ? result.error : "Failed to delete rate.");
+        return;
+      }
+      onDelete(rate.id);
+      toast.success("Rate removed.");
+      onBack();
+    });
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
+        <label className="text-sm font-medium">From</label>
+        <div className="flex items-center gap-2">
+          <span className="flex-1 rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground truncate">
+            {rate.fromItem.name}
+            <span className="ml-1 text-xs">({rate.fromItem.unit})</span>
+          </span>
+          <Input
+            type="number"
+            min="0.0001"
+            step="any"
+            value={fromQty}
+            onChange={(e) => setFromQty(e.target.value)}
+            className="w-20 shrink-0"
+            disabled={isPending}
+            autoFocus
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="text-sm font-medium">To</label>
+        <div className="flex items-center gap-2">
+          <span className="flex-1 rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground truncate">
+            {rate.toItem.name}
+            <span className="ml-1 text-xs">({rate.toItem.unit})</span>
+          </span>
+          <Input
+            type="number"
+            min="0.0001"
+            step="any"
+            value={toQty}
+            onChange={(e) => setToQty(e.target.value)}
+            className="w-20 shrink-0"
+            placeholder="qty"
+            disabled={isPending}
+          />
+        </div>
+      </div>
+
+      <Button type="submit" disabled={!canSave || isPending} className="w-full">
+        Save
+      </Button>
+      <Button
+        type="button"
+        variant="destructive"
+        disabled={isPending}
+        className="w-full"
+        onClick={handleDelete}
+      >
+        Delete
+      </Button>
+    </form>
+  );
+}
+
+// ─── Add form ─────────────────────────────────────────────────────────────────
 
 interface AddRateFormProps {
   orgId: string;
@@ -57,14 +180,22 @@ export function AddRateForm({
   function abbrevUnit(unit: string): string {
     return unit.length <= 4 ? unit : unit[0] + unit[unit.length - 1];
   }
+  const { open } = useActionSidebar();
+  const editKeyRef = useRef(0);
   const [rateList, setRateList] = useState(rates);
+  const rateListRef = useRef(rateList);
+
+  function updateRateList(fn: (prev: Rate[]) => Rate[]) {
+    const next = fn(rateListRef.current);
+    rateListRef.current = next;
+    setRateList(next);
+  }
   const [fromItem, setFromItem] = useState<ToolItem | null>(null);
   const [toItem, setToItem] = useState<ToolItem | null>(null);
   const [fromQty, setFromQty] = useState("1");
   const [toQty, setToQty] = useState("");
   const [search, setSearch] = useState("");
   const [isPending, startTransition] = useTransition();
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const comboItems = toolItems.map((i) => ({
     id: i.id,
@@ -93,31 +224,57 @@ export function AddRateForm({
         toast.error("error" in result ? result.error : "Failed to add rate.");
         return;
       }
-      setRateList((prev) => [...prev, result.rate]);
+      updateRateList((prev) => [...prev, result.rate]);
       toast.success("Rate added.");
     });
   }
 
-  function handleDelete(rateId: string) {
-    setDeletingId(rateId);
-    startTransition(async () => {
-      const result = await deleteConversionRateAction(orgId, setId, rateId);
-      if (!result.ok) toast.error("Failed to delete rate.");
-      else {
-        setRateList((prev) => prev.filter((r) => r.id !== rateId));
-        toast.success("Rate removed.");
-      }
-      setDeletingId(null);
-    });
+  function openEdit(rate: Rate) {
+    const k = ++editKeyRef.current;
+    function goBack() {
+      const k2 = ++editKeyRef.current;
+      open(
+        "Rates",
+        <div key={k2} className="p-4">
+          <AddRateForm
+            orgId={orgId}
+            setId={setId}
+            toolItems={toolItems}
+            rates={rateListRef.current}
+            onClose={() => {}}
+          />
+        </div>,
+      );
+    }
+    open(
+      "Edit Rate",
+      <div key={k} className="p-4">
+        <EditRateForm
+          orgId={orgId}
+          setId={setId}
+          rate={rate}
+          onUpdate={(id, fromQty, toQty) =>
+            updateRateList((prev) =>
+              prev.map((r) => (r.id === id ? { ...r, fromQty, toQty } : r)),
+            )
+          }
+          onDelete={(id) =>
+            updateRateList((prev) => prev.filter((r) => r.id !== id))
+          }
+          onBack={goBack}
+        />
+      </div>,
+    );
   }
 
-  const filteredRates = search
+  const filteredRates = (search
     ? rateList.filter(
         (r) =>
           r.fromItem.name.toLowerCase().includes(search.toLowerCase()) ||
           r.toItem.name.toLowerCase().includes(search.toLowerCase()),
       )
-    : rateList;
+    : rateList
+  ).slice().sort((a, b) => (b.toQty / b.fromQty) - (a.toQty / a.fromQty));
 
   const canSubmit =
     !!fromItem &&
@@ -212,14 +369,11 @@ export function AddRateForm({
           ) : (
             <div className="flex flex-col gap-1">
               {filteredRates.map((r) => {
-              const display =
-                r.rate % 1 === 0
-                  ? r.rate.toString()
-                  : r.rate.toFixed(4).replace(/\.?0+$/, "");
               return (
                 <div
                   key={r.id}
-                  className="flex items-center gap-2 rounded-lg border bg-card px-2.5 py-3 text-xs"
+                  onClick={() => openEdit(r)}
+                  className="flex items-center gap-2 rounded-lg border bg-card px-2.5 py-3 text-xs cursor-pointer hover:border-primary/40 transition-colors"
                 >
                   <div className="flex-1 min-w-0 flex flex-col gap-1">
                     {/* Top: conversion direction */}
@@ -228,20 +382,14 @@ export function AddRateForm({
                       <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
                       <span className="font-medium truncate">{r.toItem.name}</span>
                     </div>
-                    {/* Bottom: rate + unit */}
+                    {/* Bottom: original ratio */}
                     <div className="flex items-center gap-1 min-w-0 text-muted-foreground">
-                      <span className="shrink-0">{display}</span>
+                      <span className="shrink-0">{r.fromQty}</span>
+                      <ArrowRight className="h-2.5 w-2.5 shrink-0" />
+                      <span className="shrink-0">{r.toQty}</span>
                       <span className="truncate">{r.toItem.unit}</span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleDelete(r.id)}
-                    disabled={isPending && deletingId === r.id}
-                    className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                    aria-label="Delete rate"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
                 </div>
               );
             })}

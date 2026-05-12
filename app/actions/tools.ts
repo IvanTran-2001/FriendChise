@@ -25,6 +25,7 @@ import {
   deleteToolItem,
   createConversionRate,
   deleteConversionRate,
+  updateConversionRate,
   createConversionTemplate,
   deleteConversionTemplate,
   upsertTemplateEntry,
@@ -238,6 +239,34 @@ export async function deleteConversionRateAction(orgId: string, setId: string, r
       P2025: "Rate not found.",
     });
     return { ok: false as const, error: mappedError ?? "Failed to delete rate." };
+  }
+}
+
+/** Updates the rate scalar for an existing conversion rate pair. */
+export async function updateConversionRateAction(
+  orgId: string,
+  setId: string,
+  rateId: string,
+  fromQty: number,
+  toQty: number,
+) {
+  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!auth.ok) return { ok: false as const };
+
+  if (!Number.isFinite(fromQty) || fromQty <= 0)
+    return { ok: false as const, error: "From quantity must be > 0." };
+  if (!Number.isFinite(toQty) || toQty <= 0)
+    return { ok: false as const, error: "To quantity must be > 0." };
+
+  try {
+    await updateConversionRate(orgId, rateId, fromQty, toQty);
+    revalidatePath(`/orgs/${orgId}/tools/conversion/${setId}`);
+    return { ok: true as const, fromQty, toQty };
+  } catch (err: unknown) {
+    const mappedError = mapPrismaError(err, {
+      P2025: "Rate not found.",
+    });
+    return { ok: false as const, error: mappedError ?? "Failed to update rate." };
   }
 }
 

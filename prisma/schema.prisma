@@ -648,7 +648,9 @@ model ConversionRate {
   setId      String
   fromItemId String
   toItemId   String
-  rate       Float   // toItem quantity per 1 unit of fromItem
+  fromQty    Float   @default(1) // numerator the user entered
+  toQty      Float   @default(1) // denominator the user entered
+  // rate scalar is computed on the fly as toQty / fromQty
 
   set      ConversionSet @relation(fields: [setId], references: [id], onDelete: Cascade)
   fromItem ToolItem      @relation("RateFromItem", fields: [fromItemId], references: [id], onDelete: Cascade)

@@ -14,7 +14,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, ChevronRight, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -35,7 +35,8 @@ import {
 type ToolItem = { id: string; name: string; unit: string };
 type Rate = {
   id: string;
-  rate: number;
+  fromQty: number;
+  toQty: number;
   fromItem: ToolItem;
   toItem: ToolItem;
 };
@@ -52,7 +53,10 @@ interface SetDetailClientProps {
 
 /**
  * Resolves the combined rate from `fromId` to `toId`, following chains of
- * conversion rates (e.g. Boston Cream → Custard → Thick Cream).
+ * conversion rates in the FORWARD direction only (e.g. Boston Cream → Custard
+ * → Thick Cream). Rates are never inverted, so a rate stored as A→B cannot
+ * be traversed as B→A. This prevents phantom chains like Boston Cream reaching
+ * Rasp Custard via the inverse of Rasp Custard → Custard.
  * Uses DFS with a visited set to prevent infinite loops on circular rates.
  * Returns `null` when no path exists.
  */
@@ -66,13 +70,9 @@ function resolveChainedRate(
   if (visited.has(fromId)) return null;
   visited.add(fromId);
   for (const r of rates) {
-    let nextId: string | null = null;
-    let stepRate: number | null = null;
-    if (r.fromItem.id === fromId) { nextId = r.toItem.id; stepRate = r.rate; }
-    else if (r.toItem.id === fromId) { nextId = r.fromItem.id; stepRate = 1 / r.rate; }
-    if (nextId !== null && stepRate !== null) {
-      const rest = resolveChainedRate(rates, nextId, toId, new Set(visited));
-      if (rest !== null) return stepRate * rest;
+    if (r.fromItem.id === fromId) {
+      const rest = resolveChainedRate(rates, r.toItem.id, toId, new Set(visited));
+      if (rest !== null) return (r.toQty / r.fromQty) * rest;
     }
   }
   return null;
@@ -100,10 +100,33 @@ function getConnectedIds(startIds: string[], rates: Rate[]): Set<string> {
   return visited;
 }
 
-/** Formats a number for display: integers shown as-is, decimals trimmed to 4 sig figs. */
+/** Formats a number for display: rounded to the nearest integer. */
 function fmt(n: number) {
-  if (Number.isInteger(n)) return n.toString();
-  return parseFloat(n.toFixed(4)).toString();
+  return Math.round(n).toString();
+}
+
+/**
+ * Returns To items that are exactly 1 direct hop from `itemId` and are also
+ * present in `toIds`. These become the sub-list for that To row.
+ * Max 3 items returned (UI scrolls within that cap).
+ */
+function getDirectSubItems(
+  itemId: string,
+  toIds: string[],
+  rates: Rate[],
+  itemMap: Map<string, ToolItem>,
+): { item: ToolItem; directRate: number }[] {
+  const results: { item: ToolItem; directRate: number }[] = [];
+  for (const r of rates) {
+    if (r.fromItem.id === itemId) {
+      const neighborId = r.toItem.id;
+      if (toIds.includes(neighborId) && neighborId !== itemId) {
+        const neighbor = itemMap.get(neighborId);
+        if (neighbor) results.push({ item: neighbor, directRate: r.toQty / r.fromQty });
+      }
+    }
+  }
+  return results;
 }
 
 export function SetDetailClient({
@@ -117,6 +140,15 @@ export function SetDetailClient({
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [search, setSearch] = useState("");
+  const [expandedToIds, setExpandedToIds] = useState<Set<string>>(new Set());
+
+  function toggleExpanded(id: string) {
+    setExpandedToIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
 
   // Build item lookup from rates
   const itemMap = new Map<string, ToolItem>();
@@ -148,7 +180,9 @@ export function SetDetailClient({
 
   const q = search.trim().toLowerCase();
   const visibleFromItems = q ? fromItems.filter((i) => i.name.toLowerCase().includes(q)) : fromItems;
-  const visibleToItems = q ? toItems.filter((i) => i.name.toLowerCase().includes(q)) : toItems;
+  const visibleToItems = (q ? toItems.filter((i) => i.name.toLowerCase().includes(q)) : toItems)
+    .slice()
+    .sort((a, b) => (calcTotal(b) ?? 0) - (calcTotal(a) ?? 0));
 
   // When the other side has items selected, restrict the dropdown to items
   // that are reachable from those selections (connected via any rate chain).
@@ -379,23 +413,55 @@ export function SetDetailClient({
                 <div className="flex flex-col gap-2">
                   {visibleToItems.map((item) => {
                     const total = calcTotal(item) ?? 0;
+                    const subItems = getDirectSubItems(item.id, toIds, rates, itemMap);
+                    const hasSubItems = subItems.length > 0;
+                    const isExpanded = expandedToIds.has(item.id);
                     return (
-                      <div
-                        key={item.id}
-                        className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2"
-                      >
-                        <button
-                          onClick={() => removeTo(item.id)}
-                          className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                          aria-label={`Remove ${item.name}`}
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                        <span className="flex-1 text-sm font-medium truncate">{item.name}</span>
-                        <span className="text-sm font-semibold tabular-nums shrink-0">
-                          {fmt(total)}{" "}
-                          <span className="text-xs font-normal text-muted-foreground">{item.unit}</span>
-                        </span>
+                      <div key={item.id} className="flex flex-col">
+                        <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
+                          <button
+                            onClick={() => removeTo(item.id)}
+                            className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                            aria-label={`Remove ${item.name}`}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                          <span className="flex-1 text-sm font-medium truncate">{item.name}</span>
+                          <span className="text-sm font-semibold tabular-nums shrink-0">
+                            {fmt(total)}{" "}
+                            <span className="text-xs font-normal text-muted-foreground">{item.unit}</span>
+                          </span>
+                          {hasSubItems && (
+                            <button
+                              onClick={() => toggleExpanded(item.id)}
+                              className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                              aria-label={isExpanded ? "Collapse" : "Expand"}
+                            >
+                              {isExpanded
+                                ? <ChevronDown className="h-3.5 w-3.5" />
+                                : <ChevronRight className="h-3.5 w-3.5" />}
+                            </button>
+                          )}
+                        </div>
+                        {hasSubItems && isExpanded && (
+                          <div className="ml-4 mt-1 border-l-2 border-border pl-2 flex flex-col gap-1 max-h-24 overflow-y-auto">
+                            {subItems.map(({ item: sub, directRate }) => {
+                              const subTotal = total * directRate;
+                              return (
+                                <div
+                                  key={sub.id}
+                                  className="flex items-center gap-2 rounded-md bg-muted/40 px-2 py-1.5 text-xs"
+                                >
+                                  <span className="flex-1 truncate text-muted-foreground">{sub.name}</span>
+                                  <span className="font-medium tabular-nums shrink-0">
+                                    {fmt(subTotal)}{" "}
+                                    <span className="font-normal text-muted-foreground">{sub.unit}</span>
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

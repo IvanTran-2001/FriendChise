@@ -24,7 +24,8 @@ import { AddTemplateForm } from "./add-template-form";
 type ToolItem = { id: string; name: string; unit: string };
 type Rate = {
   id: string;
-  rate: number;
+  fromQty: number;
+  toQty: number;
   fromItem: ToolItem;
   toItem: ToolItem;
 };

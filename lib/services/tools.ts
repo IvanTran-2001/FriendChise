@@ -113,15 +113,15 @@ export async function updateToolItem(
 
 /**
  * Returns all rates for a set, with from/to item details inlined.
- * Rates are stored as a single scalar (toQty / fromQty). Bidirectional
- * resolution (i.e. inverting the rate) is handled in the calculator client.
+ * The effective multiplier is `toQty / fromQty`, computed on the fly.
  */
 export async function getConversionRates(orgId: string, setId: string) {
   return prisma.conversionRate.findMany({
     where: { setId, set: { orgId } },
     select: {
       id: true,
-      rate: true,
+      fromQty: true,
+      toQty: true,
       fromItem: { select: { id: true, name: true, unit: true } },
       toItem: { select: { id: true, name: true, unit: true } },
     },
@@ -163,17 +163,18 @@ export async function createConversionRate(
       throw new Error("Items not found or access denied");
     }
 
-    const rate = toQty / fromQty;
     return tx.conversionRate.create({
       data: {
         setId,
         fromItemId,
         toItemId,
-        rate,
+        fromQty,
+        toQty,
       },
       select: {
         id: true,
-        rate: true,
+        fromQty: true,
+        toQty: true,
         fromItem: { select: { id: true, name: true, unit: true } },
         toItem: { select: { id: true, name: true, unit: true } },
       },
@@ -185,6 +186,21 @@ export async function createConversionRate(
 export async function deleteConversionRate(orgId: string, rateId: string) {
   await prisma.conversionRate.deleteMany({
     where: { id: rateId, set: { orgId } },
+  });
+}
+
+/**
+ * Updates fromQty and toQty for an existing conversion rate.
+ */
+export async function updateConversionRate(
+  orgId: string,
+  rateId: string,
+  fromQty: number,
+  toQty: number,
+) {
+  await prisma.conversionRate.updateMany({
+    where: { id: rateId, set: { orgId } },
+    data: { fromQty, toQty },
   });
 }
 
