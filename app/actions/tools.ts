@@ -207,8 +207,8 @@ export async function createConversionRateAction(
   const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!auth.ok) return { ok: false as const };
 
-  if (fromQty <= 0) return { ok: false as const, error: "From quantity must be greater than 0." };
-  if (toQty <= 0) return { ok: false as const, error: "To quantity must be greater than 0." };
+  if (!Number.isFinite(fromQty) || fromQty <= 0) return { ok: false as const, error: "From quantity must be a finite number greater than 0." };
+  if (!Number.isFinite(toQty) || toQty <= 0) return { ok: false as const, error: "To quantity must be a finite number greater than 0." };
   if (fromItemId === toItemId) return { ok: false as const, error: "From and To items must be different." };
 
   try {
@@ -321,6 +321,13 @@ export async function upsertTemplateEntryAction(
 ) {
   const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!auth.ok) return { ok: false as const };
+
+  if (![1, 2, 3].includes(pinnedOutput)) {
+    return { ok: false as const, error: "pinnedOutput must be 1, 2, or 3." };
+  }
+  if (quantity !== null && (!Number.isInteger(quantity) || quantity < 0)) {
+    return { ok: false as const, error: "quantity must be null or a non-negative integer." };
+  }
 
   try {
     await upsertTemplateEntry(orgId, templateId, itemId, quantity, pinnedOutput);
