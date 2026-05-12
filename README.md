@@ -81,25 +81,30 @@ Provider: PostgreSQL (Supabase), managed via Prisma ORM.
 
 ### Models
 
-| Model                    | Description                                                                                                                                                                                                                                                                                                                                                     |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Organization`           | Top-level tenant. Owns all other resources. Supports franchise hierarchy via `parentId`.                                                                                                                                                                                                                                                                        |
-| `User`                   | Auth account, identified by email. Linked to orgs via `Membership`.                                                                                                                                                                                                                                                                                             |
-| `Membership`             | Links a `User` to an `Organization`. Tracks `workingDays` and `status` (ACTIVE / RESTRICTED).                                                                                                                                                                                                                                                                   |
-| `Role`                   | Org-scoped role (e.g. Owner, Worker) with a required `name`, `color` (hex), and stable `key`. System roles have `isDeletable: false`.                                                                                                                                                                                                                           |
-| `Permission`             | Grants a `PermissionAction` enum value to a `Role`. One row per action per role.                                                                                                                                                                                                                                                                                |
-| `MemberRole`             | Many-to-many junction between `Membership` and `Role`. A member can hold multiple roles.                                                                                                                                                                                                                                                                        |
-| `Task`                   | Reusable task definition (name, required `color` hex, duration, recurrence constraints, eligibility by role).                                                                                                                                                                                                                                                   |
-| `TaskEligibility`        | Links a `Task` to a `Role`, defining which roles can be assigned to it.                                                                                                                                                                                                                                                                                         |
-| `TimetableEntry`         | A scheduled task occurrence with date, start/end times, status, and assignees.                                                                                                                                                                                                                                                                                  |
-| `TimetableEntryAssignee` | Links a `Membership` to a `TimetableEntry` (many-to-many).                                                                                                                                                                                                                                                                                                      |
-| `TimetableSettings`      | Per-org timetable display preferences (view type, start day, slot duration).                                                                                                                                                                                                                                                                                    |
-| `Template`               | A reusable schedule template with a `cycleLengthDays`. Contains `TemplateEntry` rows.                                                                                                                                                                                                                                                                           |
-| `TemplateEntry`          | One time slot in a `Template` — which task, which day index, start/end times.                                                                                                                                                                                                                                                                                   |
-| `TemplateEntryAssignee`  | Pre-assigns a `Membership` to a `TemplateEntry`.                                                                                                                                                                                                                                                                                                                |
-| `FranchiseToken`         | One-time invite token issued by a parent org for a franchisee to join.                                                                                                                                                                                                                                                                                          |
-| `Invite`                 | A member or franchise invite sent to a `User`. Carries a status (`PENDING`/`ACCEPTED`/`DECLINED`), snapshot fields for the org name and inviter name, and a JSON `metadata` blob with the roleIds/workingDays pre-filled for the accept step. Visible in the notification panel.                                                                                |
-| `AuditLog`               | Append-only record of significant org mutations. Stores `action` (e.g. `task.create`), `entityType`, `entityId`, optional `before`/`after` JSON snapshots, the `actorId` who triggered the change, and a `createdAt` timestamp. Scoped per org. Actor is nullable (set to `NULL` on user deletion via `onDelete: SetNull`). Org deletion cascades all its logs. |
+| Model                      | Description                                                                                                                                                                                                                                                                                                                                                     |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Organization`             | Top-level tenant. Owns all other resources. Supports franchise hierarchy via `parentId`.                                                                                                                                                                                                                                                                        |
+| `User`                     | Auth account, identified by email. Linked to orgs via `Membership`.                                                                                                                                                                                                                                                                                             |
+| `Membership`               | Links a `User` to an `Organization`. Tracks `workingDays` and `status` (ACTIVE / RESTRICTED).                                                                                                                                                                                                                                                                   |
+| `Role`                     | Org-scoped role (e.g. Owner, Worker) with a required `name`, `color` (hex), and stable `key`. System roles have `isDeletable: false`.                                                                                                                                                                                                                           |
+| `Permission`               | Grants a `PermissionAction` enum value to a `Role`. One row per action per role.                                                                                                                                                                                                                                                                                |
+| `MemberRole`               | Many-to-many junction between `Membership` and `Role`. A member can hold multiple roles.                                                                                                                                                                                                                                                                        |
+| `Task`                     | Reusable task definition (name, required `color` hex, duration, recurrence constraints, eligibility by role).                                                                                                                                                                                                                                                   |
+| `TaskEligibility`          | Links a `Task` to a `Role`, defining which roles can be assigned to it.                                                                                                                                                                                                                                                                                         |
+| `TimetableEntry`           | A scheduled task occurrence with date, start/end times, status, and assignees.                                                                                                                                                                                                                                                                                  |
+| `TimetableEntryAssignee`   | Links a `Membership` to a `TimetableEntry` (many-to-many).                                                                                                                                                                                                                                                                                                      |
+| `TimetableSettings`        | Per-org timetable display preferences (view type, start day, slot duration).                                                                                                                                                                                                                                                                                    |
+| `Template`                 | A reusable schedule template with a `cycleLengthDays`. Contains `TemplateEntry` rows.                                                                                                                                                                                                                                                                           |
+| `TemplateEntry`            | One time slot in a `Template` — which task, which day index, start/end times.                                                                                                                                                                                                                                                                                   |
+| `TemplateEntryAssignee`    | Pre-assigns a `Membership` to a `TemplateEntry`.                                                                                                                                                                                                                                                                                                                |
+| `FranchiseToken`           | One-time invite token issued by a parent org for a franchisee to join.                                                                                                                                                                                                                                                                                          |
+| `Invite`                   | A member or franchise invite sent to a `User`. Carries a status (`PENDING`/`ACCEPTED`/`DECLINED`), snapshot fields for the org name and inviter name, and a JSON `metadata` blob with the roleIds/workingDays pre-filled for the accept step. Visible in the notification panel.                                                                                |
+| `AuditLog`                 | Append-only record of significant org mutations. Stores `action` (e.g. `task.create`), `entityType`, `entityId`, optional `before`/`after` JSON snapshots, the `actorId` who triggered the change, and a `createdAt` timestamp. Scoped per org. Actor is nullable (set to `NULL` on user deletion via `onDelete: SetNull`). Org deletion cascades all its logs. |
+| `ToolItem`                 | An org-scoped ingredient / unit pair used in the Conversion tool (e.g. "Boston Cream", unit "doz"). Shared across all `ConversionSet`s in the org.                                                                                                                                                                                                              |
+| `ConversionSet`            | A named collection of conversion rates for an org (e.g. "Donut Batches"). Acts as the container for rates and templates.                                                                                                                                                                                                                                        |
+| `ConversionRate`           | A directional rate between two `ToolItem`s within a `ConversionSet`. Stored as a single `rate` scalar (`toQty / fromQty`). Bidirectional resolution is handled at query time.                                                                                                                                                                                   |
+| `ConversionTemplate`       | A named saved state of From/To item selections within a `ConversionSet` (e.g. "Default", "Monday Batch"). Each set always has a "Default" template created automatically.                                                                                                                                                                                       |
+| `ConversionTemplateEntry`  | One item slot in a `ConversionTemplate`. `quantity` is non-null for From items (the input quantity); `null` for To items (display-only calculated outputs). `visible` controls whether the item is shown.                                                                                                                                                        |
 
 ### Enums
 
@@ -255,11 +260,34 @@ app/
       [orgId]/
         page.tsx          # Org overview — stat cards, today's schedule, org header
         loading.tsx       # Overview page skeleton
-        tools/            # Tools page
-          page.tsx
+        tools/            # Tools hub — sidebar with search + tool nav list
+          page.tsx        # Server page; registers ToolsSidebarContent as page sidebar
           tools-client.tsx
           _components/
-            tools-sidebar-content.tsx  # Search input + placeholder tool list
+            tools-sidebar-content.tsx  # Nav links: Item List · Conversion · Roster + search
+          item-list/      # Item List tool (stub)
+            page.tsx
+            _components/
+              item-list-sidebar-content.tsx  # Title row + Back link
+          conversion/     # Conversion calculator tool
+            page.tsx      # Server page: fetches all ConversionSets; registers ConversionSidebarContent
+            conversion-client.tsx
+            _components/
+              conversion-sidebar-content.tsx  # Title + Back link + "Add Set" action button
+              add-set-form.tsx                # Create / list ConversionSets
+              edit-set-form.tsx               # Rename a ConversionSet
+            [setId]/       # Set detail — calculator view
+              page.tsx     # Server page: resolves active template from ?template= param; fetches entries; renders SetDetailClient with key={activeTemplateId}
+              set-detail-client.tsx  # Calculator — two-column From/To grid; template dropdown in toolbar; DB-backed state via ConversionTemplateEntry
+              _components/
+                set-sidebar-content.tsx   # Sidebar: Items · Rates · Templates action buttons
+                add-item-form.tsx         # Create ToolItem (org-scoped, shared across sets)
+                add-rate-form.tsx         # Create/delete ConversionRate; unit abbreviation helper (≤4 chars kept, longer → first+last letter)
+                add-template-form.tsx     # Create/delete/switch ConversionTemplate; URL-driven active state via ?template=<id>
+          roster/         # Roster tool (stub)
+            page.tsx      # Server page; registers RosterSidebarContent as page sidebar
+            _components/
+              roster-sidebar-content.tsx  # Title row + Back link
         franchisee/       # Franchise management (parent org owners only)
         memberships/      # Members list, role filter, list/card toggle, invite/add actions
           layout.tsx            # Registers MembersSidebarShell for all memberships routes
@@ -327,6 +355,7 @@ app/
     timetable-entries.ts
     franchisee.ts
     roles.ts
+    tools.ts              # Conversion tool mutations — all require MANAGE_TASKS
   api/                    # REST API route handlers (session-authenticated)
     auth/[...nextauth]/
     orgs/
@@ -380,6 +409,7 @@ lib/
     franchise.ts
     invites.ts
     bots.ts
+    tools.ts            # ConversionSet · ToolItem · ConversionRate · ConversionTemplate · ConversionTemplateEntry CRUD
   validators/
     org.ts
     membership.ts
@@ -455,9 +485,83 @@ ORDER BY al."createdAt" DESC
 LIMIT 100;
 ```
 
-## Server Actions vs API Routes
+## Conversion Tool
 
-The app uses two mutation paths depending on the caller:
+The Conversion tool (`/orgs/[orgId]/tools/conversion`) is a production-quantity calculator for franchise kitchens. It converts ingredient quantities between units using saved rates and named templates.
+
+### Data model
+
+```
+ConversionSet          — container scoped to an org (e.g. "Donut Batches")
+  └─ ConversionRate    — directional rate between two ToolItems (stored as toQty/fromQty scalar)
+  └─ ConversionTemplate— named saved calculator state (always has a "Default" template)
+       └─ ConversionTemplateEntry — one item slot; quantity non-null = From item, null = To item
+ToolItem               — org-scoped ingredient/unit pair, shared across all sets
+```
+
+### URL-driven template switching
+
+The active template is encoded in the URL as `?template=<id>`. When the param changes:
+1. The server page re-runs, resolves the template ID (URL → Default → first), and fetches its `ConversionTemplateEntry` rows.
+2. `SetDetailClient` receives `key={activeTemplateId}`, forcing a full remount with the new DB state.
+3. The action sidebar stays open because it only closes on pathname changes (not query param changes).
+
+### Persistence
+
+All calculator state is persisted immediately to the database — there is no `localStorage` involvement:
+
+| Action | DB write |
+| --- | --- |
+| Add a From item | `upsertTemplateEntryAction` with `quantity = 0` |
+| Change a From quantity (on blur) | `upsertTemplateEntryAction` with the new quantity |
+| Remove a From/To item | `removeTemplateEntryAction` |
+| Add a To item | `upsertTemplateEntryAction` with `quantity = null` |
+
+### Unit abbreviation
+
+`add-rate-form.tsx` abbreviates long unit strings in dropdowns: units ≤ 4 chars are shown as-is; longer units are condensed to `first letter + last letter` (e.g. `grams` → `gs`). The full unit is always stored in the DB unchanged.
+
+### Service layer (`lib/services/tools.ts`)
+
+| Function | Description |
+| --- | --- |
+| `getConversionSets(orgId)` | List all sets for an org |
+| `getConversionSet(orgId, setId)` | Fetch a single set |
+| `createConversionSet(orgId, name)` | Create a set |
+| `deleteConversionSet(orgId, id)` | Delete a set |
+| `renameConversionSet(orgId, id, name)` | Rename a set |
+| `getToolItems(orgId)` | List all tool items for an org |
+| `createToolItem(orgId, name, unit)` | Create a tool item |
+| `deleteToolItem(orgId, id)` | Delete a tool item |
+| `getConversionRates(orgId, setId)` | List all rates for a set (includes from/to item names and units) |
+| `createConversionRate(orgId, setId, fromItemId, toItemId, fromQty, toQty)` | Create a rate; stored as `toQty / fromQty` |
+| `deleteConversionRate(orgId, rateId)` | Delete a rate |
+| `getConversionTemplates(orgId, setId)` | List all templates for a set |
+| `createConversionTemplate(setId, name)` | Create a template |
+| `deleteConversionTemplate(orgId, templateId)` | Delete a template |
+| `getTemplateEntries(templateId)` | List all entries for a template |
+| `upsertTemplateEntry(templateId, itemId, quantity, visible)` | Insert or update an entry |
+| `deleteTemplateEntry(templateId, itemId)` | Remove an entry |
+
+### Server actions (`app/actions/tools.ts`)
+
+All write actions require `MANAGE_TASKS` permission.
+
+| Action | Description |
+| --- | --- |
+| `createConversionSetAction` | Create a new set; auto-creates a "Default" template |
+| `deleteConversionSetAction` | Delete a set and all its rates/templates |
+| `renameConversionSetAction` | Rename a set |
+| `createToolItemAction` | Create an org-scoped tool item |
+| `deleteToolItemAction` | Delete a tool item |
+| `createConversionRateAction` | Add a rate between two items |
+| `deleteConversionRateAction` | Remove a rate |
+| `createConversionTemplateAction` | Create a template |
+| `deleteConversionTemplateAction` | Delete a template |
+| `upsertTemplateEntryAction` | Save a calculator item slot (add/update) |
+| `removeTemplateEntryAction` | Remove a calculator item slot |
+
+## Server Actions vs API Routes
 
 | Path               | Used by                              | Location       |
 | ------------------ | ------------------------------------ | -------------- |
@@ -477,7 +581,11 @@ Server Actions call `revalidatePath` to invalidate the Next.js cache so server-r
 | `/orgs/new`                                      | Signed in                                  | Create a new organization                                                                                                                                  |
 | `/orgs/join`                                     | Signed in                                  | Join an existing org as a franchisee using a one-time token                                                                                                |
 | `/orgs/[orgId]`                                  | `requireOrgMemberPage`                     | Org overview — stat cards (members, tasks, roles, today's schedule completion), today's schedule list, org header (name, address, timezone, settings link for owner) |
-| `/orgs/[orgId]/tools`                            | `requireOrgMemberPage`                     | Tools page — sidebar with search + placeholder tool list; content area stub                                                                                |
+| `/orgs/[orgId]/tools`                            | `requireOrgMemberPage`                     | Tools hub — sidebar with search + nav links (Item List, Conversion, Roster); content area stub                                                             |
+| `/orgs/[orgId]/tools/item-list`                  | `requireOrgMemberPage`                     | Item List tool stub — own page sidebar with Back link                                                                                                      |
+| `/orgs/[orgId]/tools/conversion`                 | `requireOrgMemberPage`                     | Conversion tool — lists all ConversionSets for the org; sidebar: Back + "Add Set" action                                                                   |
+| `/orgs/[orgId]/tools/conversion/[setId]`         | `requireOrgMemberPage`                     | Conversion calculator — two-column From/To grid with live calculations; template switcher dropdown in toolbar; template state persisted in DB via `ConversionTemplateEntry`; sidebar: Items · Rates · Templates actions |
+| `/orgs/[orgId]/tools/roster`                     | `requireOrgMemberPage`                     | Roster tool stub — own page sidebar with Back link                                                                                                         |
 | `/orgs/[orgId]/franchisee`                       | `requireParentOrgOwnerPage`                | Franchise management — invite tokens + franchisee list                                                                                                     |
 | `/orgs/[orgId]/tasks`                            | `requireOrgMemberPage`                     | Task definition list — sort, role filter, list/card toggle in sidebar; search in toolbar; Create Task action in sidebar (managers only)                    |
 | `/orgs/[orgId]/tasks/new`                        | `requireOrgPermissionPage MANAGE_TASKS`    | Create task — includes color picker                                                                                                                        |

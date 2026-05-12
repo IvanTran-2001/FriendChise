@@ -149,7 +149,6 @@ export function CalendarView({
   } | null>(null);
   const [editingInstance, setEditingInstance] =
     useState<ClientTimetableInstance | null>(null);
-  const [isDragging, _setIsDragging] = useState(false);
 
   type PendingDrop =
     | { kind: "drop"; col: string; timeMin: number; data: DragData }
@@ -270,7 +269,7 @@ export function CalendarView({
                   : "No tasks in this range";
             return (
               !hasVisibleInstances &&
-              !isDragging &&
+              !dragOver &&
               !selectedTaskId && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center border bg-background/90">
                   <div className="flex flex-col items-center gap-3 text-center">

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Calendar, ListTodo, Users, ShieldCheck, Settings, MapPin, Clock, ArrowRight } from "lucide-react";
+import { Calendar, ListTodo, Users, ShieldCheck, Settings, MapPin, Clock, ArrowRight, ArrowLeftRight } from "lucide-react";
 import { requireOrgMemberPage } from "@/lib/authz";
 import { getAuthUserId } from "@/lib/authz/_shared";
 import { prisma } from "@/lib/prisma";
@@ -64,7 +64,15 @@ const Page = async ({ params }: { params: Promise<{ orgId: string }> }) => {
   if (!org) notFound();
 
   const todayStr = toLocalDateStr(new Date(), org.timezone);
-  const todayInstances = await getRangeTimetableInstances(orgId, org.timezone, todayStr, 1);
+  const [todayInstances, recentSets] = await Promise.all([
+    getRangeTimetableInstances(orgId, org.timezone, todayStr, 1),
+    prisma.conversionSet.findMany({
+      where: { orgId },
+      orderBy: { updatedAt: "desc" },
+      take: 10,
+      select: { id: true, name: true, updatedAt: true },
+    }),
+  ]);
 
   const doneToday = todayInstances.filter((i) => i.status === "DONE" || i.status === "SKIPPED").length;
   const isOwner = org.ownerId === userId;
@@ -124,6 +132,34 @@ const Page = async ({ params }: { params: Promise<{ orgId: string }> }) => {
             </Link>
           ))}
         </div>
+
+        {/* Recent Tools */}
+        {recentSets.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold">Recent Tools</h2>
+              <Link href={`/orgs/${orgId}/tools/conversion`} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                All tools →
+              </Link>
+            </div>
+            <div className="max-h-46 overflow-y-auto rounded-xl border divide-y">
+              {recentSets.map((s) => (
+                <Link
+                  key={s.id}
+                  href={`/orgs/${orgId}/tools/conversion/${s.id}`}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors group"
+                >
+                  <ArrowLeftRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="flex-1 text-sm truncate">{s.name}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {s.updatedAt.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  </span>
+                  <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Today's schedule */}
         <div>

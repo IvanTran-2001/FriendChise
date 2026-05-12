@@ -429,15 +429,15 @@ export function TaskForm(props: TaskFormProps) {
 
   const dv = isEdit ? props.defaultValues : null;
 
-  const [color, setColor] = useState(() => dv?.color ?? randomColor());
+  const [color, setColor] = useState(() => dv?.color ?? "#808080");
 
   useEffect(() => {
-    if (!isEdit) {
-      // Randomize color on mount only (stable fallback used during SSR to avoid hydration mismatch)
+    if (!isEdit && !dv?.color) {
+      // Randomize color on mount only when creating a new task (stable fallback used during SSR to avoid hydration mismatch)
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setColor(randomColor());
     }
-  }, [isEdit]);
+  }, [isEdit, dv?.color]);
 
   const boundAction = isEdit
     ? updateTaskAction.bind(null, props.orgId, props.taskId)

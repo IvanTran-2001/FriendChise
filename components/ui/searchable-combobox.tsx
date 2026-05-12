@@ -78,15 +78,17 @@ export function SearchableCombobox({
           variant="outline"
           size="sm"
           type="button"
-          className="w-full justify-between gap-1.5"
+          className="w-full justify-between gap-1.5 overflow-hidden"
           disabled={disabled}
         >
-          <span>{triggerLabel}</span>
+          <span className="truncate">{triggerLabel}</span>
           <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
         align="start"
+        sideOffset={4}
+        collisionPadding={8}
         className="p-0"
         style={{ minWidth: "var(--radix-popover-trigger-width)" }}
         onOpenAutoFocus={(e) => e.preventDefault()}
@@ -100,7 +102,7 @@ export function SearchableCombobox({
             className="h-7 border-0 shadow-none focus-visible:ring-0 text-sm"
           />
         </div>
-        <div className="max-h-48 overflow-y-auto">
+        <div className="max-h-28 overflow-y-auto">
           {filtered.length === 0 && !canCreate && trimmed !== "" && (
             <p className="px-3 py-2 text-sm text-muted-foreground">
               {emptyText}
@@ -119,7 +121,7 @@ export function SearchableCombobox({
                   style={{ backgroundColor: item.color }}
                 />
               )}
-              {item.name}
+              <span className="truncate">{item.name}</span>
             </button>
           ))}
           {canCreate && (

@@ -1,17 +1,30 @@
+/**
+ * ToolsSidebarContent — page sidebar for `/orgs/[orgId]/tools`.
+ *
+ * Renders a searchable list of available tools as nav links. Each tool
+ * navigates to its own sub-page at `/orgs/[orgId]/tools/<toolId>`.
+ *
+ * `PLACEHOLDER_TOOLS` is a static list — swap for a DB-driven query once a
+ * `Tool` model exists in the schema.
+ */
 "use client";
 
 import { useState } from "react";
-import { Wrench } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ArrowLeftRight, List, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SearchInput } from "@/components/ui/search-input";
 
 // Placeholder tool list — replace with DB-driven data once the Tool model exists
 const PLACEHOLDER_TOOLS = [
-  { id: "count", name: "Count" },
-  { id: "conversion", name: "Conversion" },
+  { id: "item-list", name: "Item List", icon: List },
+  { id: "conversion", name: "Conversion", icon: ArrowLeftRight },
+  { id: "roster", name: "Roster", icon: Users },
 ];
 
-export function ToolsSidebarContent() {
+export function ToolsSidebarContent({ orgId }: { orgId: string }) {
+  const pathname = usePathname();
   const [search, setSearch] = useState("");
 
   const filtered = PLACEHOLDER_TOOLS.filter((t) =>
@@ -43,19 +56,26 @@ export function ToolsSidebarContent() {
             No tools found.
           </p>
         ) : (
-          filtered.map((tool) => (
-            <div
-              key={tool.id}
-              className={cn(
-                "relative flex items-center gap-2.5 h-12 px-4 text-sm border-b border-border",
-                "text-sidebar-foreground/70 select-none",
-                // TODO: make clickable / navigate when tool routing is implemented
-              )}
-            >
-              <Wrench className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <span className="truncate">{tool.name}</span>
-            </div>
-          ))
+          filtered.map((tool) => {
+            const href = `/orgs/${orgId}/tools/${tool.id}`;
+            const isActive = pathname === href;
+            const Icon = tool.icon;
+            return (
+              <Link
+                key={tool.id}
+                href={href}
+                className={cn(
+                  "relative flex items-center gap-2.5 h-12 px-4 text-sm border-b border-border transition-colors",
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-foreground font-medium"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="truncate">{tool.name}</span>
+              </Link>
+            );
+          })
         )}
       </div>
     </div>
