@@ -102,7 +102,7 @@ export function SearchableCombobox({
             className="h-7 border-0 shadow-none focus-visible:ring-0 text-sm"
           />
         </div>
-        <div className="max-h-27 overflow-y-auto">
+        <div className="max-h-28 overflow-y-auto">
           {filtered.length === 0 && !canCreate && trimmed !== "" && (
             <p className="px-3 py-2 text-sm text-muted-foreground">
               {emptyText}

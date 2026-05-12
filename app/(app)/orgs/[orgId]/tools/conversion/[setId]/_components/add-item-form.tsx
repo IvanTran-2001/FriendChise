@@ -141,13 +141,14 @@ export function AddItemForm({ orgId, toolItems, onSuccess, onCancel: _onCancel }
   }
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("");
+  const [search, setSearch] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const filteredItems = name
+  const filteredItems = search
     ? items.filter(
         (i) =>
-          i.name.toLowerCase().includes(name.toLowerCase()) ||
-          i.unit.toLowerCase().includes(name.toLowerCase()),
+          i.name.toLowerCase().includes(search.toLowerCase()) ||
+          i.unit.toLowerCase().includes(search.toLowerCase()),
       )
     : items;
 
@@ -248,6 +249,12 @@ export function AddItemForm({ orgId, toolItems, onSuccess, onCancel: _onCancel }
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
           Items
         </span>
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search…"
+          className="h-7 w-32 text-xs"
+        />
       </div>
       {items.length === 0 ? (
         <p className="text-xs text-muted-foreground py-2">No items yet.</p>

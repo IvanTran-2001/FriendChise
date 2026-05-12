@@ -130,20 +130,40 @@ export async function createConversionRate(
   fromQty: number,
   toQty: number,
 ) {
-  const rate = toQty / fromQty;
-  return prisma.conversionRate.create({
-    data: {
-      setId,
-      fromItemId,
-      toItemId,
-      rate,
-    },
-    select: {
-      id: true,
-      rate: true,
-      fromItem: { select: { id: true, name: true, unit: true } },
-      toItem: { select: { id: true, name: true, unit: true } },
-    },
+  return prisma.$transaction(async (tx) => {
+    // Verify set belongs to org
+    const set = await tx.conversionSet.findFirst({
+      where: { id: setId, orgId },
+      select: { id: true },
+    });
+    if (!set) {
+      throw new Error("Set not found or access denied");
+    }
+
+    // Verify both items belong to org
+    const items = await tx.toolItem.findMany({
+      where: { id: { in: [fromItemId, toItemId] }, orgId },
+      select: { id: true },
+    });
+    if (items.length !== 2) {
+      throw new Error("Items not found or access denied");
+    }
+
+    const rate = toQty / fromQty;
+    return tx.conversionRate.create({
+      data: {
+        setId,
+        fromItemId,
+        toItemId,
+        rate,
+      },
+      select: {
+        id: true,
+        rate: true,
+        fromItem: { select: { id: true, name: true, unit: true } },
+        toItem: { select: { id: true, name: true, unit: true } },
+      },
+    });
   });
 }
 
@@ -170,7 +190,26 @@ export async function getConversionTemplates(orgId: string, setId: string) {
 }
 
 /** Creates a new empty template. Names must be unique per set (DB constraint). */
-export async function createConversionTemplate(setId: string, name: string) {
+export async function createConversionTemplate(setId: string, name: string, orgId?: string) {
+  // orgId is optional for backward compatibility (e.g., when creating Default template during set creation)
+  if (orgId) {
+    return prisma.$transaction(async (tx) => {
+      // Verify set belongs to org
+      const set = await tx.conversionSet.findFirst({
+        where: { id: setId, orgId },
+        select: { id: true },
+      });
+      if (!set) {
+        throw new Error("Set not found or access denied");
+      }
+
+      return tx.conversionTemplate.create({
+        data: { setId, name },
+        select: { id: true, name: true },
+      });
+    });
+  }
+
   return prisma.conversionTemplate.create({
     data: { setId, name },
     select: { id: true, name: true },
@@ -211,21 +250,53 @@ export async function getTemplateEntries(templateId: string) {
  * @param pinnedOutput  Side flag — 1=from, 2=to, 3=both
  */
 export async function upsertTemplateEntry(
+  orgId: string,
   templateId: string,
   itemId: string,
   quantity: number | null,
   pinnedOutput: number,
 ) {
-  return prisma.conversionTemplateEntry.upsert({
-    where: { templateId_itemId: { templateId, itemId } },
-    create: { templateId, itemId, quantity, pinnedOutput },
-    update: { quantity, pinnedOutput },
+  return prisma.$transaction(async (tx) => {
+    // Verify template belongs to org via its set
+    const template = await tx.conversionTemplate.findFirst({
+      where: { id: templateId, set: { orgId } },
+      select: { id: true },
+    });
+    if (!template) {
+      throw new Error("Template not found or access denied");
+    }
+
+    // Verify item belongs to org
+    const item = await tx.toolItem.findFirst({
+      where: { id: itemId, orgId },
+      select: { id: true },
+    });
+    if (!item) {
+      throw new Error("Item not found or access denied");
+    }
+
+    return tx.conversionTemplateEntry.upsert({
+      where: { templateId_itemId: { templateId, itemId } },
+      create: { templateId, itemId, quantity, pinnedOutput },
+      update: { quantity, pinnedOutput },
+    });
   });
 }
 
 /** Removes a single item slot from a template (used when the user removes a From or To item). */
-export async function deleteTemplateEntry(templateId: string, itemId: string) {
-  await prisma.conversionTemplateEntry.deleteMany({
-    where: { templateId, itemId },
+export async function deleteTemplateEntry(orgId: string, templateId: string, itemId: string) {
+  return prisma.$transaction(async (tx) => {
+    // Verify template belongs to org via its set
+    const template = await tx.conversionTemplate.findFirst({
+      where: { id: templateId, set: { orgId } },
+      select: { id: true },
+    });
+    if (!template) {
+      throw new Error("Template not found or access denied");
+    }
+
+    await tx.conversionTemplateEntry.deleteMany({
+      where: { templateId, itemId },
+    });
   });
 }

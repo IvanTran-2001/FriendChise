@@ -25,13 +25,14 @@ export function AddSetForm({ orgId, onSuccess, onCancel }: AddSetFormProps) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const trimmedName = name.trim();
     startTransition(async () => {
-      const result = await createConversionSetAction(orgId, name);
+      const result = await createConversionSetAction(orgId, trimmedName);
       if (!result.ok) {
         toast.error("error" in result ? result.error : "Failed to create set.");
         return;
       }
-      toast.success(`"${name.trim()}" created.`);
+      toast.success(`"${trimmedName}" created.`);
       onSuccess();
     });
   }

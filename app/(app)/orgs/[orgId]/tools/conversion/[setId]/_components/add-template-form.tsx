@@ -155,24 +155,28 @@ export function AddTemplateForm({
             {filteredTemplates.map((t) => {
               const isActive = effectiveTemplateId === t.id;
               return (
-                <div
-                  key={t.id}
-                  onClick={() => selectTemplate(t.id)}
-                  className={cn(
-                    "flex items-center justify-between rounded-lg border bg-card px-3 py-2 cursor-pointer transition-colors",
-                    isActive
-                      ? "border-primary bg-primary/5"
-                      : "hover:border-primary/40",
-                  )}
-                >
-                  <span className={cn("text-sm font-medium truncate", isActive && "text-primary")}>
-                    {t.name}
-                  </span>
+                <div key={t.id} className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => selectTemplate(t.id)}
+                    aria-pressed={isActive}
+                    className={cn(
+                      "flex-1 flex items-center justify-between rounded-lg border bg-card px-3 py-2 cursor-pointer transition-colors",
+                      isActive
+                        ? "border-primary bg-primary/5"
+                        : "hover:border-primary/40",
+                    )}
+                  >
+                    <span className={cn("text-sm font-medium truncate", isActive && "text-primary")}>
+                      {t.name}
+                    </span>
+                  </button>
                   {t.name !== "Default" && (
                     <button
+                      type="button"
                       onClick={(e) => { e.stopPropagation(); handleDelete(t.id); }}
                       disabled={isPending && deletingId === t.id}
-                      className="ml-2 shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+                      className="shrink-0 text-muted-foreground hover:text-destructive transition-colors p-2"
                       aria-label="Delete template"
                     >
                       <Trash2 className="h-3.5 w-3.5" />

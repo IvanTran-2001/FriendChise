@@ -44,10 +44,17 @@ export async function createConversionSetAction(orgId: string, name: string) {
   const trimmed = name.trim();
   if (!trimmed) return { ok: false as const, error: "Name is required." };
 
-  const set = await createConversionSet(orgId, trimmed);
-  await createConversionTemplate(set.id, "Default");
-  revalidatePath(`/orgs/${orgId}/tools/conversion`);
-  return { ok: true as const };
+  try {
+    const set = await createConversionSet(orgId, trimmed);
+    await createConversionTemplate(set.id, "Default");
+    revalidatePath(`/orgs/${orgId}/tools/conversion`);
+    return { ok: true as const };
+  } catch (err: any) {
+    if (err?.code === "P2002") {
+      return { ok: false as const, error: "A set with that name already exists." };
+    }
+    return { ok: false as const, error: "Failed to create set." };
+  }
 }
 
 /** Deletes a ConversionSet and all its rates, templates, and entries via DB cascade. */
@@ -68,9 +75,19 @@ export async function renameConversionSetAction(orgId: string, id: string, name:
   const trimmed = name.trim();
   if (!trimmed) return { ok: false as const, error: "Name is required." };
 
-  await renameConversionSet(orgId, id, trimmed);
-  revalidatePath(`/orgs/${orgId}/tools/conversion`);
-  return { ok: true as const };
+  try {
+    await renameConversionSet(orgId, id, trimmed);
+    revalidatePath(`/orgs/${orgId}/tools/conversion`);
+    return { ok: true as const };
+  } catch (err: any) {
+    if (err?.code === "P2002") {
+      return { ok: false as const, error: "A set with that name already exists." };
+    }
+    if (err?.code === "P2025") {
+      return { ok: false as const, error: "Set not found." };
+    }
+    return { ok: false as const, error: "Failed to rename set." };
+  }
 }
 
 // ─── ToolItem ─────────────────────────────────────────────────────────────────
@@ -93,9 +110,16 @@ export async function createToolItemAction(
   if (!trimmedName) return { ok: false as const, error: "Name is required." };
   if (!trimmedUnit) return { ok: false as const, error: "Unit is required." };
 
-  const item = await createToolItem(orgId, trimmedName, trimmedUnit);
-  revalidatePath(`/orgs/${orgId}/tools/conversion`);
-  return { ok: true as const, item };
+  try {
+    const item = await createToolItem(orgId, trimmedName, trimmedUnit);
+    revalidatePath(`/orgs/${orgId}/tools/conversion`);
+    return { ok: true as const, item };
+  } catch (err: any) {
+    if (err?.code === "P2002") {
+      return { ok: false as const, error: "An item with that name already exists." };
+    }
+    return { ok: false as const, error: "Failed to create item." };
+  }
 }
 
 /** Updates the name and unit of an existing tool item. */
@@ -113,9 +137,19 @@ export async function updateToolItemAction(
   if (!trimmedName) return { ok: false as const, error: "Name is required." };
   if (!trimmedUnit) return { ok: false as const, error: "Unit is required." };
 
-  await updateToolItem(orgId, id, trimmedName, trimmedUnit);
-  revalidatePath(`/orgs/${orgId}/tools/conversion`);
-  return { ok: true as const };
+  try {
+    await updateToolItem(orgId, id, trimmedName, trimmedUnit);
+    revalidatePath(`/orgs/${orgId}/tools/conversion`);
+    return { ok: true as const };
+  } catch (err: any) {
+    if (err?.code === "P2002") {
+      return { ok: false as const, error: "An item with that name already exists." };
+    }
+    if (err?.code === "P2025") {
+      return { ok: false as const, error: "Item not found." };
+    }
+    return { ok: false as const, error: "Failed to update item." };
+  }
 }
 
 /** Deletes a tool item by ID. Will fail if the item is used in any ConversionRate. */
@@ -125,11 +159,17 @@ export async function deleteToolItemAction(orgId: string, id: string) {
 
   try {
     await deleteToolItem(orgId, id);
-  } catch {
-    return { ok: false as const, error: "Cannot delete an item that is used in a conversion rate." };
+    revalidatePath(`/orgs/${orgId}/tools/conversion`);
+    return { ok: true as const };
+  } catch (err: any) {
+    if (err?.code === "P2003") {
+      return { ok: false as const, error: "Cannot delete an item that is used in a conversion rate." };
+    }
+    if (err?.code === "P2025") {
+      return { ok: false as const, error: "Item not found." };
+    }
+    return { ok: false as const, error: "Failed to delete item." };
   }
-  revalidatePath(`/orgs/${orgId}/tools/conversion`);
-  return { ok: true as const };
 }
 
 // ─── ConversionRate ───────────────────────────────────────────────────────────
@@ -158,14 +198,19 @@ export async function createConversionRateAction(
   if (toQty <= 0) return { ok: false as const, error: "To quantity must be greater than 0." };
   if (fromItemId === toItemId) return { ok: false as const, error: "From and To items must be different." };
 
-  let rate;
   try {
-    rate = await createConversionRate(orgId, setId, fromItemId, toItemId, fromQty, toQty);
-  } catch {
-    return { ok: false as const, error: "Rate already exists for this item pair." };
+    const rate = await createConversionRate(orgId, setId, fromItemId, toItemId, fromQty, toQty);
+    revalidatePath(`/orgs/${orgId}/tools/conversion/${setId}`);
+    return { ok: true as const, rate };
+  } catch (err: any) {
+    if (err?.code === "P2002") {
+      return { ok: false as const, error: "Rate already exists for this item pair." };
+    }
+    if (err?.code === "P2003") {
+      return { ok: false as const, error: "Invalid item or set reference." };
+    }
+    return { ok: false as const, error: "Failed to create rate." };
   }
-  revalidatePath(`/orgs/${orgId}/tools/conversion/${setId}`);
-  return { ok: true as const, rate };
 }
 
 /** Deletes a single conversion rate by ID. Requires `setId` only for cache revalidation. */
@@ -173,9 +218,16 @@ export async function deleteConversionRateAction(orgId: string, setId: string, r
   const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!auth.ok) return { ok: false as const };
 
-  await deleteConversionRate(orgId, rateId);
-  revalidatePath(`/orgs/${orgId}/tools/conversion/${setId}`);
-  return { ok: true as const };
+  try {
+    await deleteConversionRate(orgId, rateId);
+    revalidatePath(`/orgs/${orgId}/tools/conversion/${setId}`);
+    return { ok: true as const };
+  } catch (err: any) {
+    if (err?.code === "P2025") {
+      return { ok: false as const, error: "Rate not found." };
+    }
+    return { ok: false as const, error: "Failed to delete rate." };
+  }
 }
 
 // ─── ConversionTemplate ───────────────────────────────────────────────────────
@@ -197,14 +249,19 @@ export async function createConversionTemplateAction(
   const trimmed = name.trim();
   if (!trimmed) return { ok: false as const, error: "Name is required." };
 
-  let template;
   try {
-    template = await createConversionTemplate(setId, trimmed);
-  } catch {
-    return { ok: false as const, error: "A template with that name already exists." };
+    const template = await createConversionTemplate(setId, trimmed, orgId);
+    revalidatePath(`/orgs/${orgId}/tools/conversion/${setId}`);
+    return { ok: true as const, template };
+  } catch (err: any) {
+    if (err?.code === "P2002") {
+      return { ok: false as const, error: "A template with that name already exists." };
+    }
+    if (err?.code === "P2003") {
+      return { ok: false as const, error: "Set not found." };
+    }
+    return { ok: false as const, error: "Failed to create template." };
   }
-  revalidatePath(`/orgs/${orgId}/tools/conversion/${setId}`);
-  return { ok: true as const, template };
 }
 
 /**
@@ -220,17 +277,24 @@ export async function deleteConversionTemplateAction(
   const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!auth.ok) return { ok: false as const };
 
-  const template = await prisma.conversionTemplate.findFirst({
-    where: { id: templateId, set: { orgId } },
-    select: { name: true },
-  });
-  if (template?.name === "Default") {
-    return { ok: false as const, error: "The Default template cannot be deleted." };
-  }
+  try {
+    const template = await prisma.conversionTemplate.findFirst({
+      where: { id: templateId, set: { orgId } },
+      select: { name: true },
+    });
+    if (template?.name === "Default") {
+      return { ok: false as const, error: "The Default template cannot be deleted." };
+    }
 
-  await deleteConversionTemplate(orgId, templateId);
-  revalidatePath(`/orgs/${orgId}/tools/conversion/${setId}`);
-  return { ok: true as const };
+    await deleteConversionTemplate(orgId, templateId);
+    revalidatePath(`/orgs/${orgId}/tools/conversion/${setId}`);
+    return { ok: true as const };
+  } catch (err: any) {
+    if (err?.code === "P2025") {
+      return { ok: false as const, error: "Template not found." };
+    }
+    return { ok: false as const, error: "Failed to delete template." };
+  }
 }
 
 // ─── ConversionTemplateEntry ──────────────────────────────────────────────────
@@ -248,8 +312,19 @@ export async function upsertTemplateEntryAction(
 ) {
   const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!auth.ok) return { ok: false as const };
-  await upsertTemplateEntry(templateId, itemId, quantity, pinnedOutput);
-  return { ok: true as const };
+
+  try {
+    await upsertTemplateEntry(orgId, templateId, itemId, quantity, pinnedOutput);
+    return { ok: true as const };
+  } catch (err: any) {
+    if (err?.code === "P2003") {
+      return { ok: false as const, error: "Invalid template or item reference." };
+    }
+    if (err?.code === "P2025") {
+      return { ok: false as const, error: "Template not found." };
+    }
+    return { ok: false as const, error: "Failed to update entry." };
+  }
 }
 
 /**
@@ -263,6 +338,14 @@ export async function removeTemplateEntryAction(
 ) {
   const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!auth.ok) return { ok: false as const };
-  await deleteTemplateEntry(templateId, itemId);
-  return { ok: true as const };
+
+  try {
+    await deleteTemplateEntry(orgId, templateId, itemId);
+    return { ok: true as const };
+  } catch (err: any) {
+    if (err?.code === "P2025") {
+      return { ok: false as const, error: "Entry not found." };
+    }
+    return { ok: false as const, error: "Failed to delete entry." };
+  }
 }

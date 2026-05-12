@@ -93,9 +93,7 @@ export function AddRateForm({
         toast.error("error" in result ? result.error : "Failed to add rate.");
         return;
       }
-      if (result.ok) {
-        setRateList((prev) => [...prev, result.rate]);
-      }
+      setRateList((prev) => [...prev, result.rate]);
       toast.success("Rate added.");
     });
   }

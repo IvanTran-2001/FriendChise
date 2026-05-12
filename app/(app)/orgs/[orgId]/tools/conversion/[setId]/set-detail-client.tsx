@@ -16,6 +16,7 @@
 import { useState, useTransition } from "react";
 import { ChevronDown, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import {
@@ -165,53 +166,71 @@ export function SetDetailClient({
 
   function addFrom(item: { id: string }) {
     if (!activeTemplateId) return;
-    setFromIds((prev) => [...prev, item.id]);
-    setQuantities((prev) => ({ ...prev, [item.id]: "0" }));
     // if already on to-side, upgrade to both (3); otherwise from-only (1)
     const isAlsoTo = toIds.includes(item.id);
     startTransition(async () => {
-      await upsertTemplateEntryAction(orgId, activeTemplateId, item.id, 0, isAlsoTo ? 3 : 1);
+      const result = await upsertTemplateEntryAction(orgId, activeTemplateId, item.id, 0, isAlsoTo ? 3 : 1);
+      if (!result.ok) {
+        toast.error("error" in result ? result.error : "Failed to add item.");
+        return;
+      }
+      setFromIds((prev) => [...prev, item.id]);
+      setQuantities((prev) => ({ ...prev, [item.id]: "0" }));
     });
   }
 
   function removeFrom(id: string) {
     if (!activeTemplateId) return;
-    setFromIds((prev) => prev.filter((x) => x !== id));
-    setQuantities((prev) => { const { [id]: _, ...rest } = prev; return rest; });
     // if also on to-side, downgrade to to-only (2); otherwise delete
     const isAlsoTo = toIds.includes(id);
     startTransition(async () => {
+      let result;
       if (isAlsoTo) {
-        await upsertTemplateEntryAction(orgId, activeTemplateId, id, null, 2);
+        result = await upsertTemplateEntryAction(orgId, activeTemplateId, id, null, 2);
       } else {
-        await removeTemplateEntryAction(orgId, activeTemplateId, id);
+        result = await removeTemplateEntryAction(orgId, activeTemplateId, id);
       }
+      if (!result.ok) {
+        toast.error("error" in result ? result.error : "Failed to remove item.");
+        return;
+      }
+      setFromIds((prev) => prev.filter((x) => x !== id));
+      setQuantities((prev) => { const { [id]: _, ...rest } = prev; return rest; });
     });
   }
 
   function addTo(item: { id: string }) {
     if (!activeTemplateId) return;
-    setToIds((prev) => [...prev, item.id]);
     // if already on from-side, upgrade to both (3); otherwise to-only (2)
     const isAlsoFrom = fromIds.includes(item.id);
     const qty = isAlsoFrom ? parseFloat(quantities[item.id] ?? "") || 0 : null;
     startTransition(async () => {
-      await upsertTemplateEntryAction(orgId, activeTemplateId, item.id, qty, isAlsoFrom ? 3 : 2);
+      const result = await upsertTemplateEntryAction(orgId, activeTemplateId, item.id, qty, isAlsoFrom ? 3 : 2);
+      if (!result.ok) {
+        toast.error("error" in result ? result.error : "Failed to add item.");
+        return;
+      }
+      setToIds((prev) => [...prev, item.id]);
     });
   }
 
   function removeTo(id: string) {
     if (!activeTemplateId) return;
-    setToIds((prev) => prev.filter((x) => x !== id));
     // if also on from-side, downgrade to from-only (1); otherwise delete
     const isAlsoFrom = fromIds.includes(id);
     const qty = parseFloat(quantities[id] ?? "") || 0;
     startTransition(async () => {
+      let result;
       if (isAlsoFrom) {
-        await upsertTemplateEntryAction(orgId, activeTemplateId, id, qty, 1);
+        result = await upsertTemplateEntryAction(orgId, activeTemplateId, id, qty, 1);
       } else {
-        await removeTemplateEntryAction(orgId, activeTemplateId, id);
+        result = await removeTemplateEntryAction(orgId, activeTemplateId, id);
       }
+      if (!result.ok) {
+        toast.error("error" in result ? result.error : "Failed to remove item.");
+        return;
+      }
+      setToIds((prev) => prev.filter((x) => x !== id));
     });
   }
 
@@ -220,7 +239,10 @@ export function SetDetailClient({
     const qty = parseFloat(quantities[itemId] ?? "") || 0;
     const isAlsoTo = toIds.includes(itemId);
     startTransition(async () => {
-      await upsertTemplateEntryAction(orgId, activeTemplateId, itemId, qty, isAlsoTo ? 3 : 1);
+      const result = await upsertTemplateEntryAction(orgId, activeTemplateId, itemId, qty, isAlsoTo ? 3 : 1);
+      if (!result.ok) {
+        toast.error("error" in result ? result.error : "Failed to update quantity.");
+      }
     });
   }
 
