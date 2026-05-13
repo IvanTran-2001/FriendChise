@@ -14,7 +14,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Trash2 } from "lucide-react";
+import { Copy, Trash2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import {
   createConversionTemplateAction,
   deleteConversionTemplateAction,
+  duplicateConversionTemplateAction,
 } from "@/app/actions/tools";
 
 type Template = { id: string; name: string };
@@ -47,6 +48,7 @@ export function AddTemplateForm({
   const [search, setSearch] = useState("");
   const [isPending, startTransition] = useTransition();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
 
   // Resolve the active template from the URL (matching server logic)
   const urlTemplateId = searchParams.get("template");
@@ -95,6 +97,22 @@ export function AddTemplateForm({
         toast.success("Template deleted.");
       }
       setDeletingId(null);
+    });
+  }
+
+  function handleDuplicate(template: Template) {
+    setDuplicatingId(template.id);
+    startTransition(async () => {
+      const newName = `${template.name} (Copy)`;
+      const result = await duplicateConversionTemplateAction(orgId, setId, template.id, newName);
+      if (!result.ok) {
+        toast.error("error" in result ? result.error : "Failed to duplicate template.");
+      } else {
+        setTemplateList((prev) => [...prev, result.template]);
+        selectTemplate(result.template.id);
+        toast.success(`"${result.template.name}" created.`);
+      }
+      setDuplicatingId(null);
     });
   }
 
@@ -171,6 +189,15 @@ export function AddTemplateForm({
                       {t.name}
                     </span>
                   </button>
+                  <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleDuplicate(t); }}
+                      disabled={isPending && duplicatingId === t.id}
+                      className="shrink-0 text-muted-foreground hover:text-foreground transition-colors p-2"
+                      aria-label="Duplicate template"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </button>
                   {t.name !== "Default" && (
                     <button
                       type="button"

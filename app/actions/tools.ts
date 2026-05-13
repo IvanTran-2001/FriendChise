@@ -28,6 +28,7 @@ import {
   updateConversionRate,
   createConversionTemplate,
   deleteConversionTemplate,
+  duplicateConversionTemplate,
   upsertTemplateEntry,
   deleteTemplateEntry,
 } from "@/lib/services/tools";
@@ -332,6 +333,34 @@ export async function deleteConversionTemplateAction(
       P2025: "Template not found.",
     });
     return { ok: false as const, error: mappedError ?? "Failed to delete template." };
+  }
+}
+
+/**
+ * Duplicates an existing template (name + all entries) under a new name.
+ * Returns the new template so the client can switch to it immediately.
+ */
+export async function duplicateConversionTemplateAction(
+  orgId: string,
+  setId: string,
+  templateId: string,
+  newName: string,
+) {
+  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!auth.ok) return { ok: false as const };
+
+  const trimmed = newName.trim();
+  if (!trimmed) return { ok: false as const, error: "Name is required." };
+
+  try {
+    const template = await duplicateConversionTemplate(orgId, templateId, trimmed);
+    revalidatePath(`/orgs/${orgId}/tools/conversion/${setId}`);
+    return { ok: true as const, template };
+  } catch (err: unknown) {
+    const mappedError = mapPrismaError(err, {
+      P2002: "A template with that name already exists.",
+    });
+    return { ok: false as const, error: mappedError ?? "Failed to duplicate template." };
   }
 }
 

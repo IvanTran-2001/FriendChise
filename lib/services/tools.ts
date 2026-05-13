@@ -247,6 +247,41 @@ export async function createConversionTemplate(setId: string, name: string, orgI
 }
 
 /**
+ * Duplicates a template and all its entries into a new template with the given name.
+ * Runs in a single transaction so either everything succeeds or nothing changes.
+ */
+export async function duplicateConversionTemplate(
+  orgId: string,
+  templateId: string,
+  newName: string,
+) {
+  return prisma.$transaction(async (tx) => {
+    // Fetch source template (scoped to org)
+    const source = await tx.conversionTemplate.findFirst({
+      where: { id: templateId, set: { orgId } },
+      select: { setId: true, entries: { select: { itemId: true, quantity: true, pinnedOutput: true } } },
+    });
+    if (!source) throw new Error("Template not found or access denied");
+
+    const created = await tx.conversionTemplate.create({
+      data: {
+        setId: source.setId,
+        name: newName,
+        entries: {
+          create: source.entries.map((e) => ({
+            itemId: e.itemId,
+            quantity: e.quantity,
+            pinnedOutput: e.pinnedOutput,
+          })),
+        },
+      },
+      select: { id: true, name: true },
+    });
+    return created;
+  });
+}
+
+/**
  * Deletes a template and all its entries.
  * The "Default" template guard is enforced in the server action layer, not here.
  */
