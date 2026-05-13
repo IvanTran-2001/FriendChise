@@ -149,7 +149,9 @@ model Organization {
   tags                Tag[]
   timetableEntries    TimetableEntry[]
   timetableSettings   TimetableSettings?
-  templates           Template[]
+  timetableTemplates  TimetableTemplate[]
+  rosterEntries       RosterEntry[]
+  rosterDayConfigs    RosterDayConfig[]
   franchiseTokens     FranchiseToken[]
   invites             Invite[]
   auditLogs           AuditLog[]
@@ -185,7 +187,8 @@ model Membership {
 
   memberRoles         MemberRole[]
   taskAssignments     TimetableEntryAssignee[]
-  templateAssignments TemplateEntryAssignee[]
+  timetableTemplateAssignments TimetableTemplateEntryAssignee[]
+  rosterEntries                RosterEntry[]
 
   joinedAt      DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -284,7 +287,7 @@ model Task {
   eligibility           TaskEligibility[]
   tags                  TaskTag[]
   timetableEntries      TimetableEntry[]
-  templateEntries       TemplateEntry[]
+  timetableTemplateEntries TimetableTemplateEntry[]
 
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
@@ -424,10 +427,10 @@ model TimetableSettings {
 }
 
 // ─────────────────────────────────────
-// 14. TEMPLATE
+// 14. TIMETABLE TEMPLATE
 // ─────────────────────────────────────
 
-model Template {
+model TimetableTemplate {
   id              String   @id @default(cuid())
   name            String
 
@@ -436,7 +439,7 @@ model Template {
 
   cycleLengthDays Int      @default(7)
 
-  entries         TemplateEntry[]
+  entries         TimetableTemplateEntry[]
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -445,11 +448,11 @@ model Template {
   @@index([orgId])
 }
 
-model TemplateEntry {
+model TimetableTemplateEntry {
   id            String   @id @default(cuid())
 
   templateId    String
-  template      Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template      TimetableTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
   taskId        String
   task          Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
@@ -462,24 +465,63 @@ model TemplateEntry {
   startTimeMin  Int      // 0-1439
   endTimeMin    Int      // 0-1439
 
-  assignees     TemplateEntryAssignee[]
+  assignees     TimetableTemplateEntryAssignee[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
 
-model TemplateEntryAssignee {
+model TimetableTemplateEntryAssignee {
   id                String @id @default(cuid())
   templateEntryId   String
   membershipId      String
 
-  templateEntry     TemplateEntry @relation(fields: [templateEntryId], references: [id], onDelete: Cascade)
-  membership        Membership    @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  templateEntry     TimetableTemplateEntry @relation(fields: [templateEntryId], references: [id], onDelete: Cascade)
+  membership        Membership             @relation(fields: [membershipId], references: [id], onDelete: Cascade)
 
   createdAt         DateTime @default(now())
 
   @@unique([templateEntryId, membershipId])
   @@index([membershipId])
+}
+
+// ─────────────────────────────────────
+// ROSTER
+// ─────────────────────────────────────
+
+model RosterEntry {
+  id           String   @id @default(cuid())
+
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  membershipId String
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  weekStart    DateTime // Always Monday 00:00:00 UTC
+  dayIndex     Int      // 0=Mon … 6=Sun
+
+  note         String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([orgId, membershipId, weekStart, dayIndex])
+  @@index([orgId, weekStart])
+  @@index([membershipId])
+}
+
+model RosterDayConfig {
+  id              String @id @default(cuid())
+
+  orgId           String
+  organization    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  dayIndex        Int    // 0=Mon … 6=Sun
+  recommendedSize Int    @default(1)
+
+  @@unique([orgId, dayIndex])
+  @@index([orgId])
 }
 
 // ─────────────────────────────────────
