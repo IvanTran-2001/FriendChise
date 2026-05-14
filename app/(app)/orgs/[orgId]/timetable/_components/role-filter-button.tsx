@@ -36,6 +36,8 @@ interface RoleFilterButtonProps {
   /** The currently active role filter ID, or `null` for no filter. */
   selectedRoleId: string | null;
   orgId: string;
+  /** The currently active tag filter ID — preserved in generated hrefs. */
+  selectedTagId?: string | null;
 }
 
 function makeHref(
@@ -44,9 +46,11 @@ function makeHref(
   mode: string,
   span: string,
   roleId: string | null,
+  tagId?: string | null,
 ) {
   const params = new URLSearchParams({ anchor, mode, span });
   if (roleId) params.set("roleId", roleId);
+  if (tagId) params.set("tagId", tagId);
   return `/orgs/${orgId}/timetable?${params.toString()}`;
 }
 
@@ -57,6 +61,7 @@ export function RoleFilterButton({
   span,
   selectedRoleId,
   orgId,
+  selectedTagId,
 }: RoleFilterButtonProps) {
   if (roles.length === 0) return null;
 
@@ -84,6 +89,7 @@ export function RoleFilterButton({
                 mode,
                 span,
                 role.id === selectedRoleId ? null : role.id,
+                selectedTagId,
               )}
             >
               {role.id === selectedRoleId ? "✓ " : ""}
@@ -95,7 +101,7 @@ export function RoleFilterButton({
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href={makeHref(orgId, anchor, mode, span, null)}>
+              <Link href={makeHref(orgId, anchor, mode, span, null, selectedTagId)}>
                 Clear filter
               </Link>
             </DropdownMenuItem>

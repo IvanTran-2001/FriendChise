@@ -11,6 +11,7 @@ import { getOrgTimetableMeta } from "@/lib/services/orgs";
 import { getTasks } from "@/lib/services/tasks";
 import { getMemberships } from "@/lib/services/memberships";
 import { getRoles } from "@/lib/services/roles";
+import { getOrgTags } from "@/lib/services/tags";
 import { prisma } from "@/lib/prisma";
 import { TimetableClient } from "./timetable-client";
 import { TimetablePrefRedirect } from "./_components/timetable-pref-redirect";
@@ -28,6 +29,7 @@ export default async function TimetablePage({
     mode?: string | string[];
     span?: string | string[];
     roleId?: string | string[];
+    tagId?: string | string[];
   }>;
 }) {
   const { orgId } = await params;
@@ -38,6 +40,7 @@ export default async function TimetablePage({
   const modeParam = first(rawSearchParams.mode);
   const spanParam = first(rawSearchParams.span);
   const rawRoleId = first(rawSearchParams.roleId) ?? null;
+  const rawTagId = first(rawSearchParams.tagId) ?? null;
 
   const { userId } = await requireOrgMemberPage(orgId);
 
@@ -79,6 +82,7 @@ export default async function TimetablePage({
     memberships,
     currentMembership,
     orgRoles,
+    orgTags,
   ] = await Promise.all([
     getRangeTimetableInstances(orgId, orgTz, rangeStart, 13),
     getTimetableTemplates(orgId),
@@ -86,6 +90,7 @@ export default async function TimetablePage({
     getMemberships(orgId),
     getOrgMembership(orgId, userId),
     getRoles(orgId),
+    getOrgTags(orgId),
   ]);
 
   const canManageTimetable = currentMembership
@@ -126,6 +131,24 @@ export default async function TimetablePage({
     );
     filteredInstances = instances.filter((inst) =>
       eligibleTaskIds.has(inst.taskId),
+    );
+  }
+
+  // Filter instances by tag for the selected tag
+  const filterTags = orgTags.map((t) => ({ id: t.id, name: t.name, color: t.color }));
+  const selectedTagId =
+    rawTagId && filterTags.some((t) => t.id === rawTagId) ? rawTagId : null;
+  if (selectedTagId) {
+    const taggedTaskIds = new Set(
+      (
+        await prisma.taskTag.findMany({
+          where: { tagId: selectedTagId, task: { orgId } },
+          select: { taskId: true },
+        })
+      ).map((t) => t.taskId),
+    );
+    filteredInstances = filteredInstances.filter((inst) =>
+      taggedTaskIds.has(inst.taskId),
     );
   }
 
@@ -190,6 +213,7 @@ export default async function TimetablePage({
   const timetableHref = (m: string, s = span) => {
     const params = new URLSearchParams({ anchor, mode: m, span: s });
     if (rawRoleId) params.set("roleId", rawRoleId);
+    if (selectedTagId) params.set("tagId", selectedTagId);
     return `/orgs/${orgId}/timetable?${params.toString()}`;
   };
 
@@ -200,6 +224,8 @@ export default async function TimetablePage({
     span,
     selectedRoleId: rawRoleId,
     roles: filterRoles,
+    tags: filterTags,
+    selectedTagId,
     calendarHref: timetableHref("calendar"),
     simpleHref: timetableHref("simple"),
     dayHref: timetableHref(mode, "day"),

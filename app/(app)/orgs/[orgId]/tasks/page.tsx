@@ -1,5 +1,6 @@
 import { getTasks } from "@/lib/services/tasks";
 import { getRoles } from "@/lib/services/roles";
+import { getOrgTags } from "@/lib/services/tags";
 import { requireOrgMemberPage } from "@/lib/authz";
 import {
   getOrgMembership,
@@ -29,7 +30,7 @@ const TasksPage = async ({
   searchParams,
 }: {
   params: Promise<{ orgId: string }>;
-  searchParams: Promise<{ sort?: string; roleId?: string; view?: string }>;
+  searchParams: Promise<{ sort?: string; roleId?: string; view?: string; tagId?: string }>;
 }) => {
   const { orgId } = await params;
   const sp = await searchParams;
@@ -46,7 +47,7 @@ const TasksPage = async ({
       )
     : false;
 
-  const [tasks, roles] = await Promise.all([getTasks(orgId), getRoles(orgId)]);
+  const [tasks, roles, orgTags] = await Promise.all([getTasks(orgId), getRoles(orgId), getOrgTags(orgId)]);
 
   const sort: SortOption = VALID_SORT_VALUES.includes(sp.sort as SortOption)
     ? (sp.sort as SortOption)
@@ -56,6 +57,11 @@ const TasksPage = async ({
       ? sp.roleId
       : null;
   const view: "list" | "card" = sp.view === "card" ? "card" : "list";
+  const tags = orgTags.map((t) => ({ id: t.id, name: t.name, color: t.color }));
+  const tagId =
+    typeof sp.tagId === "string" && tags.some((t) => t.id === sp.tagId)
+      ? sp.tagId
+      : null;
 
   return (
     <>
@@ -64,9 +70,11 @@ const TasksPage = async ({
           <TasksSidebarContent
             orgId={orgId}
             roles={roles}
+            tags={tags}
             canManageTasks={canManageTasks}
             sort={sort}
             roleId={roleId}
+            tagId={tagId}
             view={view}
           />
         }
@@ -77,6 +85,7 @@ const TasksPage = async ({
         canManageTasks={canManageTasks}
         sort={sort}
         filterRoleId={roleId}
+        filterTagId={tagId}
         view={view}
       />
     </>

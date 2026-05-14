@@ -14,7 +14,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Copy, Trash2 } from "lucide-react";
+import { Check, Copy, Pencil, Trash2, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import {
   createConversionTemplateAction,
   deleteConversionTemplateAction,
   duplicateConversionTemplateAction,
+  renameConversionTemplateAction,
 } from "@/app/actions/tools";
 
 type Template = { id: string; name: string };
@@ -49,6 +50,8 @@ export function AddTemplateForm({
   const [isPending, startTransition] = useTransition();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
 
   // Resolve the active template from the URL (matching server logic)
   const urlTemplateId = searchParams.get("template");
@@ -116,6 +119,23 @@ export function AddTemplateForm({
     });
   }
 
+  function handleRename(templateId: string) {
+    const trimmed = editName.trim();
+    if (!trimmed) return;
+    startTransition(async () => {
+      const result = await renameConversionTemplateAction(orgId, setId, templateId, trimmed);
+      if (!result.ok) {
+        toast.error("error" in result ? result.error : "Failed to rename template.");
+      } else {
+        setTemplateList((prev) =>
+          prev.map((t) => (t.id === templateId ? { ...t, name: result.name } : t)),
+        );
+        setEditingId(null);
+        toast.success("Template renamed.");
+      }
+    });
+  }
+
   const filteredTemplates = search
     ? templateList.filter((t) =>
         t.name.toLowerCase().includes(search.toLowerCase()),
@@ -172,6 +192,60 @@ export function AddTemplateForm({
           <div className="flex flex-col gap-1">
             {filteredTemplates.map((t) => {
               const isActive = effectiveTemplateId === t.id;
+              const isEditing = editingId === t.id;
+              const isDefault = t.name === "Default";
+
+              if (isEditing) {
+                return (
+                  <div key={t.id} className="flex flex-col gap-1.5 rounded-lg border border-primary bg-primary/5 px-3 py-2">
+                    <Input
+                      autoFocus
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleRename(t.id);
+                        if (e.key === "Escape") setEditingId(null);
+                      }}
+                      className="h-7 text-sm"
+                      disabled={isPending}
+                    />
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => handleRename(t.id)}
+                          disabled={isPending || !editName.trim() || editName.trim() === t.name}
+                        >
+                          <Check className="h-3 w-3 mr-1" />
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => setEditingId(null)}
+                          disabled={isPending}
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Cancel
+                        </Button>
+                      </div>
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        onClick={() => handleDelete(t.id)}
+                        disabled={isPending && deletingId === t.id}
+                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        aria-label="Delete template"
+                      >
+                        <Trash2 />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <div key={t.id} className="flex items-center gap-1">
                   <button
@@ -179,35 +253,45 @@ export function AddTemplateForm({
                     onClick={() => selectTemplate(t.id)}
                     aria-pressed={isActive}
                     className={cn(
-                      "flex-1 flex items-center justify-between rounded-lg border bg-card px-3 py-2 cursor-pointer transition-colors",
-                      isActive
-                        ? "border-primary bg-primary/5"
-                        : "hover:border-primary/40",
+                      "flex-1 flex items-center justify-between rounded-lg border px-3 py-2 cursor-pointer transition-colors",
+                      isDefault
+                        ? isActive
+                          ? "border-amber-500 bg-amber-100 dark:bg-amber-900/50"
+                          : "border-amber-400/80 bg-amber-100/70 dark:bg-amber-950/30 hover:border-amber-500 hover:bg-amber-100"
+                        : isActive
+                          ? "border-primary bg-primary/5"
+                          : "bg-card hover:border-primary/40",
                     )}
                   >
-                    <span className={cn("text-sm font-medium truncate", isActive && "text-primary")}>
+                    <span className={cn(
+                      "text-sm font-medium truncate",
+                      isDefault ? "text-amber-800 dark:text-amber-300" : isActive && "text-primary",
+                    )}>
                       {t.name}
                     </span>
                   </button>
-                  <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); handleDuplicate(t); }}
-                      disabled={isPending && duplicatingId === t.id}
-                      className="shrink-0 text-muted-foreground hover:text-foreground transition-colors p-2"
-                      aria-label="Duplicate template"
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    onClick={(e) => { e.stopPropagation(); handleDuplicate(t); }}
+                    disabled={isPending && duplicatingId === t.id}
+                    aria-label="Duplicate template"
+                  >
+                    <Copy />
+                  </Button>
+                  {!isDefault && (
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingId(t.id);
+                        setEditName(t.name);
+                      }}
+                      aria-label="Edit template"
                     >
-                      <Copy className="h-3.5 w-3.5" />
-                    </button>
-                  {t.name !== "Default" && (
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); handleDelete(t.id); }}
-                      disabled={isPending && deletingId === t.id}
-                      className="shrink-0 text-muted-foreground hover:text-destructive transition-colors p-2"
-                      aria-label="Delete template"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                      <Pencil />
+                    </Button>
                   )}
                 </div>
               );

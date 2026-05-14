@@ -9,6 +9,7 @@
 import { RoleFilterButton } from "./role-filter-button";
 import { TimetableViewPicker } from "./timetable-view-picker";
 import { TimetableActions } from "./timetable-actions";
+import { TagFilterButton } from "@/components/ui/tag-filter-button";
 import { type TemplateOption } from "./apply-template-dialog";
 import type { SharedTask } from "../_shared/types";
 
@@ -19,6 +20,8 @@ interface TimetableSidebarContentProps {
   span: "day" | "week";
   selectedRoleId: string | null;
   roles: { id: string; name: string; color: string | null }[];
+  tags: { id: string; name: string; color: string }[];
+  selectedTagId: string | null;
   calendarHref: string;
   simpleHref: string;
   dayHref: string;
@@ -37,6 +40,8 @@ export function TimetableSidebarContent({
   span,
   selectedRoleId,
   roles,
+  tags,
+  selectedTagId,
   calendarHref,
   simpleHref,
   dayHref,
@@ -61,8 +66,22 @@ export function TimetableSidebarContent({
             mode={mode}
             span={span}
             selectedRoleId={selectedRoleId}
+            selectedTagId={selectedTagId}
             orgId={orgId}
           />
+          {tags.length > 0 && (
+            <TagFilterButton
+              tags={tags}
+              selectedTagId={selectedTagId}
+              basePath={`/orgs/${orgId}/timetable`}
+              extraParams={{
+                anchor,
+                mode,
+                span,
+                ...(selectedRoleId ? { roleId: selectedRoleId } : {}),
+              }}
+            />
+          )}
           <TimetableViewPicker
             mode={mode}
             span={span}

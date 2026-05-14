@@ -294,6 +294,18 @@ export async function deleteConversionTemplate(
   });
 }
 
+/** Renames a conversion template. Uses `updateMany` for implicit org-scope safety. */
+export async function renameConversionTemplate(
+  orgId: string,
+  templateId: string,
+  name: string,
+) {
+  return prisma.conversionTemplate.updateMany({
+    where: { id: templateId, set: { orgId } },
+    data: { name },
+  });
+}
+
 // ─── ConversionTemplateEntry ──────────────────────────────────────────────────
 
 /**

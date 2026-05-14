@@ -22,25 +22,31 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { TagFilterButton } from "@/components/ui/tag-filter-button";
 import { SORT_OPTIONS, type SortOption } from "./tasks-config";
 
 type Role = { id: string; name: string };
+type Tag = { id: string; name: string; color: string };
 
 interface TasksSidebarContentProps {
   orgId: string;
   roles: Role[];
+  tags: Tag[];
   canManageTasks: boolean;
   sort: SortOption;
   roleId: string | null;
+  tagId: string | null;
   view: "list" | "card";
 }
 
 export function TasksSidebarContent({
   orgId,
   roles,
+  tags,
   canManageTasks,
   sort,
   roleId,
+  tagId,
   view,
 }: TasksSidebarContentProps) {
   const router = useRouter();
@@ -48,12 +54,14 @@ export function TasksSidebarContent({
   function buildHref(overrides: {
     sort?: SortOption;
     roleId?: string | null;
+    tagId?: string | null;
     view?: "list" | "card";
   }) {
     const params = new URLSearchParams();
-    const next = { sort, roleId, view, ...overrides };
+    const next = { sort, roleId, tagId, view, ...overrides };
     if (next.sort && next.sort !== "name-asc") params.set("sort", next.sort);
     if (next.roleId) params.set("roleId", next.roleId);
+    if (next.tagId) params.set("tagId", next.tagId);
     if (next.view && next.view !== "list") params.set("view", next.view);
     const qs = params.toString();
     return `/orgs/${orgId}/tasks${qs ? `?${qs}` : ""}`;
@@ -141,6 +149,20 @@ export function TasksSidebarContent({
               { value: "card", label: <LayoutGrid className="h-4 w-4" /> },
             ]}
           />
+
+          {/* Tag filter */}
+          {tags.length > 0 && (
+            <TagFilterButton
+              tags={tags}
+              selectedTagId={tagId}
+              basePath={`/orgs/${orgId}/tasks`}
+              extraParams={{
+                ...(sort !== "name-asc" ? { sort } : {}),
+                ...(roleId ? { roleId } : {}),
+                ...(view !== "list" ? { view } : {}),
+              }}
+            />
+          )}
         </div>
       </div>
 

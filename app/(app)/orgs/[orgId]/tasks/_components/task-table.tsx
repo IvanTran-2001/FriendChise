@@ -69,6 +69,7 @@ type Task = {
   durationMin: number;
   minPeople: number;
   eligibility: { role: { id: string; name: string; color: string | null } }[];
+  tags: { tag: { id: string; name: string; color: string } }[];
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -79,6 +80,7 @@ interface TaskTableProps {
   canManageTasks: boolean;
   sort: SortOption;
   filterRoleId: string | null;
+  filterTagId: string | null;
   view: "list" | "card";
 }
 
@@ -88,6 +90,7 @@ export function TaskTable({
   canManageTasks,
   sort,
   filterRoleId,
+  filterTagId,
   view,
 }: TaskTableProps) {
   const router = useRouter();
@@ -102,6 +105,11 @@ export function TaskTable({
   if (filterRoleId) {
     visible = visible.filter((t) =>
       t.eligibility.some((e) => e.role.id === filterRoleId),
+    );
+  }
+  if (filterTagId) {
+    visible = visible.filter((t) =>
+      t.tags.some((tt) => tt.tag.id === filterTagId),
     );
   }
 

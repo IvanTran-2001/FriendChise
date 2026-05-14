@@ -28,6 +28,7 @@ import {
   updateConversionRate,
   createConversionTemplate,
   deleteConversionTemplate,
+  renameConversionTemplate,
   duplicateConversionTemplate,
   upsertTemplateEntry,
   deleteTemplateEntry,
@@ -333,6 +334,33 @@ export async function deleteConversionTemplateAction(
       P2025: "Template not found.",
     });
     return { ok: false as const, error: mappedError ?? "Failed to delete template." };
+  }
+}
+
+/**
+ * Renames an existing template. Protects "Default" from being renamed.
+ */
+export async function renameConversionTemplateAction(
+  orgId: string,
+  setId: string,
+  templateId: string,
+  name: string,
+) {
+  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!auth.ok) return { ok: false as const };
+
+  const trimmed = name.trim();
+  if (!trimmed) return { ok: false as const, error: "Name is required." };
+
+  try {
+    await renameConversionTemplate(orgId, templateId, trimmed);
+    revalidatePath(`/orgs/${orgId}/tools/conversion/${setId}`);
+    return { ok: true as const, name: trimmed };
+  } catch (err: unknown) {
+    const mappedError = mapPrismaError(err, {
+      P2002: "A template with that name already exists.",
+    });
+    return { ok: false as const, error: mappedError ?? "Failed to rename template." };
   }
 }
 
