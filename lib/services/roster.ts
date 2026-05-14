@@ -189,6 +189,10 @@ export async function upsertRosterDayConfig(
 
 // ─── Roster Templates ─────────────────────────────────────────────────────────
 
+/**
+ * Returns a summary list of all roster templates for the org, ordered by creation date.
+ * Includes `_count.entries` so the list view can show how many cells are filled.
+ */
 export async function getRosterTemplates(orgId: string) {
   return prisma.rosterTemplate.findMany({
     where: { orgId },
@@ -203,6 +207,10 @@ export async function getRosterTemplates(orgId: string) {
   });
 }
 
+/**
+ * Returns a single roster template with all entries expanded (membership + user name).
+ * Returns null if the template doesn't exist or doesn't belong to the org.
+ */
 export async function getRosterTemplate(orgId: string, templateId: string) {
   return prisma.rosterTemplate.findFirst({
     where: { id: templateId, orgId },
@@ -229,6 +237,11 @@ export type RosterTemplateCellMember = {
   shiftEndMin: number | null;
 };
 
+/**
+ * Replaces all entries in a single (weekIndex, dayIndex) cell of a roster template.
+ * Validates that weekIndex is within the template's cycleWeeks and that all
+ * membershipIds belong to the org. Runs delete + insert in a transaction.
+ */
 export async function setRosterTemplateCellMembers(
   orgId: string,
   templateId: string,
@@ -279,6 +292,10 @@ export async function setRosterTemplateCellMembers(
   return { ok: true, data: null };
 }
 
+/**
+ * Creates a new roster template for the org. Name must be unique within the org.
+ * `cycleWeeks` defaults to 1 and is capped at 12.
+ */
 export async function createRosterTemplate(
   orgId: string,
   name: string,
@@ -302,6 +319,9 @@ export async function createRosterTemplate(
   return { ok: true, data: template };
 }
 
+/**
+ * Deletes a roster template and all its entries (cascade via Prisma schema).
+ */
 export async function deleteRosterTemplate(
   orgId: string,
   templateId: string,
@@ -316,6 +336,9 @@ export async function deleteRosterTemplate(
   return { ok: true, data: null };
 }
 
+/**
+ * Renames a roster template. The new name must be unique within the org.
+ */
 export async function renameRosterTemplate(
   orgId: string,
   templateId: string,
@@ -343,6 +366,10 @@ export async function renameRosterTemplate(
   return { ok: true, data: null };
 }
 
+/**
+ * Changes `cycleWeeks` on a roster template. Rejects the update if any existing
+ * entries have a `weekIndex >= cycleWeeks` (would become unreachable).
+ */
 export async function updateRosterTemplateCycleWeeks(
   orgId: string,
   templateId: string,
@@ -375,6 +402,9 @@ export async function updateRosterTemplateCycleWeeks(
   return { ok: true, data: null };
 }
 
+/**
+ * Removes all entries in a single week column from a roster template.
+ */
 export async function clearRosterTemplateWeek(
   orgId: string,
   templateId: string,
@@ -392,6 +422,12 @@ export async function clearRosterTemplateWeek(
   return { ok: true, data: null };
 }
 
+/**
+ * Stamps a roster template onto the live roster starting at `startMonday`.
+ * Repeats the full cycle `cycleRepeats` times (total weeks = cycleWeeks × cycleRepeats).
+ * If `force` is false and any target week already has entries, returns CONFLICT.
+ * If `force` is true, all existing entries in the affected weeks are replaced.
+ */
 export async function applyRosterTemplate(
   orgId: string,
   templateId: string,

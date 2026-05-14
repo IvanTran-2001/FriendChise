@@ -94,9 +94,13 @@ Provider: PostgreSQL (Supabase), managed via Prisma ORM.
 | `TimetableEntry`           | A scheduled task occurrence with date, start/end times, status, and assignees.                                                                                                                                                                                                                                                                                  |
 | `TimetableEntryAssignee`   | Links a `Membership` to a `TimetableEntry` (many-to-many).                                                                                                                                                                                                                                                                                                      |
 | `TimetableSettings`        | Per-org timetable display preferences (view type, start day, slot duration).                                                                                                                                                                                                                                                                                    |
-| `Template`                 | A reusable schedule template with a `cycleLengthDays`. Contains `TemplateEntry` rows.                                                                                                                                                                                                                                                                           |
-| `TemplateEntry`            | One time slot in a `Template` — which task, which day index, start/end times.                                                                                                                                                                                                                                                                                   |
-| `TemplateEntryAssignee`    | Pre-assigns a `Membership` to a `TemplateEntry`.                                                                                                                                                                                                                                                                                                                |
+| `TimetableTemplate`        | A reusable schedule template with a `cycleLengthDays`. Contains `TimetableTemplateEntry` rows.                                                                                                                                                                                                                                                                  |
+| `TimetableTemplateEntry`   | One time slot in a `TimetableTemplate` — which task, which day index, start/end times.                                                                                                                                                                                                                                                                          |
+| `TimetableTemplateEntryAssignee` | Pre-assigns a `Membership` to a `TimetableTemplateEntry`.                                                                                                                                                                                                                                                                                               |
+| `RosterEntry`              | One shift assignment: a membership assigned to a specific `weekStart` + `dayIndex` combination, with optional `shiftStartMin`/`shiftEndMin`.                                                                                                                                                                                                                     |
+| `RosterDayConfig`          | Per-org day configuration for the roster grid: `recommendedSize` (target headcount), optional `openTimeMin`/`closeTimeMin` for the default shift time range.                                                                                                                                                                                                     |
+| `RosterTemplate`           | A reusable roster staffing pattern with a `cycleWeeks` (1–12). Contains `RosterTemplateEntry` rows that can be stamped onto the live roster.                                                                                                                                                                                                                     |
+| `RosterTemplateEntry`      | One shift slot in a `RosterTemplate` — which member, which `weekIndex` (0-based within the cycle), which `dayIndex` (0 = Mon … 6 = Sun), optional `shiftStartMin`/`shiftEndMin`.                                                                                                                                                                                |
 | `FranchiseToken`           | One-time invite token issued by a parent org for a franchisee to join.                                                                                                                                                                                                                                                                                          |
 | `Invite`                   | A member or franchise invite sent to a `User`. Carries a status (`PENDING`/`ACCEPTED`/`DECLINED`), snapshot fields for the org name and inviter name, and a JSON `metadata` blob with the roleIds/workingDays pre-filled for the accept step. Visible in the notification panel.                                                                                |
 | `AuditLog`                 | Append-only record of significant org mutations. Stores `action` (e.g. `task.create`), `entityType`, `entityId`, optional `before`/`after` JSON snapshots, the `actorId` who triggered the change, and a `createdAt` timestamp. Scoped per org. Actor is nullable (set to `NULL` on user deletion via `onDelete: SetNull`). Org deletion cascades all its logs. |
@@ -142,6 +146,12 @@ pnpm seed
 | `20260414045652_add_invite_snapshots`  | Add snapshot fields (`orgName`, `inviterName`) to `Invite` so cards render without joins                                                                                                                         |
 | `20260415021658_invite_pending_unique` | Partial unique index on `Invite(orgId, recipientId, type)` where `status = 'PENDING'` — DB-level guard against duplicate pending invites                                                                         |
 | _(schema push)_                        | `AuditLog` model added (`orgId`, `actorId`, `action`, `entityType`, `entityId`, `before`, `after`, `createdAt`). Applied via `pnpm prisma db push` (dev DB had migration drift — no timestamped migration file). |
+| `20260513023554_rename_template_to_timetable_template_add_roster` | Rename `Template`/`TemplateEntry`/`TemplateEntryAssignee` → `TimetableTemplate`/`TimetableTemplateEntry`/`TimetableTemplateEntryAssignee` using `ALTER TABLE ... RENAME TO` (data-safe). Add `RosterEntry` and `RosterDayConfig` tables with shift-time and day-config columns. |
+| `20260513030121_add_shift_times_to_roster_entry` | Add `shiftStartMin`/`shiftEndMin` (nullable `Int`) to `RosterEntry`.                                                                                                                          |
+| `20260513031027_add_open_close_time_to_roster_day_config` | Add `openTimeMin`/`closeTimeMin` (nullable `Int`) to `RosterDayConfig`.                                                                                                             |
+| `20260513122627_add_roster_template`   | Add `RosterTemplate` and `RosterTemplateEntry` tables with cascade deletes and a composite unique index on `(templateId, membershipId, weekIndex, dayIndex)`.                                                     |
+| `20260513123326_roster_template_cycle_weeks` | Add `cycleWeeks Int @default(1)` to `RosterTemplate`.                                                                                                                                        |
+| `20260514000000_add_check_constraints` | DB-level CHECK constraints enforcing field bounds: time fields 0–1440, `dayIndex` 0–6, `cycleWeeks` 1–12.                                                                                                        |
 
 ## Authentication
 
@@ -284,10 +294,30 @@ app/
                 add-item-form.tsx         # Create ToolItem (org-scoped, shared across sets)
                 add-rate-form.tsx         # Create/delete ConversionRate; unit abbreviation helper (≤4 chars kept, longer → first+last letter)
                 add-template-form.tsx     # Create/delete/switch ConversionTemplate; URL-driven active state via ?template=<id>
-          roster/         # Roster tool (stub)
-            page.tsx      # Server page; registers RosterSidebarContent as page sidebar
+          roster/         # Roster tool — weekly shift grid + templates
+            page.tsx      # Server page; fetches week range, members, day configs; registers RosterSidebarContent
             _components/
-              roster-sidebar-content.tsx  # Title row + Back link
+              roster-sidebar-content.tsx  # Title row + Back + Templates link + Edit Day Config action
+              roster-board-constants.ts   # Grid dimension constants (cell width, day labels) shared by board and template board
+              roster-board.tsx            # Scrollable 7-row × N-week grid; each cell opens EditCellDialog
+              roster-client.tsx           # Week navigation state + board rendering
+              roster-page-client.tsx      # Combines RosterClient with sticky toolbar (week range label)
+              edit-cell-dialog.tsx        # Dialog: assign members + shift start/end for one (week, day) cell
+              edit-day-config-dialog.tsx  # Dialog: set recommendedSize + open/close times for a day column
+              apply-template-panel.tsx    # ActionSidebar panel: pick template, start date, repeat count, force checkbox
+            _utils/
+              time-utils.ts              # Shared: formatMinutes, timeToMinutes, hoursWorked
+            templates/
+              page.tsx                   # Server page; lists all roster templates; registers RosterTemplatesSidebarContent
+              _components/
+                roster-templates-client.tsx         # Template list (card view); Create/Rename/Delete actions
+                roster-templates-sidebar-content.tsx # Sidebar: Back link + Create Template action
+              [templateId]/
+                page.tsx                 # Server page; fetches template + entries + members
+                _components/
+                  roster-template-editor-client.tsx  # Cycle stepper (+ / − weeks), column-paged board; ResizeObserver for visible column count
+                  roster-template-board.tsx          # Template grid: weekIndex columns × 7 day rows; each cell opens EditTemplateCellPanel in ActionSidebar
+                  edit-template-cell-panel.tsx       # ActionSidebar panel: assign members + shift times for one (weekIndex, day) cell
         franchisee/       # Franchise management (parent org owners only)
         memberships/      # Members list, role filter, list/card toggle, invite/add actions
           layout.tsx            # Registers MembersSidebarShell for all memberships routes
@@ -561,6 +591,71 @@ All write actions require `MANAGE_TASKS` permission.
 | `upsertTemplateEntryAction` | Save a calculator item slot (add/update) |
 | `removeTemplateEntryAction` | Remove a calculator item slot |
 
+## Roster Tool
+
+The Roster tool (`/orgs/[orgId]/tools/roster`) is a shift-scheduling grid for managing weekly staff assignments. It supports live editing, reusable multi-week templates, and a one-click apply-to-roster workflow.
+
+### Data model
+
+```
+RosterDayConfig        — per-org day settings (recommendedSize, openTimeMin, closeTimeMin)
+RosterEntry            — one shift: membership + weekStart + dayIndex + optional shift times
+RosterTemplate         — reusable pattern with cycleWeeks (1–12)
+  └─ RosterTemplateEntry — one slot: membership + weekIndex + dayIndex + optional shift times
+```
+
+### Service layer (`lib/services/roster.ts`)
+
+| Function | Description |
+| --- | --- |
+| `getOrgSchedule(orgId)` | Returns org default `openTimeMin`, `closeTimeMin`, `timezone` |
+| `hasRosterActivity(orgId)` | Returns true if the org has any roster entries, day configs, or templates |
+| `getRosterEntries(orgId, weekStarts)` | Fetches entries for a list of week-start dates |
+| `getRosterDayConfigs(orgId)` | Returns all day configs ordered by `dayIndex` |
+| `getOrgMembersForRoster(orgId)` | Active members for the cell member picker |
+| `setRosterCellMembers(orgId, weekStart, dayIndex, members)` | Replaces the member list for one (weekStart, dayIndex) cell in a transaction |
+| `upsertRosterDayConfig(orgId, dayIndex, data)` | Upserts `recommendedSize`, `openTimeMin`, `closeTimeMin` for a day |
+| `getRosterTemplates(orgId)` | Lists all templates with entry count |
+| `getRosterTemplate(orgId, templateId)` | Fetches a single template with expanded entries |
+| `createRosterTemplate(orgId, name, cycleWeeks)` | Creates a template; name must be unique within the org |
+| `deleteRosterTemplate(orgId, templateId)` | Deletes a template and all its entries |
+| `renameRosterTemplate(orgId, templateId, name)` | Renames with uniqueness check |
+| `setRosterTemplateCellMembers(orgId, templateId, weekIndex, dayIndex, members)` | Replaces entries for one template cell in a transaction |
+| `updateRosterTemplateCycleWeeks(orgId, templateId, cycleWeeks)` | Resizes the cycle; blocked if entries exist in the removed range |
+| `clearRosterTemplateWeek(orgId, templateId, weekIndex)` | Deletes all entries in one week column of a template |
+| `applyRosterTemplate(orgId, templateId, startMonday, cycleRepeats, force)` | Stamps the template onto the live roster starting from `startMonday`, repeating `cycleRepeats` times |
+
+### Server actions (`app/actions/roster.ts`)
+
+All write actions require `MANAGE_TIMETABLE` permission.
+
+| Action | Description |
+| --- | --- |
+| `setRosterCellMembersAction` | Replace members for a live roster cell |
+| `upsertRosterDayConfigAction` | Save day config (recommended size + open/close times) |
+| `createRosterTemplateAction` | Create a template; returns `templateId` on success |
+| `deleteRosterTemplateAction` | Delete a template |
+| `renameRosterTemplateAction` | Rename a template |
+| `setRosterTemplateCellMembersAction` | Replace members for a template cell |
+| `updateRosterTemplateCycleWeeksAction` | Resize the cycle (blocked if out-of-range entries exist) |
+| `clearRosterTemplateWeekAction` | Clear all entries in one week column |
+| `applyRosterTemplateAction` | Apply a template to the live roster; accepts ISO date string + repeat count + force flag |
+
+### Apply workflow
+
+1. From the live roster page, click **Apply Template** in the sidebar.
+2. The `ApplyTemplatePanel` shows a template picker, a start-date input (any day in the target week), and a repeat count.
+3. On submit, `applyRosterTemplateAction` normalizes the date to the nearest Monday, runs a conflict check, and on conflict returns `{ conflict: true }` — the panel shows a confirmation asking to overwrite.
+4. Confirming re-submits with `force: true`, which deletes then re-creates all entries in the affected weeks atomically.
+
+### Shared time utilities (`_utils/time-utils.ts`)
+
+| Export | Description |
+| --- | --- |
+| `formatMinutes(min)` | Integer minutes → `"HH:MM"` string (e.g. 90 → `"01:30"`) |
+| `timeToMinutes(time)` | `"HH:MM"` string → integer minutes, or `null` for invalid input |
+| `hoursWorked(start, end)` | Duration string (e.g. `"7h 30m"`) from two nullable minute offsets |
+
 ## Server Actions vs API Routes
 
 | Path               | Used by                              | Location       |
@@ -585,7 +680,9 @@ Server Actions call `revalidatePath` to invalidate the Next.js cache so server-r
 | `/orgs/[orgId]/tools/item-list`                  | `requireOrgMemberPage`                     | Item List tool stub — own page sidebar with Back link                                                                                                      |
 | `/orgs/[orgId]/tools/conversion`                 | `requireOrgMemberPage`                     | Conversion tool — lists all ConversionSets for the org; sidebar: Back + "Add Set" action                                                                   |
 | `/orgs/[orgId]/tools/conversion/[setId]`         | `requireOrgMemberPage`                     | Conversion calculator — two-column From/To grid with live calculations; template switcher dropdown in toolbar; template state persisted in DB via `ConversionTemplateEntry`; sidebar: Items · Rates · Templates actions |
-| `/orgs/[orgId]/tools/roster`                     | `requireOrgMemberPage`                     | Roster tool stub — own page sidebar with Back link                                                                                                         |
+| `/orgs/[orgId]/tools/roster`                     | `requireOrgMemberPage`                     | Roster tool — scrollable weekly shift grid (Mon–Sun rows × multi-week columns); week navigation; Edit Day Config + Apply Template actions in sidebar        |
+| `/orgs/[orgId]/tools/roster/templates`           | `requireOrgMemberPage`                     | Roster template list — card view; MANAGE_TIMETABLE holders can create, rename, and delete templates                                                         |
+| `/orgs/[orgId]/tools/roster/templates/[templateId]` | `requireOrgMemberPage`                  | Roster template editor — cycle-week stepper, column-paged board (7 day rows × cycleWeeks columns); clicking a cell opens the member/shift-time panel        |
 | `/orgs/[orgId]/franchisee`                       | `requireParentOrgOwnerPage`                | Franchise management — invite tokens + franchisee list                                                                                                     |
 | `/orgs/[orgId]/tasks`                            | `requireOrgMemberPage`                     | Task definition list — sort, role filter, list/card toggle in sidebar; search in toolbar; Create Task action in sidebar (managers only)                    |
 | `/orgs/[orgId]/tasks/new`                        | `requireOrgPermissionPage MANAGE_TASKS`    | Create task — includes color picker                                                                                                                        |
@@ -648,6 +745,8 @@ A parent org can spawn franchisee orgs using a one-time invite token flow:
 - **Timetable** — Calendar and Simple mode toggle, week navigation via `?week=` and `?mode=` params. Calendar view uses absolute positioning for task blocks; overlapping tasks get side-by-side columns. Status colours: gray = TODO, amber = IN_PROGRESS, green = DONE, red = SKIPPED.
 - **Fixed toolbar / scroll containment** — `h-dvh` on `SidebarProvider` + `overflow-hidden` on `SidebarInset` keep the body from scrolling so toolbars can stay visually fixed. The `<main>` element is the actual scroll container. Child pages that need a pinned toolbar use `flex flex-col h-full` on their root, a static `<Toolbar>` at the top, and a `flex-1 overflow-auto` div below it for the scrollable list. Negative horizontal margins on the scrollable div cancel `<main>`'s padding so the list extends edge-to-edge.
 - **Template editor** — Two view modes (Calendar / Simple) toggled via a segmented control and persisted in `localStorage`. **Calendar** mode shows a drag-and-drop time grid; tasks are dragged from a sidebar panel (desktop) or a bottom sheet (mobile); adaptive column count based on container width via `ResizeObserver`. **Simple** mode shows a day-by-day table sorted by start time; clicking a row opens an inline popup to adjust time and assignees. Both modes share day/week navigation and +/− cycle-length controls.
+- **Roster tool** — A scrollable week-by-week shift assignment grid. Days (Mon–Sun) are rows; each week column represents one calendar week identified by its Monday `weekStart` date. Clicking a cell opens a dialog to assign org members and optional shift start/end times. Day columns carry a configurable `recommendedSize` badge and optional open/close time range. Week navigation shifts the visible window by one week.
+- **Roster templates** — Reusable multi-week staffing patterns. A template has a `cycleWeeks` (1–12); the editor shows a 7-row × cycleWeeks-column grid. Clicking a cell opens an `ActionSidebar` panel to assign members and shift times. The +/− stepper adds/removes week columns — removing a column is blocked when entries exist in the last week. Applying a template (via the Apply Template panel on the live roster page) stamps the pattern starting from a selected Monday, repeating it `N` times; a conflict check prevents overwriting existing entries unless the force checkbox is ticked.
 - **Template list management** — MANAGE_TASKS holders see a ··· dropdown on each template (card and list view) with Rename (inline Dialog), Duplicate ("Copy of …" with collision suffix), and Delete (AlertDialog confirmation). Mutations call `revalidatePath` so the list refreshes without a full reload.
 - **Task descriptions** — Task descriptions are stored as GFM markdown and rendered via `react-markdown` + `remark-gfm` on the task detail page. The task list (card and table views) strips markdown via a lightweight `stripMd()` helper for plain-text previews.
 - **Task table** — `TaskTable` client component: search, sort (name/duration/people), role filter, row `···` menu (Edit / Duplicate / Delete with confirm). Clicking the row navigates to the task detail page.

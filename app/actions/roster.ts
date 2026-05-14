@@ -1,3 +1,9 @@
+/**
+ * @file app/actions/roster.ts
+ * Server actions for the Roster tool.
+ * All write actions require MANAGE_TIMETABLE permission.
+ * Thin wrappers: validate auth → delegate to lib/services/roster → revalidatePath.
+ */
 "use server";
 
 import { PermissionAction } from "@prisma/client";
