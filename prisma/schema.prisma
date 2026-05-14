@@ -197,6 +197,7 @@ model Membership {
 
   // Real users: one membership per org. Bots have null userId so no unique conflict.
   @@unique([userId, orgId])
+  @@unique([id, orgId])
   @@index([orgId])
   @@index([userId])
 }
@@ -497,8 +498,9 @@ model RosterEntry {
   orgId        String
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  membershipId String
-  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  membershipId    String
+  membershipOrgId String
+  membership      Membership @relation(fields: [membershipId, membershipOrgId], references: [id, orgId], onDelete: Cascade)
 
   weekStart    DateTime // Always Monday 00:00:00 UTC
   dayIndex     Int      // 0=Mon … 6=Sun
@@ -554,8 +556,9 @@ model RosterTemplateEntry {
   templateId   String
   template     RosterTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
-  membershipId String
-  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  membershipId    String
+  membershipOrgId String
+  membership      Membership @relation(fields: [membershipId, membershipOrgId], references: [id, orgId], onDelete: Cascade)
 
   weekIndex     Int   @default(0) // 0-based week within the template cycle
   dayIndex      Int   // 0=Mon … 6=Sun

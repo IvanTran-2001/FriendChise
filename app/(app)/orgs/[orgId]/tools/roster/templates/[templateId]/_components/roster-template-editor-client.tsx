@@ -220,9 +220,16 @@ export function RosterTemplateEditorClient({
   }, []);
 
   // Clamp offset when cycleWeeks shrinks
+  useEffect(() => {
+    const maxOffset = Math.max(0, cycleWeeks - visibleCount);
+    const clampedOffset = Math.min(weekOffset, maxOffset);
+    if (clampedOffset !== weekOffset) {
+      setWeekOffset(clampedOffset);
+    }
+  }, [cycleWeeks, visibleCount, weekOffset]);
+
   const maxOffset = Math.max(0, cycleWeeks - visibleCount);
   const clampedOffset = Math.min(weekOffset, maxOffset);
-  if (clampedOffset !== weekOffset) setWeekOffset(clampedOffset);
 
   const shown = Math.min(visibleCount, cycleWeeks);
   const weekIndices = Array.from({ length: shown }, (_, i) => i + clampedOffset);

@@ -120,21 +120,23 @@ export const NavBar = async () => {
                   variant="ghost"
                   size="icon"
                   aria-label="Open user menu"
-                  className="h-7 w-7 rounded-full bg-primary hover:bg-primary/90 overflow-hidden p-0 flex items-center justify-center"
+                  className="h-10 w-10 min-h-[40px] min-w-[40px] rounded-full hover:bg-accent p-0 flex items-center justify-center"
                 >
-                  {user.image ? (
-                    <Image
-                      src={user.image}
-                      alt={user.name ?? "User"}
-                      width={28}
-                      height={28}
-                      className="rounded-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-xs font-semibold text-primary-foreground">
-                      {user.name?.[0]?.toUpperCase() ?? "?"}
-                    </span>
-                  )}
+                  <div className="h-7 w-7 rounded-full bg-primary hover:bg-primary/90 overflow-hidden flex items-center justify-center">
+                    {user.image ? (
+                      <Image
+                        src={user.image}
+                        alt={user.name ?? "User"}
+                        width={28}
+                        height={28}
+                        className="rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs font-semibold text-primary-foreground">
+                        {user.name?.[0]?.toUpperCase() ?? "?"}
+                      </span>
+                    )}
+                  </div>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">

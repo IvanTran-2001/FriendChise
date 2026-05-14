@@ -174,7 +174,9 @@ export async function applyRosterTemplateAction(
   const parsed = new Date(startDateStr + "T00:00:00Z");
   if (isNaN(parsed.getTime())) return { ok: false, error: "Invalid date" };
   const day = parsed.getUTCDay();
-  const diff = day === 0 ? -6 : 1 - day;
+  const prev = 1 - day;
+  const next = prev + 7;
+  const diff = Math.abs(prev) <= Math.abs(next) ? prev : next;
   parsed.setUTCDate(parsed.getUTCDate() + diff);
 
   const result = await applyRosterTemplate(orgId, templateId, parsed, cycleRepeats, force);

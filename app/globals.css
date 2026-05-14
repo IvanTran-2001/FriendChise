@@ -61,12 +61,12 @@ body {
 
   /* Shift the entire font-weight scale up slightly so all utilities
      (font-normal, font-medium, etc.) render a bit heavier. */
-  --font-weight-thin: 730;
-  --font-weight-extralight: 730;
-  --font-weight-light: 730;
-  --font-weight-normal: 730;
-  --font-weight-medium: 730;
-  --font-weight-semibold: 730;
+  --font-weight-thin: 130;
+  --font-weight-extralight: 230;
+  --font-weight-light: 330;
+  --font-weight-normal: 430;
+  --font-weight-medium: 530;
+  --font-weight-semibold: 630;
   --font-weight-bold: 730;
   --font-weight-extrabold: 830;
   --font-weight-black: 920;

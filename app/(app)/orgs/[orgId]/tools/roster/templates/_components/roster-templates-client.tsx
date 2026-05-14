@@ -71,6 +71,7 @@ export function RosterTemplatesClient({
   canManage,
 }: RosterTemplatesClientProps) {
   const sidebar = useActionSidebar();
+  const router = useRouter();
 
   if (templates.length === 0) {
     return (
@@ -114,7 +115,7 @@ export function RosterTemplatesClient({
                   title="Edit"
                   onClick={(e) => {
                     e.preventDefault();
-                    window.location.href = `/orgs/${orgId}/tools/roster/templates/${t.id}`;
+                    router.push(`/orgs/${orgId}/tools/roster/templates/${t.id}`);
                   }}
                 >
                   <Pencil className="h-3.5 w-3.5" />

@@ -17,8 +17,12 @@ function minToTime(min: number | null): string {
 
 function timeToMin(time: string): number | null {
   if (!time) return null;
-  const [h, m] = time.split(":").map(Number);
+  const parts = time.split(":");
+  if (parts.length !== 2) return null;
+  const h = Number(parts[0]);
+  const m = Number(parts[1]);
   if (isNaN(h) || isNaN(m)) return null;
+  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
   return h * 60 + m;
 }
 

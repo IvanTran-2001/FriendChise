@@ -50,11 +50,12 @@ export async function getOrgSchedule(
  * Returns true if the org has any roster entries or day configs (i.e. has used the Roster tool).
  */
 export async function hasRosterActivity(orgId: string): Promise<boolean> {
-  const [entries, configs] = await Promise.all([
+  const [entries, configs, templates] = await Promise.all([
     prisma.rosterEntry.count({ where: { orgId } }),
     prisma.rosterDayConfig.count({ where: { orgId } }),
+    prisma.rosterTemplate.count({ where: { orgId } }),
   ]);
-  return entries > 0 || configs > 0;
+  return entries > 0 || configs > 0 || templates > 0;
 }
 
 /**
@@ -144,6 +145,7 @@ export async function setRosterCellMembers(
         data: members.map((m) => ({
           orgId,
           membershipId: m.membershipId,
+          membershipOrgId: orgId,
           weekStart,
           dayIndex,
           shiftStartMin: m.shiftStartMin,
@@ -264,6 +266,7 @@ export async function setRosterTemplateCellMembers(
         data: members.map((m) => ({
           templateId,
           membershipId: m.membershipId,
+          membershipOrgId: orgId,
           weekIndex,
           dayIndex,
           shiftStartMin: m.shiftStartMin,
@@ -354,6 +357,17 @@ export async function updateRosterTemplateCycleWeeks(
   if (!template)
     return { ok: false, error: "Template not found", code: "NOT_FOUND" };
 
+  // Check if any entries would be out of range
+  const outOfRangeCount = await prisma.rosterTemplateEntry.count({
+    where: { templateId, weekIndex: { gte: cycleWeeks } },
+  });
+  if (outOfRangeCount > 0)
+    return {
+      ok: false,
+      error: `Cannot reduce cycle: ${outOfRangeCount} ${outOfRangeCount === 1 ? "entry has" : "entries have"} weekIndex >= ${cycleWeeks}`,
+      code: "INVALID",
+    };
+
   await prisma.rosterTemplate.update({
     where: { id: templateId },
     data: { cycleWeeks },
@@ -424,6 +438,7 @@ export async function applyRosterTemplate(
         insertData.push({
           orgId,
           membershipId: entry.membershipId,
+          membershipOrgId: orgId,
           weekStart,
           dayIndex: entry.dayIndex,
           shiftStartMin: entry.shiftStartMin,
