@@ -9,6 +9,7 @@ import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { setRosterCellMembersAction } from "@/app/actions/roster";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import type { RosterEntryRow, OrgMember, DayConfigRow } from "./roster-board";
+import { formatMinutes, hoursWorked, timeToMinutes } from "../_utils/time-utils";
 
 function memberDisplayName(m: OrgMember): string {
   return m.botName ?? m.user?.name ?? "Unknown";
@@ -16,29 +17,11 @@ function memberDisplayName(m: OrgMember): string {
 
 function minToTime(min: number | null): string {
   if (min === null) return "";
-  const h = Math.floor(min / 60).toString().padStart(2, "0");
-  const m = (min % 60).toString().padStart(2, "0");
-  return `${h}:${m}`;
+  return formatMinutes(min);
 }
 
 function timeToMin(time: string): number | null {
-  if (!time) return null;
-  const parts = time.split(":");
-  if (parts.length !== 2) return null;
-  const h = Number(parts[0]);
-  const m = Number(parts[1]);
-  if (isNaN(h) || isNaN(m)) return null;
-  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
-  return h * 60 + m;
-}
-
-function hoursWorked(startMin: number | null, endMin: number | null): string {
-  if (startMin === null || endMin === null) return "";
-  const diff = endMin - startMin;
-  if (diff <= 0) return "";
-  const h = Math.floor(diff / 60);
-  const m = diff % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  return timeToMinutes(time);
 }
 
 type MemberShift = {

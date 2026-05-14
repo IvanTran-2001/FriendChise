@@ -22,11 +22,7 @@ import { TimezoneSelect } from "@/components/ui/timezone-select";
 import type { TimezoneOption } from "@/lib/timezones";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { joinFranchise } from "@/app/actions/orgs";
-
-function timeToMinutes(time: string) {
-  const [h, m] = time.split(":").map(Number);
-  return h * 60 + m;
-}
+import { timeToMinutes } from "@/app/(app)/orgs/[orgId]/tools/roster/_utils/time-utils";
 
 const ALL_DAYS = [
   { key: "mon", label: "Mon" },
@@ -158,8 +154,8 @@ function useScheduleState() {
 }
 
 function buildSchedulePayload(s: ReturnType<typeof useScheduleState>) {
-  const openMin = s.openTime ? timeToMinutes(s.openTime) : undefined;
-  const closeMin = s.closeTime ? timeToMinutes(s.closeTime) : undefined;
+  const openMin = s.openTime ? (timeToMinutes(s.openTime) ?? undefined) : undefined;
+  const closeMin = s.closeTime ? (timeToMinutes(s.closeTime) ?? undefined) : undefined;
   if (openMin !== undefined && closeMin !== undefined && closeMin <= openMin) {
     throw new Error("Close time must be after open time");
   }

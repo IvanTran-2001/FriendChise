@@ -15,7 +15,9 @@ export function hoursWorked(startMin: number | null, endMin: number | null): str
 
 export function timeToMinutes(time: string): number | null {
   if (!time) return null;
-  const [h, m] = time.split(":").map(Number);
+  const parts = time.split(":");
+  if (parts.length !== 2) return null;
+  const [h, m] = parts.map(Number);
   if (isNaN(h) || isNaN(m)) return null;
   return h * 60 + m;
 }
