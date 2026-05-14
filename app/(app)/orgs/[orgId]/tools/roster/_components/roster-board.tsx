@@ -89,6 +89,15 @@ function formatMinutes(min: number): string {
   return `${h}:${m}`;
 }
 
+function hoursWorked(startMin: number | null, endMin: number | null): string {
+  if (startMin === null || endMin === null) return "";
+  const diff = endMin - startMin;
+  if (diff <= 0) return "";
+  const h = Math.floor(diff / 60);
+  const m = diff % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
 const DAY_ABBR = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"] as const;
 
 export function RosterBoard({
@@ -169,6 +178,7 @@ export function RosterBoard({
                 sidebar.open(
                   `Edit ${label} row`,
                   <EditDayConfigPanel
+                    key={dayIndex}
                     orgId={orgId}
                     dayIndex={dayIndex}
                     config={config ?? null}
@@ -223,7 +233,7 @@ export function RosterBoard({
                 <button
                   key={weekStart.getTime()}
                   className={cn(
-                    "group flex-1 flex flex-col items-start justify-start gap-1 px-2 py-2 border-r border-border text-left transition-colors hover:brightness-[0.97] dark:hover:brightness-110 min-w-0",
+                    "group flex-1 flex flex-col items-start justify-start gap-1 px-2 py-2 border-r border-border text-left transition-colors cursor-pointer hover:brightness-[0.93] dark:hover:brightness-125 min-w-0",
                     isToday && "border-l-2 border-l-primary/50",
                     bg,
                   )}
@@ -231,6 +241,7 @@ export function RosterBoard({
                     sidebar.open(
                       `${DAY_LABELS[dayIndex]}, ${formatWeekDate(weekStart, dayIndex)}`,
                       <EditCellPanel
+                        key={`${weekStart.getTime()}-${dayIndex}`}
                         orgId={orgId}
                         weekStart={weekStart}
                         dayIndex={dayIndex}
@@ -271,6 +282,8 @@ export function RosterBoard({
                               <span className="text-[10px] text-muted-foreground font-normal">
                                 {formatMinutes(e.shiftStartMin)}–
                                 {formatMinutes(e.shiftEndMin)}
+                                {" · "}
+                                {hoursWorked(e.shiftStartMin, e.shiftEndMin)}
                               </span>
                             )}
                         </span>

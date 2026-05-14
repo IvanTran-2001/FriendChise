@@ -3,16 +3,21 @@
  */
 "use client";
 
+import { useRef } from "react";
 import { ArrowLeft, LayoutTemplate } from "lucide-react";
 import { SidebarNavItem } from "@/components/layout/sidebar-nav-item";
+import { Button } from "@/components/ui/button";
 import { MembersActions } from "../../../memberships/_components/action-sidebar/members-panel-triggers";
 import {
   SearchableCombobox,
   type ComboboxItem,
 } from "@/components/ui/searchable-combobox";
+import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { ApplyTemplatePanel } from "./apply-template-panel";
 
 type Role = { id: string; name: string; color: string };
 type OrgMember = { id: string; botName: string | null; user: { name: string | null } | null };
+type RosterTemplate = { id: string; name: string; cycleWeeks: number };
 
 function memberName(m: OrgMember): string {
   return m.botName ?? m.user?.name ?? "Unknown";
@@ -21,6 +26,7 @@ function memberName(m: OrgMember): string {
 interface RosterSidebarContentProps {
   orgId: string;
   roles: Role[];
+  templates: RosterTemplate[];
   canManage: boolean;
   members: OrgMember[];
   filterMembershipId: string | null;
@@ -30,11 +36,15 @@ interface RosterSidebarContentProps {
 export function RosterSidebarContent({
   orgId,
   roles,
+  templates,
   canManage,
   members,
   filterMembershipId,
   onFilterChange,
 }: RosterSidebarContentProps) {
+  const { open, close, activeTitle } = useActionSidebar();
+  const applyKeyRef = useRef(0);
+
   const filterItems: ComboboxItem[] = [
     { id: "", name: "All members" },
     ...members.map((m) => ({ id: m.id, name: memberName(m) })),
@@ -45,6 +55,15 @@ export function RosterSidebarContent({
   function handleFilterSelect(item: ComboboxItem) {
     onFilterChange(item.id === "" ? null : item.id);
   }
+
+  function openApplyTemplate() {
+    const k = ++applyKeyRef.current;
+    open(
+      "Apply Template",
+      <ApplyTemplatePanel key={k} orgId={orgId} templates={templates} />,
+    );
+  }
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Title row */}
@@ -79,6 +98,15 @@ export function RosterSidebarContent({
             Actions
           </p>
           <div className="flex flex-col gap-2">
+            <Button
+              variant={activeTitle === "Apply Template" ? "default" : "outline"}
+              size="sm"
+              className="w-full justify-start gap-2"
+              onClick={openApplyTemplate}
+            >
+              <LayoutTemplate className="h-4 w-4 shrink-0" />
+              Apply Template
+            </Button>
             <MembersActions orgId={orgId} roles={roles} />
           </div>
         </div>

@@ -152,6 +152,7 @@ model Organization {
   timetableTemplates  TimetableTemplate[]
   rosterEntries       RosterEntry[]
   rosterDayConfigs    RosterDayConfig[]
+  rosterTemplates     RosterTemplate[]
   franchiseTokens     FranchiseToken[]
   invites             Invite[]
   auditLogs           AuditLog[]
@@ -189,6 +190,7 @@ model Membership {
   taskAssignments     TimetableEntryAssignee[]
   timetableTemplateAssignments TimetableTemplateEntryAssignee[]
   rosterEntries                RosterEntry[]
+  rosterTemplateEntries        RosterTemplateEntry[]
 
   joinedAt      DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -527,6 +529,46 @@ model RosterDayConfig {
 
   @@unique([orgId, dayIndex])
   @@index([orgId])
+}
+
+model RosterTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  cycleWeeks Int     @default(1) // Number of weeks in this template cycle
+
+  orgId     String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  entries   RosterTemplateEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orgId, name])
+  @@index([orgId])
+}
+
+model RosterTemplateEntry {
+  id           String   @id @default(cuid())
+
+  templateId   String
+  template     RosterTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  membershipId String
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  weekIndex     Int   @default(0) // 0-based week within the template cycle
+  dayIndex      Int   // 0=Mon … 6=Sun
+  shiftStartMin Int?  // null = unspecified / all day
+  shiftEndMin   Int?  // 0-1440
+  note          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([templateId, membershipId, weekIndex, dayIndex])
+  @@index([templateId])
+  @@index([membershipId])
 }
 
 // ─────────────────────────────────────

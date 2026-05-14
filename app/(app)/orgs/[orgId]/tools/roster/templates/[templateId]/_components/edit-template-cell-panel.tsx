@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Minus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
-import { setRosterCellMembersAction } from "@/app/actions/roster";
+import { setRosterTemplateCellMembersAction } from "@/app/actions/roster";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
-import type { RosterEntryRow, OrgMember, DayConfigRow } from "./roster-board";
+import type { OrgMember } from "@/app/(app)/orgs/[orgId]/tools/roster/_components/roster-board";
 
 function memberDisplayName(m: OrgMember): string {
   return m.botName ?? m.user?.name ?? "Unknown";
@@ -39,36 +39,49 @@ function hoursWorked(startMin: number | null, endMin: number | null): string {
 
 type MemberShift = {
   membershipId: string;
-  startTime: string; // "HH:MM"
+  startTime: string;
   endTime: string;
 };
 
-interface EditCellPanelProps {
+export type TemplateEntryRow = {
+  id: string;
+  membershipId: string;
+  weekIndex: number;
+  dayIndex: number;
+  shiftStartMin: number | null;
+  shiftEndMin: number | null;
+  membership: {
+    id: string;
+    botName: string | null;
+    user: { name: string | null } | null;
+  };
+};
+
+interface EditTemplateCellPanelProps {
   orgId: string;
-  weekStart: Date;
+  templateId: string;
+  weekIndex: number;
   dayIndex: number;
   members: OrgMember[];
-  currentEntries: RosterEntryRow[];
-  dayConfig: DayConfigRow | null;
+  currentEntries: TemplateEntryRow[];
   orgOpenTimeMin: number | null;
   orgCloseTimeMin: number | null;
 }
 
-export function EditCellPanel({
+export function EditTemplateCellPanel({
   orgId,
-  weekStart,
+  templateId,
+  weekIndex,
   dayIndex,
   members,
   currentEntries,
-  dayConfig,
   orgOpenTimeMin,
   orgCloseTimeMin,
-}: EditCellPanelProps) {
+}: EditTemplateCellPanelProps) {
   const { close } = useActionSidebar();
 
-  // Default shift = day config times, falling back to org times
-  const defaultStart = minToTime(dayConfig?.openTimeMin ?? orgOpenTimeMin);
-  const defaultEnd = minToTime(dayConfig?.closeTimeMin ?? orgCloseTimeMin);
+  const defaultStart = minToTime(orgOpenTimeMin);
+  const defaultEnd = minToTime(orgCloseTimeMin);
 
   const [shifts, setShifts] = useState<MemberShift[]>(
     currentEntries.map((e) => ({
@@ -101,9 +114,10 @@ export function EditCellPanel({
 
   function handleSave() {
     startTransition(async () => {
-      const result = await setRosterCellMembersAction(
+      const result = await setRosterTemplateCellMembersAction(
         orgId,
-        weekStart,
+        templateId,
+        weekIndex,
         dayIndex,
         shifts.map((s) => ({
           membershipId: s.membershipId,
@@ -121,7 +135,6 @@ export function EditCellPanel({
 
   return (
     <div className="flex flex-col gap-3 p-4">
-        {/* Member picker */}
         {available.length > 0 && (
           <SearchableCombobox
             items={available.map((m) => ({ id: m.id, name: memberDisplayName(m) }))}
@@ -131,11 +144,8 @@ export function EditCellPanel({
           />
         )}
 
-        {/* Rostered members with shift times */}
         {shifts.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-2">
-            No members rostered.
-          </p>
+          <p className="text-xs text-muted-foreground py-2">No members assigned.</p>
         ) : (
           shifts.map((s) => {
             const member = members.find((m) => m.id === s.membershipId);
@@ -174,7 +184,7 @@ export function EditCellPanel({
                   </div>
                 </div>
                 {worked && (
-                  <p className="text-xs text-muted-foreground text-right">{worked}</p>
+                  <span className="text-[10px] text-muted-foreground">{worked}</span>
                 )}
               </div>
             );
@@ -186,7 +196,7 @@ export function EditCellPanel({
           Cancel
         </Button>
         <Button size="sm" onClick={handleSave} disabled={isPending}>
-          {isPending ? "Saving…" : "Save"}
+          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
         </Button>
       </div>
     </div>

@@ -40,6 +40,7 @@ function getTodayDayIndex(tz: string): number {
 }
 
 type Role = { id: string; name: string; color: string };
+type RosterTemplate = { id: string; name: string; cycleWeeks: number };
 
 interface RosterPageClientProps {
   orgId: string;
@@ -47,6 +48,7 @@ interface RosterPageClientProps {
   dayConfigs: DayConfigRow[];
   members: OrgMember[];
   roles: Role[];
+  templates: RosterTemplate[];
   canManage: boolean;
   orgOpenTimeMin: number | null;
   orgCloseTimeMin: number | null;
@@ -59,6 +61,7 @@ export function RosterPageClient({
   dayConfigs,
   members,
   roles,
+  templates,
   canManage,
   orgOpenTimeMin,
   orgCloseTimeMin,
@@ -88,6 +91,7 @@ export function RosterPageClient({
           <RosterSidebarContent
             orgId={orgId}
             roles={roles}
+            templates={templates}
             canManage={canManage}
             members={members}
             filterMembershipId={filterMembershipId}

@@ -10,6 +10,7 @@ import {
   getRosterDayConfigs,
   getOrgMembersForRoster,
   getOrgSchedule,
+  getRosterTemplates,
 } from "@/lib/services/roster";
 import { RosterPageClient } from "./_components/roster-page-client";
 
@@ -39,7 +40,7 @@ export default async function RosterPage({
 
   const weekStarts = getInitialWeekStarts();
 
-  const [entries, dayConfigs, members, membership, roles, orgSchedule] =
+  const [entries, dayConfigs, members, membership, roles, orgSchedule, templates] =
     await Promise.all([
       getRosterEntries(orgId, weekStarts),
       getRosterDayConfigs(orgId),
@@ -47,6 +48,7 @@ export default async function RosterPage({
       getOrgMembership(orgId, userId),
       getRoles(orgId),
       getOrgSchedule(orgId),
+      getRosterTemplates(orgId),
     ]);
 
   const canManage = membership
@@ -64,6 +66,7 @@ export default async function RosterPage({
       dayConfigs={dayConfigs}
       members={members}
       roles={roles.map((r) => ({ id: r.id, name: r.name, color: r.color }))}
+      templates={templates.map((t) => ({ id: t.id, name: t.name, cycleWeeks: t.cycleWeeks }))}
       canManage={canManage}
       orgOpenTimeMin={orgSchedule.openTimeMin}
       orgCloseTimeMin={orgSchedule.closeTimeMin}
