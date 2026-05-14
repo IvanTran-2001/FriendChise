@@ -22,6 +22,7 @@ import {
   ROSTER_DAY_LABEL_WIDTH,
   ROSTER_CELL_MIN_HEIGHT,
 } from "./roster-board-constants";
+import { formatMinutes, hoursWorked } from "../_utils/time-utils";
 
 export type RosterEntryRow = {
   id: string;
@@ -83,20 +84,6 @@ function formatWeekDate(weekStart: Date, dayIndex: number): string {
   return `${d.getUTCDate()} ${months[d.getUTCMonth()]}`;
 }
 
-function formatMinutes(min: number): string {
-  const h = Math.floor(min / 60).toString().padStart(2, "0");
-  const m = (min % 60).toString().padStart(2, "0");
-  return `${h}:${m}`;
-}
-
-function hoursWorked(startMin: number | null, endMin: number | null): string {
-  if (startMin === null || endMin === null) return "";
-  const diff = endMin - startMin;
-  if (diff <= 0) return "";
-  const h = Math.floor(diff / 60);
-  const m = diff % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
-}
 
 const DAY_ABBR = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"] as const;
 

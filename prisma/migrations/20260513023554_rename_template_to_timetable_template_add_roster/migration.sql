@@ -1,74 +1,39 @@
 /*
-  Warnings:
+  SAFE RENAME MIGRATION — data is preserved via ALTER TABLE RENAME.
 
-  - You are about to drop the `Template` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `TemplateEntry` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `TemplateEntryAssignee` table. If the table is not empty, all the data it contains will be lost.
+  Original Prisma-generated SQL used DROP TABLE + CREATE TABLE, which would
+  destroy all TimetableTemplate data on production deploy. This has been
+  rewritten to rename tables/constraints/indexes in place.
 
+  ⚠️  Local dev note: if you already applied the old (DROP-based) version,
+  your local _prisma_migrations checksum will mismatch. Run
+  `pnpm prisma migrate reset` to resync your local DB from scratch.
 */
--- DropForeignKey
-ALTER TABLE "Template" DROP CONSTRAINT "Template_orgId_fkey";
 
--- DropForeignKey
-ALTER TABLE "TemplateEntry" DROP CONSTRAINT "TemplateEntry_taskId_fkey";
+-- Rename tables (all rows are preserved)
+ALTER TABLE "Template" RENAME TO "TimetableTemplate";
+ALTER TABLE "TemplateEntry" RENAME TO "TimetableTemplateEntry";
+ALTER TABLE "TemplateEntryAssignee" RENAME TO "TimetableTemplateEntryAssignee";
 
--- DropForeignKey
-ALTER TABLE "TemplateEntry" DROP CONSTRAINT "TemplateEntry_templateId_fkey";
+-- Rename primary key constraints
+ALTER TABLE "TimetableTemplate" RENAME CONSTRAINT "Template_pkey" TO "TimetableTemplate_pkey";
+ALTER TABLE "TimetableTemplateEntry" RENAME CONSTRAINT "TemplateEntry_pkey" TO "TimetableTemplateEntry_pkey";
+ALTER TABLE "TimetableTemplateEntryAssignee" RENAME CONSTRAINT "TemplateEntryAssignee_pkey" TO "TimetableTemplateEntryAssignee_pkey";
 
--- DropForeignKey
-ALTER TABLE "TemplateEntryAssignee" DROP CONSTRAINT "TemplateEntryAssignee_membershipId_fkey";
+-- Rename indexes
+ALTER INDEX "Template_orgId_idx" RENAME TO "TimetableTemplate_orgId_idx";
+ALTER INDEX "Template_name_orgId_key" RENAME TO "TimetableTemplate_name_orgId_key";
+ALTER INDEX "TemplateEntryAssignee_membershipId_idx" RENAME TO "TimetableTemplateEntryAssignee_membershipId_idx";
+ALTER INDEX "TemplateEntryAssignee_templateEntryId_membershipId_key" RENAME TO "TimetableTemplateEntryAssignee_templateEntryId_membershipId_key";
 
--- DropForeignKey
-ALTER TABLE "TemplateEntryAssignee" DROP CONSTRAINT "TemplateEntryAssignee_templateEntryId_fkey";
+-- Rename foreign key constraints
+ALTER TABLE "TimetableTemplate" RENAME CONSTRAINT "Template_orgId_fkey" TO "TimetableTemplate_orgId_fkey";
+ALTER TABLE "TimetableTemplateEntry" RENAME CONSTRAINT "TemplateEntry_templateId_fkey" TO "TimetableTemplateEntry_templateId_fkey";
+ALTER TABLE "TimetableTemplateEntry" RENAME CONSTRAINT "TemplateEntry_taskId_fkey" TO "TimetableTemplateEntry_taskId_fkey";
+ALTER TABLE "TimetableTemplateEntryAssignee" RENAME CONSTRAINT "TemplateEntryAssignee_templateEntryId_fkey" TO "TimetableTemplateEntryAssignee_templateEntryId_fkey";
+ALTER TABLE "TimetableTemplateEntryAssignee" RENAME CONSTRAINT "TemplateEntryAssignee_membershipId_fkey" TO "TimetableTemplateEntryAssignee_membershipId_fkey";
 
--- DropTable
-DROP TABLE "Template";
-
--- DropTable
-DROP TABLE "TemplateEntry";
-
--- DropTable
-DROP TABLE "TemplateEntryAssignee";
-
--- CreateTable
-CREATE TABLE "TimetableTemplate" (
-    "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "orgId" TEXT NOT NULL,
-    "cycleLengthDays" INTEGER NOT NULL DEFAULT 7,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "TimetableTemplate_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "TimetableTemplateEntry" (
-    "id" TEXT NOT NULL,
-    "templateId" TEXT NOT NULL,
-    "taskId" TEXT NOT NULL,
-    "priority" INTEGER NOT NULL DEFAULT 0,
-    "durationMin" INTEGER,
-    "dayIndex" INTEGER NOT NULL,
-    "startTimeMin" INTEGER NOT NULL,
-    "endTimeMin" INTEGER NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "TimetableTemplateEntry_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "TimetableTemplateEntryAssignee" (
-    "id" TEXT NOT NULL,
-    "templateEntryId" TEXT NOT NULL,
-    "membershipId" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "TimetableTemplateEntryAssignee_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
+-- CreateTable (genuinely new — no existing data)
 CREATE TABLE "RosterEntry" (
     "id" TEXT NOT NULL,
     "orgId" TEXT NOT NULL,
@@ -82,7 +47,7 @@ CREATE TABLE "RosterEntry" (
     CONSTRAINT "RosterEntry_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
+-- CreateTable (genuinely new — no existing data)
 CREATE TABLE "RosterDayConfig" (
     "id" TEXT NOT NULL,
     "orgId" TEXT NOT NULL,
@@ -91,18 +56,6 @@ CREATE TABLE "RosterDayConfig" (
 
     CONSTRAINT "RosterDayConfig_pkey" PRIMARY KEY ("id")
 );
-
--- CreateIndex
-CREATE INDEX "TimetableTemplate_orgId_idx" ON "TimetableTemplate"("orgId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "TimetableTemplate_name_orgId_key" ON "TimetableTemplate"("name", "orgId");
-
--- CreateIndex
-CREATE INDEX "TimetableTemplateEntryAssignee_membershipId_idx" ON "TimetableTemplateEntryAssignee"("membershipId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "TimetableTemplateEntryAssignee_templateEntryId_membershipId_key" ON "TimetableTemplateEntryAssignee"("templateEntryId", "membershipId");
 
 -- CreateIndex
 CREATE INDEX "RosterEntry_orgId_weekStart_idx" ON "RosterEntry"("orgId", "weekStart");
@@ -120,21 +73,6 @@ CREATE INDEX "RosterDayConfig_orgId_idx" ON "RosterDayConfig"("orgId");
 CREATE UNIQUE INDEX "RosterDayConfig_orgId_dayIndex_key" ON "RosterDayConfig"("orgId", "dayIndex");
 
 -- AddForeignKey
-ALTER TABLE "TimetableTemplate" ADD CONSTRAINT "TimetableTemplate_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "TimetableTemplateEntry" ADD CONSTRAINT "TimetableTemplateEntry_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "TimetableTemplate"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "TimetableTemplateEntry" ADD CONSTRAINT "TimetableTemplateEntry_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "TimetableTemplateEntryAssignee" ADD CONSTRAINT "TimetableTemplateEntryAssignee_templateEntryId_fkey" FOREIGN KEY ("templateEntryId") REFERENCES "TimetableTemplateEntry"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "TimetableTemplateEntryAssignee" ADD CONSTRAINT "TimetableTemplateEntryAssignee_membershipId_fkey" FOREIGN KEY ("membershipId") REFERENCES "Membership"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "RosterEntry" ADD CONSTRAINT "RosterEntry_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -142,3 +80,4 @@ ALTER TABLE "RosterEntry" ADD CONSTRAINT "RosterEntry_membershipId_fkey" FOREIGN
 
 -- AddForeignKey
 ALTER TABLE "RosterDayConfig" ADD CONSTRAINT "RosterDayConfig_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

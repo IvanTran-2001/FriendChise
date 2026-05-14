@@ -13,7 +13,7 @@ html,
 body {
   overflow: hidden;
   height: 100%;
-  font-weight: 730;
+  font-weight: 700;
 }
 
 @theme inline {
@@ -61,15 +61,15 @@ body {
 
   /* Shift the entire font-weight scale up slightly so all utilities
      (font-normal, font-medium, etc.) render a bit heavier. */
-  --font-weight-thin: 130;
-  --font-weight-extralight: 230;
-  --font-weight-light: 330;
-  --font-weight-normal: 430;
-  --font-weight-medium: 530;
-  --font-weight-semibold: 630;
-  --font-weight-bold: 730;
-  --font-weight-extrabold: 830;
-  --font-weight-black: 920;
+  --font-weight-thin: 700;
+  --font-weight-extralight: 700;
+  --font-weight-light: 700;
+  --font-weight-normal: 700;
+  --font-weight-medium: 700;
+  --font-weight-semibold: 700;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 700;
+  --font-weight-black: 700;
 }
 
 :root {
