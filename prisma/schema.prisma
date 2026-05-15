@@ -31,6 +31,17 @@ enum FeedbackType {
   IDEA
 }
 
+enum TaskScope {
+  ORG     // only the owning org can see it
+  GLOBAL  // shared with all current (and future, unless FROZEN) child orgs
+  FROZEN  // existing child orgs keep it; new ones do not inherit
+}
+
+enum SectionScope {
+  ORG    // section interaction is limited to the viewing org
+  GLOBAL // section is shared / visible across the franchise network
+}
+
 enum PermissionAction {
   MANAGE_MEMBERS
   MANAGE_ROLES
@@ -166,6 +177,8 @@ model Organization {
   toolItems           ToolItem[]
   conversionSets      ConversionSet[]
   feedback            Feedback[]
+  taskInheritances    TaskInheritance[]
+  sectionLayouts      TaskSectionLayout[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -301,6 +314,10 @@ model Task {
   tags                  TaskTag[]
   timetableEntries      TimetableEntry[]
   timetableTemplateEntries TimetableTemplateEntry[]
+  inheritedBy           TaskInheritance[]
+  sectionLayouts        TaskSectionLayout[]
+
+  scope                 TaskScope @default(ORG)
 
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
@@ -839,4 +856,54 @@ model AdminUser {
   id        String   @id @default(cuid())
   email     String   @unique
   createdAt DateTime @default(now())
+}
+
+// ─────────────────────────────────────
+// TASK INHERITANCE
+// ─────────────────────────────────────
+
+/// Tracks which orgs have added a GLOBAL/FROZEN task to their task list.
+/// Created when a franchisee clicks "Add" on a shared task.
+/// Deleting this row removes the task from that org's list.
+model TaskInheritance {
+  id          String       @id @default(cuid())
+  taskId      String
+  task        Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  inheritedAt DateTime     @default(now())
+
+  @@unique([taskId, orgId])
+  @@index([taskId])
+  @@index([orgId])
+}
+
+// ─────────────────────────────────────
+// TASK SECTION LAYOUT
+// ─────────────────────────────────────
+
+/// Per-org, per-task section configuration.
+/// Stores the position, visibility, scope, and display title of each section
+/// (e.g. "PICTURE", "DETAIL", "COMMENT") for a given org's view of a task.
+/// When a task is inherited, the parent's layout is copied as a starting point.
+model TaskSectionLayout {
+  id       String       @id @default(cuid())
+  taskId   String
+  task     Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  orgId    String
+  org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  /// Flexible string key — not an enum so new section types need no migration.
+  /// Known values: "PICTURE", "DETAIL", "COMMENT"
+  type     String
+  title    String       // display name; orgs can rename later
+  scope    SectionScope @default(ORG)
+  position Int          // 0 = top; larger = further down
+  visible  Boolean      @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([taskId, orgId, type])
+  @@index([taskId, orgId])
 }
