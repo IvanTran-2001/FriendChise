@@ -250,7 +250,7 @@ export async function getFeedbackImageUploadUrl(
   const uuid = crypto.randomUUID();
   const storagePath = `feedback/${authz.userId}/${uuid}.${ext}`;
 
-  return createSignedUploadUrlPublic(storagePath, FEEDBACK_IMAGE_MAX_BYTES);
+  return createSignedUploadUrl(storagePath, FEEDBACK_IMAGE_MAX_BYTES);
 }
 
 /**
@@ -264,16 +264,14 @@ export async function getFeedbackImageReadUrl(
   const authz = await requireSuperAdminAction();
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  // Validate path format (must be feedback/...)
   if (!storagePath.startsWith("feedback/")) {
     return { ok: false, error: "Invalid path" };
   }
 
   const { createSignedReadUrl } = await import("@/lib/supabase-storage");
-  const signedUrl = await createSignedReadUrl(storagePath, 3600); // 1 hour expiry
-  if (!signedUrl) {
-    return { ok: false, error: "Failed to generate signed URL" };
-  }
+  const signedUrl = await createSignedReadUrl(storagePath, 3600);
+  if (!signedUrl) return { ok: false, error: "Failed to generate signed URL" };
 
   return { ok: true, signedUrl };
 }
+

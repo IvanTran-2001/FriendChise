@@ -55,24 +55,24 @@ export function AdminFeedbackClient({
   const [, startTransition] = useTransition();
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
 
-  const displayed = filter === "all" ? feedback : feedback.filter((f) => !f.reviewed);
-
-  // Load signed URLs for all images on mount
+  // Fetch short-lived signed read URLs for all images (private bucket)
   useEffect(() => {
-    const loadImageUrls = async () => {
-      const urlMap: Record<string, string> = {};
-      for (const item of feedback) {
-        if (item.imageUrl) {
-          const result = await getFeedbackImageReadUrl(item.imageUrl);
-          if (result.ok) {
-            urlMap[item.imageUrl] = result.signedUrl;
-          }
-        }
-      }
-      setImageUrls(urlMap);
+    const load = async () => {
+      const map: Record<string, string> = {};
+      await Promise.all(
+        initial
+          .filter((f) => f.imageUrl)
+          .map(async (f) => {
+            const res = await getFeedbackImageReadUrl(f.imageUrl!);
+            if (res.ok) map[f.imageUrl!] = res.signedUrl;
+          }),
+      );
+      setImageUrls(map);
     };
-    loadImageUrls();
-  }, [feedback]);
+    load();
+  }, [initial]);
+
+  const displayed = filter === "all" ? feedback : feedback.filter((f) => !f.reviewed);
 
   function toggleReviewed(id: string, next: boolean) {
     setFeedback((prev) =>
