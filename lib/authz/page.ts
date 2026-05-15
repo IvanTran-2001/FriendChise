@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { PermissionAction } from "@prisma/client";
 import {
+  getAuthUser,
   getAuthUserId,
   getOrgMembership,
+  isAdminUser,
   isParentOrgOwner,
   memberHasPermission,
 } from "./_shared";
@@ -96,4 +98,17 @@ export async function requireOrgPermissionPage(
   }
 
   return { userId };
+}
+
+/**
+ * Requires the caller to be an app admin (row exists in AdminUser table).
+ * Redirects to /signin if not signed in, or redirectTo if not an admin.
+ */
+export async function requireSuperAdminPage(
+  { redirectTo = "/" } = {},
+): Promise<{ userId: string }> {
+  const user = await getAuthUser();
+  if (!user) redirect("/signin");
+  if (!(await isAdminUser(user.email))) redirect(redirectTo);
+  return { userId: user.id };
 }

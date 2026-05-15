@@ -25,6 +25,7 @@ Production deployment: **[friendchise.app](https://friendchise.app)**
 - **Sonner** — toast notifications
 - **Zod v4** — schema validation
 - **react-markdown** + **remark-gfm** — GFM markdown rendering for task descriptions
+- **browser-image-compression** — in-browser image compression before upload (used for org logos, task images, and feedback screenshots)
 - **react-easy-crop** — in-browser pan/zoom crop editor (used for org logos and task images)
 - **Vitest** — unit + integration tests
 - **Playwright** — E2E browser tests
@@ -68,7 +69,7 @@ SENTRY_AUTH_TOKEN=
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 
-# Supabase Storage — file uploads (org logos, task images)
+# Supabase Storage — file uploads (org logos, task images, feedback screenshots)
 # Get from Supabase dashboard > Settings > API
 NEXT_PUBLIC_SUPABASE_URL=       # e.g. https://<project-ref>.supabase.co
 SUPABASE_SECRET_KEY=            # service_role JWT (legacy eyJ... format)
@@ -79,6 +80,7 @@ Optional / local overrides (`.env.local`):
 ```env
 E2E_TEST_USER_EMAIL=      # Test user email for E2E tests and seeding (default: ivan@example.test)
 SEED_DEV_IDENTIFIERS=     # Space-separated Supabase project refs to seed with dev data (seed.ts production path)
+ADMIN_EMAIL=              # (legacy) super-admin email override — superseded by the AdminUser DB table
 ```
 
 ## Database
@@ -115,6 +117,8 @@ Provider: PostgreSQL (Supabase), managed via Prisma ORM.
 | `ConversionRate`           | A directional rate between two `ToolItem`s within a `ConversionSet`. Stored as a single `rate` scalar (`toQty / fromQty`). Bidirectional resolution is handled at query time.                                                                                                                                                                                   |
 | `ConversionTemplate`       | A named saved state of From/To item selections within a `ConversionSet` (e.g. "Default", "Monday Batch"). Each set always has a "Default" template created automatically.                                                                                                                                                                                       |
 | `ConversionTemplateEntry`  | One item slot in a `ConversionTemplate`. `quantity` is non-null for From items (the input quantity); `null` for To items (display-only calculated outputs). `visible` controls whether the item is shown.                                                                                                                                                        |
+| `Feedback`                 | A user-submitted feedback item. Linked to a `User` and optionally an `Organization`. `type` is `ISSUE` or `IDEA`. `message` is free text. `imageUrl` is an optional Supabase Storage path (public bucket) for an attached screenshot. `reviewed` is an admin toggle.                                                                                           |
+| `AdminUser`                | Super-admin allow-list. Any `User` whose email appears here gains access to `/admin/*` routes and admin-only server actions.                                                                                                                                                                                                                                     |
 
 ### Enums
 
@@ -126,6 +130,7 @@ Provider: PostgreSQL (Supabase), managed via Prisma ORM.
 | `InviteStatus`     | `PENDING`, `ACCEPTED`, `DECLINED`                                                                         |
 | `InviteType`       | `MEMBER`, `FRANCHISE`                                                                                     |
 | `ViewType`         | `DAILY`, `WEEKLY`                                                                                         |
+| `FeedbackType`     | `ISSUE`, `IDEA`                                                                                           |
 
 ### Migrations
 
@@ -158,6 +163,7 @@ pnpm seed
 | `20260513122627_add_roster_template`   | Add `RosterTemplate` and `RosterTemplateEntry` tables with cascade deletes and a composite unique index on `(templateId, membershipId, weekIndex, dayIndex)`.                                                     |
 | `20260513123326_roster_template_cycle_weeks` | Add `cycleWeeks Int @default(1)` to `RosterTemplate`.                                                                                                                                        |
 | `20260514000000_add_check_constraints` | DB-level CHECK constraints enforcing field bounds: time fields 0–1440, `dayIndex` 0–6, `cycleWeeks` 1–12.                                                                                                        |
+| _(schema push)_                        | `Feedback` model (`userId`, `orgId?`, `type`, `message`, `imageUrl?`, `reviewed`) and `AdminUser` model (`email unique`) added. Applied via `prisma db push` (dev DB had migration drift).                       |
 
 ## Authentication
 
@@ -200,8 +206,37 @@ Each context exposes three guards at increasing strictness:
 | `requireUser*()`                  | Caller must be signed in                                           |
 | `requireOrgMember*(orgId)`        | Caller must be signed in and hold a `Membership` in the org        |
 | `requireOrgPermission*(orgId, p)` | Caller must be a member whose role(s) grant `PermissionAction` `p` |
+| `requireSuperAdmin*()`            | Caller's email must exist in the `AdminUser` table                 |
 
 `requireParentOrgOwner*(orgId)` is also available in `page` and `action` contexts — it requires the caller to be the owner of an org with no `parentId` (i.e. a franchisor).
+
+## Feedback System
+
+Users can submit feedback (bug reports or feature ideas) from anywhere in the app via the **Feedback button** in the navbar. Submissions are stored in the `Feedback` table and reviewed by admins at `/admin/feedback`.
+
+### How it works
+
+1. User clicks the **Feedback** button (top-right of the navbar).
+2. An `ActionSidebar` panel opens with a two-step form:
+   - **Step 1** — pick a type: Issue or Idea.
+   - **Step 2** — write a message and optionally attach a screenshot.
+3. Screenshots are compressed client-side (max 1 MB / 1280px via `browser-image-compression`), then uploaded directly from the browser to Supabase Storage (`friendchise-public` bucket, path `feedback/{userId}/{uuid}.{ext}`) using a signed upload URL — bypassing Vercel's 4.5 MB body limit.
+4. On submit, `submitFeedbackAction` saves the feedback row (with the optional `imageUrl` storage path).
+
+### Admin panel
+
+Route: `/admin/feedback`
+
+Access is controlled by the `AdminUser` table. To grant admin access, insert a row:
+
+```sql
+INSERT INTO "AdminUser" (id, email, "createdAt")
+VALUES (gen_random_uuid(), LOWER(TRIM('your@email.com')), now());
+```
+
+Note: Emails are stored in normalized form (trimmed and lowercased) for consistent lookups.
+
+The panel shows all feedback with type badges, user email, org name, timestamp, message, and screenshot thumbnail. Items can be marked reviewed/unreviewed (optimistic UI).
 
 ## API Routes
 

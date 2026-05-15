@@ -22,6 +22,7 @@ import { OrgSwitcher } from "@/components/layout/org-switcher";
 import { MobileSidebarTrigger } from "@/components/layout/sidebar";
 import { Logo } from "@/components/layout/logo";
 import { NotificationPanel } from "@/components/notifications";
+import { FeedbackButton } from "@/components/layout/feedback-button";
 import {
   getInvitesForUser,
   getUnseenInviteCount,
@@ -106,6 +107,9 @@ export const NavBar = async () => {
 
         {/* Right: notifications and user menu */}
         <div className="flex items-center gap-2">
+          {/* Feedback */}
+          <FeedbackButton />
+
           {/* Notification bell */}
           <NotificationPanel
             invites={invites}

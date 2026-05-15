@@ -3,11 +3,13 @@ export {
   requireUserPage,
   requireOrgMemberPage,
   requireOrgPermissionPage,
+  requireParentOrgOwnerPage,
+  requireSuperAdminPage,
 } from "./page";
 export {
   requireUserAction,
   requireOrgMemberAction,
   requireOrgPermissionAction,
   requireParentOrgOwnerAction,
+  requireSuperAdminAction,
 } from "./action";
-export { requireParentOrgOwnerPage } from "./page";

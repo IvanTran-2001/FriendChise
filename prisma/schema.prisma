@@ -26,6 +26,11 @@ enum MembershipStatus {
   RESTRICTED
 }
 
+enum FeedbackType {
+  ISSUE
+  IDEA
+}
+
 enum PermissionAction {
   MANAGE_MEMBERS
   MANAGE_ROLES
@@ -110,6 +115,8 @@ model User {
   receivedNotifications     Notification[] @relation("ReceivedNotifications")
   auditLogs                 AuditLog[]
 
+  feedback      Feedback[]
+
   accounts      Account[]
   sessions      Session[]
 
@@ -158,6 +165,7 @@ model Organization {
   auditLogs           AuditLog[]
   toolItems           ToolItem[]
   conversionSets      ConversionSet[]
+  feedback            Feedback[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -800,4 +808,35 @@ model ConversionTemplateEntry {
   @@unique([templateId, itemId])
   @@index([templateId])
   @@index([itemId])
+}
+
+// ─────────────────────────────────────
+// FEEDBACK
+// ─────────────────────────────────────
+
+model Feedback {
+  id        String       @id @default(cuid())
+  createdAt DateTime     @default(now())
+
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  orgId     String?
+  org       Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+
+  type      FeedbackType
+  message   String
+  imageUrl  String?  // Supabase Storage path in friendchise-public bucket
+
+  reviewed  Boolean @default(false)
+
+  @@index([userId])
+  @@index([orgId])
+  @@index([createdAt])
+}
+
+model AdminUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
 }

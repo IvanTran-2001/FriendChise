@@ -221,3 +221,59 @@ export async function removeOrgLogo(
   await updateOrgImage(orgId, null);
   return { ok: true };
 }
+
+// ─── Feedback Screenshot Actions ─────────────────────────────────────────────
+
+/**
+ * Returns a signed upload URL for a feedback screenshot in the private bucket.
+ * Path: feedback/{userId}/{uuid}.{ext}
+ * Any signed-in user can upload (no org permission needed).
+ */
+/**
+ * 5 MB hard cap embedded into the signed URL — enforced by Supabase's storage
+ * server at upload time, regardless of what the client sends.
+ */
+const FEEDBACK_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+
+export async function getFeedbackImageUploadUrl(
+  mimeType: string,
+): Promise<{ ok: true; signedUrl: string; path: string } | { ok: false; error: string }> {
+  const { requireUserAction } = await import("@/lib/authz");
+  const authz = await requireUserAction();
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+
+  if (!ALLOWED_MIME_TYPES.includes(mimeType as AllowedMime)) {
+    return { ok: false, error: "Unsupported file type. Use JPEG, PNG, or WebP." };
+  }
+
+  const ext = EXT[mimeType as AllowedMime];
+  const uuid = crypto.randomUUID();
+  const storagePath = `feedback/${authz.userId}/${uuid}.${ext}`;
+
+  return createSignedUploadUrlPublic(storagePath, FEEDBACK_IMAGE_MAX_BYTES);
+}
+
+/**
+ * Returns a short-lived signed read URL for a feedback screenshot.
+ * Admin-only: requires super-admin authorization.
+ */
+export async function getFeedbackImageReadUrl(
+  storagePath: string,
+): Promise<{ ok: true; signedUrl: string } | { ok: false; error: string }> {
+  const { requireSuperAdminAction } = await import("@/lib/authz");
+  const authz = await requireSuperAdminAction();
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+
+  // Validate path format (must be feedback/...)
+  if (!storagePath.startsWith("feedback/")) {
+    return { ok: false, error: "Invalid path" };
+  }
+
+  const { createSignedReadUrl } = await import("@/lib/supabase-storage");
+  const signedUrl = await createSignedReadUrl(storagePath, 3600); // 1 hour expiry
+  if (!signedUrl) {
+    return { ok: false, error: "Failed to generate signed URL" };
+  }
+
+  return { ok: true, signedUrl };
+}

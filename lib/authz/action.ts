@@ -3,6 +3,7 @@ import { log } from "@/lib/observability";
 import {
   getAuthUser,
   getOrgMembership,
+  isAdminUser,
   isParentOrgOwner,
   memberHasPermission,
 } from "./_shared";
@@ -29,6 +30,17 @@ export async function requireUserAction() {
   const user = await getAuthUser();
   if (!user) return { ok: false as const };
   return { ok: true as const, userId: user.id, userEmail: user.email };
+}
+
+/**
+ * Requires the caller to be an app admin (row exists in AdminUser table).
+ * Returns { ok: false } if not signed in or not an admin.
+ */
+export async function requireSuperAdminAction() {
+  const user = await getAuthUser();
+  if (!user) return { ok: false as const };
+  if (!(await isAdminUser(user.email))) return { ok: false as const };
+  return { ok: true as const, userId: user.id };
 }
 
 /** Requires the caller to be signed in and a member of the org. */
