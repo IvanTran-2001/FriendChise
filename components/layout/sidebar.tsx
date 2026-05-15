@@ -65,6 +65,8 @@ export function MobileSidebarTrigger() {
 
 type NavItem = {
   title: string;
+  /** Short label shown in the w-12 compact mobile sidebar. Falls back to title. */
+  compactLabel?: string;
   url: string;
   icon: React.ComponentType<{ className?: string }>;
   disabled?: boolean;
@@ -73,7 +75,7 @@ type NavItem = {
 function getOrgItems(orgId: string): NavItem[] {
   return [
     { title: "Overview", url: `/orgs/${orgId}`, icon: Building2 },
-    { title: "Timetable", url: `/orgs/${orgId}/timetable`, icon: Calendar },
+    { title: "Timetable", compactLabel: "Sched", url: `/orgs/${orgId}/timetable`, icon: Calendar },
     { title: "Tasks", url: `/orgs/${orgId}/tasks`, icon: ListTodo },
     { title: "Tools", url: `/orgs/${orgId}/tools`, icon: Wrench },
     { title: "Members", url: `/orgs/${orgId}/memberships`, icon: Users },
@@ -97,6 +99,7 @@ function getFooterItems(
       ? [
           {
             title: "Franchisee",
+            compactLabel: "Frnch",
             url: `/orgs/${franchiseeOrgId}/franchisee`,
             icon: Network,
           },
@@ -108,11 +111,11 @@ function getFooterItems(
 
 function getSettingsItems(orgId: string): NavItem[] {
   return [
-    { title: "Organization", url: `/orgs/${orgId}/settings/organization`, icon: Building2 },
+    { title: "Organization", compactLabel: "Org", url: `/orgs/${orgId}/settings/organization`, icon: Building2 },
     { title: "Roles", url: `/orgs/${orgId}/settings/roles`, icon: ShieldCheck },
     { title: "Tags", url: `/orgs/${orgId}/settings/tags`, icon: Tag },
-    { title: "Timetable", url: `/orgs/${orgId}/settings/timetable`, icon: Calendar, disabled: true },
-    { title: "Notification", url: `/orgs/${orgId}/settings/notification`, icon: Bell, disabled: true },
+    { title: "Timetable", compactLabel: "Sched", url: `/orgs/${orgId}/settings/timetable`, icon: Calendar, disabled: true },
+    { title: "Notification", compactLabel: "Alerts", url: `/orgs/${orgId}/settings/notification`, icon: Bell, disabled: true },
   ];
 }
 
@@ -186,7 +189,7 @@ export function AppSidebar() {
     return pathname === url || pathname.startsWith(`${url}/`);
   };
 
-  const navContent = () => {
+  const navContent = (compact = false) => {
     // ── Settings mode ──────────────────────────────────────────────────────
     if (isSettingsRoute && orgId) {
       return (
@@ -205,6 +208,8 @@ export function AppSidebar() {
                 <SidebarNavItem
                   key={item.title}
                   variant="app"
+                  compact={compact}
+                  compactLabel={item.compactLabel}
                   {...item}
                   isActive={isActiveItem(item.url)}
                 />
@@ -225,6 +230,8 @@ export function AppSidebar() {
                 <SidebarNavItem
                   key={item.title}
                   variant="app"
+                  compact={compact}
+                  compactLabel={item.compactLabel}
                   {...item}
                   isActive={isActiveItem(item.url)}
                 />
@@ -233,6 +240,7 @@ export function AppSidebar() {
               <>
                 <SidebarNavItem
                   variant="app"
+                  compact={compact}
                   title="Hub"
                   url="/"
                   icon={LayoutDashboard}
@@ -240,13 +248,16 @@ export function AppSidebar() {
                 />
                 <SidebarNavItem
                   variant="app"
+                  compact={compact}
                   title="Organizations"
+                  compactLabel="Orgs"
                   url="/orgs/new"
                   icon={Building2}
                   isActive={isActiveItem("/orgs")}
                 />
                 <SidebarNavItem
                   variant="app"
+                  compact={compact}
                   title="Help"
                   url="/help"
                   icon={HelpCircle}
@@ -264,6 +275,8 @@ export function AppSidebar() {
                 <SidebarNavItem
                   key={item.title}
                   variant="app"
+                  compact={compact}
+                  compactLabel={item.compactLabel}
                   {...item}
                   isActive={isActiveItem(item.url)}
                 />
@@ -310,7 +323,7 @@ export function AppSidebar() {
                 </span>
               )}
             </Link>
-            {navContent()}
+            {navContent(hasSidebar)}
           </div>
         </>
       )}

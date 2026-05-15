@@ -89,7 +89,7 @@ export function FeedbackContent({ onClose }: FeedbackContentProps) {
         fileType: file.type as "image/jpeg" | "image/png" | "image/webp",
       });
 
-      const urlResult = await getFeedbackImageUploadUrl(compressed.type, compressed.size);
+      const urlResult = await getFeedbackImageUploadUrl(compressed.type);
       if (!urlResult.ok) {
         toast.error(urlResult.error);
         return;

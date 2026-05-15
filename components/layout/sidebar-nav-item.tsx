@@ -26,6 +26,11 @@ type SidebarNavItemProps = {
   /** "app" = fixed w-12 icon wrapper for the collapsible global sidebar.
    *  "page" = standard px-3 gap layout for full-width page sidebars. */
   variant?: "app" | "page";
+  /** When true (mobile minimized mode), stacks a tiny label below the icon
+   *  so items are identifiable without widening the sidebar. */
+  compact?: boolean;
+  /** Abbreviated label used in compact mode. Falls back to title if omitted. */
+  compactLabel?: string;
   onClick?: () => void;
 };
 
@@ -36,6 +41,8 @@ export function SidebarNavItem({
   disabled,
   isActive,
   variant = "page",
+  compact = false,
+  compactLabel,
   onClick,
 }: SidebarNavItemProps) {
   const appActive =
@@ -47,7 +54,14 @@ export function SidebarNavItem({
   if (variant === "app") {
     const base =
       "relative flex items-center h-12 w-full overflow-hidden rounded-none transition-colors";
-    const inner = (
+    const inner = compact ? (
+      <span className="w-12 flex flex-col items-center justify-center shrink-0 gap-0.5 py-1">
+        <Icon className="h-4 w-4" />
+        <span className="text-[9px] leading-none text-center w-full px-0.5">
+          {compactLabel ?? title}
+        </span>
+      </span>
+    ) : (
       <>
         <span className="w-12 flex items-center justify-center shrink-0">
           <Icon className="h-5 w-5" />

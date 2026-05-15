@@ -39,7 +39,10 @@ function getConfig() {
  * Creates a signed URL that the browser can PUT a file to directly,
  * bypassing Vercel's 4.5 MB body limit.
  */
-export async function createSignedUploadUrl(storagePath: string): Promise<
+export async function createSignedUploadUrl(
+  storagePath: string,
+  maxSizeBytes?: number,
+): Promise<
   | { ok: true; signedUrl: string; path: string }
   | { ok: false; error: string }
 > {
@@ -52,7 +55,7 @@ export async function createSignedUploadUrl(storagePath: string): Promise<
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
       },
-      body: "{}",
+      body: JSON.stringify(maxSizeBytes !== undefined ? { sizeInBytes: maxSizeBytes } : {}),
     },
   );
   if (!res.ok) {
@@ -120,7 +123,10 @@ export async function deleteStorageFile(storagePath: string): Promise<void> {
  * Creates a signed upload URL for the PUBLIC bucket (friendchise-public).
  * The browser can PUT directly to this URL; files are publicly readable.
  */
-export async function createSignedUploadUrlPublic(storagePath: string): Promise<
+export async function createSignedUploadUrlPublic(
+  storagePath: string,
+  maxSizeBytes?: number,
+): Promise<
   | { ok: true; signedUrl: string; path: string }
   | { ok: false; error: string }
 > {
@@ -133,7 +139,7 @@ export async function createSignedUploadUrlPublic(storagePath: string): Promise<
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
       },
-      body: "{}",
+      body: JSON.stringify(maxSizeBytes !== undefined ? { sizeInBytes: maxSizeBytes } : {}),
     },
   );
   if (!res.ok) {

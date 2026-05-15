@@ -11,7 +11,6 @@ import { FeedbackType } from "@prisma/client";
 import { requireUserAction, requireSuperAdminAction } from "@/lib/authz";
 import { createFeedback, toggleFeedbackReviewed } from "@/lib/services/feedback";
 import { getOrgMembership } from "@/lib/authz/_shared";
-import { prisma } from "@/lib/prisma";
 
 /**
  * Submits a new piece of feedback on behalf of the signed-in user.
