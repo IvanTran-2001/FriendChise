@@ -59,14 +59,20 @@ export function AdminFeedbackClient({
   useEffect(() => {
     const load = async () => {
       const map: Record<string, string> = {};
-      await Promise.all(
+      const results = await Promise.allSettled(
         initial
           .filter((f) => f.imageUrl)
           .map(async (f) => {
             const res = await getFeedbackImageReadUrl(f.imageUrl!);
-            if (res.ok) map[f.imageUrl!] = res.signedUrl;
+            if (res.ok) return { imageUrl: f.imageUrl!, signedUrl: res.signedUrl };
+            return null;
           }),
       );
+      results.forEach((result) => {
+        if (result.status === "fulfilled" && result.value) {
+          map[result.value.imageUrl] = result.value.signedUrl;
+        }
+      });
       setImageUrls(map);
     };
     load();
