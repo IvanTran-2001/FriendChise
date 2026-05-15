@@ -37,6 +37,8 @@ interface TasksSidebarContentProps {
   roleId: string | null;
   tagId: string | null;
   view: "list" | "card";
+  isChildOrg?: boolean;
+  tab?: "my-tasks" | "shared";
 }
 
 export function TasksSidebarContent({
@@ -48,6 +50,8 @@ export function TasksSidebarContent({
   roleId,
   tagId,
   view,
+  isChildOrg = false,
+  tab = "my-tasks",
 }: TasksSidebarContentProps) {
   const router = useRouter();
 
@@ -56,13 +60,15 @@ export function TasksSidebarContent({
     roleId?: string | null;
     tagId?: string | null;
     view?: "list" | "card";
+    tab?: "my-tasks" | "shared";
   }) {
     const params = new URLSearchParams();
-    const next = { sort, roleId, tagId, view, ...overrides };
+    const next = { sort, roleId, tagId, view, tab, ...overrides };
     if (next.sort && next.sort !== "name-asc") params.set("sort", next.sort);
     if (next.roleId) params.set("roleId", next.roleId);
     if (next.tagId) params.set("tagId", next.tagId);
     if (next.view && next.view !== "list") params.set("view", next.view);
+    if (next.tab && next.tab !== "my-tasks") params.set("tab", next.tab);
     const qs = params.toString();
     return `/orgs/${orgId}/tasks${qs ? `?${qs}` : ""}`;
   }
@@ -72,7 +78,34 @@ export function TasksSidebarContent({
 
   return (
     <>
-      {/* Filters section */}
+      {/* Tab selector — only for franchisee orgs */}
+      {isChildOrg && (
+        <div className="px-3 pt-3 pb-2">
+          <div className="flex gap-1">
+            <button
+              onClick={() => router.push(buildHref({ tab: "my-tasks" }))}
+              className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+                tab === "my-tasks"
+                  ? "bg-secondary text-secondary-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              My Tasks
+            </button>
+            <button
+              onClick={() => router.push(buildHref({ tab: "shared" }))}
+              className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+                tab === "shared"
+                  ? "bg-secondary text-secondary-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              Shared
+            </button>
+          </div>
+        </div>
+      )}
+      {tab !== "shared" && (
       <div className="px-3 pt-3 pb-2">
         <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
           Filters
@@ -165,8 +198,9 @@ export function TasksSidebarContent({
           )}
         </div>
       </div>
+      )}
 
-      {canManageTasks && (
+      {canManageTasks && tab !== "shared" && (
         <div className="px-3 pt-2 pb-3 border-t border-border">
           <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
             Actions

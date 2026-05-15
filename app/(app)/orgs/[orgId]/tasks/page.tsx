@@ -1,4 +1,4 @@
-import { getTasks } from "@/lib/services/tasks";
+import { getTasks, getSharedTasks } from "@/lib/services/tasks";
 import { getRoles } from "@/lib/services/roles";
 import { getOrgTags } from "@/lib/services/tags";
 import { requireOrgMemberPage } from "@/lib/authz";
@@ -11,6 +11,7 @@ import { PermissionAction } from "@prisma/client";
 import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
 import { TaskTable } from "./_components/task-table";
 import { TasksSidebarContent } from "./_components/tasks-sidebar-content";
+import { SharedTaskList } from "./_components/shared-task-list";
 import { SORT_OPTIONS, type SortOption } from "./_components/tasks-config";
 
 /**
@@ -30,7 +31,7 @@ const TasksPage = async ({
   searchParams,
 }: {
   params: Promise<{ orgId: string }>;
-  searchParams: Promise<{ sort?: string; roleId?: string; view?: string; tagId?: string }>;
+  searchParams: Promise<{ sort?: string; roleId?: string; view?: string; tagId?: string; tab?: string }>;
 }) => {
   const { orgId } = await params;
   const sp = await searchParams;
@@ -47,7 +48,16 @@ const TasksPage = async ({
       )
     : false;
 
-  const [tasks, roles, orgTags] = await Promise.all([getTasks(orgId), getRoles(orgId), getOrgTags(orgId)]);
+  const [tasks, roles, orgTags, sharedData] = await Promise.all([
+    getTasks(orgId),
+    getRoles(orgId),
+    getOrgTags(orgId),
+    getSharedTasks(orgId),
+  ]);
+
+  const isChildOrg = sharedData.parentOrgId !== null;
+  const tab: "my-tasks" | "shared" =
+    isChildOrg && sp.tab === "shared" ? "shared" : "my-tasks";
 
   const sort: SortOption = VALID_SORT_VALUES.includes(sp.sort as SortOption)
     ? (sp.sort as SortOption)
@@ -76,18 +86,28 @@ const TasksPage = async ({
             roleId={roleId}
             tagId={tagId}
             view={view}
+            isChildOrg={isChildOrg}
+            tab={tab}
           />
         }
       />
-      <TaskTable
-        orgId={orgId}
-        tasks={tasks}
-        canManageTasks={canManageTasks}
-        sort={sort}
-        filterRoleId={roleId}
-        filterTagId={tagId}
-        view={view}
-      />
+      {tab === "shared" ? (
+        <SharedTaskList
+          orgId={orgId}
+          tasks={sharedData.tasks}
+          canManageTasks={canManageTasks}
+        />
+      ) : (
+        <TaskTable
+          orgId={orgId}
+          tasks={tasks}
+          canManageTasks={canManageTasks}
+          sort={sort}
+          filterRoleId={roleId}
+          filterTagId={tagId}
+          view={view}
+        />
+      )}
     </>
   );
 };

@@ -17,13 +17,24 @@
 import { PermissionAction } from "@prisma/client";
 import { requireOrgPermissionAction } from "@/lib/authz";
 import {
+  canAccessTask,
   createTask,
   deleteTask,
+  freezeTask,
+  inheritTask,
+  publishTask,
+  removeInheritedTask,
+  unpublishTask,
   updateTask,
   addTaskEligibility,
   removeTaskEligibility,
   setTaskEligibilities,
 } from "@/lib/services/tasks";
+import {
+  getSectionLayout,
+  updateSectionLayouts,
+  type SectionLayoutInput,
+} from "@/lib/services/task-sections";
 import {
   addTagToTask,
   removeTagFromTask,
@@ -298,5 +309,141 @@ export async function removeEligibilityAction(
   if (!result.ok) return { ok: false, error: result.error };
   revalidatePath(`/orgs/${orgId}/tasks`);
   revalidatePath(`/orgs/${orgId}/tasks/${taskId}/edit`);
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Task scope actions (publish / freeze / unpublish)
+// ---------------------------------------------------------------------------
+
+/**
+ * Sets a task's scope to GLOBAL and creates inheritance rows for every current
+ * child org. Only the task-owning org (franchisor) can call this.
+ * Requires `MANAGE_TASKS`.
+ */
+export async function publishTaskAction(
+  orgId: string,
+  taskId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  const result = await publishTask(orgId, taskId, authz.userId, authz.userEmail);
+  if (!result.ok) return { ok: false, error: result.error };
+  revalidatePath(`/orgs/${orgId}/tasks`);
+  revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);
+  return { ok: true };
+}
+
+/**
+ * Sets a task's scope to FROZEN. Existing inheritance rows are preserved;
+ * new child orgs will not auto-inherit this task.
+ * Requires `MANAGE_TASKS`.
+ */
+export async function freezeTaskAction(
+  orgId: string,
+  taskId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  const result = await freezeTask(orgId, taskId, authz.userId, authz.userEmail);
+  if (!result.ok) return { ok: false, error: result.error };
+  revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);
+  return { ok: true };
+}
+
+/**
+ * Reverts a task to ORG scope (private). When `removeFromChildren` is true,
+ * inheritance rows for all direct child orgs are deleted so they lose access.
+ * Requires `MANAGE_TASKS`.
+ */
+export async function unpublishTaskAction(
+  orgId: string,
+  taskId: string,
+  removeFromChildren: boolean,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  const result = await unpublishTask(orgId, taskId, removeFromChildren, authz.userId, authz.userEmail);
+  if (!result.ok) return { ok: false, error: result.error };
+  revalidatePath(`/orgs/${orgId}/tasks`);
+  revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Franchisee: inherit / remove
+// ---------------------------------------------------------------------------
+
+/**
+ * Adds a GLOBAL task from the parent org to this org's task library.
+ * Creates a TaskInheritance row and copies the parent's section layout.
+ * Requires `MANAGE_TASKS`.
+ */
+export async function inheritTaskAction(
+  orgId: string,
+  taskId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  const result = await inheritTask(orgId, taskId);
+  if (!result.ok) return { ok: false, error: result.error };
+  revalidatePath(`/orgs/${orgId}/tasks`);
+  return { ok: true };
+}
+
+/**
+ * Removes a franchisee's access to an inherited task.
+ * Requires `MANAGE_TASKS`.
+ */
+export async function removeInheritedTaskAction(
+  orgId: string,
+  taskId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  const result = await removeInheritedTask(orgId, taskId);
+  if (!result.ok) return { ok: false, error: result.error };
+  revalidatePath(`/orgs/${orgId}/tasks`);
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Section layout
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetches the section layout for a task+org. Accessible to any member with
+ * MANAGE_TASKS whose org owns or has inherited the task.
+ */
+export async function getSectionLayoutAction(
+  orgId: string,
+  taskId: string,
+): Promise<
+  | { ok: true; sections: Awaited<ReturnType<typeof getSectionLayout>> }
+  | { ok: false; error: string }
+> {
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  const accessible = await canAccessTask(orgId, taskId);
+  if (!accessible) return { ok: false, error: "Task not found" };
+  const sections = await getSectionLayout(taskId, orgId);
+  return { ok: true, sections };
+}
+
+/**
+ * Saves the section layout for a task+org (full replacement via upsert).
+ * Requires `MANAGE_TASKS` and access to the task.
+ */
+export async function updateSectionLayoutAction(
+  orgId: string,
+  taskId: string,
+  sections: SectionLayoutInput[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  const accessible = await canAccessTask(orgId, taskId);
+  if (!accessible) return { ok: false, error: "Task not found" };
+  await updateSectionLayouts(taskId, orgId, sections);
+  revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);
   return { ok: true };
 }
