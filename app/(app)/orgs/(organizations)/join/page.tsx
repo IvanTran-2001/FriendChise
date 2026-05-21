@@ -4,12 +4,52 @@
  * Passes the full timezone list to `JoinFranchisePage` at build time to avoid
  * loading it on the client. Wrapped in `<Suspense>` because the client
  * component calls `useSearchParams()` to read the `?token=` query param.
+ *
+ * When a `?token=` is present, the parent org's schedule is fetched and
+ * forwarded as `defaultSchedule` so the form fields are pre-filled.
  */
 import { Suspense } from "react";
 import { TIMEZONES } from "@/lib/timezones";
+import { prisma } from "@/lib/prisma";
 import JoinFranchisePage from "./join-franchise-client";
 
-export default function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ token?: string }>;
+}) {
+  const { token } = await searchParams;
+
+  let defaultSchedule:
+    | {
+        timezone?: string;
+        address?: string | null;
+        openTimeMin?: number | null;
+        closeTimeMin?: number | null;
+        operatingDays?: string[];
+      }
+    | undefined;
+
+  if (token) {
+    const ft = await prisma.franchiseToken.findUnique({
+      where: { token },
+      select: {
+        organization: {
+          select: {
+            timezone: true,
+            address: true,
+            openTimeMin: true,
+            closeTimeMin: true,
+            operatingDays: true,
+          },
+        },
+      },
+    });
+    if (ft?.organization) {
+      defaultSchedule = ft.organization;
+    }
+  }
+
   return (
     <Suspense
       fallback={
@@ -18,7 +58,7 @@ export default function Page() {
         </div>
       }
     >
-      <JoinFranchisePage timezones={TIMEZONES} />
+      <JoinFranchisePage timezones={TIMEZONES} defaultSchedule={defaultSchedule} />
     </Suspense>
   );
 }

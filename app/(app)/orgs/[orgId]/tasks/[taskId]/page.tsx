@@ -2,26 +2,29 @@
  * View Task page — `/orgs/[orgId]/tasks/[taskId]`
  *
  * Server component. Any org member can view tasks their org owns or has
- * inherited. Conditionally shows:
- *  - Actions dropdown (Edit / Delete) — owners with MANAGE_TASKS
- *  - TaskScopeControls (publish / freeze / unpublish) — owners with MANAGE_TASKS
- *  - TaskSectionsTrigger (section-layout sidebar) — any member with MANAGE_TASKS
- *  - "Inherited" badge — franchisee orgs viewing a task from their parent
- * Returns 404 if the task is neither owned nor inherited by this org.
+ * inherited via TaskInheritance. Returns 404 if neither applies.
+ *
+ * The page sidebar (TaskDetailSidebar) conditionally renders:
+ *  - "Inherited from franchisor" notice — franchisee orgs viewing a parent task
+ *  - Sharing controls (publish / make private) — task-owning org with MANAGE_TASKS
+ *  - Layout editor (Edit Sections panel) — any member with MANAGE_TASKS
+ *  - Actions (Edit link, Delete) — task-owning org with MANAGE_TASKS
+ *
+ * Section layout rows are fetched server-side and passed to the sidebar so the
+ * drag-to-reorder panel opens immediately without a loading state.
  */
 import { notFound } from "next/navigation";
 import { PermissionAction } from "@prisma/client";
 import { requireOrgMemberPage } from "@/lib/authz";
 import { getOrgMembership, memberHasPermission } from "@/lib/authz/_shared";
 import { getAccessibleTaskById } from "@/lib/services/tasks";
-import { getSectionLayout } from "@/lib/services/task-sections";
+import { getSectionLayout, type SectionLayoutRow } from "@/lib/services/task-sections";
 import { createSignedReadUrl } from "@/lib/supabase-storage";
+import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
 import { Toolbar } from "@/components/layout/toolbar";
 import { BackButton } from "@/components/layout/back-button";
-import { TaskViewActions } from "./task-view-actions";
 import { TaskDescription } from "./task-description";
-import { TaskScopeControls } from "./task-scope-controls";
-import { TaskSectionsTrigger } from "./task-sections-trigger";
+import { TaskDetailSidebar } from "./task-detail-sidebar";
 import { formatDate } from "@/lib/utils";
 
 function formatDuration(min: number): string {
@@ -72,9 +75,14 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
     getSectionLayout(taskId, orgId),
   ]);
 
+  const sharedBy = !isOwner
+    ? (task as unknown as { organization: { name: string } }).organization.name
+    : undefined;
+  const createdByName = (task as unknown as { createdByName: string | null }).createdByName ?? undefined;
+
   const eligibleRoles = task.eligibility.map((e) => e.role);
   const taskTags = task.tags.map((t) => t.tag);
-  const sections = sectionRows.map((s) => ({
+  const sections = sectionRows.map((s: SectionLayoutRow) => ({
     id: s.id,
     type: s.type,
     title: s.title,
@@ -85,6 +93,21 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
 
   return (
     <>
+      <RegisterPageSidebarSubContent
+        content={
+          <TaskDetailSidebar
+            orgId={orgId}
+            taskId={taskId}
+            taskName={task.name}
+            isOwner={isOwner}
+            canManage={canManage}
+            scope={(task as unknown as { scope: "ORG" | "GLOBAL" }).scope}
+            sections={sections}
+            sharedBy={sharedBy}
+            createdByName={createdByName}
+          />
+        }
+      />
       <Toolbar>
         <BackButton
           fallbackHref={backHref}
@@ -92,34 +115,6 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
         >
           {backLabel}
         </BackButton>
-        <div className="flex items-center gap-2">
-          {/* Inherited badge — shown to franchisee orgs */}
-          {!isOwner && (
-            <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-              Inherited
-            </span>
-          )}
-          {/* Scope controls — shown to task owner with manage permission */}
-          {isOwner && canManage && (
-            <TaskScopeControls
-              orgId={orgId}
-              taskId={taskId}
-              scope={task.scope as "ORG" | "GLOBAL" | "FROZEN"}
-            />
-          )}
-          {/* Sections panel trigger */}
-          {canManage && (
-            <TaskSectionsTrigger
-              orgId={orgId}
-              taskId={taskId}
-              sections={sections}
-            />
-          )}
-          {/* Edit / Delete actions */}
-          {isOwner && canManage && (
-            <TaskViewActions orgId={orgId} taskId={taskId} taskName={task.name} />
-          )}
-        </div>
       </Toolbar>
 
       <div className="w-full max-w-3xl mx-auto flex flex-col gap-6">

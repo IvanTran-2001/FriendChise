@@ -32,9 +32,8 @@ enum FeedbackType {
 }
 
 enum TaskScope {
-  ORG     // only the owning org can see it
-  GLOBAL  // shared with all current (and future, unless FROZEN) child orgs
-  FROZEN  // existing child orgs keep it; new ones do not inherit
+  ORG    // only the owning org can see it; existing franchisee inheritance rows are kept
+  GLOBAL // shared with franchise — franchisees can discover and inherit
 }
 
 enum SectionScope {
@@ -127,6 +126,7 @@ model User {
   auditLogs                 AuditLog[]
 
   feedback      Feedback[]
+  createdTasks  Task[]     @relation("CreatedTasks")
 
   accounts      Account[]
   sessions      Session[]
@@ -298,6 +298,11 @@ model Task {
   orgId                 String
   organization          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
+  // Null for tasks created before this field was added, or by system processes.
+  createdById           String?
+  createdBy             User?        @relation("CreatedTasks", fields: [createdById], references: [id], onDelete: SetNull)
+  createdByName         String?      // snapshot — survives user deletion
+
   durationMin           Int      @default(60)
   minPeople             Int      @default(1)
   maxPeople             Int?
@@ -324,6 +329,7 @@ model Task {
 
   @@unique([orgId, name])
   @@index([orgId])
+  @@index([scope, orgId])
 }
 
 // ─────────────────────────────────────
@@ -862,7 +868,7 @@ model AdminUser {
 // TASK INHERITANCE
 // ─────────────────────────────────────
 
-/// Tracks which orgs have added a GLOBAL/FROZEN task to their task list.
+/// Tracks which orgs have added a GLOBAL task to their task list.
 /// Created when a franchisee clicks "Add" on a shared task.
 /// Deleting this row removes the task from that org's list.
 model TaskInheritance {

@@ -69,7 +69,7 @@ const franchiseConfig: InviteConfig = {
       toast.error("Invalid invite token");
       return { ok: false, error: "Invalid invite token" };
     }
-    router.push(`/orgs/new?token=${token}`);
+    router.push(`/orgs/join?token=${encodeURIComponent(token)}`);
     return "navigated";
   },
   onDecline: async (invite) => declineFranchiseInviteAction(invite.id),

@@ -22,8 +22,7 @@
  */
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { MoreHorizontal, ListTodo } from "lucide-react";
+import { MoreHorizontal, ListTodo, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -44,7 +43,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deleteTaskAction } from "@/app/actions/tasks";
+import { deleteTaskAction, removeTaskFromListAction, inheritTaskAction } from "@/app/actions/tasks";
 import type { SortOption } from "./tasks-config";
 
 // Strip markdown syntax for plain-text previews
@@ -68,6 +67,9 @@ type Task = {
   description: string | null;
   durationMin: number;
   minPeople: number;
+  orgId: string;
+  _available: boolean;
+  _count: { inheritedBy: number };
   eligibility: { role: { id: string; name: string; color: string | null } }[];
   tags: { tag: { id: string; name: string; color: string } }[];
 };
@@ -131,6 +133,40 @@ export function TaskTable({
     }
   });
 
+  function handleDeleteClick(task: Task) {
+    const isOwner = task.orgId === orgId;
+    // Owner with no other inheritances — skip dialog, delete immediately
+    if (isOwner && task._count.inheritedBy <= 1) {
+      startTransition(async () => {
+        const result = await deleteTaskAction(orgId, task.id);
+        if (result.ok) {
+          toast.success("Task deleted.");
+          router.refresh();
+        } else {
+          toast.error(result.error);
+        }
+      });
+    } else {
+      // Owner with others inheriting it, or non-owner — open dialog
+      setDeleteTarget(task);
+    }
+  }
+
+  function handleRemoveFromList() {
+    if (!deleteTarget) return;
+    const taskId = deleteTarget.id;
+    setDeleteTarget(null);
+    startTransition(async () => {
+      const result = await removeTaskFromListAction(orgId, taskId);
+      if (result.ok) {
+        toast.success("Removed from list.");
+        router.refresh();
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
   function handleDelete() {
     if (!deleteTarget) return;
     const taskId = deleteTarget.id;
@@ -139,6 +175,18 @@ export function TaskTable({
       const result = await deleteTaskAction(orgId, taskId);
       if (result.ok) {
         toast.success("Task deleted.");
+        router.refresh();
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
+  function handleAddToList(task: Task) {
+    startTransition(async () => {
+      const result = await inheritTaskAction(orgId, task.id);
+      if (result.ok) {
+        toast.success(`"${task.name}" added to your list.`);
         router.refresh();
       } else {
         toast.error(result.error);
@@ -190,9 +238,12 @@ export function TaskTable({
                   className="h-1.5 w-full"
                   style={{ backgroundColor: task.color }}
                 />
-                <Link
-                  href={`/orgs/${orgId}/tasks/${task.id}`}
-                  className="block p-4 cursor-pointer"
+                <div
+                  className={`block p-4${!task._available ? " cursor-pointer" : ""}`}
+                  onClick={() => {
+                    if (!task._available)
+                      router.push(`/orgs/${orgId}/tasks/${task.id}`);
+                  }}
                 >
                   <div className="flex flex-col gap-3">
                     <div className="flex items-start gap-2">
@@ -236,59 +287,77 @@ export function TaskTable({
                       </div>
                     )}
                   </div>
-                </Link>
+                </div>
                 {canManageTasks && (
                   <div className="absolute top-3 right-3">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 opacity-100 transition-opacity sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto sm:focus-visible:opacity-100 sm:focus-visible:pointer-events-auto"
-                          disabled={isPending}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Task actions</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        onClick={(e) => e.stopPropagation()}
+                    {task._available ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 opacity-100 transition-opacity sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto sm:focus-visible:opacity-100 sm:focus-visible:pointer-events-auto"
+                        disabled={isPending}
+                        title="Add to my list"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleAddToList(task);
+                        }}
                       >
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/orgs/${orgId}/tasks/${task.id}/edit`);
-                          }}
+                        <Plus className="h-4 w-4" />
+                        <span className="sr-only">Add to list</span>
+                      </Button>
+                    ) : (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-100 transition-opacity sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto sm:focus-visible:opacity-100 sm:focus-visible:pointer-events-auto"
+                            disabled={isPending}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Task actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          disabled
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(
-                              `/orgs/${orgId}/tasks/new?duplicateFrom=${task.id}`,
-                            );
-                          }}
-                        >
-                          Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteTarget(task);
-                          }}
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/orgs/${orgId}/tasks/${task.id}/edit`);
+                            }}
+                          >
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(
+                                `/orgs/${orgId}/tasks/new?duplicateFrom=${task.id}`,
+                              );
+                            }}
+                          >
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteClick(task);
+                            }}
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                 )}
               </div>
@@ -322,15 +391,17 @@ export function TaskTable({
                   <tr
                     key={task.id}
                     tabIndex={0}
-                    onClick={() =>
-                      router.push(`/orgs/${orgId}/tasks/${task.id}`)
-                    }
+                    onClick={() => {
+                      if (!task._available)
+                        router.push(`/orgs/${orgId}/tasks/${task.id}`);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key !== "Enter") return;
                       if (e.target !== e.currentTarget) return;
-                      router.push(`/orgs/${orgId}/tasks/${task.id}`);
+                      if (!task._available)
+                        router.push(`/orgs/${orgId}/tasks/${task.id}`);
                     }}
-                    className="border-b last:border-0 hover:bg-primary/5 active:bg-muted cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                    className={`border-b last:border-0 hover:bg-primary/5 active:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset${!task._available ? " cursor-pointer" : ""}`}
                   >
                     <td className="px-4 py-3 font-medium">
                       <div className="flex items-center gap-2">
@@ -377,46 +448,60 @@ export function TaskTable({
                         className="px-2 py-3 text-right"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              disabled={isPending}
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Task actions</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() =>
-                                router.push(
-                                  `/orgs/${orgId}/tasks/${task.id}/edit`,
-                                )
-                              }
-                            >
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              disabled
-                              onClick={() =>
-                                router.push(
-                                  `/orgs/${orgId}/tasks/new?duplicateFrom=${task.id}`,
-                                )
-                              }
-                            >
-                              Duplicate
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => setDeleteTarget(task)}
-                            >
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        {task._available ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            disabled={isPending}
+                            title="Add to my list"
+                            onClick={() => handleAddToList(task)}
+                          >
+                            <Plus className="h-4 w-4" />
+                            <span className="sr-only">Add to list</span>
+                          </Button>
+                        ) : (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                disabled={isPending}
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Task actions</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  router.push(
+                                    `/orgs/${orgId}/tasks/${task.id}/edit`,
+                                  )
+                                }
+                              >
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                disabled
+                                onClick={() =>
+                                  router.push(
+                                    `/orgs/${orgId}/tasks/new?duplicateFrom=${task.id}`,
+                                  )
+                                }
+                              >
+                                Duplicate
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => handleDeleteClick(task)}
+                              >
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </td>
                     )}
                   </tr>
@@ -427,23 +512,42 @@ export function TaskTable({
         )}
       </div>
 
-      {/* Delete confirmation */}
+      {/* Delete / remove confirmation */}
       <AlertDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete task</AlertDialogTitle>
+            <AlertDialogTitle>Remove task</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove{" "}
-              <span className="font-medium">{deleteTarget?.name}</span>? This
-              action cannot be undone.
+              {deleteTarget?.orgId === orgId ? (
+                <>
+                  How would you like to remove{" "}
+                  <span className="font-medium">{deleteTarget?.name}</span>?
+                </>
+              ) : (
+                <>
+                  Remove{" "}
+                  <span className="font-medium">{deleteTarget?.name}</span> from
+                  your list?
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={handleRemoveFromList}>
+              Remove from list
+            </AlertDialogAction>
+            {deleteTarget?.orgId === orgId && (
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={handleDelete}
+              >
+                Delete permanently
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

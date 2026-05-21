@@ -173,7 +173,7 @@ export async function joinFranchise(
     const [token, user] = await Promise.all([
       tx.franchiseToken.findUnique({
         where: { token: data.token },
-        include: { organization: { select: { id: true, name: true } } },
+        include: { organization: { select: { id: true, name: true, image: true } } },
       }),
       tx.user.findUnique({
         where: { id: userId },
@@ -200,6 +200,7 @@ export async function joinFranchise(
         operatingDays: data.operatingDays ?? [],
         openTimeMin: data.openTimeMin ?? null,
         closeTimeMin: data.closeTimeMin ?? null,
+        image: token.organization.image ?? null,
       },
     });
 

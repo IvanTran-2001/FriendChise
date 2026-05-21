@@ -1,5 +1,23 @@
+/**
+ * Task section layout service.
+ *
+ * Manages `TaskSectionLayout` rows — per-org, per-task configuration that
+ * controls which sections are visible, their display order, and whether they
+ * are scoped to the viewing org (ORG) or shared back to the franchisor (GLOBAL).
+ *
+ * Known section types: "PICTURE", "DETAIL", "COMMENT".
+ * New types can be added without a schema migration (type is a plain string).
+ *
+ * Default behaviour: if no rows exist for a task+org pair, `getSectionLayout`
+ * returns virtual DEFAULT_SECTIONS so callers never need a null check.
+ * Rows are created lazily on first save or when a task is inherited.
+ */
+import type { TaskSectionLayout } from "@prisma/client";
 import { SectionScope } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+
+/** Unified row shape returned by getSectionLayout (DB rows or virtual defaults). */
+export type SectionLayoutRow = Omit<TaskSectionLayout, "id"> & { id: string };
 
 export type SectionLayoutInput = {
   type: string;
@@ -31,7 +49,7 @@ export async function createDefaultSectionLayouts(taskId: string, orgId: string)
  * Falls back to the DEFAULT_SECTIONS constants (without DB ids) when no rows
  * exist yet — callers should treat virtual rows as unsaved.
  */
-export async function getSectionLayout(taskId: string, orgId: string) {
+export async function getSectionLayout(taskId: string, orgId: string): Promise<SectionLayoutRow[]> {
   const rows = await prisma.taskSectionLayout.findMany({
     where: { taskId, orgId },
     orderBy: { position: "asc" },

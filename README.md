@@ -119,6 +119,8 @@ Provider: PostgreSQL (Supabase), managed via Prisma ORM.
 | `ConversionTemplateEntry`  | One item slot in a `ConversionTemplate`. `quantity` is non-null for From items (the input quantity); `null` for To items (display-only calculated outputs). `visible` controls whether the item is shown.                                                                                                                                                        |
 | `Feedback`                 | A user-submitted feedback item. Linked to a `User` and optionally an `Organization`. `type` is `ISSUE` or `IDEA`. `message` is free text. `imageUrl` is an optional Supabase Storage path (public bucket) for an attached screenshot. `reviewed` is an admin toggle.                                                                                           |
 | `AdminUser`                | Super-admin allow-list. Any `User` whose email appears here gains access to `/admin/*` routes and admin-only server actions.                                                                                                                                                                                                                                     |
+| `TaskInheritance`          | Tracks which orgs have added a GLOBAL task to their library. Created when a franchisee clicks "Add" on a shared task; deleted when they remove it. The owning org also gets an auto-created row on task creation. Unique on `(taskId, orgId)`.                                                                                                                   |
+| `TaskSectionLayout`        | Per-org, per-task section configuration. Stores `type` (e.g. `"PICTURE"`, `"DETAIL"`, `"COMMENT"`), display `title`, `scope` (`ORG`/`GLOBAL`), `position` (sort order), and `visible` flag. Defaults are seeded on task creation and copied from the parent org on inheritance. Unique on `(taskId, orgId, type)`.                                               |
 
 ### Enums
 
@@ -131,6 +133,8 @@ Provider: PostgreSQL (Supabase), managed via Prisma ORM.
 | `InviteType`       | `MEMBER`, `FRANCHISE`                                                                                     |
 | `ViewType`         | `DAILY`, `WEEKLY`                                                                                         |
 | `FeedbackType`     | `ISSUE`, `IDEA`                                                                                           |
+| `TaskScope`        | `ORG` (private — visible to owning org only), `GLOBAL` (shared — franchisees can discover and inherit)   |
+| `SectionScope`     | `ORG` (section interaction limited to the viewing org), `GLOBAL` (shared back to the franchisor)         |
 
 ### Migrations
 
@@ -164,6 +168,7 @@ pnpm seed
 | `20260513123326_roster_template_cycle_weeks` | Add `cycleWeeks Int @default(1)` to `RosterTemplate`.                                                                                                                                        |
 | `20260514000000_add_check_constraints` | DB-level CHECK constraints enforcing field bounds: time fields 0–1440, `dayIndex` 0–6, `cycleWeeks` 1–12.                                                                                                        |
 | _(schema push)_                        | `Feedback` model (`userId`, `orgId?`, `type`, `message`, `imageUrl?`, `reviewed`) and `AdminUser` model (`email unique`) added. Applied via `prisma db push` (dev DB had migration drift).                       |
+| _(schema push)_                        | `TaskInheritance` (`taskId`, `orgId`, `inheritedAt`) and `TaskSectionLayout` (`taskId`, `orgId`, `type`, `title`, `scope`, `position`, `visible`) models added. `Task.scope` (`TaskScope` enum, default `ORG`) added. `SectionScope` enum added. Applied via `prisma db push` on the `feat/task-inheritance-sections` branch. |
 
 ## Authentication
 

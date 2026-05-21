@@ -1,3 +1,23 @@
+/**
+ * Task service — CRUD, accessibility, and franchise scope helpers.
+ *
+ * Key concepts
+ * ────────────
+ * Ownership vs. access: a task is owned by the org that created it (`task.orgId`).
+ * Any org can also access a task they don't own via a `TaskInheritance` row.
+ * `getAccessibleTaskById` returns `{ task, isOwner }` to distinguish the two cases.
+ *
+ * Inheritance flow:
+ *  1. Owning org publishes task (scope → GLOBAL).
+ *  2. Franchisee discovers it in the Shared view (`getSharedTasks`).
+ *  3. Franchisee clicks Add → `inheritTask` creates a TaskInheritance row and
+ *     copies the parent's section layout via `copySectionLayout`.
+ *  4. Owning org can make private again (`unpublishTask`), optionally deleting
+ *     child inheritance rows.
+ *
+ * Section layouts are seeded on task creation (`createDefaultSectionLayouts`)
+ * and copied to franchisee orgs on inheritance.
+ */
 import { TaskScope } from "@prisma/client";
 import { log } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
@@ -9,6 +29,7 @@ import {
 import type { ServiceResult } from "./types";
 import type { CreateTaskInput, UpdateTaskInput } from "@/lib/validators/task";
 
+
 /**
  * Creates a new task for the given org using validated input.
  * Optional fields are null-coalesced so callers never need to handle `undefined`.
@@ -18,6 +39,7 @@ export async function createTask(
   data: CreateTaskInput,
   actorId?: string | null,
   actorEmail?: string | null,
+  actorName?: string | null,
 ) {
   const task = await prisma.task.create({
     data: {
@@ -30,6 +52,8 @@ export async function createTask(
       minPeople: data.peopleRequired ?? 1,
       minWaitDays: data.minWaitDays ?? null,
       maxWaitDays: data.maxWaitDays ?? null,
+      createdById: actorId ?? null,
+      createdByName: actorName ?? null,
     },
   });
   log.info("Task created", { orgId, taskId: task.id });
@@ -49,7 +73,25 @@ export async function createTask(
   });
   // Seed default section layout rows for the owning org.
   await createDefaultSectionLayouts(task.id, orgId);
+  // The creating org automatically inherits its own task.
+  await prisma.taskInheritance.create({
+    data: { taskId: task.id, orgId },
+  });
   return task;
+}
+
+/**
+ * Returns the orgId of the org that owns the task, or null if the task
+ * doesn't exist. Used by actions to resolve cross-org edit/delete permissions.
+ */
+export async function getTaskOwnerOrgId(
+  taskId: string,
+): Promise<string | null> {
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: { orgId: true },
+  });
+  return task?.orgId ?? null;
 }
 
 /**
@@ -90,6 +132,8 @@ export async function deleteTask(
 }
 
 const taskInclude = {
+  organization: { select: { name: true } },
+  createdBy: { select: { id: true, name: true, image: true } },
   eligibility: {
     select: {
       role: { select: { id: true, name: true, color: true } },
@@ -100,7 +144,55 @@ const taskInclude = {
       tag: { select: { id: true, name: true, color: true } },
     },
   },
+  _count: { select: { inheritedBy: true } },
 } as const;
+
+/**
+ * Returns all tasks accessible to the org via TaskInheritance.
+ * Includes tasks the org created (auto-inherited) and tasks inherited from others.
+ */
+export async function getInheritedTasks(orgId: string) {
+  const inheritances = await prisma.taskInheritance.findMany({
+    where: { orgId },
+    include: { task: { include: taskInclude } },
+    orderBy: { inheritedAt: "desc" },
+  });
+  return inheritances.map((i) => i.task);
+}
+
+/**
+ * Returns GLOBAL-scoped tasks from the same franchise that this org hasn't
+ * inherited yet. Covers tasks from the parent org and sibling orgs.
+ */
+export async function getSharedTasks(orgId: string) {
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { parentId: true },
+  });
+  if (!org) return [];
+
+  const alreadyInherited = await prisma.taskInheritance
+    .findMany({ where: { orgId }, select: { taskId: true } })
+    .then((rows) => rows.map((r) => r.taskId));
+
+  const franchiseParentId = org.parentId;
+
+  return prisma.task.findMany({
+    where: {
+      scope: TaskScope.GLOBAL,
+      orgId: { not: orgId },
+      ...(alreadyInherited.length > 0 && { id: { notIn: alreadyInherited } }),
+      OR: franchiseParentId
+        ? [
+            { orgId: franchiseParentId },
+            { organization: { parentId: franchiseParentId } },
+          ]
+        : [{ organization: { parentId: orgId } }],
+    },
+    include: taskInclude,
+    orderBy: { createdAt: "desc" },
+  });
+}
 
 /**
  * Returns all tasks for the given org, sorted newest-first.
@@ -333,55 +425,13 @@ export async function getAccessibleTasks(orgId: string) {
   ];
 }
 
-/**
- * Returns GLOBAL tasks (available to add) and already-inherited tasks from the
- * parent org. Returns an empty array when the org has no parent.
- *
- * Each task includes an `inheritedBy` array with 0 or 1 entries so the UI can
- * tell at a glance whether the org has already added a given task.
- */
-export async function getSharedTasks(orgId: string) {
-  const org = await prisma.organization.findUnique({
-    where: { id: orgId },
-    select: { parentId: true },
-  });
-  if (!org?.parentId) return { parentOrgId: null as null, tasks: [] };
-
-  const inheritedIds = await prisma.taskInheritance
-    .findMany({ where: { orgId }, select: { taskId: true } })
-    .then((rows) => rows.map((r) => r.taskId));
-
-  const tasks = await prisma.task.findMany({
-    where: {
-      orgId: org.parentId,
-      OR: [
-        { scope: TaskScope.GLOBAL },
-        // FROZEN tasks already inherited while they were GLOBAL stay visible
-        { scope: TaskScope.FROZEN, id: { in: inheritedIds.length ? inheritedIds : ["__none__"] } },
-      ],
-    },
-    include: {
-      ...taskInclude,
-      inheritedBy: {
-        where: { orgId },
-        select: { id: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  return { parentOrgId: org.parentId, tasks };
-}
-
 // ---------------------------------------------------------------------------
-// Publish / freeze / unpublish
+// Publish / unpublish
 // ---------------------------------------------------------------------------
 
 /**
- * Publishes a task (scope → GLOBAL) and creates TaskInheritance rows for every
- * current child org that does not already have one. Section layouts are copied
- * outside the transaction because they are best-effort — the inheritance row is
- * the source of truth.
+ * Publishes a task (scope → GLOBAL). Child orgs can then discover and
+ * voluntarily inherit the task via the Shared Tasks view.
  */
 export async function publishTask(
   orgId: string,
@@ -389,36 +439,11 @@ export async function publishTask(
   actorId?: string | null,
   actorEmail?: string | null,
 ): Promise<ServiceResult<null>> {
-  const task = await prisma.task.findFirst({
+  const { count } = await prisma.task.updateMany({
     where: { id: taskId, orgId },
-    select: { id: true },
+    data: { scope: TaskScope.GLOBAL },
   });
-  if (!task) return { ok: false, error: "Task not found", code: "NOT_FOUND" };
-
-  const children = await prisma.organization.findMany({
-    where: { parentId: orgId },
-    select: { id: true },
-  });
-
-  // Find which children are new (no existing inheritance row)
-  const existingInheritances = await prisma.taskInheritance.findMany({
-    where: { taskId, orgId: { in: children.map((c) => c.id) } },
-    select: { orgId: true },
-  });
-  const alreadyInherited = new Set(existingInheritances.map((r) => r.orgId));
-  const newChildIds = children.map((c) => c.id).filter((id) => !alreadyInherited.has(id));
-
-  await prisma.$transaction([
-    prisma.task.update({ where: { id: taskId }, data: { scope: TaskScope.GLOBAL } }),
-    ...newChildIds.map((childOrgId) =>
-      prisma.taskInheritance.create({ data: { taskId, orgId: childOrgId } }),
-    ),
-  ]);
-
-  // Copy layouts after the transaction (best-effort)
-  for (const childOrgId of newChildIds) {
-    await copySectionLayout(taskId, orgId, childOrgId);
-  }
+  if (count === 0) return { ok: false, error: "Task not found", code: "NOT_FOUND" };
 
   log.info("Task published", { orgId, taskId });
   recordAudit({
@@ -426,34 +451,6 @@ export async function publishTask(
     actorId: actorId ?? null,
     actorEmail: actorEmail ?? null,
     action: "task.publish",
-    targetType: "Task",
-    targetId: taskId,
-  });
-  return { ok: true, data: null };
-}
-
-/**
- * Freezes a task (scope → FROZEN). Existing inheritance rows are left intact;
- * new child orgs will no longer auto-inherit this task.
- */
-export async function freezeTask(
-  orgId: string,
-  taskId: string,
-  actorId?: string | null,
-  actorEmail?: string | null,
-): Promise<ServiceResult<null>> {
-  const { count } = await prisma.task.updateMany({
-    where: { id: taskId, orgId },
-    data: { scope: TaskScope.FROZEN },
-  });
-  if (count === 0) return { ok: false, error: "Task not found", code: "NOT_FOUND" };
-
-  log.info("Task frozen", { orgId, taskId });
-  recordAudit({
-    orgId,
-    actorId: actorId ?? null,
-    actorEmail: actorEmail ?? null,
-    action: "task.freeze",
     targetType: "Task",
     targetId: taskId,
   });
@@ -478,15 +475,9 @@ export async function unpublishTask(
   if (!task) return { ok: false, error: "Task not found", code: "NOT_FOUND" };
 
   if (removeFromChildren) {
-    const childOrgIds = await prisma.organization
-      .findMany({ where: { parentId: orgId }, select: { id: true } })
-      .then((rows) => rows.map((r) => r.id));
-
     await prisma.$transaction([
       prisma.task.update({ where: { id: taskId }, data: { scope: TaskScope.ORG } }),
-      prisma.taskInheritance.deleteMany({
-        where: { taskId, orgId: { in: childOrgIds } },
-      }),
+      prisma.taskInheritance.deleteMany({ where: { taskId, orgId: { not: orgId } } }),
     ]);
   } else {
     await prisma.task.update({ where: { id: taskId }, data: { scope: TaskScope.ORG } });
@@ -519,19 +510,13 @@ export async function inheritTask(
   orgId: string,
   taskId: string,
 ): Promise<ServiceResult<null>> {
-  const org = await prisma.organization.findUnique({
-    where: { id: orgId },
-    select: { parentId: true },
-  });
-  if (!org?.parentId) return { ok: false, error: "No parent org", code: "FORBIDDEN" };
-
   const task = await prisma.task.findFirst({
     where: {
       id: taskId,
-      orgId: org.parentId,
       scope: TaskScope.GLOBAL,
+      orgId: { not: orgId },
     },
-    select: { id: true },
+    select: { id: true, orgId: true },
   });
   if (!task) return { ok: false, error: "Task not available", code: "NOT_FOUND" };
 
@@ -541,7 +526,7 @@ export async function inheritTask(
   if (existing) return { ok: false, error: "Already added", code: "CONFLICT" };
 
   await prisma.taskInheritance.create({ data: { taskId, orgId } });
-  await copySectionLayout(taskId, org.parentId, orgId);
+  await copySectionLayout(taskId, task.orgId, orgId);
 
   log.info("Task inherited", { orgId, taskId });
   return { ok: true, data: null };
