@@ -134,22 +134,7 @@ export function TaskTable({
   });
 
   function handleDeleteClick(task: Task) {
-    const isOwner = task.orgId === orgId;
-    // Owner with no other inheritances — skip dialog, delete immediately
-    if (isOwner && task._count.inheritedBy <= 1) {
-      startTransition(async () => {
-        const result = await deleteTaskAction(orgId, task.id);
-        if (result.ok) {
-          toast.success("Task deleted.");
-          router.refresh();
-        } else {
-          toast.error(result.error);
-        }
-      });
-    } else {
-      // Owner with others inheriting it, or non-owner — open dialog
-      setDeleteTarget(task);
-    }
+    setDeleteTarget(task);
   }
 
   function handleRemoveFromList() {
@@ -553,7 +538,9 @@ export function TaskTable({
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 onClick={handleDelete}
               >
-                Delete permanently
+                {deleteTarget._count.inheritedBy > 0
+                  ? "Delete permanently"
+                  : "Delete"}
               </AlertDialogAction>
             )}
           </AlertDialogFooter>
