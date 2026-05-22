@@ -538,7 +538,7 @@ export function TaskTable({
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 onClick={handleDelete}
               >
-                {deleteTarget._count.inheritedBy > 0
+                {deleteTarget._count.inheritedBy > 1
                   ? "Delete permanently"
                   : "Delete"}
               </AlertDialogAction>
