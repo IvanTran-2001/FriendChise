@@ -13,6 +13,8 @@
     "backfill:creators:prod": "SKIP_DOTENV_LOCAL=1 dotenv -e .env -- tsx scripts/backfill-task-creators.ts",
     "backfill:franchise-inheritance": "tsx scripts/backfill-franchise-inheritance.ts",
     "backfill:franchise-inheritance:prod": "SKIP_DOTENV_LOCAL=1 dotenv -e .env -- tsx scripts/backfill-franchise-inheritance.ts --confirm-production",
+    "backfill:parent-inheritance": "tsx scripts/backfill-parent-task-inheritance.ts",
+    "backfill:parent-inheritance:prod": "SKIP_DOTENV_LOCAL=1 dotenv -e .env -- tsx scripts/backfill-parent-task-inheritance.ts --confirm-production",
     "seed": "prisma db seed",
     "seed:dev": "tsx prisma/seed.ts development",
     "seed:prod": "tsx prisma/seed.ts production",
