@@ -21,6 +21,7 @@ import {
   applyRosterTemplate,
   type RosterCellMember,
   type RosterTemplateCellMember,
+  type SavedRosterEntry,
 } from "@/lib/services/roster";
 
 function rosterPath(orgId: string) {
@@ -38,7 +39,7 @@ export async function setRosterCellMembersAction(
   weekStart: Date,
   dayIndex: number,
   members: RosterCellMember[],
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; entries?: SavedRosterEntry[] }> {
   const authz = await requireOrgPermissionAction(
     orgId,
     PermissionAction.MANAGE_TIMETABLE,
@@ -49,7 +50,7 @@ export async function setRosterCellMembersAction(
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(rosterPath(orgId));
-  return { ok: true };
+  return { ok: true, entries: result.data };
 }
 
 export async function upsertRosterDayConfigAction(

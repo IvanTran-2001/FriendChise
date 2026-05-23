@@ -13,6 +13,7 @@ import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
 import { RosterSidebarContent } from "./roster-sidebar-content";
 import { RosterClient } from "./roster-client";
 import type { RosterEntryRow, DayConfigRow, OrgMember } from "./roster-board";
+import type { SavedRosterEntry } from "@/lib/services/roster";
 
 const WEEKS_SHOWN = 5;
 // Prefetch this many extra weeks beyond the visible window when lazy-loading
@@ -93,6 +94,20 @@ export function RosterPageClient({
   const todayMonday = getMondayOfWeek(new Date()).getTime();
   const todayDayIndex = getTodayDayIndex(orgTimezone);
   const isTodayInView = anchorMonday.getTime() === todayMonday;
+
+  // Replace the saved cell's entries in local state so the board updates
+  // immediately and the panel shows fresh data on next open.
+  const handleCellSaved = useCallback(
+    (weekStart: Date, dayIndex: number, newEntries: SavedRosterEntry[]) => {
+      const wMs = weekStart.getTime();
+      setAllEntries((prev) => [
+        ...prev.filter((e) => !(e.weekStart.getTime() === wMs && e.dayIndex === dayIndex)),
+        // SavedRosterEntry is structurally identical to RosterEntryRow
+        ...(newEntries as unknown as RosterEntryRow[]),
+      ]);
+    },
+    [],
+  );
 
   // Fetch any weeks in the visible window (plus buffer) that haven't been loaded yet
   const fetchMissingWeeks = useCallback(
@@ -184,6 +199,7 @@ export function RosterPageClient({
         filterMembershipId={filterMembershipId}
         orgOpenTimeMin={orgOpenTimeMin}
         orgCloseTimeMin={orgCloseTimeMin}
+        onCellSaved={handleCellSaved}
       />
     </>
   );

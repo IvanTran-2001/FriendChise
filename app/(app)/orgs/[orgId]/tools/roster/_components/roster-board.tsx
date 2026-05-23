@@ -23,6 +23,7 @@ import {
   ROSTER_CELL_MIN_HEIGHT,
 } from "./roster-board-constants";
 import { formatMinutes, hoursWorked } from "../_utils/time-utils";
+import type { SavedRosterEntry } from "@/lib/services/roster";
 
 export type RosterEntryRow = {
   id: string;
@@ -63,6 +64,8 @@ export type RosterBoardProps = {
   onFilterChange?: (id: string | null) => void;
   orgOpenTimeMin: number | null;
   orgCloseTimeMin: number | null;
+  /** Called after a cell is successfully saved so the parent can update its local entries state. */
+  onCellSaved?: (weekStart: Date, dayIndex: number, entries: SavedRosterEntry[]) => void;
 };
 
 function memberName(m: OrgMember): string {
@@ -98,6 +101,7 @@ export function RosterBoard({
   filterMembershipId,
   orgOpenTimeMin,
   orgCloseTimeMin,
+  onCellSaved,
 }: RosterBoardProps) {
   const sidebar = useActionSidebar();
 
@@ -227,8 +231,10 @@ export function RosterBoard({
                   onClick={() =>
                     sidebar.open(
                       `${DAY_LABELS[dayIndex]}, ${formatWeekDate(weekStart, dayIndex)}`,
+                      // Use Date.now() in key so the panel always mounts
+                      // fresh with the latest currentEntries (never stale state).
                       <EditCellPanel
-                        key={`${weekStart.getTime()}-${dayIndex}`}
+                        key={`${weekStart.getTime()}-${dayIndex}-${Date.now()}`}
                         orgId={orgId}
                         weekStart={weekStart}
                         dayIndex={dayIndex}
@@ -237,6 +243,7 @@ export function RosterBoard({
                         dayConfig={config ?? null}
                         orgOpenTimeMin={orgOpenTimeMin}
                         orgCloseTimeMin={orgCloseTimeMin}
+                        onSaved={onCellSaved}
                       />,
                     )
                   }

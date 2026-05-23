@@ -9,6 +9,7 @@ import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { setRosterCellMembersAction } from "@/app/actions/roster";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import type { RosterEntryRow, OrgMember, DayConfigRow } from "./roster-board";
+import type { SavedRosterEntry } from "@/lib/services/roster";
 import { formatMinutes, hoursWorked, timeToMinutes } from "../_utils/time-utils";
 
 function memberDisplayName(m: OrgMember): string {
@@ -39,6 +40,7 @@ interface EditCellPanelProps {
   dayConfig: DayConfigRow | null;
   orgOpenTimeMin: number | null;
   orgCloseTimeMin: number | null;
+  onSaved?: (weekStart: Date, dayIndex: number, entries: SavedRosterEntry[]) => void;
 }
 
 export function EditCellPanel({
@@ -50,6 +52,7 @@ export function EditCellPanel({
   dayConfig,
   orgOpenTimeMin,
   orgCloseTimeMin,
+  onSaved,
 }: EditCellPanelProps) {
   const { close } = useActionSidebar();
 
@@ -99,6 +102,7 @@ export function EditCellPanel({
         })),
       );
       if (result.ok) {
+        onSaved?.(weekStart, dayIndex, result.entries ?? []);
         close();
       } else {
         toast.error(result.error ?? "Failed to save");

@@ -112,16 +112,32 @@ export type RosterCellMember = {
   shiftEndMin: number | null;
 };
 
+/** Shape returned after a cell save — matches RosterEntryRow in the board. */
+export type SavedRosterEntry = {
+  id: string;
+  membershipId: string;
+  weekStart: Date;
+  dayIndex: number;
+  shiftStartMin: number | null;
+  shiftEndMin: number | null;
+  membership: {
+    id: string;
+    botName: string | null;
+    user: { name: string | null } | null;
+  };
+};
+
 /**
  * Replaces all members assigned to a specific (weekStart, dayIndex) cell.
  * Runs in a transaction: deletes existing, then inserts new.
+ * Returns the freshly-created entries so the client can update local state.
  */
 export async function setRosterCellMembers(
   orgId: string,
   weekStart: Date,
   dayIndex: number,
   members: RosterCellMember[],
-): Promise<ServiceResult<null>> {
+): Promise<ServiceResult<SavedRosterEntry[]>> {
   if (dayIndex < 0 || dayIndex > 6)
     return { ok: false, error: "Invalid day index", code: "INVALID" };
 
@@ -155,7 +171,17 @@ export async function setRosterCellMembers(
     }
   });
 
-  return { ok: true, data: null };
+  const newEntries = await prisma.rosterEntry.findMany({
+    where: { orgId, weekStart, dayIndex },
+    include: {
+      membership: {
+        select: { id: true, botName: true, user: { select: { name: true } } },
+      },
+    },
+    orderBy: { membershipId: "asc" },
+  });
+
+  return { ok: true, data: newEntries };
 }
 
 /**
