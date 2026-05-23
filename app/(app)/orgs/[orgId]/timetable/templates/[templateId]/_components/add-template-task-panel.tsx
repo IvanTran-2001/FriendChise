@@ -43,9 +43,10 @@ export function AddTemplateTaskPanel({
   // Notify TemplateEditorClient when entering/leaving schedule mode so it can
   // suppress the empty-state overlay.
   useEffect(() => {
-    const evt = mode === "schedule"
-      ? "template:schedule-mode-enter"
-      : "template:schedule-mode-exit";
+    const evt =
+      mode === "schedule"
+        ? "template:schedule-mode-enter"
+        : "template:schedule-mode-exit";
     window.dispatchEvent(new CustomEvent(evt));
   }, [mode]);
 
@@ -97,7 +98,9 @@ export function AddTemplateTaskPanel({
         router.refresh();
         handleBack();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Something went wrong");
+        toast.error(
+          err instanceof Error ? err.message : "Something went wrong",
+        );
       }
     });
   }

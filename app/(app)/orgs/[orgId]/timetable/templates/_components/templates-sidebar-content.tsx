@@ -29,37 +29,37 @@ export function TemplatesSidebarContent({
 
   return (
     <div className="flex flex-col flex-1 overflow-y-auto">
-        {/* View section */}
-        <div className="px-3 pt-3 pb-3">
-          <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
-            View
-          </p>
-          <SegmentedControl
-            size="sm"
-            className="w-fit"
-            value={view}
-            onChange={(v) => router.push(v === "list" ? listHref : cardHref)}
-            options={[
-              { value: "list", label: <List className="h-4 w-4" /> },
-              { value: "card", label: <LayoutGrid className="h-4 w-4" /> },
-            ]}
-          />
-        </div>
-
-        {/* Actions section */}
-        <div className="px-3 pt-2 pb-3 border-t border-border">
-          <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
-            Actions
-          </p>
-          <Button
-            size="sm"
-            variant={activeTitle === "New Template" ? "default" : "outline"}
-            onClick={handleCreate}
-            className="gap-1.5 w-full justify-start"
-          >
-            <Plus className="h-3.5 w-3.5" /> New Template
-          </Button>
-        </div>
+      {/* View section */}
+      <div className="px-3 pt-3 pb-3">
+        <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
+          View
+        </p>
+        <SegmentedControl
+          size="sm"
+          className="w-fit"
+          value={view}
+          onChange={(v) => router.push(v === "list" ? listHref : cardHref)}
+          options={[
+            { value: "list", label: <List className="h-4 w-4" /> },
+            { value: "card", label: <LayoutGrid className="h-4 w-4" /> },
+          ]}
+        />
       </div>
+
+      {/* Actions section */}
+      <div className="px-3 pt-2 pb-3 border-t border-border">
+        <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
+          Actions
+        </p>
+        <Button
+          size="sm"
+          variant={activeTitle === "New Template" ? "default" : "outline"}
+          onClick={handleCreate}
+          className="gap-1.5 w-full justify-start"
+        >
+          <Plus className="h-3.5 w-3.5" /> New Template
+        </Button>
+      </div>
+    </div>
   );
 }

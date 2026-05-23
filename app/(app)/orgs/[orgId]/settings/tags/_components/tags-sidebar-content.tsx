@@ -18,7 +18,10 @@ export function TagsSidebarContent({
 
   function handleCreate() {
     const k = ++formKeyRef.current;
-    open("New Tag", <CreateTagForm key={k} orgId={orgId} allTasks={allTasks} />);
+    open(
+      "New Tag",
+      <CreateTagForm key={k} orgId={orgId} allTasks={allTasks} />,
+    );
   }
 
   return (

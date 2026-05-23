@@ -38,76 +38,77 @@ export function TaskPanel({
       return a.name.localeCompare(b.name);
     });
 
-  const rows = filtered.length === 0 ? (
-    <div className="px-4 py-3 text-xs text-muted-foreground italic">
-      No tasks found
-    </div>
-  ) : (
-    filtered.map((task) => {
-      const isSelected = selectedTaskId === task.id;
-      return (
-        <div
-          key={task.id}
-          draggable={!tapToPlaceMode}
-          onDragStart={
-            !tapToPlaceMode ? (e) => onDragStart(task.id, e) : undefined
-          }
-          onDragEnd={!tapToPlaceMode ? onDragEnd : undefined}
-          onClick={
-            tapToPlaceMode && onTaskSelect
-              ? () => onTaskSelect(isSelected ? null : task.id)
-              : onTaskClick
-              ? () => onTaskClick(task)
-              : undefined
-          }
-          role={tapToPlaceMode || onTaskClick ? "button" : undefined}
-          tabIndex={tapToPlaceMode || onTaskClick ? 0 : undefined}
-          aria-pressed={tapToPlaceMode ? isSelected : undefined}
-          onKeyDown={
-            tapToPlaceMode && onTaskSelect
-              ? (e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onTaskSelect(isSelected ? null : task.id);
+  const rows =
+    filtered.length === 0 ? (
+      <div className="px-4 py-3 text-xs text-muted-foreground italic">
+        No tasks found
+      </div>
+    ) : (
+      filtered.map((task) => {
+        const isSelected = selectedTaskId === task.id;
+        return (
+          <div
+            key={task.id}
+            draggable={!tapToPlaceMode}
+            onDragStart={
+              !tapToPlaceMode ? (e) => onDragStart(task.id, e) : undefined
+            }
+            onDragEnd={!tapToPlaceMode ? onDragEnd : undefined}
+            onClick={
+              tapToPlaceMode && onTaskSelect
+                ? () => onTaskSelect(isSelected ? null : task.id)
+                : onTaskClick
+                  ? () => onTaskClick(task)
+                  : undefined
+            }
+            role={tapToPlaceMode || onTaskClick ? "button" : undefined}
+            tabIndex={tapToPlaceMode || onTaskClick ? 0 : undefined}
+            aria-pressed={tapToPlaceMode ? isSelected : undefined}
+            onKeyDown={
+              tapToPlaceMode && onTaskSelect
+                ? (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onTaskSelect(isSelected ? null : task.id);
+                    }
                   }
-                }
-              : onTaskClick
-              ? (e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onTaskClick(task);
-                  }
-                }
-              : undefined
-          }
-          className={`relative flex items-center min-h-12 px-4 border-b last:border-b-0 transition-colors select-none ${
-            tapToPlaceMode
-              ? `cursor-pointer ${isSelected ? "bg-primary/20 hover:bg-primary/25" : "hover:bg-muted/30"}`
-              : onTaskClick
-              ? "cursor-pointer hover:bg-muted/30 active:bg-muted/50"
-              : "cursor-grab active:cursor-grabbing hover:bg-muted/30"
-          }`}
-        >
-          <span
-            className="absolute left-4 inset-y-0 w-1 rounded-r-sm"
-            style={{
-              backgroundColor: task.roleColor ?? task.color ?? "#9ca3af",
-            }}
-          />
-          <div className="pl-3 text-sm font-medium">{task.name}</div>
-          <div className="pl-3 text-xs text-muted-foreground">
-            {task.roleName ? `${task.roleName} · ` : ""}
-            {task.durationMin} min
-          </div>
-          {tapToPlaceMode && isSelected && (
-            <div className="pl-3 text-xs text-primary font-medium mt-1">
-              Tap on grid to place
+                : onTaskClick
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onTaskClick(task);
+                      }
+                    }
+                  : undefined
+            }
+            className={`relative flex items-center min-h-12 px-4 border-b last:border-b-0 transition-colors select-none ${
+              tapToPlaceMode
+                ? `cursor-pointer ${isSelected ? "bg-primary/20 hover:bg-primary/25" : "hover:bg-muted/30"}`
+                : onTaskClick
+                  ? "cursor-pointer hover:bg-muted/30 active:bg-muted/50"
+                  : "cursor-grab active:cursor-grabbing hover:bg-muted/30"
+            }`}
+          >
+            <span
+              className="absolute left-4 inset-y-0 w-1 rounded-r-sm"
+              style={{
+                backgroundColor: task.roleColor ?? task.color ?? "#9ca3af",
+              }}
+            />
+            <div className="pl-3 text-sm font-medium">{task.name}</div>
+            <div className="pl-3 text-xs text-muted-foreground">
+              {task.roleName ? `${task.roleName} · ` : ""}
+              {task.durationMin} min
             </div>
-          )}
-        </div>
-      );
-    })
-  );
+            {tapToPlaceMode && isSelected && (
+              <div className="pl-3 text-xs text-primary font-medium mt-1">
+                Tap on grid to place
+              </div>
+            )}
+          </div>
+        );
+      })
+    );
 
   return (
     <div className="flex flex-col flex-1 min-h-0">

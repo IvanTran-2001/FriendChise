@@ -46,7 +46,12 @@ export async function setRosterCellMembersAction(
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const result = await setRosterCellMembers(orgId, weekStart, dayIndex, members);
+  const result = await setRosterCellMembers(
+    orgId,
+    weekStart,
+    dayIndex,
+    members,
+  );
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(rosterPath(orgId));
@@ -82,7 +87,10 @@ export async function createRosterTemplateAction(
   name: string,
   cycleWeeks: number = 1,
 ): Promise<{ ok: boolean; error?: string; templateId?: string }> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TIMETABLE);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TIMETABLE,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   const result = await createRosterTemplate(orgId, name, cycleWeeks);
@@ -96,7 +104,10 @@ export async function deleteRosterTemplateAction(
   orgId: string,
   templateId: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TIMETABLE);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TIMETABLE,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   const result = await deleteRosterTemplate(orgId, templateId);
@@ -111,7 +122,10 @@ export async function renameRosterTemplateAction(
   templateId: string,
   name: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TIMETABLE);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TIMETABLE,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   const result = await renameRosterTemplate(orgId, templateId, name);
@@ -128,10 +142,19 @@ export async function setRosterTemplateCellMembersAction(
   dayIndex: number,
   members: RosterTemplateCellMember[],
 ): Promise<{ ok: boolean; error?: string }> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TIMETABLE);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TIMETABLE,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const result = await setRosterTemplateCellMembers(orgId, templateId, weekIndex, dayIndex, members);
+  const result = await setRosterTemplateCellMembers(
+    orgId,
+    templateId,
+    weekIndex,
+    dayIndex,
+    members,
+  );
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(rosterTemplateEditorPath(orgId, templateId));
@@ -143,10 +166,17 @@ export async function updateRosterTemplateCycleWeeksAction(
   templateId: string,
   cycleWeeks: number,
 ): Promise<{ ok: boolean; error?: string }> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TIMETABLE);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TIMETABLE,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  const result = await updateRosterTemplateCycleWeeks(orgId, templateId, cycleWeeks);
+  const result = await updateRosterTemplateCycleWeeks(
+    orgId,
+    templateId,
+    cycleWeeks,
+  );
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(rosterTemplateEditorPath(orgId, templateId));
@@ -158,7 +188,10 @@ export async function clearRosterTemplateWeekAction(
   templateId: string,
   weekIndex: number,
 ): Promise<{ ok: boolean; error?: string }> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TIMETABLE);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TIMETABLE,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   const result = await clearRosterTemplateWeek(orgId, templateId, weekIndex);
@@ -175,7 +208,10 @@ export async function applyRosterTemplateAction(
   cycleRepeats: number,
   force: boolean,
 ): Promise<{ ok: boolean; error?: string; conflict?: boolean }> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TIMETABLE);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TIMETABLE,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   const parsed = new Date(startDateStr + "T00:00:00Z");
@@ -186,7 +222,13 @@ export async function applyRosterTemplateAction(
   const diff = Math.abs(prev) <= Math.abs(next) ? prev : next;
   parsed.setUTCDate(parsed.getUTCDate() + diff);
 
-  const result = await applyRosterTemplate(orgId, templateId, parsed, cycleRepeats, force);
+  const result = await applyRosterTemplate(
+    orgId,
+    templateId,
+    parsed,
+    cycleRepeats,
+    force,
+  );
   if (!result.ok) {
     if (result.code === "CONFLICT") return { ok: false, conflict: true };
     return { ok: false, error: result.error };

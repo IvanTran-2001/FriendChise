@@ -56,14 +56,19 @@ export const NavBar = async () => {
     ? await prisma.membership
         .findMany({
           where: { userId: user.id },
-          select: { organization: { select: { id: true, name: true, image: true } } },
+          select: {
+            organization: { select: { id: true, name: true, image: true } },
+          },
         })
         .then((ms) =>
           ms
             .map((m) => m.organization)
             .filter((org) => org !== null)
             .sort((a, b) => a.name.localeCompare(b.name))
-            .map((org) => ({ ...org, image: org.image ? getPublicUrl(org.image) : null })),
+            .map((org) => ({
+              ...org,
+              image: org.image ? getPublicUrl(org.image) : null,
+            })),
         )
         .catch((error) => {
           console.error("Failed to load organizations for navbar", error);

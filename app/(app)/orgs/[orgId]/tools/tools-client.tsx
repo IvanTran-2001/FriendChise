@@ -17,9 +17,24 @@ import { ArrowLeftRight, ArrowRight, List, Users } from "lucide-react";
 import { Toolbar } from "@/components/layout/toolbar";
 
 const TOOLS = [
-  { id: "item-list", name: "Item List", icon: List, description: "Manage your ingredient and product catalog" },
-  { id: "conversion", name: "Conversion", icon: ArrowLeftRight, description: "Convert quantities between items" },
-  { id: "roster", name: "Roster", icon: Users, description: "Manage team rosters and schedules" },
+  {
+    id: "item-list",
+    name: "Item List",
+    icon: List,
+    description: "Manage your ingredient and product catalog",
+  },
+  {
+    id: "conversion",
+    name: "Conversion",
+    icon: ArrowLeftRight,
+    description: "Convert quantities between items",
+  },
+  {
+    id: "roster",
+    name: "Roster",
+    icon: Users,
+    description: "Manage team rosters and schedules",
+  },
 ];
 
 interface RecentSet {
@@ -34,7 +49,11 @@ interface ToolsClientProps {
   hasRoster: boolean;
 }
 
-export function ToolsClient({ orgId, recentSets, hasRoster }: ToolsClientProps) {
+export function ToolsClient({
+  orgId,
+  recentSets,
+  hasRoster,
+}: ToolsClientProps) {
   const recent = recentSets.slice(0, 5);
   const showRecent = recent.length > 0 || hasRoster;
 
@@ -47,7 +66,9 @@ export function ToolsClient({ orgId, recentSets, hasRoster }: ToolsClientProps) 
         {showRecent && (
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Recent</h2>
+              <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Recent
+              </h2>
             </div>
             <div className="flex flex-col gap-2">
               {hasRoster && (
@@ -67,9 +88,14 @@ export function ToolsClient({ orgId, recentSets, hasRoster }: ToolsClientProps) 
                   className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3 shadow-sm hover:border-primary/40 hover:shadow-md transition-all group"
                 >
                   <ArrowLeftRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="text-sm font-medium flex-1 truncate">{set.name}</span>
+                  <span className="text-sm font-medium flex-1 truncate">
+                    {set.name}
+                  </span>
                   <span className="text-xs text-muted-foreground shrink-0">
-                    {new Date(set.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    {new Date(set.updatedAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
                   </span>
                   <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Link>
@@ -80,7 +106,9 @@ export function ToolsClient({ orgId, recentSets, hasRoster }: ToolsClientProps) 
 
         {/* Tool shortcuts */}
         <section className="flex flex-col gap-3">
-          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Tools</h2>
+          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Tools
+          </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {TOOLS.map((tool) => {
               const Icon = tool.icon;
@@ -93,7 +121,9 @@ export function ToolsClient({ orgId, recentSets, hasRoster }: ToolsClientProps) 
                   <Icon className="h-5 w-5 text-muted-foreground" />
                   <div className="flex flex-col gap-0.5">
                     <span className="text-sm font-medium">{tool.name}</span>
-                    <span className="text-xs text-muted-foreground">{tool.description}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {tool.description}
+                    </span>
                   </div>
                 </Link>
               );

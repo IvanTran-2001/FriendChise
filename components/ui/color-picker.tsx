@@ -37,7 +37,12 @@ interface ColorPickerProps {
   id?: string;
 }
 
-export function ColorPicker({ value, onChange, disabled, id }: ColorPickerProps) {
+export function ColorPicker({
+  value,
+  onChange,
+  disabled,
+  id,
+}: ColorPickerProps) {
   return (
     <div className="flex items-center gap-3">
       <input

@@ -30,7 +30,10 @@ export async function createTagAction(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_SETTINGS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_SETTINGS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized." };
 
   const name = String(formData.get("name") ?? "").trim();
@@ -38,7 +41,12 @@ export async function createTagAction(
 
   if (!name) return { ok: false, error: "Tag name is required." };
 
-  const result = await createTag(orgId, { name, color }, authz.userId, authz.userEmail);
+  const result = await createTag(
+    orgId,
+    { name, color },
+    authz.userId,
+    authz.userEmail,
+  );
   if (!result.ok) return { ok: false, error: result.error };
 
   const taskIds = (formData.getAll("taskIds") as string[]).filter(Boolean);
@@ -47,7 +55,10 @@ export async function createTagAction(
       await setTagTasks(orgId, result.data.id, taskIds);
     } catch {
       revalidatePath(`/orgs/${orgId}/settings/tags`);
-      return { ok: false, error: "Tag created, but failed to associate tasks." };
+      return {
+        ok: false,
+        error: "Tag created, but failed to associate tasks.",
+      };
     }
   }
 
@@ -59,7 +70,10 @@ export async function deleteTagAction(
   orgId: string,
   tagId: string,
 ): Promise<ActionResult> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_SETTINGS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_SETTINGS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized." };
 
   const result = await deleteTag(orgId, tagId, authz.userId, authz.userEmail);
@@ -75,7 +89,10 @@ export async function updateTagAction(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_SETTINGS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_SETTINGS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized." };
 
   const name = String(formData.get("name") ?? "").trim();
@@ -83,7 +100,13 @@ export async function updateTagAction(
 
   if (!name) return { ok: false, error: "Tag name is required." };
 
-  const result = await updateTag(orgId, tagId, { name, color: color || undefined }, authz.userId, authz.userEmail);
+  const result = await updateTag(
+    orgId,
+    tagId,
+    { name, color: color || undefined },
+    authz.userId,
+    authz.userEmail,
+  );
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/settings/tags`);
@@ -97,7 +120,10 @@ export async function addTagToTaskAction(
   taskId: string,
   tagId: string,
 ): Promise<ActionResult> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized." };
 
   const result = await addTagToTask(orgId, taskId, tagId);
@@ -113,7 +139,10 @@ export async function removeTagFromTaskAction(
   taskId: string,
   tagId: string,
 ): Promise<ActionResult> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized." };
 
   const result = await removeTagFromTask(orgId, taskId, tagId);

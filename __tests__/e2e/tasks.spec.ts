@@ -35,10 +35,18 @@ async function searchTasks(page: Page, title: string) {
  */
 async function gotoNewTask(page: Page, orgId: string) {
   await page.goto(`/orgs/${orgId}/tasks/new`);
-  await page.waitForFunction(() => {
-    const btn = document.querySelector<HTMLButtonElement>('button[type="submit"]');
-    return btn != null && Object.keys(btn).some((k) => k.startsWith("__reactFiber"));
-  }, { timeout: 30000 });
+  await page.waitForFunction(
+    () => {
+      const btn = document.querySelector<HTMLButtonElement>(
+        'button[type="submit"]',
+      );
+      return (
+        btn != null &&
+        Object.keys(btn).some((k) => k.startsWith("__reactFiber"))
+      );
+    },
+    { timeout: 30000 },
+  );
 }
 
 /**
@@ -56,10 +64,18 @@ async function waitForEditPage(page: Page) {
     await page.reload();
     await page.waitForLoadState("networkidle");
   }
-  await page.waitForFunction(() => {
-    const btn = document.querySelector<HTMLButtonElement>('button[type="submit"]');
-    return btn != null && Object.keys(btn).some((k) => k.startsWith("__reactFiber"));
-  }, { timeout: 30000 });
+  await page.waitForFunction(
+    () => {
+      const btn = document.querySelector<HTMLButtonElement>(
+        'button[type="submit"]',
+      );
+      return (
+        btn != null &&
+        Object.keys(btn).some((k) => k.startsWith("__reactFiber"))
+      );
+    },
+    { timeout: 30000 },
+  );
 }
 
 /**
@@ -69,8 +85,13 @@ async function createRole(page: Page, orgId: string, roleName: string) {
   await page.goto(`/orgs/${orgId}/settings/roles`);
   await page.getByRole("button", { name: /create role/i }).click();
   await page.getByLabel(/name/i).fill(roleName);
-  await page.getByRole("button", { name: /create role/i }).last().click();
-  await expect(page.getByRole("cell", { name: roleName })).toBeVisible({ timeout: 10000 });
+  await page
+    .getByRole("button", { name: /create role/i })
+    .last()
+    .click();
+  await expect(page.getByRole("cell", { name: roleName })).toBeVisible({
+    timeout: 10000,
+  });
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -90,7 +111,9 @@ test("create task → appears in task list", async ({ page }) => {
   await expect(page.getByText(taskTitle)).toBeVisible();
 });
 
-test("edit task → updated title visible in task list and detail", async ({ page }) => {
+test("edit task → updated title visible in task list and detail", async ({
+  page,
+}) => {
   const orgId = await createOrg(page, `E2E Edit Task Org ${Date.now()}`);
   const taskTitle = `E2E Edit Task ${Date.now()}`;
   const updatedTitle = `E2E Edited Task ${Date.now()}`;
@@ -108,7 +131,10 @@ test("edit task → updated title visible in task list and detail", async ({ pag
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
 
   // Click Edit
-  await page.getByTestId("task-actions").getByRole("link", { name: /edit/i }).click();
+  await page
+    .getByTestId("task-actions")
+    .getByRole("link", { name: /edit/i })
+    .click();
   await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+\/edit$/);
   await waitForEditPage(page);
 
@@ -137,9 +163,15 @@ test("delete task from detail → removed from task list", async ({ page }) => {
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
 
   // Delete via task-actions toolbar
-  await page.getByTestId("task-actions").getByRole("button", { name: /delete/i }).click();
+  await page
+    .getByTestId("task-actions")
+    .getByRole("button", { name: /delete/i })
+    .click();
   await expect(page.getByRole("alertdialog")).toBeVisible();
-  await page.getByRole("alertdialog").getByRole("button", { name: /^delete$/i }).click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: /^delete$/i })
+    .click();
 
   // Client router.push back to tasks list
   await expect(page).toHaveURL(`/orgs/${orgId}/tasks`, { timeout: 15000 });
@@ -148,7 +180,9 @@ test("delete task from detail → removed from task list", async ({ page }) => {
   await expect(page.getByRole("cell", { name: taskTitle })).not.toBeVisible();
 });
 
-test("delete task from table row menu → removed from task list", async ({ page }) => {
+test("delete task from table row menu → removed from task list", async ({
+  page,
+}) => {
   const orgId = await createOrg(page, `E2E Delete Row Org ${Date.now()}`);
   const taskTitle = `E2E Delete Row Task ${Date.now()}`;
 
@@ -169,13 +203,18 @@ test("delete task from table row menu → removed from task list", async ({ page
 
   // Confirm in the AlertDialog
   await expect(page.getByRole("alertdialog")).toBeVisible();
-  await page.getByRole("alertdialog").getByRole("button", { name: /^delete$/i }).click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: /^delete$/i })
+    .click();
 
   // Table refreshes in place (router.refresh), task is gone
   await expect(page.getByRole("cell", { name: taskTitle })).not.toBeVisible();
 });
 
-test("create task without title → stays on page, does not submit", async ({ page }) => {
+test("create task without title → stays on page, does not submit", async ({
+  page,
+}) => {
   const orgId = await createOrg(page, `E2E Validation Org ${Date.now()}`);
 
   await gotoNewTask(page, orgId);
@@ -186,7 +225,9 @@ test("create task without title → stays on page, does not submit", async ({ pa
   await expect(page.getByLabel(/title/i)).toHaveAttribute("required");
 });
 
-test("edit task without title → stays on edit page, does not submit", async ({ page }) => {
+test("edit task without title → stays on edit page, does not submit", async ({
+  page,
+}) => {
   const orgId = await createOrg(page, `E2E Edit Validation Org ${Date.now()}`);
   const taskTitle = `E2E Edit Validation Task ${Date.now()}`;
 
@@ -200,7 +241,10 @@ test("edit task without title → stays on edit page, does not submit", async ({
   await searchTasks(page, taskTitle);
   await page.getByRole("cell", { name: taskTitle }).click();
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
-  await page.getByTestId("task-actions").getByRole("link", { name: /edit/i }).click();
+  await page
+    .getByTestId("task-actions")
+    .getByRole("link", { name: /edit/i })
+    .click();
   await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+\/edit$/);
   await waitForEditPage(page);
 
@@ -212,7 +256,9 @@ test("edit task without title → stays on edit page, does not submit", async ({
   await expect(page.getByLabel(/title/i)).toHaveAttribute("required");
 });
 
-test("create task with role → role badge visible in task list", async ({ page }) => {
+test("create task with role → role badge visible in task list", async ({
+  page,
+}) => {
   const orgId = await createOrg(page, `E2E Role Task Org ${Date.now()}`);
   const taskTitle = `E2E Role Task ${Date.now()}`;
   const roleName = `E2E Role ${Date.now()}`;
@@ -236,7 +282,9 @@ test("create task with role → role badge visible in task list", async ({ page 
   ).toBeVisible();
 });
 
-test("edit task to add role → role badge visible in task list", async ({ page }) => {
+test("edit task to add role → role badge visible in task list", async ({
+  page,
+}) => {
   const orgId = await createOrg(page, `E2E Edit Role Org ${Date.now()}`);
   const taskTitle = `E2E Edit Role Task ${Date.now()}`;
   const roleName = `E2E Edit Role ${Date.now()}`;
@@ -253,7 +301,10 @@ test("edit task to add role → role badge visible in task list", async ({ page 
   await searchTasks(page, taskTitle);
   await page.getByRole("cell", { name: taskTitle }).click();
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
-  await page.getByTestId("task-actions").getByRole("link", { name: /edit/i }).click();
+  await page
+    .getByTestId("task-actions")
+    .getByRole("link", { name: /edit/i })
+    .click();
   await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+\/edit$/);
   await waitForEditPage(page);
 
@@ -263,7 +314,9 @@ test("edit task to add role → role badge visible in task list", async ({ page 
   await page.getByRole("button", { name: roleName }).click();
 
   await page.getByRole("button", { name: /save/i }).click();
-  await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+(?<!\/edit)$/, { timeout: 15000 });
+  await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+(?<!\/edit)$/, {
+    timeout: 15000,
+  });
 
   await page.goto(`/orgs/${orgId}/tasks`);
   await searchTasks(page, taskTitle);
@@ -272,7 +325,9 @@ test("edit task to add role → role badge visible in task list", async ({ page 
   ).toBeVisible();
 });
 
-test("edit task to remove role → role badge no longer visible in task list", async ({ page }) => {
+test("edit task to remove role → role badge no longer visible in task list", async ({
+  page,
+}) => {
   const orgId = await createOrg(page, `E2E Remove Role Org ${Date.now()}`);
   const taskTitle = `E2E Remove Role Task ${Date.now()}`;
   const roleName = `E2E Remove Role ${Date.now()}`;
@@ -292,7 +347,10 @@ test("edit task to remove role → role badge no longer visible in task list", a
   await searchTasks(page, taskTitle);
   await page.getByRole("cell", { name: taskTitle }).click();
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
-  await page.getByTestId("task-actions").getByRole("link", { name: /edit/i }).click();
+  await page
+    .getByTestId("task-actions")
+    .getByRole("link", { name: /edit/i })
+    .click();
   await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+\/edit$/);
   await waitForEditPage(page);
 
@@ -300,7 +358,9 @@ test("edit task to remove role → role badge no longer visible in task list", a
   await page.getByRole("button", { name: `Remove ${roleName}` }).click();
 
   await page.getByRole("button", { name: /save/i }).click();
-  await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+(?<!\/edit)$/, { timeout: 15000 });
+  await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+(?<!\/edit)$/, {
+    timeout: 15000,
+  });
 
   await page.goto(`/orgs/${orgId}/tasks`);
   await searchTasks(page, taskTitle);
@@ -325,7 +385,9 @@ test("search filter → only matching tasks visible", async ({ page }) => {
 
   await searchTasks(page, matchTitle);
   await expect(page.getByRole("cell", { name: matchTitle })).toBeVisible();
-  await expect(page.getByRole("cell", { name: noMatchTitle })).not.toBeVisible();
+  await expect(
+    page.getByRole("cell", { name: noMatchTitle }),
+  ).not.toBeVisible();
 });
 
 test("role filter → only tasks with that role visible", async ({ page }) => {
@@ -357,7 +419,9 @@ test("role filter → only tasks with that role visible", async ({ page }) => {
   await page.getByRole("menuitem", { name: roleName }).click();
 
   await expect(page.getByRole("cell", { name: taskWithRole })).toBeVisible();
-  await expect(page.getByRole("cell", { name: taskWithoutRole })).not.toBeVisible();
+  await expect(
+    page.getByRole("cell", { name: taskWithoutRole }),
+  ).not.toBeVisible();
 });
 
 test("task detail → shows correct fields after create", async ({ page }) => {
@@ -415,7 +479,10 @@ test("task detail → shows updated values after edit", async ({ page }) => {
   await searchTasks(page, taskTitle);
   await page.getByRole("cell", { name: taskTitle }).click();
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
-  await page.getByTestId("task-actions").getByRole("link", { name: /edit/i }).click();
+  await page
+    .getByTestId("task-actions")
+    .getByRole("link", { name: /edit/i })
+    .click();
   await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+\/edit$/);
   await waitForEditPage(page);
 

@@ -12,7 +12,10 @@ import {
   type TemplateEntryRow,
 } from "./edit-template-cell-panel";
 import type { OrgMember } from "@/app/(app)/orgs/[orgId]/tools/roster/_components/roster-board";
-import { formatMinutes, hoursWorked } from "@/app/(app)/orgs/[orgId]/tools/roster/_utils/time-utils";
+import {
+  formatMinutes,
+  hoursWorked,
+} from "@/app/(app)/orgs/[orgId]/tools/roster/_utils/time-utils";
 
 const DAY_ABBR = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
@@ -79,7 +82,9 @@ export function RosterTemplateBoard({
               className="shrink-0 flex flex-col items-start justify-center gap-0.5 px-3 py-2 border-r border-border"
               style={{ width: ROSTER_DAY_LABEL_WIDTH }}
             >
-              <span className="text-sm font-semibold">{DAY_ABBR[dayIndex]}</span>
+              <span className="text-sm font-semibold">
+                {DAY_ABBR[dayIndex]}
+              </span>
               <span className="text-[10px] text-muted-foreground">{label}</span>
             </div>
 
@@ -127,13 +132,15 @@ export function RosterTemplateBoard({
                           className="inline-flex flex-col w-full rounded px-1.5 py-0.5 text-xs leading-tight truncate bg-background/70 dark:bg-white/8"
                         >
                           <span className="truncate">{name}</span>
-                          {e.shiftStartMin !== null && e.shiftEndMin !== null && (
-                            <span className="text-[10px] text-muted-foreground">
-                              {formatMinutes(e.shiftStartMin)}–{formatMinutes(e.shiftEndMin)}
-                              {" · "}
-                              {hoursWorked(e.shiftStartMin, e.shiftEndMin)}
-                            </span>
-                          )}
+                          {e.shiftStartMin !== null &&
+                            e.shiftEndMin !== null && (
+                              <span className="text-[10px] text-muted-foreground">
+                                {formatMinutes(e.shiftStartMin)}–
+                                {formatMinutes(e.shiftEndMin)}
+                                {" · "}
+                                {hoursWorked(e.shiftStartMin, e.shiftEndMin)}
+                              </span>
+                            )}
                         </span>
                       );
                     })

@@ -12,9 +12,7 @@ export default async function ItemListPage({
 
   return (
     <>
-      <RegisterPageSidebar
-        content={<ItemListSidebarContent orgId={orgId} />}
-      />
+      <RegisterPageSidebar content={<ItemListSidebarContent orgId={orgId} />} />
       <div className="flex flex-col items-center justify-center py-20 text-center gap-2">
         <p className="text-sm text-muted-foreground">Coming soon.</p>
       </div>

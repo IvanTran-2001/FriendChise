@@ -113,7 +113,11 @@ export function ActionSidebarSlot() {
   if (isMobile) {
     return (
       <Sheet open={!!panel} onOpenChange={(o) => !o && close()}>
-        <SheetContent side="bottom" showCloseButton={false} className="px-0 pb-0 gap-0">
+        <SheetContent
+          side="bottom"
+          showCloseButton={false}
+          className="px-0 pb-0 gap-0"
+        >
           <SheetHeader className="h-12 flex-row items-center justify-between border-b border-border px-4 py-0 shrink-0">
             <SheetTitle className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
               {panel?.title}

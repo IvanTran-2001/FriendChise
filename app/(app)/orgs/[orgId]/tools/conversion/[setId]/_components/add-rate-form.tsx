@@ -73,7 +73,9 @@ function EditRateForm({
         parseFloat(toQty),
       );
       if (!result.ok) {
-        toast.error("error" in result ? result.error : "Failed to update rate.");
+        toast.error(
+          "error" in result ? result.error : "Failed to update rate.",
+        );
         return;
       }
       onUpdate(rate.id, result.fromQty, result.toQty);
@@ -86,7 +88,9 @@ function EditRateForm({
     startTransition(async () => {
       const result = await deleteConversionRateAction(orgId, setId, rate.id);
       if (!result.ok) {
-        toast.error("error" in result ? result.error : "Failed to delete rate.");
+        toast.error(
+          "error" in result ? result.error : "Failed to delete rate.",
+        );
         return;
       }
       onDelete(rate.id);
@@ -170,7 +174,6 @@ export function AddRateForm({
   rates,
   onClose: _onClose,
 }: AddRateFormProps) {
-
   /**
    * Abbreviates a unit string to at most two characters for compact display
    * in the item dropdown trigger (prevents the button from growing).
@@ -267,14 +270,17 @@ export function AddRateForm({
     );
   }
 
-  const filteredRates = (search
-    ? rateList.filter(
-        (r) =>
-          r.fromItem.name.toLowerCase().includes(search.toLowerCase()) ||
-          r.toItem.name.toLowerCase().includes(search.toLowerCase()),
-      )
-    : rateList
-  ).slice().sort((a, b) => (b.toQty / b.fromQty) - (a.toQty / a.fromQty));
+  const filteredRates = (
+    search
+      ? rateList.filter(
+          (r) =>
+            r.fromItem.name.toLowerCase().includes(search.toLowerCase()) ||
+            r.toItem.name.toLowerCase().includes(search.toLowerCase()),
+        )
+      : rateList
+  )
+    .slice()
+    .sort((a, b) => b.toQty / b.fromQty - a.toQty / a.fromQty);
 
   const canSubmit =
     !!fromItem &&
@@ -342,7 +348,11 @@ export function AddRateForm({
           </div>
         </div>
 
-        <Button type="submit" disabled={!canSubmit || isPending} className="w-full">
+        <Button
+          type="submit"
+          disabled={!canSubmit || isPending}
+          className="w-full"
+        >
           Add Rate
         </Button>
       </form>
@@ -351,24 +361,24 @@ export function AddRateForm({
 
       {/* Rate list */}
       <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Rate List
-            </span>
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search…"
-              className="h-7 w-32 text-xs"
-            />
-          </div>
-          {rateList.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-2">No rates yet.</p>
-          ) : filteredRates.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-2">No matches.</p>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {filteredRates.map((r) => {
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Rate List
+          </span>
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="h-7 w-32 text-xs"
+          />
+        </div>
+        {rateList.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-2">No rates yet.</p>
+        ) : filteredRates.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-2">No matches.</p>
+        ) : (
+          <div className="flex flex-col gap-1">
+            {filteredRates.map((r) => {
               return (
                 <div
                   key={r.id}
@@ -378,9 +388,13 @@ export function AddRateForm({
                   <div className="flex-1 min-w-0 flex flex-col gap-1">
                     {/* Top: conversion direction */}
                     <div className="flex items-center gap-1 min-w-0">
-                      <span className="font-medium truncate">{r.fromItem.name}</span>
+                      <span className="font-medium truncate">
+                        {r.fromItem.name}
+                      </span>
                       <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
-                      <span className="font-medium truncate">{r.toItem.name}</span>
+                      <span className="font-medium truncate">
+                        {r.toItem.name}
+                      </span>
                     </div>
                     {/* Bottom: original ratio */}
                     <div className="flex items-center gap-1 min-w-0 text-muted-foreground">
@@ -393,9 +407,9 @@ export function AddRateForm({
                 </div>
               );
             })}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

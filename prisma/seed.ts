@@ -207,17 +207,29 @@ async function seedUsers() {
       prisma.user.upsert({
         where: { email: "mystoganx2001@gmail.com" },
         update: { name: "Ivan", image: "https://i.pravatar.cc/150?img=3" },
-        create: { email: "mystoganx2001@gmail.com", name: "Ivan", image: "https://i.pravatar.cc/150?img=3" },
+        create: {
+          email: "mystoganx2001@gmail.com",
+          name: "Ivan",
+          image: "https://i.pravatar.cc/150?img=3",
+        },
       }),
       prisma.user.upsert({
         where: { email: "alt28918@gmail.com" },
         update: { name: "Jordan", image: "https://i.pravatar.cc/150?img=8" },
-        create: { email: "alt28918@gmail.com", name: "Jordan", image: "https://i.pravatar.cc/150?img=8" },
+        create: {
+          email: "alt28918@gmail.com",
+          name: "Jordan",
+          image: "https://i.pravatar.cc/150?img=8",
+        },
       }),
       prisma.user.upsert({
         where: { email: "alt28919@gmail.com" },
         update: { name: "Casey", image: "https://i.pravatar.cc/150?img=12" },
-        create: { email: "alt28919@gmail.com", name: "Casey", image: "https://i.pravatar.cc/150?img=12" },
+        create: {
+          email: "alt28919@gmail.com",
+          name: "Casey",
+          image: "https://i.pravatar.cc/150?img=12",
+        },
       }),
       prisma.user.upsert({
         where: {
@@ -233,27 +245,47 @@ async function seedUsers() {
       prisma.user.upsert({
         where: { email: "alt28921@gmail.com" },
         update: { name: "Morgan", image: "https://i.pravatar.cc/150?img=22" },
-        create: { email: "alt28921@gmail.com", name: "Morgan", image: "https://i.pravatar.cc/150?img=22" },
+        create: {
+          email: "alt28921@gmail.com",
+          name: "Morgan",
+          image: "https://i.pravatar.cc/150?img=22",
+        },
       }),
       prisma.user.upsert({
         where: { email: "alt28922@gmail.com" },
         update: { name: "Alex", image: "https://i.pravatar.cc/150?img=15" },
-        create: { email: "alt28922@gmail.com", name: "Alex", image: "https://i.pravatar.cc/150?img=15" },
+        create: {
+          email: "alt28922@gmail.com",
+          name: "Alex",
+          image: "https://i.pravatar.cc/150?img=15",
+        },
       }),
       prisma.user.upsert({
         where: { email: "alt28923@gmail.com" },
         update: { name: "Taylor", image: "https://i.pravatar.cc/150?img=29" },
-        create: { email: "alt28923@gmail.com", name: "Taylor", image: "https://i.pravatar.cc/150?img=29" },
+        create: {
+          email: "alt28923@gmail.com",
+          name: "Taylor",
+          image: "https://i.pravatar.cc/150?img=29",
+        },
       }),
       prisma.user.upsert({
         where: { email: "alt28924@gmail.com" },
         update: { name: "Sam", image: "https://i.pravatar.cc/150?img=35" },
-        create: { email: "alt28924@gmail.com", name: "Sam", image: "https://i.pravatar.cc/150?img=35" },
+        create: {
+          email: "alt28924@gmail.com",
+          name: "Sam",
+          image: "https://i.pravatar.cc/150?img=35",
+        },
       }),
       prisma.user.upsert({
         where: { email: "alt28920@gmail.com" },
         update: { name: "Quinn", image: "https://i.pravatar.cc/150?img=44" },
-        create: { email: "alt28920@gmail.com", name: "Quinn", image: "https://i.pravatar.cc/150?img=44" },
+        create: {
+          email: "alt28920@gmail.com",
+          name: "Quinn",
+          image: "https://i.pravatar.cc/150?img=44",
+        },
       }),
     ]);
 
@@ -605,74 +637,74 @@ const DONUT_TASKS: TaskDef[] = [
 
 // Tag names per task — used after both tasks and tags are created
 const TASK_TAGS: Record<string, string[]> = {
-  "Open Shop Checklist":                ["Daily Ops", "Opening"],
-  "Close Shop Checklist":               ["Daily Ops", "Closing"],
-  "Mid-Day Stock Check":                ["Daily Ops"],
-  "Restock Packaging & Supplies":       ["Daily Ops"],
-  "Fryer Oil Quality Check":            ["Fryer", "Quality"],
-  "Fry Morning Batches":                ["Fryer"],
-  "Fry Afternoon Batches":              ["Fryer"],
-  "Clean Fryer (End of Day)":           ["Fryer", "Cleaning"],
+  "Open Shop Checklist": ["Daily Ops", "Opening"],
+  "Close Shop Checklist": ["Daily Ops", "Closing"],
+  "Mid-Day Stock Check": ["Daily Ops"],
+  "Restock Packaging & Supplies": ["Daily Ops"],
+  "Fryer Oil Quality Check": ["Fryer", "Quality"],
+  "Fry Morning Batches": ["Fryer"],
+  "Fry Afternoon Batches": ["Fryer"],
+  "Clean Fryer (End of Day)": ["Fryer", "Cleaning"],
   "Quality Check \u2014 Display & Products": ["Quality", "Daily Ops"],
-  "Shift Handover":                     ["Daily Ops"],
-  "Make Custard Cream":                 ["Prep"],
-  "Make Choc Custard Cream":            ["Prep"],
-  "Make Biscoff Filling":               ["Prep"],
-  "Make Raspberry Cheesecake Filling":  ["Prep"],
-  "Make Nutella Filling":               ["Prep"],
-  "Make Peanut Butter Filling":         ["Prep"],
-  "Prepare Classic Glaze":              ["Prep"],
-  "Prepare Chocolate Fondant":          ["Prep"],
-  "Prepare Biscoff Fondant":            ["Prep"],
-  "Clean Fondant Bain-Marie":           ["Prep", "Cleaning"],
-  "Recipe: White Choc Biscoff Frappe":  ["Recipe"],
-  "Recipe: Honeycomb Frappe":           ["Recipe"],
-  "Recipe: Coffee Frappe":              ["Recipe"],
-  "Recipe: Salted Caramel Frappe":      ["Recipe"],
-  "Recipe: Matcha Frappe":              ["Recipe"],
-  "Recipe: Chocolate Milkshake":        ["Recipe"],
-  "Recipe: Biscoff Custard Shake":      ["Recipe"],
-  "Clean Ice Cream Machine":            ["Cleaning"],
-  "Deep Clean Hatco (Hot Jam) Unit":    ["Cleaning"],
-  "Deep Clean All Fridges":             ["Cleaning"],
-  "Deep Clean Doughnut Display":        ["Cleaning"],
-  "Clean & Tidy Storeroom":             ["Cleaning"],
+  "Shift Handover": ["Daily Ops"],
+  "Make Custard Cream": ["Prep"],
+  "Make Choc Custard Cream": ["Prep"],
+  "Make Biscoff Filling": ["Prep"],
+  "Make Raspberry Cheesecake Filling": ["Prep"],
+  "Make Nutella Filling": ["Prep"],
+  "Make Peanut Butter Filling": ["Prep"],
+  "Prepare Classic Glaze": ["Prep"],
+  "Prepare Chocolate Fondant": ["Prep"],
+  "Prepare Biscoff Fondant": ["Prep"],
+  "Clean Fondant Bain-Marie": ["Prep", "Cleaning"],
+  "Recipe: White Choc Biscoff Frappe": ["Recipe"],
+  "Recipe: Honeycomb Frappe": ["Recipe"],
+  "Recipe: Coffee Frappe": ["Recipe"],
+  "Recipe: Salted Caramel Frappe": ["Recipe"],
+  "Recipe: Matcha Frappe": ["Recipe"],
+  "Recipe: Chocolate Milkshake": ["Recipe"],
+  "Recipe: Biscoff Custard Shake": ["Recipe"],
+  "Clean Ice Cream Machine": ["Cleaning"],
+  "Deep Clean Hatco (Hot Jam) Unit": ["Cleaning"],
+  "Deep Clean All Fridges": ["Cleaning"],
+  "Deep Clean Doughnut Display": ["Cleaning"],
+  "Clean & Tidy Storeroom": ["Cleaning"],
 };
 
 // LoremFlickr search keywords per task (comma-separated → ANY keyword must match)
 const TASK_IMAGE_KEYWORDS: Record<string, string> = {
-  "Open Shop Checklist":                "bakery,morning",
-  "Close Shop Checklist":               "bakery,night",
-  "Mid-Day Stock Check":                "bakery,shelf",
-  "Restock Packaging & Supplies":       "packaging,boxes",
-  "Fryer Oil Quality Check":            "frying,cooking oil",
-  "Fry Morning Batches":                "doughnut,frying",
-  "Fry Afternoon Batches":              "doughnut,cooking",
-  "Clean Fryer (End of Day)":           "kitchen,cleaning",
+  "Open Shop Checklist": "bakery,morning",
+  "Close Shop Checklist": "bakery,night",
+  "Mid-Day Stock Check": "bakery,shelf",
+  "Restock Packaging & Supplies": "packaging,boxes",
+  "Fryer Oil Quality Check": "frying,cooking oil",
+  "Fry Morning Batches": "doughnut,frying",
+  "Fry Afternoon Batches": "doughnut,cooking",
+  "Clean Fryer (End of Day)": "kitchen,cleaning",
   "Quality Check \u2014 Display & Products": "doughnut,display",
-  "Shift Handover":                     "cafe,team",
-  "Make Custard Cream":                 "custard,cream",
-  "Make Choc Custard Cream":            "chocolate,cream",
-  "Make Biscoff Filling":               "caramel,cookie,spread",
-  "Make Raspberry Cheesecake Filling":  "raspberry,cheesecake",
-  "Make Nutella Filling":               "chocolate,hazelnut",
-  "Make Peanut Butter Filling":         "peanut,spread",
-  "Prepare Classic Glaze":              "doughnut,glaze,icing",
-  "Prepare Chocolate Fondant":          "chocolate,fondant",
-  "Prepare Biscoff Fondant":            "caramel,cookie",
-  "Clean Fondant Bain-Marie":           "kitchen,pot,saucepan",
-  "Recipe: White Choc Biscoff Frappe":  "white chocolate,frappe",
-  "Recipe: Honeycomb Frappe":           "honeycomb,drink",
-  "Recipe: Coffee Frappe":              "coffee,frappe",
-  "Recipe: Salted Caramel Frappe":      "caramel,frappe",
-  "Recipe: Matcha Frappe":              "matcha,green tea",
-  "Recipe: Chocolate Milkshake":        "chocolate,milkshake",
-  "Recipe: Biscoff Custard Shake":      "milkshake,caramel",
-  "Clean Ice Cream Machine":            "ice cream,soft serve",
-  "Deep Clean Hatco (Hot Jam) Unit":    "jam,kitchen",
-  "Deep Clean All Fridges":             "refrigerator,fridge",
-  "Deep Clean Doughnut Display":        "doughnut,display",
-  "Clean & Tidy Storeroom":             "storage,shelves",
+  "Shift Handover": "cafe,team",
+  "Make Custard Cream": "custard,cream",
+  "Make Choc Custard Cream": "chocolate,cream",
+  "Make Biscoff Filling": "caramel,cookie,spread",
+  "Make Raspberry Cheesecake Filling": "raspberry,cheesecake",
+  "Make Nutella Filling": "chocolate,hazelnut",
+  "Make Peanut Butter Filling": "peanut,spread",
+  "Prepare Classic Glaze": "doughnut,glaze,icing",
+  "Prepare Chocolate Fondant": "chocolate,fondant",
+  "Prepare Biscoff Fondant": "caramel,cookie",
+  "Clean Fondant Bain-Marie": "kitchen,pot,saucepan",
+  "Recipe: White Choc Biscoff Frappe": "white chocolate,frappe",
+  "Recipe: Honeycomb Frappe": "honeycomb,drink",
+  "Recipe: Coffee Frappe": "coffee,frappe",
+  "Recipe: Salted Caramel Frappe": "caramel,frappe",
+  "Recipe: Matcha Frappe": "matcha,green tea",
+  "Recipe: Chocolate Milkshake": "chocolate,milkshake",
+  "Recipe: Biscoff Custard Shake": "milkshake,caramel",
+  "Clean Ice Cream Machine": "ice cream,soft serve",
+  "Deep Clean Hatco (Hot Jam) Unit": "jam,kitchen",
+  "Deep Clean All Fridges": "refrigerator,fridge",
+  "Deep Clean Doughnut Display": "doughnut,display",
+  "Clean & Tidy Storeroom": "storage,shelves",
 };
 
 async function seedOrg1(users: Users) {
@@ -696,12 +728,19 @@ async function seedOrg1(users: Users) {
   console.log(`  ✓ Org created (id: ${org.id})`);
 
   // Upload org logo
-  const org1LogoPath = path.resolve(process.cwd(), "public", "donut_a_logo.jpg");
+  const org1LogoPath = path.resolve(
+    process.cwd(),
+    "public",
+    "donut_a_logo.jpg",
+  );
   if (fs.existsSync(org1LogoPath)) {
     const logoBuffer = fs.readFileSync(org1LogoPath);
     const logoStoragePath = await uploadOrgLogo(org.id, logoBuffer);
     if (logoStoragePath) {
-      await prisma.organization.update({ where: { id: org.id }, data: { image: logoStoragePath } });
+      await prisma.organization.update({
+        where: { id: org.id },
+        data: { image: logoStoragePath },
+      });
       console.log("  ✓ Org logo uploaded");
     }
   }
@@ -936,7 +975,15 @@ async function seedOrg1(users: Users) {
     default_member: roleWorker.id,
   };
 
-  const createdTasks: { task: { id: string; name: string; description: string | null; durationMin: number }; roleKey: string }[] = [];
+  const createdTasks: {
+    task: {
+      id: string;
+      name: string;
+      description: string | null;
+      durationMin: number;
+    };
+    roleKey: string;
+  }[] = [];
   for (const [
     name,
     color,
@@ -968,10 +1015,14 @@ async function seedOrg1(users: Users) {
     }
     await prisma.taskEligibility.create({ data: { taskId: task.id, roleId } });
     // Mirror what createTask() does in the service layer
-    await prisma.taskInheritance.create({ data: { taskId: task.id, orgId: org.id } });
+    await prisma.taskInheritance.create({
+      data: { taskId: task.id, orgId: org.id },
+    });
     createdTasks.push({ task, roleKey });
   }
-  console.log(`  ✓ ${createdTasks.length} tasks + eligibilities + inheritances created`);
+  console.log(
+    `  ✓ ${createdTasks.length} tasks + eligibilities + inheritances created`,
+  );
 
   // ── Task Images ────────────────────────────────────────────────────────────
   console.log("→ Uploading task images...");
@@ -987,7 +1038,10 @@ async function seedOrg1(users: Users) {
   let uploadCount = 0;
   for (const { taskId, storagePath } of uploadResults) {
     if (storagePath) {
-      await prisma.task.update({ where: { id: taskId }, data: { imageUrl: storagePath } });
+      await prisma.task.update({
+        where: { id: taskId },
+        data: { imageUrl: storagePath },
+      });
       uploadCount++;
     }
   }
@@ -1040,24 +1094,40 @@ async function seedOrg1(users: Users) {
     tagOpening,
     tagClosing,
   ] = await Promise.all([
-    prisma.tag.create({ data: { orgId: org.id, name: "Daily Ops", color: "#F59E0B" } }),
-    prisma.tag.create({ data: { orgId: org.id, name: "Fryer", color: "#F97316" } }),
-    prisma.tag.create({ data: { orgId: org.id, name: "Prep", color: "#EC4899" } }),
-    prisma.tag.create({ data: { orgId: org.id, name: "Recipe", color: "#8B5CF6" } }),
-    prisma.tag.create({ data: { orgId: org.id, name: "Cleaning", color: "#22C55E" } }),
-    prisma.tag.create({ data: { orgId: org.id, name: "Quality", color: "#A855F7" } }),
-    prisma.tag.create({ data: { orgId: org.id, name: "Opening", color: "#3B82F6" } }),
-    prisma.tag.create({ data: { orgId: org.id, name: "Closing", color: "#EF4444" } }),
+    prisma.tag.create({
+      data: { orgId: org.id, name: "Daily Ops", color: "#F59E0B" },
+    }),
+    prisma.tag.create({
+      data: { orgId: org.id, name: "Fryer", color: "#F97316" },
+    }),
+    prisma.tag.create({
+      data: { orgId: org.id, name: "Prep", color: "#EC4899" },
+    }),
+    prisma.tag.create({
+      data: { orgId: org.id, name: "Recipe", color: "#8B5CF6" },
+    }),
+    prisma.tag.create({
+      data: { orgId: org.id, name: "Cleaning", color: "#22C55E" },
+    }),
+    prisma.tag.create({
+      data: { orgId: org.id, name: "Quality", color: "#A855F7" },
+    }),
+    prisma.tag.create({
+      data: { orgId: org.id, name: "Opening", color: "#3B82F6" },
+    }),
+    prisma.tag.create({
+      data: { orgId: org.id, name: "Closing", color: "#EF4444" },
+    }),
   ]);
   const tagByName: Record<string, { id: string }> = {
     "Daily Ops": tagDailyOps,
-    "Fryer": tagFryer,
-    "Prep": tagPrep,
-    "Recipe": tagRecipe,
-    "Cleaning": tagCleaning,
-    "Quality": tagQuality,
-    "Opening": tagOpening,
-    "Closing": tagClosing,
+    Fryer: tagFryer,
+    Prep: tagPrep,
+    Recipe: tagRecipe,
+    Cleaning: tagCleaning,
+    Quality: tagQuality,
+    Opening: tagOpening,
+    Closing: tagClosing,
   };
   console.log("  ✓ 8 tags created");
 
@@ -2038,13 +2108,55 @@ async function seedOrg1(users: Users) {
   console.log("→ Creating roster day configs...");
   await prisma.rosterDayConfig.createMany({
     data: [
-      { orgId: org.id, dayIndex: 0, recommendedSize: 3, openTimeMin: 360, closeTimeMin: 1080 },
-      { orgId: org.id, dayIndex: 1, recommendedSize: 4, openTimeMin: 360, closeTimeMin: 1080 },
-      { orgId: org.id, dayIndex: 2, recommendedSize: 4, openTimeMin: 360, closeTimeMin: 1080 },
-      { orgId: org.id, dayIndex: 3, recommendedSize: 3, openTimeMin: 360, closeTimeMin: 1080 },
-      { orgId: org.id, dayIndex: 4, recommendedSize: 5, openTimeMin: 360, closeTimeMin: 1080 },
-      { orgId: org.id, dayIndex: 5, recommendedSize: 5, openTimeMin: 420, closeTimeMin: 1080 },
-      { orgId: org.id, dayIndex: 6, recommendedSize: 4, openTimeMin: 420, closeTimeMin: 1020 },
+      {
+        orgId: org.id,
+        dayIndex: 0,
+        recommendedSize: 3,
+        openTimeMin: 360,
+        closeTimeMin: 1080,
+      },
+      {
+        orgId: org.id,
+        dayIndex: 1,
+        recommendedSize: 4,
+        openTimeMin: 360,
+        closeTimeMin: 1080,
+      },
+      {
+        orgId: org.id,
+        dayIndex: 2,
+        recommendedSize: 4,
+        openTimeMin: 360,
+        closeTimeMin: 1080,
+      },
+      {
+        orgId: org.id,
+        dayIndex: 3,
+        recommendedSize: 3,
+        openTimeMin: 360,
+        closeTimeMin: 1080,
+      },
+      {
+        orgId: org.id,
+        dayIndex: 4,
+        recommendedSize: 5,
+        openTimeMin: 360,
+        closeTimeMin: 1080,
+      },
+      {
+        orgId: org.id,
+        dayIndex: 5,
+        recommendedSize: 5,
+        openTimeMin: 420,
+        closeTimeMin: 1080,
+      },
+      {
+        orgId: org.id,
+        dayIndex: 6,
+        recommendedSize: 4,
+        openTimeMin: 420,
+        closeTimeMin: 1020,
+      },
     ],
     skipDuplicates: true,
   });
@@ -2058,33 +2170,217 @@ async function seedOrg1(users: Users) {
   await prisma.rosterTemplateEntry.createMany({
     data: [
       // Ivan — Mon–Fri 06:00–14:00
-      { templateId: rosterTemplate.id, membershipId: mIvan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 0, shiftStartMin: 360, shiftEndMin: 840 },
-      { templateId: rosterTemplate.id, membershipId: mIvan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 840 },
-      { templateId: rosterTemplate.id, membershipId: mIvan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 840 },
-      { templateId: rosterTemplate.id, membershipId: mIvan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 840 },
-      { templateId: rosterTemplate.id, membershipId: mIvan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 840 },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 0,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 1,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 2,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 3,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 4,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
       // Jordan — Mon–Fri 06:00–14:00
-      { templateId: rosterTemplate.id, membershipId: mJordan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 0, shiftStartMin: 360, shiftEndMin: 840 },
-      { templateId: rosterTemplate.id, membershipId: mJordan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 840 },
-      { templateId: rosterTemplate.id, membershipId: mJordan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 840 },
-      { templateId: rosterTemplate.id, membershipId: mJordan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 840 },
-      { templateId: rosterTemplate.id, membershipId: mJordan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 840 },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 0,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 1,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 2,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 3,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 4,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
       // Casey — Tue–Sat 06:00–15:00
-      { templateId: rosterTemplate.id, membershipId: mCasey.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 900 },
-      { templateId: rosterTemplate.id, membershipId: mCasey.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 900 },
-      { templateId: rosterTemplate.id, membershipId: mCasey.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 900 },
-      { templateId: rosterTemplate.id, membershipId: mCasey.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 900 },
-      { templateId: rosterTemplate.id, membershipId: mCasey.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 5, shiftStartMin: 360, shiftEndMin: 900 },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 1,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+      },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 2,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+      },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 3,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+      },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 4,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+      },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 5,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+      },
       // Riley — Mon/Wed/Fri/Sat 10:00–18:00
-      { templateId: rosterTemplate.id, membershipId: mRiley.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 0, shiftStartMin: 600, shiftEndMin: 1080 },
-      { templateId: rosterTemplate.id, membershipId: mRiley.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 2, shiftStartMin: 600, shiftEndMin: 1080 },
-      { templateId: rosterTemplate.id, membershipId: mRiley.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 4, shiftStartMin: 600, shiftEndMin: 1080 },
-      { templateId: rosterTemplate.id, membershipId: mRiley.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 5, shiftStartMin: 600, shiftEndMin: 1080 },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mRiley.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 0,
+        shiftStartMin: 600,
+        shiftEndMin: 1080,
+      },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mRiley.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 2,
+        shiftStartMin: 600,
+        shiftEndMin: 1080,
+      },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mRiley.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 4,
+        shiftStartMin: 600,
+        shiftEndMin: 1080,
+      },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mRiley.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 5,
+        shiftStartMin: 600,
+        shiftEndMin: 1080,
+      },
       // Alex — Tue/Thu/Sat/Sun 12:00–18:00
-      { templateId: rosterTemplate.id, membershipId: mAlex.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 1, shiftStartMin: 720, shiftEndMin: 1080 },
-      { templateId: rosterTemplate.id, membershipId: mAlex.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 3, shiftStartMin: 720, shiftEndMin: 1080 },
-      { templateId: rosterTemplate.id, membershipId: mAlex.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 5, shiftStartMin: 720, shiftEndMin: 1080 },
-      { templateId: rosterTemplate.id, membershipId: mAlex.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 6, shiftStartMin: 720, shiftEndMin: 1080 },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mAlex.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 1,
+        shiftStartMin: 720,
+        shiftEndMin: 1080,
+      },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mAlex.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 3,
+        shiftStartMin: 720,
+        shiftEndMin: 1080,
+      },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mAlex.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 5,
+        shiftStartMin: 720,
+        shiftEndMin: 1080,
+      },
+      {
+        templateId: rosterTemplate.id,
+        membershipId: mAlex.id,
+        membershipOrgId: org.id,
+        weekIndex: 0,
+        dayIndex: 6,
+        shiftStartMin: 720,
+        shiftEndMin: 1080,
+      },
     ],
     skipDuplicates: true,
   });
@@ -2099,93 +2395,649 @@ async function seedOrg1(users: Users) {
     data: [
       // ── Previous week ───────────────────────────────────────────────────────
       // Ivan Mon–Fri 06:00–14:00
-      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 0, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 840 },
+      {
+        orgId: org.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 0,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 1,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 2,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 3,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 4,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
       // Jordan Mon–Fri 06:00–14:00 (Wed: late start note)
-      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 0, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 2, shiftStartMin: 450, shiftEndMin: 840, note: "Late start — fryer issue" },
-      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 840 },
+      {
+        orgId: org.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 0,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 1,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 2,
+        shiftStartMin: 450,
+        shiftEndMin: 840,
+        note: "Late start — fryer issue",
+      },
+      {
+        orgId: org.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 3,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 4,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
       // Casey Tue–Sat 06:00–15:00
-      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 900 },
-      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 900 },
-      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 900 },
-      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 900 },
-      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 5, shiftStartMin: 360, shiftEndMin: 900 },
+      {
+        orgId: org.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 1,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+      },
+      {
+        orgId: org.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 2,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+      },
+      {
+        orgId: org.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 3,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+      },
+      {
+        orgId: org.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 4,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+      },
+      {
+        orgId: org.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 5,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+      },
       // Riley Mon/Wed/Fri/Sat 10:00–18:00 (Sat: double split note)
-      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 0, shiftStartMin: 600, shiftEndMin: 1080 },
-      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 2, shiftStartMin: 600, shiftEndMin: 1080 },
-      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 4, shiftStartMin: 600, shiftEndMin: 1080 },
-      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 5, shiftStartMin: 600, shiftEndMin: 1080, note: "Busy Sat — double split" },
+      {
+        orgId: org.id,
+        membershipId: mRiley.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 0,
+        shiftStartMin: 600,
+        shiftEndMin: 1080,
+      },
+      {
+        orgId: org.id,
+        membershipId: mRiley.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 2,
+        shiftStartMin: 600,
+        shiftEndMin: 1080,
+      },
+      {
+        orgId: org.id,
+        membershipId: mRiley.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 4,
+        shiftStartMin: 600,
+        shiftEndMin: 1080,
+      },
+      {
+        orgId: org.id,
+        membershipId: mRiley.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 5,
+        shiftStartMin: 600,
+        shiftEndMin: 1080,
+        note: "Busy Sat — double split",
+      },
       // Alex Tue/Thu/Sat/Sun 12:00–18:00
-      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 1, shiftStartMin: 720, shiftEndMin: 1080 },
-      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 3, shiftStartMin: 720, shiftEndMin: 1080 },
-      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 5, shiftStartMin: 720, shiftEndMin: 1080 },
-      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 6, shiftStartMin: 720, shiftEndMin: 1080 },
+      {
+        orgId: org.id,
+        membershipId: mAlex.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 1,
+        shiftStartMin: 720,
+        shiftEndMin: 1080,
+      },
+      {
+        orgId: org.id,
+        membershipId: mAlex.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 3,
+        shiftStartMin: 720,
+        shiftEndMin: 1080,
+      },
+      {
+        orgId: org.id,
+        membershipId: mAlex.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 5,
+        shiftStartMin: 720,
+        shiftEndMin: 1080,
+      },
+      {
+        orgId: org.id,
+        membershipId: mAlex.id,
+        membershipOrgId: org.id,
+        weekStart: weekPrev,
+        dayIndex: 6,
+        shiftStartMin: 720,
+        shiftEndMin: 1080,
+      },
 
       // ── Current week ─────────────────────────────────────────────────────────
       // Ivan Mon–Fri 06:00–14:00
-      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 0, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 840 },
+      {
+        orgId: org.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 0,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 1,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 2,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 3,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 4,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
       // Jordan Mon–Fri 06:00–14:00
-      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 0, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 840 },
+      {
+        orgId: org.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 0,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 1,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 2,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 3,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 4,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
       // Casey Tue–Sat 06:00–15:00 (Sat: public holiday coverage)
-      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 900 },
-      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 900 },
-      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 900 },
-      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 900 },
-      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 5, shiftStartMin: 360, shiftEndMin: 900, note: "Public holiday coverage" },
+      {
+        orgId: org.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 1,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+      },
+      {
+        orgId: org.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 2,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+      },
+      {
+        orgId: org.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 3,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+      },
+      {
+        orgId: org.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 4,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+      },
+      {
+        orgId: org.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 5,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+        note: "Public holiday coverage",
+      },
       // Riley Mon/Wed/Fri/Sat 10:00–18:00
-      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 0, shiftStartMin: 600, shiftEndMin: 1080 },
-      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 2, shiftStartMin: 600, shiftEndMin: 1080 },
-      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 4, shiftStartMin: 600, shiftEndMin: 1080 },
-      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 5, shiftStartMin: 600, shiftEndMin: 1080 },
+      {
+        orgId: org.id,
+        membershipId: mRiley.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 0,
+        shiftStartMin: 600,
+        shiftEndMin: 1080,
+      },
+      {
+        orgId: org.id,
+        membershipId: mRiley.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 2,
+        shiftStartMin: 600,
+        shiftEndMin: 1080,
+      },
+      {
+        orgId: org.id,
+        membershipId: mRiley.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 4,
+        shiftStartMin: 600,
+        shiftEndMin: 1080,
+      },
+      {
+        orgId: org.id,
+        membershipId: mRiley.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 5,
+        shiftStartMin: 600,
+        shiftEndMin: 1080,
+      },
       // Alex Tue/Thu/Sat/Sun 12:00–18:00
-      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 1, shiftStartMin: 720, shiftEndMin: 1080 },
-      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 3, shiftStartMin: 720, shiftEndMin: 1080 },
-      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 5, shiftStartMin: 720, shiftEndMin: 1080 },
-      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 6, shiftStartMin: 720, shiftEndMin: 1080 },
+      {
+        orgId: org.id,
+        membershipId: mAlex.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 1,
+        shiftStartMin: 720,
+        shiftEndMin: 1080,
+      },
+      {
+        orgId: org.id,
+        membershipId: mAlex.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 3,
+        shiftStartMin: 720,
+        shiftEndMin: 1080,
+      },
+      {
+        orgId: org.id,
+        membershipId: mAlex.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 5,
+        shiftStartMin: 720,
+        shiftEndMin: 1080,
+      },
+      {
+        orgId: org.id,
+        membershipId: mAlex.id,
+        membershipOrgId: org.id,
+        weekStart: weekCurr,
+        dayIndex: 6,
+        shiftStartMin: 720,
+        shiftEndMin: 1080,
+      },
 
       // ── Next week ─────────────────────────────────────────────────────────────
       // Ivan Mon–Fri 06:00–14:00
-      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 0, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 840 },
+      {
+        orgId: org.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 0,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 1,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 2,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 3,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mIvan.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 4,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
       // Jordan Mon–Fri 06:00–14:00 (Thu: management meeting)
-      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 0, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 840 },
-      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 3, shiftStartMin: 600, shiftEndMin: 840, note: "Management meeting AM" },
-      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 840 },
+      {
+        orgId: org.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 0,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 1,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 2,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
+      {
+        orgId: org.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 3,
+        shiftStartMin: 600,
+        shiftEndMin: 840,
+        note: "Management meeting AM",
+      },
+      {
+        orgId: org.id,
+        membershipId: mJordan.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 4,
+        shiftStartMin: 360,
+        shiftEndMin: 840,
+      },
       // Casey Tue–Sat 06:00–15:00
-      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 900 },
-      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 900 },
-      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 900 },
-      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 900 },
-      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 5, shiftStartMin: 360, shiftEndMin: 900 },
+      {
+        orgId: org.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 1,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+      },
+      {
+        orgId: org.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 2,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+      },
+      {
+        orgId: org.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 3,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+      },
+      {
+        orgId: org.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 4,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+      },
+      {
+        orgId: org.id,
+        membershipId: mCasey.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 5,
+        shiftStartMin: 360,
+        shiftEndMin: 900,
+      },
       // Riley Mon/Wed/Fri/Sat 10:00–18:00
-      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 0, shiftStartMin: 600, shiftEndMin: 1080 },
-      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 2, shiftStartMin: 600, shiftEndMin: 1080 },
-      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 4, shiftStartMin: 600, shiftEndMin: 1080 },
-      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 5, shiftStartMin: 600, shiftEndMin: 1080 },
+      {
+        orgId: org.id,
+        membershipId: mRiley.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 0,
+        shiftStartMin: 600,
+        shiftEndMin: 1080,
+      },
+      {
+        orgId: org.id,
+        membershipId: mRiley.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 2,
+        shiftStartMin: 600,
+        shiftEndMin: 1080,
+      },
+      {
+        orgId: org.id,
+        membershipId: mRiley.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 4,
+        shiftStartMin: 600,
+        shiftEndMin: 1080,
+      },
+      {
+        orgId: org.id,
+        membershipId: mRiley.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 5,
+        shiftStartMin: 600,
+        shiftEndMin: 1080,
+      },
       // Alex Tue/Thu/Sat/Sun 12:00–18:00
-      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 1, shiftStartMin: 720, shiftEndMin: 1080 },
-      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 3, shiftStartMin: 720, shiftEndMin: 1080 },
-      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 5, shiftStartMin: 720, shiftEndMin: 1080 },
-      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 6, shiftStartMin: 720, shiftEndMin: 1080 },
+      {
+        orgId: org.id,
+        membershipId: mAlex.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 1,
+        shiftStartMin: 720,
+        shiftEndMin: 1080,
+      },
+      {
+        orgId: org.id,
+        membershipId: mAlex.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 3,
+        shiftStartMin: 720,
+        shiftEndMin: 1080,
+      },
+      {
+        orgId: org.id,
+        membershipId: mAlex.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 5,
+        shiftStartMin: 720,
+        shiftEndMin: 1080,
+      },
+      {
+        orgId: org.id,
+        membershipId: mAlex.id,
+        membershipOrgId: org.id,
+        weekStart: weekNext,
+        dayIndex: 6,
+        shiftStartMin: 720,
+        shiftEndMin: 1080,
+      },
     ],
     skipDuplicates: true,
   });
@@ -2211,22 +3063,54 @@ async function seedOrg1(users: Users) {
     tiChocPowder,
     tiQuark,
   ] = await Promise.all([
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Dough Rings", unit: "each" } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Custard Powder", unit: "g" } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Cold Water", unit: "ml" } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Whipping Cream", unit: "ml" } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Biscoff Spread", unit: "g" } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Vegetable Oil", unit: "ml" } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Nutella", unit: "g" } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Peanut Butter", unit: "g" } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Icing Sugar", unit: "g" } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "White Fondant", unit: "g" } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Butter", unit: "g" } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Chocolate Buttons", unit: "g" } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Cocoa Powder", unit: "g" } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Hot Water", unit: "ml" } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Chocolate Powder", unit: "scoops" } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Quark", unit: "g" } }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Dough Rings", unit: "each" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Custard Powder", unit: "g" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Cold Water", unit: "ml" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Whipping Cream", unit: "ml" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Biscoff Spread", unit: "g" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Vegetable Oil", unit: "ml" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Nutella", unit: "g" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Peanut Butter", unit: "g" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Icing Sugar", unit: "g" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "White Fondant", unit: "g" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Butter", unit: "g" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Chocolate Buttons", unit: "g" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Cocoa Powder", unit: "g" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Hot Water", unit: "ml" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Chocolate Powder", unit: "scoops" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Quark", unit: "g" },
+    }),
   ]);
   console.log("  ✓ 16 tool items created");
   // Silence unused-variable warnings for items not used directly in conversion rates
@@ -2246,22 +3130,50 @@ async function seedOrg1(users: Users) {
   await prisma.conversionRate.createMany({
     data: [
       // Recipe: 1250g Custard Powder + 2500ml Cold Water + 5000ml Whipping Cream ≈ 215 rings
-      { setId: setCustardCream.id, fromItemId: tiDoughRings.id, toItemId: tiCustardPowder.id, fromQty: 215, toQty: 1250 },
-      { setId: setCustardCream.id, fromItemId: tiDoughRings.id, toItemId: tiColdWater.id,     fromQty: 215, toQty: 2500 },
-      { setId: setCustardCream.id, fromItemId: tiDoughRings.id, toItemId: tiWhippingCream.id, fromQty: 215, toQty: 5000 },
+      {
+        setId: setCustardCream.id,
+        fromItemId: tiDoughRings.id,
+        toItemId: tiCustardPowder.id,
+        fromQty: 215,
+        toQty: 1250,
+      },
+      {
+        setId: setCustardCream.id,
+        fromItemId: tiDoughRings.id,
+        toItemId: tiColdWater.id,
+        fromQty: 215,
+        toQty: 2500,
+      },
+      {
+        setId: setCustardCream.id,
+        fromItemId: tiDoughRings.id,
+        toItemId: tiWhippingCream.id,
+        fromQty: 215,
+        toQty: 5000,
+      },
       // Choc upgrade: per 40 rings ≈ 10 scoops chocolate powder
-      { setId: setCustardCream.id, fromItemId: tiDoughRings.id, toItemId: tiChocPowder.id,    fromQty: 40,  toQty: 10  },
+      {
+        setId: setCustardCream.id,
+        fromItemId: tiDoughRings.id,
+        toItemId: tiChocPowder.id,
+        fromQty: 40,
+        toQty: 10,
+      },
     ],
     skipDuplicates: true,
   });
   const [tplStandardDay, tplQuietDay] = await Promise.all([
-    prisma.conversionTemplate.create({ data: { setId: setCustardCream.id, name: "Standard Day — 200 rings" } }),
-    prisma.conversionTemplate.create({ data: { setId: setCustardCream.id, name: "Quiet Day — 150 rings" } }),
+    prisma.conversionTemplate.create({
+      data: { setId: setCustardCream.id, name: "Standard Day — 200 rings" },
+    }),
+    prisma.conversionTemplate.create({
+      data: { setId: setCustardCream.id, name: "Quiet Day — 150 rings" },
+    }),
   ]);
   await prisma.conversionTemplateEntry.createMany({
     data: [
       { templateId: tplStandardDay.id, itemId: tiDoughRings.id, quantity: 200 },
-      { templateId: tplQuietDay.id,    itemId: tiDoughRings.id, quantity: 150 },
+      { templateId: tplQuietDay.id, itemId: tiDoughRings.id, quantity: 150 },
     ],
     skipDuplicates: true,
   });
@@ -2273,10 +3185,34 @@ async function seedOrg1(users: Users) {
   await prisma.conversionRate.createMany({
     data: [
       // Recipe per 1000g White Fondant
-      { setId: setChocFondant.id, fromItemId: tiWhiteFondant.id, toItemId: tiButter.id,       fromQty: 1000, toQty: 100 },
-      { setId: setChocFondant.id, fromItemId: tiWhiteFondant.id, toItemId: tiChocButtons.id,  fromQty: 1000, toQty: 200 },
-      { setId: setChocFondant.id, fromItemId: tiWhiteFondant.id, toItemId: tiCocoaPowder.id,  fromQty: 1000, toQty: 60  },
-      { setId: setChocFondant.id, fromItemId: tiWhiteFondant.id, toItemId: tiHotWater.id,     fromQty: 1000, toQty: 60  },
+      {
+        setId: setChocFondant.id,
+        fromItemId: tiWhiteFondant.id,
+        toItemId: tiButter.id,
+        fromQty: 1000,
+        toQty: 100,
+      },
+      {
+        setId: setChocFondant.id,
+        fromItemId: tiWhiteFondant.id,
+        toItemId: tiChocButtons.id,
+        fromQty: 1000,
+        toQty: 200,
+      },
+      {
+        setId: setChocFondant.id,
+        fromItemId: tiWhiteFondant.id,
+        toItemId: tiCocoaPowder.id,
+        fromQty: 1000,
+        toQty: 60,
+      },
+      {
+        setId: setChocFondant.id,
+        fromItemId: tiWhiteFondant.id,
+        toItemId: tiHotWater.id,
+        fromQty: 1000,
+        toQty: 60,
+      },
     ],
     skipDuplicates: true,
   });
@@ -2284,7 +3220,11 @@ async function seedOrg1(users: Users) {
     data: { setId: setChocFondant.id, name: "Single Choc Fondant Batch" },
   });
   await prisma.conversionTemplateEntry.create({
-    data: { templateId: tplSingleChoc.id, itemId: tiWhiteFondant.id, quantity: 1000 },
+    data: {
+      templateId: tplSingleChoc.id,
+      itemId: tiWhiteFondant.id,
+      quantity: 1000,
+    },
   });
 
   // — Biscoff Fondant Batch —
@@ -2304,7 +3244,11 @@ async function seedOrg1(users: Users) {
     data: { setId: setBiscoffFondant.id, name: "Single Biscoff Fondant Batch" },
   });
   await prisma.conversionTemplateEntry.create({
-    data: { templateId: tplSingleBiscoff.id, itemId: tiWhiteFondant.id, quantity: 1000 },
+    data: {
+      templateId: tplSingleBiscoff.id,
+      itemId: tiWhiteFondant.id,
+      quantity: 1000,
+    },
   });
   console.log("  ✓ 3 conversion sets + rates + templates created");
 
@@ -2356,23 +3300,88 @@ async function seedFranchisee(
       console.log("  ✓ Org logo uploaded");
     }
   } catch {
-    console.log("  ⚠ Org logo upload skipped (file not found or upload failed)");
+    console.log(
+      "  ⚠ Org logo upload skipped (file not found or upload failed)",
+    );
   }
 
   // ── Roles (mirror parent structure) ───────────────────────────────────────
-  const [roleOwner, roleWorker, roleFryer, roleCounter, roleShiftLead, roleTrainee] =
-    await Promise.all([
-      prisma.role.create({ data: { orgId: org.id, name: "Owner", key: ROLE_KEYS.OWNER, color: "#ef4444", isDeletable: false, isDefault: false } }),
-      prisma.role.create({ data: { orgId: org.id, name: "Default Member", key: ROLE_KEYS.DEFAULT_MEMBER, color: "#6b7280", isDeletable: false, isDefault: true } }),
-      prisma.role.create({ data: { orgId: org.id, name: "Fryer Operator", key: "fryer_op", color: "#F97316", isDeletable: true, isDefault: false } }),
-      prisma.role.create({ data: { orgId: org.id, name: "Counter Staff", key: "counter_staff", color: "#06B6D4", isDeletable: true, isDefault: false } }),
-      prisma.role.create({ data: { orgId: org.id, name: "Shift Lead", key: "shift_lead", color: "#8B5CF6", isDeletable: true, isDefault: false } }),
-      prisma.role.create({ data: { orgId: org.id, name: "Trainee", key: "trainee", color: "#84CC16", isDeletable: true, isDefault: false } }),
-    ]);
+  const [
+    roleOwner,
+    roleWorker,
+    roleFryer,
+    roleCounter,
+    roleShiftLead,
+    roleTrainee,
+  ] = await Promise.all([
+    prisma.role.create({
+      data: {
+        orgId: org.id,
+        name: "Owner",
+        key: ROLE_KEYS.OWNER,
+        color: "#ef4444",
+        isDeletable: false,
+        isDefault: false,
+      },
+    }),
+    prisma.role.create({
+      data: {
+        orgId: org.id,
+        name: "Default Member",
+        key: ROLE_KEYS.DEFAULT_MEMBER,
+        color: "#6b7280",
+        isDeletable: false,
+        isDefault: true,
+      },
+    }),
+    prisma.role.create({
+      data: {
+        orgId: org.id,
+        name: "Fryer Operator",
+        key: "fryer_op",
+        color: "#F97316",
+        isDeletable: true,
+        isDefault: false,
+      },
+    }),
+    prisma.role.create({
+      data: {
+        orgId: org.id,
+        name: "Counter Staff",
+        key: "counter_staff",
+        color: "#06B6D4",
+        isDeletable: true,
+        isDefault: false,
+      },
+    }),
+    prisma.role.create({
+      data: {
+        orgId: org.id,
+        name: "Shift Lead",
+        key: "shift_lead",
+        color: "#8B5CF6",
+        isDeletable: true,
+        isDefault: false,
+      },
+    }),
+    prisma.role.create({
+      data: {
+        orgId: org.id,
+        name: "Trainee",
+        key: "trainee",
+        color: "#84CC16",
+        isDeletable: true,
+        isDefault: false,
+      },
+    }),
+  ]);
 
   await prisma.permission.createMany({
     data: [
-      ...ALL_OWNER_PERMISSIONS.map((action) => ({ roleId: roleOwner.id, action })),
+      ...ALL_OWNER_PERMISSIONS.map((action) => ({
+        roleId: roleOwner.id,
+        action,
+      })),
       { roleId: roleWorker.id, action: PermissionAction.VIEW_TIMETABLE },
       { roleId: roleFryer.id, action: PermissionAction.VIEW_TIMETABLE },
       { roleId: roleFryer.id, action: PermissionAction.MANAGE_TASKS },
@@ -2387,9 +3396,27 @@ async function seedFranchisee(
 
   // ── Memberships ────────────────────────────────────────────────────────────
   const [mQuinn, mMorgan, mTaylor] = await Promise.all([
-    prisma.membership.create({ data: { orgId: org.id, userId: quinn.id, workingDays: ["mon", "tue", "wed", "thu", "fri", "sat"] } }),
-    prisma.membership.create({ data: { orgId: org.id, userId: morgan.id, workingDays: ["tue", "wed", "thu", "fri", "sat"] } }),
-    prisma.membership.create({ data: { orgId: org.id, userId: taylor.id, workingDays: ["mon", "wed", "fri"] } }),
+    prisma.membership.create({
+      data: {
+        orgId: org.id,
+        userId: quinn.id,
+        workingDays: ["mon", "tue", "wed", "thu", "fri", "sat"],
+      },
+    }),
+    prisma.membership.create({
+      data: {
+        orgId: org.id,
+        userId: morgan.id,
+        workingDays: ["tue", "wed", "thu", "fri", "sat"],
+      },
+    }),
+    prisma.membership.create({
+      data: {
+        orgId: org.id,
+        userId: taylor.id,
+        workingDays: ["mon", "wed", "fri"],
+      },
+    }),
   ]);
 
   await prisma.memberRole.createMany({
@@ -2406,36 +3433,98 @@ async function seedFranchisee(
   // ── Tool Items ─────────────────────────────────────────────────────────────
   console.log("→ Creating franchisee tool items...");
   const [
-    qtiDoughRings, qtiCustardPowder, qtiColdWater, qtiWhippingCream,
-    qtiChocButtons, qtiHoneycombFlavour, qtiStrawberryPowder, qtiVanillaChai,
-    qtiWhiteFondant, qtiBiscoffSpread, qtiButter, qtiCocoaPowder,
-    qtiHotWater, qtiCoconutMilk, qtiMatchaPowder, qtiEspressoShot,
-    qtiBananaFlavacol, qtiMilk, qtiIce, qtiDrink, qtiCinnamonPowder, qtiCasterSugar,
+    qtiDoughRings,
+    qtiCustardPowder,
+    qtiColdWater,
+    qtiWhippingCream,
+    qtiChocButtons,
+    qtiHoneycombFlavour,
+    qtiStrawberryPowder,
+    qtiVanillaChai,
+    qtiWhiteFondant,
+    qtiBiscoffSpread,
+    qtiButter,
+    qtiCocoaPowder,
+    qtiHotWater,
+    qtiCoconutMilk,
+    qtiMatchaPowder,
+    qtiEspressoShot,
+    qtiBananaFlavacol,
+    qtiMilk,
+    qtiIce,
+    qtiDrink,
+    qtiCinnamonPowder,
+    qtiCasterSugar,
   ] = await Promise.all([
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Dough Rings",              unit: "each"  } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Custard Powder",           unit: "g"     } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Cold Water",               unit: "ml"    } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Whipping Cream",           unit: "ml"    } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Chocolate Buttons",        unit: "g"     } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Honeycomb Flavour",        unit: "ml"    } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Strawberry Frappe Powder", unit: "g"     } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Vanilla Chai Powder",      unit: "g"     } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "White Fondant",            unit: "g"     } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Biscoff Spread",           unit: "g"     } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Butter",                   unit: "g"     } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Cocoa Powder",             unit: "g"     } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Hot Water",                unit: "ml"    } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Coconut Milk",             unit: "ml"    } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Matcha Powder",            unit: "g"     } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Espresso Shot",            unit: "ml"    } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Banana Flavacol",          unit: "ml"    } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Milk",                     unit: "ml"    } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Ice",                      unit: "cups"  } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Drink",                    unit: "each"  } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Cinnamon Powder",          unit: "g"     } }),
-    prisma.toolItem.create({ data: { orgId: org.id, name: "Caster Sugar",             unit: "g"     } }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Dough Rings", unit: "each" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Custard Powder", unit: "g" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Cold Water", unit: "ml" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Whipping Cream", unit: "ml" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Chocolate Buttons", unit: "g" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Honeycomb Flavour", unit: "ml" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Strawberry Frappe Powder", unit: "g" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Vanilla Chai Powder", unit: "g" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "White Fondant", unit: "g" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Biscoff Spread", unit: "g" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Butter", unit: "g" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Cocoa Powder", unit: "g" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Hot Water", unit: "ml" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Coconut Milk", unit: "ml" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Matcha Powder", unit: "g" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Espresso Shot", unit: "ml" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Banana Flavacol", unit: "ml" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Milk", unit: "ml" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Ice", unit: "cups" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Drink", unit: "each" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Cinnamon Powder", unit: "g" },
+    }),
+    prisma.toolItem.create({
+      data: { orgId: org.id, name: "Caster Sugar", unit: "g" },
+    }),
   ]);
-  void qtiCinnamonPowder; void qtiCasterSugar;
+  void qtiCinnamonPowder;
+  void qtiCasterSugar;
   console.log("  ✓ 22 tool items created");
 
   // ── Conversion Sets ────────────────────────────────────────────────────────
@@ -2448,27 +3537,75 @@ async function seedFranchisee(
   await prisma.conversionRate.createMany({
     data: [
       // Base recipe: 215 rings → base ingredients
-      { setId: qSetCustard.id, fromItemId: qtiDoughRings.id, toItemId: qtiCustardPowder.id,    fromQty: 215, toQty: 1250 },
-      { setId: qSetCustard.id, fromItemId: qtiDoughRings.id, toItemId: qtiColdWater.id,        fromQty: 215, toQty: 2500 },
-      { setId: qSetCustard.id, fromItemId: qtiDoughRings.id, toItemId: qtiWhippingCream.id,    fromQty: 215, toQty: 5000 },
+      {
+        setId: qSetCustard.id,
+        fromItemId: qtiDoughRings.id,
+        toItemId: qtiCustardPowder.id,
+        fromQty: 215,
+        toQty: 1250,
+      },
+      {
+        setId: qSetCustard.id,
+        fromItemId: qtiDoughRings.id,
+        toItemId: qtiColdWater.id,
+        fromQty: 215,
+        toQty: 2500,
+      },
+      {
+        setId: qSetCustard.id,
+        fromItemId: qtiDoughRings.id,
+        toItemId: qtiWhippingCream.id,
+        fromQty: 215,
+        toQty: 5000,
+      },
       // Flavour add-ins per 40 rings
-      { setId: qSetCustard.id, fromItemId: qtiDoughRings.id, toItemId: qtiChocButtons.id,      fromQty: 40,  toQty: 100  },
-      { setId: qSetCustard.id, fromItemId: qtiDoughRings.id, toItemId: qtiHoneycombFlavour.id, fromQty: 40,  toQty: 50   },
-      { setId: qSetCustard.id, fromItemId: qtiDoughRings.id, toItemId: qtiStrawberryPowder.id, fromQty: 40,  toQty: 160  },
-      { setId: qSetCustard.id, fromItemId: qtiDoughRings.id, toItemId: qtiVanillaChai.id,      fromQty: 40,  toQty: 120  },
+      {
+        setId: qSetCustard.id,
+        fromItemId: qtiDoughRings.id,
+        toItemId: qtiChocButtons.id,
+        fromQty: 40,
+        toQty: 100,
+      },
+      {
+        setId: qSetCustard.id,
+        fromItemId: qtiDoughRings.id,
+        toItemId: qtiHoneycombFlavour.id,
+        fromQty: 40,
+        toQty: 50,
+      },
+      {
+        setId: qSetCustard.id,
+        fromItemId: qtiDoughRings.id,
+        toItemId: qtiStrawberryPowder.id,
+        fromQty: 40,
+        toQty: 160,
+      },
+      {
+        setId: qSetCustard.id,
+        fromItemId: qtiDoughRings.id,
+        toItemId: qtiVanillaChai.id,
+        fromQty: 40,
+        toQty: 120,
+      },
     ],
     skipDuplicates: true,
   });
   const [qTplStandard, qTplWeekend, qTplQuiet] = await Promise.all([
-    prisma.conversionTemplate.create({ data: { setId: qSetCustard.id, name: "Standard Day — 180 rings"  } }),
-    prisma.conversionTemplate.create({ data: { setId: qSetCustard.id, name: "Weekend Rush — 280 rings"  } }),
-    prisma.conversionTemplate.create({ data: { setId: qSetCustard.id, name: "Quiet Monday — 120 rings"  } }),
+    prisma.conversionTemplate.create({
+      data: { setId: qSetCustard.id, name: "Standard Day — 180 rings" },
+    }),
+    prisma.conversionTemplate.create({
+      data: { setId: qSetCustard.id, name: "Weekend Rush — 280 rings" },
+    }),
+    prisma.conversionTemplate.create({
+      data: { setId: qSetCustard.id, name: "Quiet Monday — 120 rings" },
+    }),
   ]);
   await prisma.conversionTemplateEntry.createMany({
     data: [
       { templateId: qTplStandard.id, itemId: qtiDoughRings.id, quantity: 180 },
-      { templateId: qTplWeekend.id,  itemId: qtiDoughRings.id, quantity: 280 },
-      { templateId: qTplQuiet.id,    itemId: qtiDoughRings.id, quantity: 120 },
+      { templateId: qTplWeekend.id, itemId: qtiDoughRings.id, quantity: 280 },
+      { templateId: qTplQuiet.id, itemId: qtiDoughRings.id, quantity: 120 },
     ],
     skipDuplicates: true,
   });
@@ -2480,26 +3617,92 @@ async function seedFranchisee(
   await prisma.conversionRate.createMany({
     data: [
       // Per 1000g White Fondant → add-ins for each flavour
-      { setId: qSetFondant.id, fromItemId: qtiWhiteFondant.id, toItemId: qtiBiscoffSpread.id,  fromQty: 1000, toQty: 200 },
-      { setId: qSetFondant.id, fromItemId: qtiWhiteFondant.id, toItemId: qtiButter.id,         fromQty: 1000, toQty: 100 },
-      { setId: qSetFondant.id, fromItemId: qtiWhiteFondant.id, toItemId: qtiChocButtons.id,    fromQty: 1000, toQty: 200 },
-      { setId: qSetFondant.id, fromItemId: qtiWhiteFondant.id, toItemId: qtiCocoaPowder.id,    fromQty: 1000, toQty: 60  },
-      { setId: qSetFondant.id, fromItemId: qtiWhiteFondant.id, toItemId: qtiHotWater.id,       fromQty: 1000, toQty: 60  },
-      { setId: qSetFondant.id, fromItemId: qtiWhiteFondant.id, toItemId: qtiCoconutMilk.id,    fromQty: 1000, toQty: 100 },
-      { setId: qSetFondant.id, fromItemId: qtiWhiteFondant.id, toItemId: qtiMatchaPowder.id,   fromQty: 1000, toQty: 15  },
-      { setId: qSetFondant.id, fromItemId: qtiWhiteFondant.id, toItemId: qtiEspressoShot.id,   fromQty: 1000, toQty: 60  },
-      { setId: qSetFondant.id, fromItemId: qtiWhiteFondant.id, toItemId: qtiBananaFlavacol.id, fromQty: 1000, toQty: 40  },
+      {
+        setId: qSetFondant.id,
+        fromItemId: qtiWhiteFondant.id,
+        toItemId: qtiBiscoffSpread.id,
+        fromQty: 1000,
+        toQty: 200,
+      },
+      {
+        setId: qSetFondant.id,
+        fromItemId: qtiWhiteFondant.id,
+        toItemId: qtiButter.id,
+        fromQty: 1000,
+        toQty: 100,
+      },
+      {
+        setId: qSetFondant.id,
+        fromItemId: qtiWhiteFondant.id,
+        toItemId: qtiChocButtons.id,
+        fromQty: 1000,
+        toQty: 200,
+      },
+      {
+        setId: qSetFondant.id,
+        fromItemId: qtiWhiteFondant.id,
+        toItemId: qtiCocoaPowder.id,
+        fromQty: 1000,
+        toQty: 60,
+      },
+      {
+        setId: qSetFondant.id,
+        fromItemId: qtiWhiteFondant.id,
+        toItemId: qtiHotWater.id,
+        fromQty: 1000,
+        toQty: 60,
+      },
+      {
+        setId: qSetFondant.id,
+        fromItemId: qtiWhiteFondant.id,
+        toItemId: qtiCoconutMilk.id,
+        fromQty: 1000,
+        toQty: 100,
+      },
+      {
+        setId: qSetFondant.id,
+        fromItemId: qtiWhiteFondant.id,
+        toItemId: qtiMatchaPowder.id,
+        fromQty: 1000,
+        toQty: 15,
+      },
+      {
+        setId: qSetFondant.id,
+        fromItemId: qtiWhiteFondant.id,
+        toItemId: qtiEspressoShot.id,
+        fromQty: 1000,
+        toQty: 60,
+      },
+      {
+        setId: qSetFondant.id,
+        fromItemId: qtiWhiteFondant.id,
+        toItemId: qtiBananaFlavacol.id,
+        fromQty: 1000,
+        toQty: 40,
+      },
     ],
     skipDuplicates: true,
   });
   const [qTplFondantSingle, qTplFondantDouble] = await Promise.all([
-    prisma.conversionTemplate.create({ data: { setId: qSetFondant.id, name: "Single Batch per Flavour (1000g)" } }),
-    prisma.conversionTemplate.create({ data: { setId: qSetFondant.id, name: "Double All Batches (2000g)"        } }),
+    prisma.conversionTemplate.create({
+      data: { setId: qSetFondant.id, name: "Single Batch per Flavour (1000g)" },
+    }),
+    prisma.conversionTemplate.create({
+      data: { setId: qSetFondant.id, name: "Double All Batches (2000g)" },
+    }),
   ]);
   await prisma.conversionTemplateEntry.createMany({
     data: [
-      { templateId: qTplFondantSingle.id, itemId: qtiWhiteFondant.id, quantity: 1000 },
-      { templateId: qTplFondantDouble.id, itemId: qtiWhiteFondant.id, quantity: 2000 },
+      {
+        templateId: qTplFondantSingle.id,
+        itemId: qtiWhiteFondant.id,
+        quantity: 1000,
+      },
+      {
+        templateId: qTplFondantDouble.id,
+        itemId: qtiWhiteFondant.id,
+        quantity: 2000,
+      },
     ],
     skipDuplicates: true,
   });
@@ -2511,18 +3714,58 @@ async function seedFranchisee(
   await prisma.conversionRate.createMany({
     data: [
       // Per 1 Drink (each) → ingredients needed
-      { setId: qSetFrappe.id, fromItemId: qtiDrink.id, toItemId: qtiMilk.id,             fromQty: 1, toQty: 160 },
-      { setId: qSetFrappe.id, fromItemId: qtiDrink.id, toItemId: qtiIce.id,              fromQty: 1, toQty: 1   },
-      { setId: qSetFrappe.id, fromItemId: qtiDrink.id, toItemId: qtiBiscoffSpread.id,    fromQty: 1, toQty: 50  },
-      { setId: qSetFrappe.id, fromItemId: qtiDrink.id, toItemId: qtiMatchaPowder.id,     fromQty: 1, toQty: 5   },
-      { setId: qSetFrappe.id, fromItemId: qtiDrink.id, toItemId: qtiVanillaChai.id,      fromQty: 1, toQty: 20  },
-      { setId: qSetFrappe.id, fromItemId: qtiDrink.id, toItemId: qtiStrawberryPowder.id, fromQty: 1, toQty: 20  },
+      {
+        setId: qSetFrappe.id,
+        fromItemId: qtiDrink.id,
+        toItemId: qtiMilk.id,
+        fromQty: 1,
+        toQty: 160,
+      },
+      {
+        setId: qSetFrappe.id,
+        fromItemId: qtiDrink.id,
+        toItemId: qtiIce.id,
+        fromQty: 1,
+        toQty: 1,
+      },
+      {
+        setId: qSetFrappe.id,
+        fromItemId: qtiDrink.id,
+        toItemId: qtiBiscoffSpread.id,
+        fromQty: 1,
+        toQty: 50,
+      },
+      {
+        setId: qSetFrappe.id,
+        fromItemId: qtiDrink.id,
+        toItemId: qtiMatchaPowder.id,
+        fromQty: 1,
+        toQty: 5,
+      },
+      {
+        setId: qSetFrappe.id,
+        fromItemId: qtiDrink.id,
+        toItemId: qtiVanillaChai.id,
+        fromQty: 1,
+        toQty: 20,
+      },
+      {
+        setId: qSetFrappe.id,
+        fromItemId: qtiDrink.id,
+        toItemId: qtiStrawberryPowder.id,
+        fromQty: 1,
+        toQty: 20,
+      },
     ],
     skipDuplicates: true,
   });
   const [qTplFrappeWeekday, qTplFrappeWeekend] = await Promise.all([
-    prisma.conversionTemplate.create({ data: { setId: qSetFrappe.id, name: "Weekday Bar (30 drinks)"  } }),
-    prisma.conversionTemplate.create({ data: { setId: qSetFrappe.id, name: "Weekend Rush (80 drinks)" } }),
+    prisma.conversionTemplate.create({
+      data: { setId: qSetFrappe.id, name: "Weekday Bar (30 drinks)" },
+    }),
+    prisma.conversionTemplate.create({
+      data: { setId: qSetFrappe.id, name: "Weekend Rush (80 drinks)" },
+    }),
   ]);
   await prisma.conversionTemplateEntry.createMany({
     data: [
@@ -2536,7 +3779,7 @@ async function seedFranchisee(
   // ── Own GLOBAL tasks (franchisee contributions) ───────────────────────────
   console.log("→ Creating franchisee GLOBAL tasks...");
   const roleByKey: Record<string, { id: string }> = {
-    fryer_op:      roleFryer,
+    fryer_op: roleFryer,
     counter_staff: roleCounter,
   };
   const QUINN_GLOBAL_TASKS = [
@@ -2739,16 +3982,25 @@ async function seedFranchisee(
       },
     });
     const role = roleByKey[def.roleKey] ?? roleFryer;
-    await prisma.taskEligibility.create({ data: { taskId: task.id, roleId: role.id } });
-    await prisma.taskInheritance.create({ data: { taskId: task.id, orgId: org.id } });
+    await prisma.taskEligibility.create({
+      data: { taskId: task.id, roleId: role.id },
+    });
+    await prisma.taskInheritance.create({
+      data: { taskId: task.id, orgId: org.id },
+    });
     const imgUrl = await uploadSeedTaskImage(org.id, task.id, def.keyword);
     if (imgUrl) {
-      await prisma.task.update({ where: { id: task.id }, data: { imageUrl: imgUrl } });
+      await prisma.task.update({
+        where: { id: task.id },
+        data: { imageUrl: imgUrl },
+      });
       globalTaskImages++;
     }
     globalTasksCreated++;
   }
-  console.log(`  ✓ ${globalTasksCreated} GLOBAL tasks created (${globalTaskImages} with images)`);
+  console.log(
+    `  ✓ ${globalTasksCreated} GLOBAL tasks created (${globalTaskImages} with images)`,
+  );
 
   // ── Inherit GLOBAL tasks from parent ──────────────────────────────────────
   const globalTasks = await prisma.task.findMany({
@@ -2761,7 +4013,9 @@ async function seedFranchisee(
       skipDuplicates: true,
     });
   }
-  console.log(`  ✓ Franchisee created: ${org.name} (inherited ${globalTasks.length} tasks)`);
+  console.log(
+    `  ✓ Franchisee created: ${org.name} (inherited ${globalTasks.length} tasks)`,
+  );
 
   return { org };
 }

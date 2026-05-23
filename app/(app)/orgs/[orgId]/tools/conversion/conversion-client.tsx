@@ -49,10 +49,17 @@ function timeAgo(date: Date): string {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
-  return new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return new Date(date).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
 }
 
-export function ConversionClient({ orgId, sets, recentTemplates }: ConversionClientProps) {
+export function ConversionClient({
+  orgId,
+  sets,
+  recentTemplates,
+}: ConversionClientProps) {
   const [search, setSearch] = useState("");
   const { open, close, activeTitle } = useActionSidebar();
   const formKeyRef = useRef(0);
@@ -84,7 +91,6 @@ export function ConversionClient({ orgId, sets, recentTemplates }: ConversionCli
       </Toolbar>
 
       <div className="flex-1 overflow-auto -mx-4 sm:-mx-6 px-4 sm:px-6 py-5 flex flex-col gap-8">
-
         {/* Recently used templates */}
         {recentTemplates.length > 0 && !search && (
           <section>
@@ -103,10 +109,16 @@ export function ConversionClient({ orgId, sets, recentTemplates }: ConversionCli
                 >
                   <Layers className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   <div className="flex-1 min-w-0">
-                    <span className="text-sm font-medium truncate block">{t.name}</span>
-                    <span className="text-xs text-muted-foreground truncate block">{t.set.name}</span>
+                    <span className="text-sm font-medium truncate block">
+                      {t.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground truncate block">
+                      {t.set.name}
+                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground shrink-0">{timeAgo(t.updatedAt)}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {timeAgo(t.updatedAt)}
+                  </span>
                 </Link>
               ))}
             </div>
@@ -144,9 +156,12 @@ export function ConversionClient({ orgId, sets, recentTemplates }: ConversionCli
                   )}
                 >
                   <div className="flex flex-col gap-0.5 min-w-0 pr-2">
-                    <span className="text-sm font-semibold truncate">{set.name}</span>
+                    <span className="text-sm font-semibold truncate">
+                      {set.name}
+                    </span>
                     <span className="text-xs text-muted-foreground">
-                      {set._count.templates} template{set._count.templates !== 1 ? "s" : ""}
+                      {set._count.templates} template
+                      {set._count.templates !== 1 ? "s" : ""}
                       {" · "}
                       {timeAgo(set.updatedAt)}
                     </span>
@@ -169,4 +184,3 @@ export function ConversionClient({ orgId, sets, recentTemplates }: ConversionCli
     </div>
   );
 }
-

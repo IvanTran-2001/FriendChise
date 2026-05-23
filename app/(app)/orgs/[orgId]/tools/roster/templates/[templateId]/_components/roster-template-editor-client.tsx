@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, Minus, Plus, TriangleAlert } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Minus,
+  Plus,
+  TriangleAlert,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Toolbar } from "@/components/layout/toolbar";
@@ -59,14 +67,22 @@ function RosterTemplateEditorSidebar({
     setConfirmWeek(null);
     startTransition(async () => {
       if (needsClear) {
-        const clearResult = await clearRosterTemplateWeekAction(orgId, templateId, weekToRemove);
+        const clearResult = await clearRosterTemplateWeekAction(
+          orgId,
+          templateId,
+          weekToRemove,
+        );
         if (!clearResult.ok) {
           toast.error(clearResult.error ?? "Failed to clear week");
           onCycleWeeksChange(cycleWeeks);
           return;
         }
       }
-      const result = await updateRosterTemplateCycleWeeksAction(orgId, templateId, next);
+      const result = await updateRosterTemplateCycleWeeksAction(
+        orgId,
+        templateId,
+        next,
+      );
       if (!result.ok) {
         toast.error(result.error ?? "Failed to update");
         onCycleWeeksChange(cycleWeeks);
@@ -79,7 +95,11 @@ function RosterTemplateEditorSidebar({
     if (next > 12) return;
     onCycleWeeksChange(next);
     startTransition(async () => {
-      const result = await updateRosterTemplateCycleWeeksAction(orgId, templateId, next);
+      const result = await updateRosterTemplateCycleWeeksAction(
+        orgId,
+        templateId,
+        next,
+      );
       if (!result.ok) {
         toast.error(result.error ?? "Failed to update");
         onCycleWeeksChange(cycleWeeks);
@@ -147,7 +167,8 @@ function RosterTemplateEditorSidebar({
               <div className="flex gap-2 items-start">
                 <TriangleAlert className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-800 dark:text-amber-300">
-                  Week {confirmWeek + 1} has shifts assigned. Removing it will delete all of them.
+                  Week {confirmWeek + 1} has shifts assigned. Removing it will
+                  delete all of them.
                 </p>
               </div>
               <div className="flex gap-1.5">
@@ -223,7 +244,10 @@ export function RosterTemplateEditorClient({
   const clampedOffset = Math.min(weekOffset, maxOffset);
 
   const shown = Math.min(visibleCount, cycleWeeks);
-  const weekIndices = Array.from({ length: shown }, (_, i) => i + clampedOffset);
+  const weekIndices = Array.from(
+    { length: shown },
+    (_, i) => i + clampedOffset,
+  );
   const canGoPrev = clampedOffset > 0;
   const canGoNext = clampedOffset < maxOffset;
 
@@ -261,7 +285,9 @@ export function RosterTemplateEditorClient({
               variant="outline"
               size="sm"
               disabled={!canGoNext}
-              onClick={() => setWeekOffset(Math.min(maxOffset, clampedOffset + 1))}
+              onClick={() =>
+                setWeekOffset(Math.min(maxOffset, clampedOffset + 1))
+              }
             >
               <ChevronRight className="h-4 w-4" />
             </Button>

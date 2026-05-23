@@ -15,7 +15,10 @@ export default function OrgOverviewLoading() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-xl border bg-card p-4 shadow-sm flex flex-col gap-2">
+          <div
+            key={i}
+            className="rounded-xl border bg-card p-4 shadow-sm flex flex-col gap-2"
+          >
             <Skeleton className="h-4 w-4 rounded" />
             <Skeleton className="h-7 w-10 rounded-md mt-1" />
             <Skeleton className="h-3 w-14 rounded-md" />

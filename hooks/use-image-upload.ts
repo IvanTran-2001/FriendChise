@@ -59,7 +59,11 @@ export function useImageUpload(orgId: string, taskId: string) {
         });
 
         // 2. Get signed upload URL from server
-        const urlResult = await getSignedUploadUrl(orgId, taskId, compressed.type);
+        const urlResult = await getSignedUploadUrl(
+          orgId,
+          taskId,
+          compressed.type,
+        );
         if (!urlResult.ok) {
           setError(urlResult.error);
           onError?.();
@@ -79,7 +83,11 @@ export function useImageUpload(orgId: string, taskId: string) {
         }
 
         // 4. Save path to DB
-        const saveResult = await saveTaskImagePath(orgId, taskId, urlResult.path);
+        const saveResult = await saveTaskImagePath(
+          orgId,
+          taskId,
+          urlResult.path,
+        );
         if (!saveResult.ok) {
           setError(saveResult.error);
           onError?.();
@@ -109,7 +117,9 @@ export function useImageUpload(orgId: string, taskId: string) {
         }
         onSuccess();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "An unexpected error occurred.");
+        setError(
+          err instanceof Error ? err.message : "An unexpected error occurred.",
+        );
       }
     });
   };

@@ -105,9 +105,7 @@ export function MemberActions({
           <MoreVertical className="h-4 w-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={handleEdit}>
-            Edit
-          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={handleEdit}>Edit</DropdownMenuItem>
           <DropdownMenuItem
             onSelect={(e) => {
               e.preventDefault();

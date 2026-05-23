@@ -44,7 +44,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deleteTaskAction, removeTaskFromListAction, inheritTaskAction } from "@/app/actions/tasks";
+import {
+  deleteTaskAction,
+  removeTaskFromListAction,
+  inheritTaskAction,
+} from "@/app/actions/tasks";
 import type { SortOption } from "./tasks-config";
 
 // Strip markdown syntax for plain-text previews
@@ -244,7 +248,10 @@ export function TaskTable({
                       router.push(`/orgs/${orgId}/tasks/${task.id}`);
                   }}
                   onKeyDown={(e) => {
-                    if (!task._available && (e.key === "Enter" || e.key === " ")) {
+                    if (
+                      !task._available &&
+                      (e.key === "Enter" || e.key === " ")
+                    ) {
                       e.preventDefault();
                       router.push(`/orgs/${orgId}/tasks/${task.id}`);
                     }
@@ -335,7 +342,9 @@ export function TaskTable({
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
-                              router.push(`/orgs/${orgId}/tasks/${task.id}/edit`);
+                              router.push(
+                                `/orgs/${orgId}/tasks/${task.id}/edit`,
+                              );
                             }}
                           >
                             Edit

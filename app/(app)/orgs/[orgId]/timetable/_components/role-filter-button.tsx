@@ -101,7 +101,9 @@ export function RoleFilterButton({
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href={makeHref(orgId, anchor, mode, span, null, selectedTagId)}>
+              <Link
+                href={makeHref(orgId, anchor, mode, span, null, selectedTagId)}
+              >
                 Clear filter
               </Link>
             </DropdownMenuItem>

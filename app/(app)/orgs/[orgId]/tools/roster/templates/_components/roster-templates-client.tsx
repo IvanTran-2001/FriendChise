@@ -45,13 +45,23 @@ function ConfirmDeletePanel({
   return (
     <div className="flex flex-col gap-4 p-4">
       <p className="text-sm text-muted-foreground">
-        Delete <span className="font-semibold text-foreground">{name}</span>? This cannot be undone.
+        Delete <span className="font-semibold text-foreground">{name}</span>?
+        This cannot be undone.
       </p>
       <div className="flex gap-2">
-        <Button variant="outline" className="flex-1" onClick={() => sidebar.close()}>
+        <Button
+          variant="outline"
+          className="flex-1"
+          onClick={() => sidebar.close()}
+        >
           Cancel
         </Button>
-        <Button variant="destructive" className="flex-1" onClick={handleDelete} disabled={isPending}>
+        <Button
+          variant="destructive"
+          className="flex-1"
+          onClick={handleDelete}
+          disabled={isPending}
+        >
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
         </Button>
       </div>
@@ -115,7 +125,9 @@ export function RosterTemplatesClient({
                   title="Edit"
                   onClick={(e) => {
                     e.preventDefault();
-                    router.push(`/orgs/${orgId}/tools/roster/templates/${t.id}`);
+                    router.push(
+                      `/orgs/${orgId}/tools/roster/templates/${t.id}`,
+                    );
                   }}
                 >
                   <Pencil className="h-3.5 w-3.5" />
@@ -129,7 +141,11 @@ export function RosterTemplatesClient({
                     e.preventDefault();
                     sidebar.open(
                       "Delete template",
-                      <ConfirmDeletePanel orgId={orgId} templateId={t.id} name={t.name} />,
+                      <ConfirmDeletePanel
+                        orgId={orgId}
+                        templateId={t.id}
+                        name={t.name}
+                      />,
                     );
                   }}
                 >

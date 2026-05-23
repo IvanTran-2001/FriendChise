@@ -41,7 +41,12 @@ type Member = {
   status: "ACTIVE" | "RESTRICTED";
   workingDays: string[];
   joinedAt: Date;
-  user: { id: string; name: string | null; email: string | null; image: string | null } | null;
+  user: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    image: string | null;
+  } | null;
   memberRoles: { role: { id: string; name: string; color: string } }[];
 };
 
@@ -219,9 +224,21 @@ export function MembersView({
               : "No members match your search."}
           </p>
         ) : view === "card" ? (
-          <CardGrid members={filtered} orgId={orgId} canManage={canManage} allRoles={allRoles} onView={handleView} />
+          <CardGrid
+            members={filtered}
+            orgId={orgId}
+            canManage={canManage}
+            allRoles={allRoles}
+            onView={handleView}
+          />
         ) : (
-          <MemberList members={filtered} orgId={orgId} canManage={canManage} allRoles={allRoles} onView={handleView} />
+          <MemberList
+            members={filtered}
+            orgId={orgId}
+            canManage={canManage}
+            allRoles={allRoles}
+            onView={handleView}
+          />
         )}
       </div>
     </div>

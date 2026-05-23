@@ -635,30 +635,33 @@ export function TemplateEditorClient({
             className={`relative flex-1 min-w-0${fillHeight ? " min-h-0 flex flex-col" : ""}`}
           >
             {/* Empty state — hidden during tap-to-place, drag, or schedule form */}
-            {!visibleInstances.length && !isDragging && !selectedTaskId && !isScheduling && (
-              <div className="absolute inset-0 z-20 flex items-center justify-center border bg-background/90">
-                <div className="flex flex-col items-center gap-3 text-center">
-                  <p className="text-2xl font-semibold text-foreground">
-                    {colCount === 1
-                      ? `No slots on day ${startDay + 1}`
-                      : "No slots in this range"}
-                  </p>
-                  {isMobile ? (
-                    <button
-                      onClick={() => setTaskPanelOpen(true)}
-                      className="flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-md px-4 py-2.5 text-sm font-medium active:scale-95 transition-transform"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Add task
-                    </button>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Drag a task from the panel to get started
+            {!visibleInstances.length &&
+              !isDragging &&
+              !selectedTaskId &&
+              !isScheduling && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center border bg-background/90">
+                  <div className="flex flex-col items-center gap-3 text-center">
+                    <p className="text-2xl font-semibold text-foreground">
+                      {colCount === 1
+                        ? `No slots on day ${startDay + 1}`
+                        : "No slots in this range"}
                     </p>
-                  )}
+                    {isMobile ? (
+                      <button
+                        onClick={() => setTaskPanelOpen(true)}
+                        className="flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-md px-4 py-2.5 text-sm font-medium active:scale-95 transition-transform"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add task
+                      </button>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Drag a task from the panel to get started
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             <TimeGrid
               columns={columns}
@@ -751,9 +754,7 @@ export function TemplateEditorClient({
             <SheetContent
               side={isLandscape ? "right" : "bottom"}
               className={
-                isLandscape
-                  ? "w-64 p-0 flex flex-col"
-                  : "p-0 flex flex-col"
+                isLandscape ? "w-64 p-0 flex flex-col" : "p-0 flex flex-col"
               }
             >
               <SheetHeader className="px-4 pt-4 pb-2 border-b shrink-0">

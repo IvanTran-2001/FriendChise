@@ -21,7 +21,11 @@ function AddTemplatePanel({ orgId }: { orgId: string }) {
     e.preventDefault();
     if (!name.trim()) return;
     startTransition(async () => {
-      const result = await createRosterTemplateAction(orgId, name.trim(), weeks);
+      const result = await createRosterTemplateAction(
+        orgId,
+        name.trim(),
+        weeks,
+      );
       if (!result.ok) {
         toast.error(result.error ?? "Failed to create template");
         return;
@@ -35,7 +39,9 @@ function AddTemplatePanel({ orgId }: { orgId: string }) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-muted-foreground">Name</label>
+        <label className="text-xs font-medium text-muted-foreground">
+          Name
+        </label>
         <Input
           autoFocus
           placeholder="e.g. Default Week"
@@ -59,7 +65,9 @@ function AddTemplatePanel({ orgId }: { orgId: string }) {
           >
             −
           </Button>
-          <span className="w-8 text-center text-sm font-medium tabular-nums">{weeks}</span>
+          <span className="w-8 text-center text-sm font-medium tabular-nums">
+            {weeks}
+          </span>
           <Button
             type="button"
             variant="outline"

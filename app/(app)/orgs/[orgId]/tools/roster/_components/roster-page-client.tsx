@@ -80,10 +80,9 @@ export function RosterPageClient({
   const [filterMembershipId, setFilterMembershipId] = useState<string | null>(
     currentMembershipId,
   );
-  const [allEntries, setAllEntries] = useState<RosterEntryRow[]>(initialEntries);
-  const [loadedWeekMs] = useState<Set<number>>(
-    () => new Set(prefetchedWeekMs),
-  );
+  const [allEntries, setAllEntries] =
+    useState<RosterEntryRow[]>(initialEntries);
+  const [loadedWeekMs] = useState<Set<number>>(() => new Set(prefetchedWeekMs));
 
   const weekStarts = useMemo(
     () =>
@@ -101,7 +100,9 @@ export function RosterPageClient({
     (weekStart: Date, dayIndex: number, newEntries: SavedRosterEntry[]) => {
       const wMs = weekStart.getTime();
       setAllEntries((prev) => [
-        ...prev.filter((e) => !(e.weekStart.getTime() === wMs && e.dayIndex === dayIndex)),
+        ...prev.filter(
+          (e) => !(e.weekStart.getTime() === wMs && e.dayIndex === dayIndex),
+        ),
         // SavedRosterEntry is structurally identical to RosterEntryRow
         ...(newEntries as unknown as RosterEntryRow[]),
       ]);
@@ -132,8 +133,9 @@ export function RosterPageClient({
         );
         if (!res.ok) return [];
         // API returns dates as ISO strings — rehydrate weekStart to Date
-        const raw: (Omit<RosterEntryRow, "weekStart"> & { weekStart: string })[] =
-          await res.json();
+        const raw: (Omit<RosterEntryRow, "weekStart"> & {
+          weekStart: string;
+        })[] = await res.json();
         return raw.map((e) => ({ ...e, weekStart: new Date(e.weekStart) }));
       } catch {
         return [];
@@ -149,7 +151,9 @@ export function RosterPageClient({
         setAllEntries((prev) => [...prev, ...fetched]);
       }
     });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [anchorMonday, fetchMissingWeeks]);
 
   return (

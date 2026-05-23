@@ -2,7 +2,12 @@
 
 import { useState, useActionState, useTransition, useEffect } from "react";
 import { toast } from "sonner";
-import { createTagAction, updateTagAction, addTagToTaskAction, removeTagFromTaskAction } from "@/app/actions/tags";
+import {
+  createTagAction,
+  updateTagAction,
+  addTagToTaskAction,
+  removeTagFromTaskAction,
+} from "@/app/actions/tags";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,7 +29,13 @@ type Task = { id: string; name: string; color: string };
 
 type TaskPanelProps =
   | { mode: "create"; allTasks: Task[] }
-  | { mode: "edit"; orgId: string; tagId: string; allTasks: Task[]; tagTasks: Task[] };
+  | {
+      mode: "edit";
+      orgId: string;
+      tagId: string;
+      allTasks: Task[];
+      tagTasks: Task[];
+    };
 
 function TaskPanel(props: TaskPanelProps) {
   const isEdit = props.mode === "edit";
@@ -53,7 +64,11 @@ function TaskPanel(props: TaskPanelProps) {
   const remove = (taskId: string) => {
     if (isEdit) {
       startTransition(async () => {
-        const res = await removeTagFromTaskAction(props.orgId, taskId, props.tagId);
+        const res = await removeTagFromTaskAction(
+          props.orgId,
+          taskId,
+          props.tagId,
+        );
         if (res.ok) setTasks((prev) => prev.filter((t) => t.id !== taskId));
         else toast.error(res.error);
       });
@@ -126,10 +141,10 @@ export function CreateTagForm({
   const [resetKey, setResetKey] = useState(0);
 
   const boundAction = createTagAction.bind(null, orgId);
-  const [state, dispatch, pending] = useActionState<ActionResult | null, FormData>(
-    boundAction,
-    null,
-  );
+  const [state, dispatch, pending] = useActionState<
+    ActionResult | null,
+    FormData
+  >(boundAction, null);
   const [, startTransition] = useTransition();
 
   // Set random color on mount (client-only) to avoid hydration mismatch
@@ -223,10 +238,10 @@ export function EditTagForm({
   const [color, setColor] = useState(defaultColor);
 
   const boundAction = updateTagAction.bind(null, orgId, tagId);
-  const [state, dispatch, pending] = useActionState<ActionResult | null, FormData>(
-    boundAction,
-    null,
-  );
+  const [state, dispatch, pending] = useActionState<
+    ActionResult | null,
+    FormData
+  >(boundAction, null);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
@@ -258,7 +273,9 @@ export function EditTagForm({
             <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
               {name}
             </div>
-            <p className="text-xs text-muted-foreground">Default tag names cannot be changed.</p>
+            <p className="text-xs text-muted-foreground">
+              Default tag names cannot be changed.
+            </p>
           </>
         ) : (
           <Input
@@ -286,12 +303,7 @@ export function EditTagForm({
         tagTasks={tagTasks}
       />
 
-      <Button
-        type="submit"
-        size="sm"
-        disabled={pending}
-        className="w-full"
-      >
+      <Button type="submit" size="sm" disabled={pending} className="w-full">
         {pending ? "Saving…" : "Save changes"}
       </Button>
     </form>

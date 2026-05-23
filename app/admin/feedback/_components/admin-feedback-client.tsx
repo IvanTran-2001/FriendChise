@@ -64,7 +64,8 @@ export function AdminFeedbackClient({
           .filter((f) => f.imageUrl)
           .map(async (f) => {
             const res = await getFeedbackImageReadUrl(f.imageUrl!);
-            if (res.ok) return { imageUrl: f.imageUrl!, signedUrl: res.signedUrl };
+            if (res.ok)
+              return { imageUrl: f.imageUrl!, signedUrl: res.signedUrl };
             return null;
           }),
       );
@@ -78,7 +79,8 @@ export function AdminFeedbackClient({
     load();
   }, [initial]);
 
-  const displayed = filter === "all" ? feedback : feedback.filter((f) => !f.reviewed);
+  const displayed =
+    filter === "all" ? feedback : feedback.filter((f) => !f.reviewed);
 
   function toggleReviewed(id: string, next: boolean) {
     setFeedback((prev) =>

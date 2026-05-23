@@ -15,13 +15,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Globe,
-  LayoutList,
-  Lock,
-  Pencil,
-  Trash2,
-} from "lucide-react";
+import { Globe, LayoutList, Lock, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -343,7 +337,10 @@ export function TaskDetailSidebar({
 
       {/* Actions section */}
       {isOwner && canManage && (
-        <div className="px-3 pt-2 pb-3 border-t border-border" data-testid="task-actions">
+        <div
+          className="px-3 pt-2 pb-3 border-t border-border"
+          data-testid="task-actions"
+        >
           <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
             Actions
           </p>

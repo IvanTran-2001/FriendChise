@@ -18,7 +18,15 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
-import { ChevronDown, Globe, LayoutGrid, List, ListTodo, Plus, Share2 } from "lucide-react";
+import {
+  ChevronDown,
+  Globe,
+  LayoutGrid,
+  List,
+  ListTodo,
+  Plus,
+  Share2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { SidebarNavItem } from "@/components/layout/sidebar-nav-item";
@@ -72,7 +80,10 @@ export function TasksSidebarContent({
     const overrides: Parameters<typeof buildHref>[0] = {};
     if (!isModeExplicit) {
       const savedMode = localStorage.getItem(TASKS_MODE_KEY);
-      if ((savedMode === "list" || savedMode === "available") && mode !== savedMode) {
+      if (
+        (savedMode === "list" || savedMode === "available") &&
+        mode !== savedMode
+      ) {
         overrides.mode = savedMode as "list" | "available";
       }
     }
@@ -86,7 +97,11 @@ export function TasksSidebarContent({
             tagId?: string | null;
             view?: string;
           };
-          if (prefs.sort && SORT_OPTIONS.some((o) => o.value === prefs.sort) && prefs.sort !== sort) {
+          if (
+            prefs.sort &&
+            SORT_OPTIONS.some((o) => o.value === prefs.sort) &&
+            prefs.sort !== sort
+          ) {
             overrides.sort = prefs.sort as SortOption;
           }
           if (typeof prefs.roleId === "string" && prefs.roleId !== roleId) {
@@ -95,7 +110,10 @@ export function TasksSidebarContent({
           if (typeof prefs.tagId === "string" && prefs.tagId !== tagId) {
             overrides.tagId = prefs.tagId;
           }
-          if ((prefs.view === "card" || prefs.view === "list") && prefs.view !== view) {
+          if (
+            (prefs.view === "card" || prefs.view === "list") &&
+            prefs.view !== view
+          ) {
             overrides.view = prefs.view as "card" | "list";
           }
         }
@@ -116,7 +134,10 @@ export function TasksSidebarContent({
       return;
     }
     try {
-      localStorage.setItem(`tasks-prefs-${orgId}`, JSON.stringify({ sort, roleId, tagId, view }));
+      localStorage.setItem(
+        `tasks-prefs-${orgId}`,
+        JSON.stringify({ sort, roleId, tagId, view }),
+      );
     } catch {
       // Ignore localStorage errors
     }
@@ -250,7 +271,11 @@ export function TasksSidebarContent({
                 ...(sort !== "name-asc" ? { sort } : {}),
                 ...(roleId ? { roleId } : {}),
                 ...(view !== "list" ? { view } : {}),
-                ...(mode === "list" ? { mode: "list" } : mode === "available" ? { mode: "available" } : {}),
+                ...(mode === "list"
+                  ? { mode: "list" }
+                  : mode === "available"
+                    ? { mode: "available" }
+                    : {}),
               }}
             />
           )}
@@ -260,7 +285,9 @@ export function TasksSidebarContent({
             size="sm"
             className="w-fit"
             value={view}
-            onChange={(v) => router.push(buildHref({ view: v as "list" | "card" }))}
+            onChange={(v) =>
+              router.push(buildHref({ view: v as "list" | "card" }))
+            }
             options={[
               { value: "list", label: <List className="h-4 w-4" /> },
               { value: "card", label: <LayoutGrid className="h-4 w-4" /> },

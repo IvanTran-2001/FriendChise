@@ -318,7 +318,9 @@ export async function removeTemplateInstanceAssignee(
   });
   if (!assignee) return { ok: false, error: "Not found", code: "NOT_FOUND" };
 
-  await prisma.timetableTemplateEntryAssignee.delete({ where: { id: assignee.id } });
+  await prisma.timetableTemplateEntryAssignee.delete({
+    where: { id: assignee.id },
+  });
   log.info("Template instance assignee removed", {
     orgId,
     instanceId,

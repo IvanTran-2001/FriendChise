@@ -44,7 +44,10 @@
 
 import { PermissionAction } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireOrgPermissionAction, requireParentOrgOwnerAction } from "@/lib/authz";
+import {
+  requireOrgPermissionAction,
+  requireParentOrgOwnerAction,
+} from "@/lib/authz";
 import {
   canAccessTask,
   createTask,
@@ -414,9 +417,17 @@ export async function publishTaskAction(
   orgId: string,
   taskId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
-  const result = await publishTask(orgId, taskId, authz.userId, authz.userEmail);
+  const result = await publishTask(
+    orgId,
+    taskId,
+    authz.userId,
+    authz.userEmail,
+  );
   if (!result.ok) return { ok: false, error: result.error };
   revalidatePath(`/orgs/${orgId}/tasks`);
   revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);
@@ -433,9 +444,18 @@ export async function unpublishTaskAction(
   taskId: string,
   removeFromChildren: boolean,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
-  const result = await unpublishTask(orgId, taskId, removeFromChildren, authz.userId, authz.userEmail);
+  const result = await unpublishTask(
+    orgId,
+    taskId,
+    removeFromChildren,
+    authz.userId,
+    authz.userEmail,
+  );
   if (!result.ok) return { ok: false, error: result.error };
   revalidatePath(`/orgs/${orgId}/tasks`);
   revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);
@@ -455,7 +475,10 @@ export async function inheritTaskAction(
   orgId: string,
   taskId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
   const result = await inheritTask(orgId, taskId);
   if (!result.ok) return { ok: false, error: result.error };
@@ -471,7 +494,10 @@ export async function removeInheritedTaskAction(
   orgId: string,
   taskId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
   const result = await removeInheritedTask(orgId, taskId);
   if (!result.ok) return { ok: false, error: result.error };
@@ -494,7 +520,10 @@ export async function getSectionLayoutAction(
   | { ok: true; sections: Awaited<ReturnType<typeof getSectionLayout>> }
   | { ok: false; error: string }
 > {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
   const accessible = await canAccessTask(orgId, taskId);
   if (!accessible) return { ok: false, error: "Task not found" };
@@ -511,7 +540,10 @@ export async function updateSectionLayoutAction(
   taskId: string,
   sections: SectionLayoutInput[],
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
   const accessible = await canAccessTask(orgId, taskId);
   if (!accessible) return { ok: false, error: "Task not found" };

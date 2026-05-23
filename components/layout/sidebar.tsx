@@ -75,7 +75,12 @@ type NavItem = {
 function getOrgItems(orgId: string): NavItem[] {
   return [
     { title: "Overview", url: `/orgs/${orgId}`, icon: Building2 },
-    { title: "Timetable", compactLabel: "Sched", url: `/orgs/${orgId}/timetable`, icon: Calendar },
+    {
+      title: "Timetable",
+      compactLabel: "Sched",
+      url: `/orgs/${orgId}/timetable`,
+      icon: Calendar,
+    },
     { title: "Tasks", url: `/orgs/${orgId}/tasks`, icon: ListTodo },
     { title: "Tools", url: `/orgs/${orgId}/tools`, icon: Wrench },
     { title: "Members", url: `/orgs/${orgId}/memberships`, icon: Users },
@@ -111,11 +116,28 @@ function getFooterItems(
 
 function getSettingsItems(orgId: string): NavItem[] {
   return [
-    { title: "Organization", compactLabel: "Org", url: `/orgs/${orgId}/settings/organization`, icon: Building2 },
+    {
+      title: "Organization",
+      compactLabel: "Org",
+      url: `/orgs/${orgId}/settings/organization`,
+      icon: Building2,
+    },
     { title: "Roles", url: `/orgs/${orgId}/settings/roles`, icon: ShieldCheck },
     { title: "Tags", url: `/orgs/${orgId}/settings/tags`, icon: Tag },
-    { title: "Timetable", compactLabel: "Sched", url: `/orgs/${orgId}/settings/timetable`, icon: Calendar, disabled: true },
-    { title: "Notification", compactLabel: "Alerts", url: `/orgs/${orgId}/settings/notification`, icon: Bell, disabled: true },
+    {
+      title: "Timetable",
+      compactLabel: "Sched",
+      url: `/orgs/${orgId}/settings/timetable`,
+      icon: Calendar,
+      disabled: true,
+    },
+    {
+      title: "Notification",
+      compactLabel: "Alerts",
+      url: `/orgs/${orgId}/settings/notification`,
+      icon: Bell,
+      disabled: true,
+    },
   ];
 }
 
@@ -181,7 +203,8 @@ export function AppSidebar() {
     ? getFooterItems(orgId, pathname, isParentOwner, parentOrgId)
     : [];
 
-  const isSettingsRoute = !!orgId && pathname.startsWith(`/orgs/${orgId}/settings`);
+  const isSettingsRoute =
+    !!orgId && pathname.startsWith(`/orgs/${orgId}/settings`);
   const settingsItems = orgId ? getSettingsItems(orgId) : [];
 
   const isActiveItem = (url: string) => {

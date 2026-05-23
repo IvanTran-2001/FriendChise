@@ -16,7 +16,9 @@ type Props = Omit<RosterBoardProps, "onFilterChange"> & {
 
 export function RosterClient({ filterMembershipId, ...boardProps }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [visibleCount, setVisibleCount] = useState(boardProps.weekStarts.length);
+  const [visibleCount, setVisibleCount] = useState(
+    boardProps.weekStarts.length,
+  );
 
   useEffect(() => {
     const el = containerRef.current;

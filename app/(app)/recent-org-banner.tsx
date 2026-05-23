@@ -29,7 +29,9 @@ export function RecentOrgBanner({ orgs }: { orgs: Org[] }) {
       className="group flex items-center justify-between gap-3 rounded-xl border bg-muted/40 hover:bg-muted/70 px-4 py-3 transition-colors mb-6"
     >
       <div className="flex flex-col gap-0.5">
-        <span className="text-xs text-muted-foreground font-medium">Continue where you left off</span>
+        <span className="text-xs text-muted-foreground font-medium">
+          Continue where you left off
+        </span>
         <span className="text-sm font-semibold">{org.name}</span>
       </div>
       <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform shrink-0" />

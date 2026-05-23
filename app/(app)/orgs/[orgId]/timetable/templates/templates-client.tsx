@@ -284,10 +284,15 @@ export function TemplatesClient({
       <>
         <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
           <CalendarDays className="h-10 w-10 opacity-30" />
-          <p className="text-sm">No templates yet. Create one to get started.</p>
+          <p className="text-sm">
+            No templates yet. Create one to get started.
+          </p>
         </div>
         <Sheet open={createOpen} onOpenChange={setCreateOpen}>
-          <SheetContent side="bottom" className="p-0 flex flex-col rounded-t-2xl overflow-hidden">
+          <SheetContent
+            side="bottom"
+            className="p-0 flex flex-col rounded-t-2xl overflow-hidden"
+          >
             <SheetHeader className="px-4 pt-4 pb-2 border-b shrink-0">
               <SheetTitle>New Template</SheetTitle>
             </SheetHeader>
@@ -318,47 +323,46 @@ export function TemplatesClient({
             No templates match &ldquo;{query}&rdquo;.
           </p>
         ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((t) => (
-            <div
-              key={t.id}
-              className="group relative border bg-card hover:shadow-md transition-all overflow-hidden"
-            >
-              <Link
-                href={`/orgs/${orgId}/timetable/templates/${t.id}`}
-                className="flex items-start gap-4 p-5 pr-12"
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((t) => (
+              <div
+                key={t.id}
+                className="group relative border bg-card hover:shadow-md transition-all overflow-hidden"
               >
-                <div className="flex h-10 w-10 items-center justify-center bg-primary/10 text-primary shrink-0 group-hover:bg-primary/15 transition-colors mt-0.5">
-                  <CalendarDays className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-semibold text-sm leading-snug truncate">
-                    {t.name}
+                <Link
+                  href={`/orgs/${orgId}/timetable/templates/${t.id}`}
+                  className="flex items-start gap-4 p-5 pr-12"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center bg-primary/10 text-primary shrink-0 group-hover:bg-primary/15 transition-colors mt-0.5">
+                    <CalendarDays className="h-5 w-5" />
                   </div>
-                  <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                    <span className="inline-flex items-center bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                      {t.cycleLengthDays} days
-                    </span>
-                    <span className="inline-flex items-center bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                      {t._count.entries} slots
-                    </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-sm leading-snug truncate">
+                      {t.name}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      <span className="inline-flex items-center bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                        {t.cycleLengthDays} days
+                      </span>
+                      <span className="inline-flex items-center bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                        {t._count.entries} slots
+                      </span>
+                    </div>
                   </div>
+                </Link>
+                <div className="absolute top-3 right-3">
+                  <TemplateMenu orgId={orgId} template={t} />
                 </div>
-              </Link>
-              <div className="absolute top-3 right-3">
-                <TemplateMenu orgId={orgId} template={t} />
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
         )
+      ) : /* List view */
+      filtered.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-10 text-center">
+          No templates match &ldquo;{query}&rdquo;.
+        </p>
       ) : (
-        /* List view */
-        filtered.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-10 text-center">
-            No templates match &ldquo;{query}&rdquo;.
-          </p>
-        ) : (
         <div className="border bg-card overflow-hidden">
           <table className="w-full text-sm">
             <thead>
@@ -403,11 +407,13 @@ export function TemplatesClient({
             </tbody>
           </table>
         </div>
-        )
       )}
       {/* Mobile create sheet — rendered here so it survives sidebar close */}
       <Sheet open={createOpen} onOpenChange={setCreateOpen}>
-        <SheetContent side="bottom" className="p-0 flex flex-col rounded-t-2xl overflow-hidden">
+        <SheetContent
+          side="bottom"
+          className="p-0 flex flex-col rounded-t-2xl overflow-hidden"
+        >
           <SheetHeader className="px-4 pt-4 pb-2 border-b shrink-0">
             <SheetTitle>New Template</SheetTitle>
           </SheetHeader>

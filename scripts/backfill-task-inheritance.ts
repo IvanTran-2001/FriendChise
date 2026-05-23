@@ -17,8 +17,13 @@ if (!process.env.SKIP_DOTENV_LOCAL) {
   dotenv.config({ path: ".env.local", override: true, quiet: true });
 }
 
-if (process.env.NODE_ENV === "production" && !process.argv.includes("--confirm-production")) {
-  console.error("This script must not be run in production without --confirm-production flag.");
+if (
+  process.env.NODE_ENV === "production" &&
+  !process.argv.includes("--confirm-production")
+) {
+  console.error(
+    "This script must not be run in production without --confirm-production flag.",
+  );
   process.exit(1);
 }
 
@@ -35,7 +40,9 @@ const adapter = new PrismaPg({ connectionString: dbUrl });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const tasks = await prisma.task.findMany({ select: { id: true, orgId: true } });
+  const tasks = await prisma.task.findMany({
+    select: { id: true, orgId: true },
+  });
   console.log(`Found ${tasks.length} tasks.`);
 
   const CHUNK_SIZE = 2000;
@@ -48,10 +55,14 @@ async function main() {
       skipDuplicates: true,
     });
     totalCreated += count;
-    console.log(`  Processed ${Math.min(i + CHUNK_SIZE, tasks.length)}/${tasks.length} tasks (created ${count} in this chunk).`);
+    console.log(
+      `  Processed ${Math.min(i + CHUNK_SIZE, tasks.length)}/${tasks.length} tasks (created ${count} in this chunk).`,
+    );
   }
 
-  console.log(`\nCreated ${totalCreated} new TaskInheritance rows (${tasks.length - totalCreated} already existed).`);
+  console.log(
+    `\nCreated ${totalCreated} new TaskInheritance rows (${tasks.length - totalCreated} already existed).`,
+  );
 }
 
 main()

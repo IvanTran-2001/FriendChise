@@ -119,18 +119,22 @@ function ImageUploadPanel({
   const handleCrop = (croppedFile: File) => {
     setPendingFile(null);
     const objectUrl = URL.createObjectURL(croppedFile);
-    upload(croppedFile, () => {
-      // Only set preview after successful upload
-      // Revoke previous blob URL if it exists
-      if (previewUrl && previewUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(previewUrl);
-      }
-      setPreviewUrl(objectUrl);
-      toast.success("Image saved.");
-    }, () => {
-      // On error, revoke the blob URL we created
-      URL.revokeObjectURL(objectUrl);
-    });
+    upload(
+      croppedFile,
+      () => {
+        // Only set preview after successful upload
+        // Revoke previous blob URL if it exists
+        if (previewUrl && previewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(previewUrl);
+        }
+        setPreviewUrl(objectUrl);
+        toast.success("Image saved.");
+      },
+      () => {
+        // On error, revoke the blob URL we created
+        URL.revokeObjectURL(objectUrl);
+      },
+    );
   };
 
   const handleRemove = () => {
@@ -223,7 +227,13 @@ function ImageUploadPanel({
 
 type TagPanelProps =
   | { mode: "create"; allTags: Tag[] }
-  | { mode: "edit"; orgId: string; taskId: string; allTags: Tag[]; taskTags: Tag[] };
+  | {
+      mode: "edit";
+      orgId: string;
+      taskId: string;
+      allTags: Tag[];
+      taskTags: Tag[];
+    };
 
 function TagPanel(props: TagPanelProps) {
   const isEdit = props.mode === "edit";
@@ -666,11 +676,7 @@ export function TaskForm(props: TaskFormProps) {
           </label>
           <div className="flex items-center gap-3">
             <input type="hidden" name="color" value={color} />
-            <ColorPicker
-              id="color"
-              value={color}
-              onChange={setColor}
-            />
+            <ColorPicker id="color" value={color} onChange={setColor} />
           </div>
           {err("color") && (
             <p id="color-error" className="text-xs text-destructive">
@@ -814,7 +820,6 @@ export function TaskForm(props: TaskFormProps) {
         <p className="text-xs text-muted-foreground -mt-3">
           At least one of min or max wait days is required.
         </p>
-
       </div>
 
       {/* ── Tags panel ────────────────────────────────────────────────────── */}

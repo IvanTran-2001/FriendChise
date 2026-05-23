@@ -38,12 +38,24 @@ const TasksPage = async ({
   searchParams,
 }: {
   params: Promise<{ orgId: string }>;
-  searchParams: Promise<{ sort?: string; roleId?: string; view?: string; tagId?: string; mode?: string }>;
+  searchParams: Promise<{
+    sort?: string;
+    roleId?: string;
+    view?: string;
+    tagId?: string;
+    mode?: string;
+  }>;
 }) => {
   const { orgId } = await params;
   const sp = await searchParams;
-  const isModeExplicit = sp.mode === "shared" || sp.mode === "list" || sp.mode === "available";
-  const mode: "list" | "shared" | "available" = sp.mode === "list" ? "list" : sp.mode === "available" ? "available" : "shared";
+  const isModeExplicit =
+    sp.mode === "shared" || sp.mode === "list" || sp.mode === "available";
+  const mode: "list" | "shared" | "available" =
+    sp.mode === "list"
+      ? "list"
+      : sp.mode === "available"
+        ? "available"
+        : "shared";
 
   await requireOrgMemberPage(orgId);
 
@@ -66,12 +78,12 @@ const TasksPage = async ({
           ],
         )
       : mode === "available"
-      ? getSharedTasks(orgId).then((shared) =>
-          shared.map((t) => ({ ...t, _available: true as const })),
-        )
-      : getInheritedTasks(orgId).then((inherited) =>
-          inherited.map((t) => ({ ...t, _available: false as const })),
-        ),
+        ? getSharedTasks(orgId).then((shared) =>
+            shared.map((t) => ({ ...t, _available: true as const })),
+          )
+        : getInheritedTasks(orgId).then((inherited) =>
+            inherited.map((t) => ({ ...t, _available: false as const })),
+          ),
     getRoles(orgId),
     getOrgTags(orgId),
   ]);

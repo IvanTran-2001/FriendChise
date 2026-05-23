@@ -354,7 +354,10 @@ export function ApplyTemplateDialog({
 }: ApplyTemplateDialogProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="p-0 flex flex-col rounded-t-2xl overflow-hidden">
+      <SheetContent
+        side="bottom"
+        className="p-0 flex flex-col rounded-t-2xl overflow-hidden"
+      >
         <SheetHeader className="px-4 pt-4 pb-2 border-b shrink-0">
           <SheetTitle>Apply Template</SheetTitle>
         </SheetHeader>

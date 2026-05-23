@@ -5,7 +5,10 @@ import { Loader2, Minus, Plus, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchableCombobox, type ComboboxItem } from "@/components/ui/searchable-combobox";
+import {
+  SearchableCombobox,
+  type ComboboxItem,
+} from "@/components/ui/searchable-combobox";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { applyRosterTemplateAction } from "@/app/actions/roster";
 
@@ -24,7 +27,10 @@ interface ApplyTemplatePanelProps {
   templates: RosterTemplate[];
 }
 
-export function ApplyTemplatePanel({ orgId, templates }: ApplyTemplatePanelProps) {
+export function ApplyTemplatePanel({
+  orgId,
+  templates,
+}: ApplyTemplatePanelProps) {
   const { close } = useActionSidebar();
   const [templateId, setTemplateId] = useState("");
   const [startDate, setStartDate] = useState(thisMondayStr);
@@ -33,13 +39,21 @@ export function ApplyTemplatePanel({ orgId, templates }: ApplyTemplatePanelProps
   const [isPending, startTransition] = useTransition();
 
   const selectedTemplate = templates.find((t) => t.id === templateId);
-  const totalWeeks = selectedTemplate ? selectedTemplate.cycleWeeks * repeats : null;
+  const totalWeeks = selectedTemplate
+    ? selectedTemplate.cycleWeeks * repeats
+    : null;
 
   function handleApply(force: boolean) {
     if (!templateId || !startDate) return;
     startTransition(async () => {
       setConflict(false);
-      const result = await applyRosterTemplateAction(orgId, templateId, startDate, repeats, force);
+      const result = await applyRosterTemplateAction(
+        orgId,
+        templateId,
+        startDate,
+        repeats,
+        force,
+      );
       if (!result.ok) {
         if (result.conflict) {
           setConflict(true);
@@ -80,7 +94,10 @@ export function ApplyTemplatePanel({ orgId, templates }: ApplyTemplatePanelProps
       {/* Repeat cycles */}
       <div className="flex flex-col gap-1.5">
         <span className="text-xs text-muted-foreground">
-          Repeat{totalWeeks ? ` — ${totalWeeks} week${totalWeeks === 1 ? "" : "s"} total` : ""}
+          Repeat
+          {totalWeeks
+            ? ` — ${totalWeeks} week${totalWeeks === 1 ? "" : "s"} total`
+            : ""}
         </span>
         <div className="flex items-center gap-2">
           <Button
@@ -92,7 +109,9 @@ export function ApplyTemplatePanel({ orgId, templates }: ApplyTemplatePanelProps
           >
             <Minus className="h-3 w-3" />
           </Button>
-          <span className="flex-1 text-center text-sm font-medium tabular-nums">{repeats}</span>
+          <span className="flex-1 text-center text-sm font-medium tabular-nums">
+            {repeats}
+          </span>
           <Button
             variant="outline"
             size="icon"
@@ -110,7 +129,8 @@ export function ApplyTemplatePanel({ orgId, templates }: ApplyTemplatePanelProps
         <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5 flex gap-2 items-start">
           <TriangleAlert className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           <p className="text-xs text-amber-800 dark:text-amber-300">
-            Some of these weeks already have entries. Applying will replace them.
+            Some of these weeks already have entries. Applying will replace
+            them.
           </p>
         </div>
       )}
@@ -127,7 +147,11 @@ export function ApplyTemplatePanel({ orgId, templates }: ApplyTemplatePanelProps
             disabled={isPending}
             onClick={() => handleApply(true)}
           >
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Replace"}
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              "Replace"
+            )}
           </Button>
         ) : (
           <Button
