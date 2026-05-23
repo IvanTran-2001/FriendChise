@@ -22,6 +22,7 @@
  */
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 import { MoreHorizontal, ListTodo, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -72,6 +73,8 @@ type Task = {
   _count: { inheritedBy: number };
   eligibility: { role: { id: string; name: string; color: string | null } }[];
   tags: { tag: { id: string; name: string; color: string } }[];
+  /** Short-lived signed URL resolved server-side, or null if no image. */
+  imageSignedUrl: string | null;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -97,7 +100,7 @@ export function TaskTable({
 }: TaskTableProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = usePersistedState(`tasks-search-${orgId}`, "");
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
 
   // Filter by search and role
@@ -218,11 +221,20 @@ export function TaskTable({
                 key={task.id}
                 className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden relative group"
               >
-                {/* Color accent bar */}
-                <div
-                  className="h-1.5 w-full"
-                  style={{ backgroundColor: task.color }}
-                />
+                {/* Cover image or color accent bar */}
+                {task.imageSignedUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={task.imageSignedUrl}
+                    alt=""
+                    className="w-full h-36 object-cover"
+                  />
+                ) : (
+                  <div
+                    className="h-1.5 w-full"
+                    style={{ backgroundColor: task.color }}
+                  />
+                )}
                 <div
                   className={`block p-4${!task._available ? " cursor-pointer" : ""}`}
                   tabIndex={!task._available ? 0 : undefined}

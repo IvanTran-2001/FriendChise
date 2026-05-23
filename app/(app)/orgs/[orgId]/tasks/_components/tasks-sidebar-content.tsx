@@ -17,7 +17,7 @@
  */
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { ChevronDown, Globe, LayoutGrid, List, ListTodo, Plus, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
@@ -45,6 +45,7 @@ interface TasksSidebarContentProps {
   view: "list" | "card";
   mode: "list" | "shared" | "available";
   isModeExplicit: boolean;
+  isFiltersExplicit: boolean;
 }
 
 export function TasksSidebarContent({
@@ -58,20 +59,69 @@ export function TasksSidebarContent({
   view,
   mode,
   isModeExplicit,
+  isFiltersExplicit,
 }: TasksSidebarContentProps) {
   const router = useRouter();
 
   const TASKS_MODE_KEY = "tasks-mode";
+  const TASKS_PREFS_KEY = `tasks-prefs-${orgId}`;
+  const isFirstRender = useRef(true);
 
+  // On mount: restore saved mode and/or filter prefs if URL has no explicit params
   useEffect(() => {
+    const overrides: Parameters<typeof buildHref>[0] = {};
     if (!isModeExplicit) {
-      const saved = localStorage.getItem(TASKS_MODE_KEY);
-      if ((saved === "list" || saved === "available") && mode !== saved) {
-        router.replace(buildHref({ mode: saved as "list" | "available" }));
+      const savedMode = localStorage.getItem(TASKS_MODE_KEY);
+      if ((savedMode === "list" || savedMode === "available") && mode !== savedMode) {
+        overrides.mode = savedMode as "list" | "available";
       }
+    }
+    if (!isFiltersExplicit) {
+      try {
+        const raw = localStorage.getItem(TASKS_PREFS_KEY);
+        if (raw) {
+          const prefs = JSON.parse(raw) as {
+            sort?: string;
+            roleId?: string | null;
+            tagId?: string | null;
+            view?: string;
+          };
+          if (prefs.sort && SORT_OPTIONS.some((o) => o.value === prefs.sort) && prefs.sort !== sort) {
+            overrides.sort = prefs.sort as SortOption;
+          }
+          if (typeof prefs.roleId === "string" && prefs.roleId !== roleId) {
+            overrides.roleId = prefs.roleId;
+          }
+          if (typeof prefs.tagId === "string" && prefs.tagId !== tagId) {
+            overrides.tagId = prefs.tagId;
+          }
+          if ((prefs.view === "card" || prefs.view === "list") && prefs.view !== view) {
+            overrides.view = prefs.view as "card" | "list";
+          }
+        }
+      } catch {
+        // Ignore localStorage errors
+      }
+    }
+    if (Object.keys(overrides).length > 0) {
+      router.replace(buildHref(overrides));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Save filter prefs whenever they change (skip first render to avoid stomping saved prefs)
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    try {
+      localStorage.setItem(`tasks-prefs-${orgId}`, JSON.stringify({ sort, roleId, tagId, view }));
+    } catch {
+      // Ignore localStorage errors
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sort, roleId, tagId, view]);
 
   function buildHref(overrides: {
     sort?: SortOption;

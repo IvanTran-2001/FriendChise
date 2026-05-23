@@ -2,11 +2,16 @@ import dotenv from "dotenv";
 dotenv.config({ path: ".env", quiet: true });
 dotenv.config({ path: ".env.local", override: true, quiet: true });
 
+import fs from "fs";
+import path from "path";
+
 import {
   PrismaClient,
   PermissionAction,
   EntryStatus,
   InviteType,
+  ViewType,
+  TaskScope,
 } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { ROLE_KEYS } from "@/lib/rbac";
@@ -61,6 +66,99 @@ function makeDateUtils(tz: string) {
   return { utcEntry };
 }
 
+/**
+ * Returns the Monday 00:00:00 UTC for the week `offsetWeeks` from now.
+ * offsetWeeks = 0 → current week, -1 → last week, 1 → next week.
+ */
+function getMondayUTC(offsetWeeks = 0): Date {
+  const now = new Date();
+  const day = now.getUTCDay(); // 0=Sun
+  const daysToMon = day === 0 ? -6 : 1 - day;
+  return new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() + daysToMon + offsetWeeks * 7,
+    ),
+  );
+}
+
+/**
+ * Fetches a relevant image from LoremFlickr (Flickr-backed, keyword search)
+ * and uploads it to the Supabase private bucket as the task's seed image.
+ *
+ * Non-fatal — if the upload fails for any reason the task simply has no image.
+ */
+async function uploadSeedTaskImage(
+  orgId: string,
+  taskId: string,
+  keyword: string,
+): Promise<string | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SECRET_KEY;
+  if (!supabaseUrl || !supabaseKey) return null;
+
+  try {
+    // /all means any of the comma-separated keywords must match.
+    // If the primary keyword returns no results, fall back to a generic food photo.
+    const tryFetch = (kw: string) =>
+      fetch(`https://loremflickr.com/800/600/${kw}/all`);
+    let imgRes = await tryFetch(keyword);
+    if (!imgRes.ok) imgRes = await tryFetch("bakery,food,donut");
+    if (!imgRes.ok) return null;
+    const imgData = await imgRes.arrayBuffer();
+
+    const storagePath = `orgs/${orgId}/tasks/${taskId}/seed.jpg`;
+    const uploadRes = await fetch(
+      `${supabaseUrl}/storage/v1/object/friendchise-private/${storagePath}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${supabaseKey}`,
+          "Content-Type": "image/jpeg",
+          "x-upsert": "true",
+        },
+        body: imgData,
+      },
+    );
+    return uploadRes.ok ? storagePath : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Uploads a file to the PUBLIC Supabase bucket (for org logos).
+ * Returns the bare storage path on success, or null on failure.
+ */
+async function uploadOrgLogo(
+  orgId: string,
+  imageBuffer: Buffer,
+): Promise<string | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SECRET_KEY;
+  if (!supabaseUrl || !supabaseKey) return null;
+
+  try {
+    const storagePath = `orgs/${orgId}/logo.jpg`;
+    const res = await fetch(
+      `${supabaseUrl}/storage/v1/object/friendchise-public/${storagePath}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${supabaseKey}`,
+          "Content-Type": "image/jpeg",
+          "x-upsert": "true",
+        },
+        body: imageBuffer,
+      },
+    );
+    return res.ok ? storagePath : null;
+  } catch {
+    return null;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. CLEAN
 //
@@ -74,7 +172,16 @@ async function cleanDatabase() {
   await prisma.timetableTemplateEntry.deleteMany();
   await prisma.timetableTemplate.deleteMany();
   await prisma.taskEligibility.deleteMany();
+  await prisma.taskTag.deleteMany();
+  await prisma.taskInheritance.deleteMany();
   await prisma.task.deleteMany();
+  await prisma.tag.deleteMany();
+  await prisma.rosterEntry.deleteMany();
+  await prisma.rosterTemplateEntry.deleteMany();
+  await prisma.rosterTemplate.deleteMany();
+  await prisma.rosterDayConfig.deleteMany();
+  await prisma.conversionSet.deleteMany(); // cascades rates, templates, template entries
+  await prisma.toolItem.deleteMany();
   await prisma.permission.deleteMany();
   await prisma.memberRole.deleteMany();
   await prisma.membership.deleteMany();
@@ -95,56 +202,62 @@ async function cleanDatabase() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function seedUsers() {
-  const [ivan, jordan, casey, riley, morgan, alex, taylor, sam] =
+  const [ivan, jordan, casey, riley, morgan, alex, taylor, sam, quinn] =
     await Promise.all([
       prisma.user.upsert({
         where: { email: "mystoganx2001@gmail.com" },
-        update: { name: "Ivan" },
-        create: { email: "mystoganx2001@gmail.com", name: "Ivan" },
+        update: { name: "Ivan", image: "https://i.pravatar.cc/150?img=3" },
+        create: { email: "mystoganx2001@gmail.com", name: "Ivan", image: "https://i.pravatar.cc/150?img=3" },
       }),
       prisma.user.upsert({
         where: { email: "alt28918@gmail.com" },
-        update: { name: "Jordan" },
-        create: { email: "alt28918@gmail.com", name: "Jordan" },
+        update: { name: "Jordan", image: "https://i.pravatar.cc/150?img=8" },
+        create: { email: "alt28918@gmail.com", name: "Jordan", image: "https://i.pravatar.cc/150?img=8" },
       }),
       prisma.user.upsert({
         where: { email: "alt28919@gmail.com" },
-        update: { name: "Casey" },
-        create: { email: "alt28919@gmail.com", name: "Casey" },
+        update: { name: "Casey", image: "https://i.pravatar.cc/150?img=12" },
+        create: { email: "alt28919@gmail.com", name: "Casey", image: "https://i.pravatar.cc/150?img=12" },
       }),
       prisma.user.upsert({
         where: {
           email: process.env.E2E_TEST_USER_EMAIL ?? "ivan@example.test",
         },
-        update: { name: "Riley" },
+        update: { name: "Riley", image: "https://i.pravatar.cc/150?img=5" },
         create: {
           email: process.env.E2E_TEST_USER_EMAIL ?? "ivan@example.test",
           name: "Riley",
+          image: "https://i.pravatar.cc/150?img=5",
         },
       }),
       prisma.user.upsert({
         where: { email: "alt28921@gmail.com" },
-        update: { name: "Morgan" },
-        create: { email: "alt28921@gmail.com", name: "Morgan" },
+        update: { name: "Morgan", image: "https://i.pravatar.cc/150?img=22" },
+        create: { email: "alt28921@gmail.com", name: "Morgan", image: "https://i.pravatar.cc/150?img=22" },
       }),
       prisma.user.upsert({
         where: { email: "alt28922@gmail.com" },
-        update: { name: "Alex" },
-        create: { email: "alt28922@gmail.com", name: "Alex" },
+        update: { name: "Alex", image: "https://i.pravatar.cc/150?img=15" },
+        create: { email: "alt28922@gmail.com", name: "Alex", image: "https://i.pravatar.cc/150?img=15" },
       }),
       prisma.user.upsert({
         where: { email: "alt28923@gmail.com" },
-        update: { name: "Taylor" },
-        create: { email: "alt28923@gmail.com", name: "Taylor" },
+        update: { name: "Taylor", image: "https://i.pravatar.cc/150?img=29" },
+        create: { email: "alt28923@gmail.com", name: "Taylor", image: "https://i.pravatar.cc/150?img=29" },
       }),
       prisma.user.upsert({
         where: { email: "alt28924@gmail.com" },
-        update: { name: "Sam" },
-        create: { email: "alt28924@gmail.com", name: "Sam" },
+        update: { name: "Sam", image: "https://i.pravatar.cc/150?img=35" },
+        create: { email: "alt28924@gmail.com", name: "Sam", image: "https://i.pravatar.cc/150?img=35" },
+      }),
+      prisma.user.upsert({
+        where: { email: "alt28920@gmail.com" },
+        update: { name: "Quinn", image: "https://i.pravatar.cc/150?img=44" },
+        create: { email: "alt28920@gmail.com", name: "Quinn", image: "https://i.pravatar.cc/150?img=44" },
       }),
     ]);
 
-  return { ivan, jordan, casey, riley, morgan, alex, taylor, sam };
+  return { ivan, jordan, casey, riley, morgan, alex, taylor, sam, quinn };
 }
 
 type Users = Awaited<ReturnType<typeof seedUsers>>;
@@ -490,6 +603,78 @@ const DONUT_TASKS: TaskDef[] = [
   ],
 ];
 
+// Tag names per task — used after both tasks and tags are created
+const TASK_TAGS: Record<string, string[]> = {
+  "Open Shop Checklist":                ["Daily Ops", "Opening"],
+  "Close Shop Checklist":               ["Daily Ops", "Closing"],
+  "Mid-Day Stock Check":                ["Daily Ops"],
+  "Restock Packaging & Supplies":       ["Daily Ops"],
+  "Fryer Oil Quality Check":            ["Fryer", "Quality"],
+  "Fry Morning Batches":                ["Fryer"],
+  "Fry Afternoon Batches":              ["Fryer"],
+  "Clean Fryer (End of Day)":           ["Fryer", "Cleaning"],
+  "Quality Check \u2014 Display & Products": ["Quality", "Daily Ops"],
+  "Shift Handover":                     ["Daily Ops"],
+  "Make Custard Cream":                 ["Prep"],
+  "Make Choc Custard Cream":            ["Prep"],
+  "Make Biscoff Filling":               ["Prep"],
+  "Make Raspberry Cheesecake Filling":  ["Prep"],
+  "Make Nutella Filling":               ["Prep"],
+  "Make Peanut Butter Filling":         ["Prep"],
+  "Prepare Classic Glaze":              ["Prep"],
+  "Prepare Chocolate Fondant":          ["Prep"],
+  "Prepare Biscoff Fondant":            ["Prep"],
+  "Clean Fondant Bain-Marie":           ["Prep", "Cleaning"],
+  "Recipe: White Choc Biscoff Frappe":  ["Recipe"],
+  "Recipe: Honeycomb Frappe":           ["Recipe"],
+  "Recipe: Coffee Frappe":              ["Recipe"],
+  "Recipe: Salted Caramel Frappe":      ["Recipe"],
+  "Recipe: Matcha Frappe":              ["Recipe"],
+  "Recipe: Chocolate Milkshake":        ["Recipe"],
+  "Recipe: Biscoff Custard Shake":      ["Recipe"],
+  "Clean Ice Cream Machine":            ["Cleaning"],
+  "Deep Clean Hatco (Hot Jam) Unit":    ["Cleaning"],
+  "Deep Clean All Fridges":             ["Cleaning"],
+  "Deep Clean Doughnut Display":        ["Cleaning"],
+  "Clean & Tidy Storeroom":             ["Cleaning"],
+};
+
+// LoremFlickr search keywords per task (comma-separated → ANY keyword must match)
+const TASK_IMAGE_KEYWORDS: Record<string, string> = {
+  "Open Shop Checklist":                "bakery,morning",
+  "Close Shop Checklist":               "bakery,night",
+  "Mid-Day Stock Check":                "bakery,shelf",
+  "Restock Packaging & Supplies":       "packaging,boxes",
+  "Fryer Oil Quality Check":            "frying,cooking oil",
+  "Fry Morning Batches":                "doughnut,frying",
+  "Fry Afternoon Batches":              "doughnut,cooking",
+  "Clean Fryer (End of Day)":           "kitchen,cleaning",
+  "Quality Check \u2014 Display & Products": "doughnut,display",
+  "Shift Handover":                     "cafe,team",
+  "Make Custard Cream":                 "custard,cream",
+  "Make Choc Custard Cream":            "chocolate,cream",
+  "Make Biscoff Filling":               "caramel,cookie,spread",
+  "Make Raspberry Cheesecake Filling":  "raspberry,cheesecake",
+  "Make Nutella Filling":               "chocolate,hazelnut",
+  "Make Peanut Butter Filling":         "peanut,spread",
+  "Prepare Classic Glaze":              "doughnut,glaze,icing",
+  "Prepare Chocolate Fondant":          "chocolate,fondant",
+  "Prepare Biscoff Fondant":            "caramel,cookie",
+  "Clean Fondant Bain-Marie":           "kitchen,pot,saucepan",
+  "Recipe: White Choc Biscoff Frappe":  "white chocolate,frappe",
+  "Recipe: Honeycomb Frappe":           "honeycomb,drink",
+  "Recipe: Coffee Frappe":              "coffee,frappe",
+  "Recipe: Salted Caramel Frappe":      "caramel,frappe",
+  "Recipe: Matcha Frappe":              "matcha,green tea",
+  "Recipe: Chocolate Milkshake":        "chocolate,milkshake",
+  "Recipe: Biscoff Custard Shake":      "milkshake,caramel",
+  "Clean Ice Cream Machine":            "ice cream,soft serve",
+  "Deep Clean Hatco (Hot Jam) Unit":    "jam,kitchen",
+  "Deep Clean All Fridges":             "refrigerator,fridge",
+  "Deep Clean Doughnut Display":        "doughnut,display",
+  "Clean & Tidy Storeroom":             "storage,shelves",
+};
+
 async function seedOrg1(users: Users) {
   const { ivan, jordan, casey, riley, alex } = users;
   const { utcEntry } = makeDateUtils("Australia/Sydney");
@@ -500,6 +685,8 @@ async function seedOrg1(users: Users) {
     data: {
       name: "Donut Shop A",
       ownerId: ivan.id,
+      image: null,
+      address: "42 Harbour Street, Sydney NSW 2000",
       openTimeMin: timeToMin("06:00"),
       closeTimeMin: timeToMin("18:00"),
       timezone: "Australia/Sydney",
@@ -507,6 +694,17 @@ async function seedOrg1(users: Users) {
     },
   });
   console.log(`  ✓ Org created (id: ${org.id})`);
+
+  // Upload org logo
+  const org1LogoPath = path.resolve(process.cwd(), "public", "donut_a_logo.jpg");
+  if (fs.existsSync(org1LogoPath)) {
+    const logoBuffer = fs.readFileSync(org1LogoPath);
+    const logoStoragePath = await uploadOrgLogo(org.id, logoBuffer);
+    if (logoStoragePath) {
+      await prisma.organization.update({ where: { id: org.id }, data: { image: logoStoragePath } });
+      console.log("  ✓ Org logo uploaded");
+    }
+  }
 
   // ── Roles ──────────────────────────────────────────────────────────────────
   console.log("→ Creating roles...");
@@ -738,47 +936,140 @@ async function seedOrg1(users: Users) {
     default_member: roleWorker.id,
   };
 
-  const createdTasks = await Promise.all(
-    DONUT_TASKS.map(
-      ([
+  const createdTasks: { task: { id: string; name: string; description: string | null; durationMin: number }; roleKey: string }[] = [];
+  for (const [
+    name,
+    color,
+    durationMin,
+    description,
+    roleKey,
+    preferredStart,
+    minWait,
+    maxWait,
+  ] of DONUT_TASKS) {
+    const task = await prisma.task.create({
+      data: {
+        orgId: org.id,
         name,
         color,
         durationMin,
         description,
-        roleKey,
-        preferredStart,
-        minWait,
-        maxWait,
-      ]) =>
-        prisma.task
-          .create({
-            data: {
-              orgId: org.id,
-              name,
-              color,
-              durationMin,
-              description,
-              preferredStartTimeMin: timeToMin(preferredStart),
-              minPeople: 1,
-              minWaitDays: minWait,
-              maxWaitDays: maxWait,
-            },
-          })
-          .then(async (task) => {
-            const roleId = roleByKey[roleKey];
-            if (roleId === undefined) {
-              throw new Error(
-                `Role key "${roleKey}" not found in roleByKey lookup for task "${task.name}". Available keys: ${Object.keys(roleByKey).join(", ")}`,
-              );
-            }
-            await prisma.taskEligibility.create({
-              data: { taskId: task.id, roleId },
-            });
-            return { task, roleKey };
-          }),
-    ),
+        preferredStartTimeMin: timeToMin(preferredStart),
+        minPeople: 1,
+        minWaitDays: minWait,
+        maxWaitDays: maxWait,
+      },
+    });
+    const roleId = roleByKey[roleKey];
+    if (roleId === undefined) {
+      throw new Error(
+        `Role key "${roleKey}" not found in roleByKey lookup for task "${task.name}". Available keys: ${Object.keys(roleByKey).join(", ")}`,
+      );
+    }
+    await prisma.taskEligibility.create({ data: { taskId: task.id, roleId } });
+    // Mirror what createTask() does in the service layer
+    await prisma.taskInheritance.create({ data: { taskId: task.id, orgId: org.id } });
+    createdTasks.push({ task, roleKey });
+  }
+  console.log(`  ✓ ${createdTasks.length} tasks + eligibilities + inheritances created`);
+
+  // ── Task Images ────────────────────────────────────────────────────────────
+  console.log("→ Uploading task images...");
+  // Phase 1: fetch + upload to Supabase in parallel (no DB connections)
+  const uploadResults = await Promise.all(
+    createdTasks.map(async ({ task }, idx) => {
+      const keyword = TASK_IMAGE_KEYWORDS[task.name] ?? "bakery,food";
+      const storagePath = await uploadSeedTaskImage(org.id, task.id, keyword);
+      return { taskId: task.id, storagePath };
+    }),
   );
-  console.log(`  ✓ ${createdTasks.length} tasks + eligibilities created`);
+  // Phase 2: update DB records sequentially to stay within the connection pool
+  let uploadCount = 0;
+  for (const { taskId, storagePath } of uploadResults) {
+    if (storagePath) {
+      await prisma.task.update({ where: { id: taskId }, data: { imageUrl: storagePath } });
+      uploadCount++;
+    }
+  }
+  console.log(`  ✓ ${uploadCount}/${createdTasks.length} task images uploaded`);
+
+  // Publish brand-standard tasks as GLOBAL so franchisees can discover and inherit them
+  const GLOBAL_TASK_NAMES = [
+    // Core frying
+    "Fry Morning Batches",
+    "Fry Afternoon Batches",
+    // Fillings
+    "Make Custard Cream",
+    "Make Choc Custard Cream",
+    "Make Biscoff Filling",
+    "Make Raspberry Cheesecake Filling",
+    "Make Nutella Filling",
+    "Make Peanut Butter Filling",
+    // Glazes & fondants
+    "Prepare Classic Glaze",
+    "Prepare Chocolate Fondant",
+    "Prepare Biscoff Fondant",
+    // Drink recipes
+    "Recipe: White Choc Biscoff Frappe",
+    "Recipe: Honeycomb Frappe",
+    "Recipe: Coffee Frappe",
+    "Recipe: Salted Caramel Frappe",
+    "Recipe: Matcha Frappe",
+    "Recipe: Chocolate Milkshake",
+    "Recipe: Biscoff Custard Shake",
+    // Brand-standard SOPs
+    "Open Shop Checklist",
+    "Close Shop Checklist",
+    "Quality Check \u2014 Display & Products",
+  ];
+  const { count: globalCount } = await prisma.task.updateMany({
+    where: { orgId: org.id, name: { in: GLOBAL_TASK_NAMES } },
+    data: { scope: TaskScope.GLOBAL },
+  });
+  console.log(`  ✓ ${globalCount} tasks published as GLOBAL`);
+
+  // ── Tags ───────────────────────────────────────────────────────────────────
+  console.log("→ Creating tags...");
+  const [
+    tagDailyOps,
+    tagFryer,
+    tagPrep,
+    tagRecipe,
+    tagCleaning,
+    tagQuality,
+    tagOpening,
+    tagClosing,
+  ] = await Promise.all([
+    prisma.tag.create({ data: { orgId: org.id, name: "Daily Ops", color: "#F59E0B" } }),
+    prisma.tag.create({ data: { orgId: org.id, name: "Fryer", color: "#F97316" } }),
+    prisma.tag.create({ data: { orgId: org.id, name: "Prep", color: "#EC4899" } }),
+    prisma.tag.create({ data: { orgId: org.id, name: "Recipe", color: "#8B5CF6" } }),
+    prisma.tag.create({ data: { orgId: org.id, name: "Cleaning", color: "#22C55E" } }),
+    prisma.tag.create({ data: { orgId: org.id, name: "Quality", color: "#A855F7" } }),
+    prisma.tag.create({ data: { orgId: org.id, name: "Opening", color: "#3B82F6" } }),
+    prisma.tag.create({ data: { orgId: org.id, name: "Closing", color: "#EF4444" } }),
+  ]);
+  const tagByName: Record<string, { id: string }> = {
+    "Daily Ops": tagDailyOps,
+    "Fryer": tagFryer,
+    "Prep": tagPrep,
+    "Recipe": tagRecipe,
+    "Cleaning": tagCleaning,
+    "Quality": tagQuality,
+    "Opening": tagOpening,
+    "Closing": tagClosing,
+  };
+  console.log("  ✓ 8 tags created");
+
+  // ── Task Tags ──────────────────────────────────────────────────────────────
+  const taskTagRows = createdTasks.flatMap(({ task }) =>
+    (TASK_TAGS[task.name] ?? []).map((tagName) => ({
+      taskId: task.id,
+      tagId: tagByName[tagName]!.id,
+    })),
+  );
+  await prisma.taskTag.createMany({ data: taskTagRows, skipDuplicates: true });
+  console.log(`  ✓ ${taskTagRows.length} task tags created`);
 
   // Quick lookup helpers
   const tByName = Object.fromEntries(
@@ -947,6 +1238,17 @@ async function seedOrg1(users: Users) {
     ],
   });
   console.log("  ✓ 3 templates created");
+
+  // ── Timetable Settings ─────────────────────────────────────────────────────
+  await prisma.timetableSettings.create({
+    data: {
+      orgId: org.id,
+      viewType: ViewType.WEEKLY,
+      startDay: "mon",
+      slotDuration: 30,
+    },
+  });
+  console.log("  ✓ Timetable settings created");
 
   // ── Timetable Entries ──────────────────────────────────────────────────────
   console.log("→ Creating timetable entries...");
@@ -1699,7 +2001,13 @@ async function seedOrg1(users: Users) {
   );
   add("Close Shop Checklist", 14, "17:00", EntryStatus.TODO, mRiley.id);
 
-  await Promise.all(entries);
+  // Process in batches of 4 to stay within Supabase session-mode pool limit
+  // Each nested-write create uses an implicit transaction (2 conns), and pnpm dev holds ~3-4.
+  // 4 × 2 = 8 seed conns + 4 dev conns = 12, safely under the pool_size: 15 cap.
+  const BATCH_SIZE = 4;
+  for (let i = 0; i < entries.length; i += BATCH_SIZE) {
+    await Promise.all(entries.slice(i, i + BATCH_SIZE));
+  }
   console.log(`  ✓ ${entries.length} timetable entries created`);
 
   // ── Franchise Tokens ───────────────────────────────────────────────────────
@@ -1726,6 +2034,280 @@ async function seedOrg1(users: Users) {
   });
   console.log("  ✓ 3 franchise tokens created");
 
+  // ── Roster Day Config ──────────────────────────────────────────────────────
+  console.log("→ Creating roster day configs...");
+  await prisma.rosterDayConfig.createMany({
+    data: [
+      { orgId: org.id, dayIndex: 0, recommendedSize: 3, openTimeMin: 360, closeTimeMin: 1080 },
+      { orgId: org.id, dayIndex: 1, recommendedSize: 4, openTimeMin: 360, closeTimeMin: 1080 },
+      { orgId: org.id, dayIndex: 2, recommendedSize: 4, openTimeMin: 360, closeTimeMin: 1080 },
+      { orgId: org.id, dayIndex: 3, recommendedSize: 3, openTimeMin: 360, closeTimeMin: 1080 },
+      { orgId: org.id, dayIndex: 4, recommendedSize: 5, openTimeMin: 360, closeTimeMin: 1080 },
+      { orgId: org.id, dayIndex: 5, recommendedSize: 5, openTimeMin: 420, closeTimeMin: 1080 },
+      { orgId: org.id, dayIndex: 6, recommendedSize: 4, openTimeMin: 420, closeTimeMin: 1020 },
+    ],
+    skipDuplicates: true,
+  });
+  console.log("  ✓ 7 roster day configs created");
+
+  // ── Roster Template ────────────────────────────────────────────────────────
+  console.log("→ Creating roster template...");
+  const rosterTemplate = await prisma.rosterTemplate.create({
+    data: { orgId: org.id, name: "Standard Week", cycleWeeks: 1 },
+  });
+  await prisma.rosterTemplateEntry.createMany({
+    data: [
+      // Ivan — Mon–Fri 06:00–14:00
+      { templateId: rosterTemplate.id, membershipId: mIvan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 0, shiftStartMin: 360, shiftEndMin: 840 },
+      { templateId: rosterTemplate.id, membershipId: mIvan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 840 },
+      { templateId: rosterTemplate.id, membershipId: mIvan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 840 },
+      { templateId: rosterTemplate.id, membershipId: mIvan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 840 },
+      { templateId: rosterTemplate.id, membershipId: mIvan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 840 },
+      // Jordan — Mon–Fri 06:00–14:00
+      { templateId: rosterTemplate.id, membershipId: mJordan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 0, shiftStartMin: 360, shiftEndMin: 840 },
+      { templateId: rosterTemplate.id, membershipId: mJordan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 840 },
+      { templateId: rosterTemplate.id, membershipId: mJordan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 840 },
+      { templateId: rosterTemplate.id, membershipId: mJordan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 840 },
+      { templateId: rosterTemplate.id, membershipId: mJordan.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 840 },
+      // Casey — Tue–Sat 06:00–15:00
+      { templateId: rosterTemplate.id, membershipId: mCasey.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 900 },
+      { templateId: rosterTemplate.id, membershipId: mCasey.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 900 },
+      { templateId: rosterTemplate.id, membershipId: mCasey.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 900 },
+      { templateId: rosterTemplate.id, membershipId: mCasey.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 900 },
+      { templateId: rosterTemplate.id, membershipId: mCasey.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 5, shiftStartMin: 360, shiftEndMin: 900 },
+      // Riley — Mon/Wed/Fri/Sat 10:00–18:00
+      { templateId: rosterTemplate.id, membershipId: mRiley.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 0, shiftStartMin: 600, shiftEndMin: 1080 },
+      { templateId: rosterTemplate.id, membershipId: mRiley.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 2, shiftStartMin: 600, shiftEndMin: 1080 },
+      { templateId: rosterTemplate.id, membershipId: mRiley.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 4, shiftStartMin: 600, shiftEndMin: 1080 },
+      { templateId: rosterTemplate.id, membershipId: mRiley.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 5, shiftStartMin: 600, shiftEndMin: 1080 },
+      // Alex — Tue/Thu/Sat/Sun 12:00–18:00
+      { templateId: rosterTemplate.id, membershipId: mAlex.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 1, shiftStartMin: 720, shiftEndMin: 1080 },
+      { templateId: rosterTemplate.id, membershipId: mAlex.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 3, shiftStartMin: 720, shiftEndMin: 1080 },
+      { templateId: rosterTemplate.id, membershipId: mAlex.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 5, shiftStartMin: 720, shiftEndMin: 1080 },
+      { templateId: rosterTemplate.id, membershipId: mAlex.id, membershipOrgId: org.id, weekIndex: 0, dayIndex: 6, shiftStartMin: 720, shiftEndMin: 1080 },
+    ],
+    skipDuplicates: true,
+  });
+  console.log("  ✓ Roster template + entries created");
+
+  // ── Roster Entries (3 weeks) ───────────────────────────────────────────────
+  console.log("→ Creating roster entries...");
+  const weekPrev = getMondayUTC(-1);
+  const weekCurr = getMondayUTC(0);
+  const weekNext = getMondayUTC(1);
+  await prisma.rosterEntry.createMany({
+    data: [
+      // ── Previous week ───────────────────────────────────────────────────────
+      // Ivan Mon–Fri 06:00–14:00
+      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 0, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 840 },
+      // Jordan Mon–Fri 06:00–14:00 (Wed: late start note)
+      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 0, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 2, shiftStartMin: 450, shiftEndMin: 840, note: "Late start — fryer issue" },
+      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 840 },
+      // Casey Tue–Sat 06:00–15:00
+      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 900 },
+      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 900 },
+      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 900 },
+      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 900 },
+      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 5, shiftStartMin: 360, shiftEndMin: 900 },
+      // Riley Mon/Wed/Fri/Sat 10:00–18:00 (Sat: double split note)
+      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 0, shiftStartMin: 600, shiftEndMin: 1080 },
+      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 2, shiftStartMin: 600, shiftEndMin: 1080 },
+      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 4, shiftStartMin: 600, shiftEndMin: 1080 },
+      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 5, shiftStartMin: 600, shiftEndMin: 1080, note: "Busy Sat — double split" },
+      // Alex Tue/Thu/Sat/Sun 12:00–18:00
+      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 1, shiftStartMin: 720, shiftEndMin: 1080 },
+      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 3, shiftStartMin: 720, shiftEndMin: 1080 },
+      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 5, shiftStartMin: 720, shiftEndMin: 1080 },
+      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekPrev, dayIndex: 6, shiftStartMin: 720, shiftEndMin: 1080 },
+
+      // ── Current week ─────────────────────────────────────────────────────────
+      // Ivan Mon–Fri 06:00–14:00
+      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 0, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 840 },
+      // Jordan Mon–Fri 06:00–14:00
+      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 0, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 840 },
+      // Casey Tue–Sat 06:00–15:00 (Sat: public holiday coverage)
+      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 900 },
+      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 900 },
+      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 900 },
+      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 900 },
+      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 5, shiftStartMin: 360, shiftEndMin: 900, note: "Public holiday coverage" },
+      // Riley Mon/Wed/Fri/Sat 10:00–18:00
+      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 0, shiftStartMin: 600, shiftEndMin: 1080 },
+      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 2, shiftStartMin: 600, shiftEndMin: 1080 },
+      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 4, shiftStartMin: 600, shiftEndMin: 1080 },
+      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 5, shiftStartMin: 600, shiftEndMin: 1080 },
+      // Alex Tue/Thu/Sat/Sun 12:00–18:00
+      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 1, shiftStartMin: 720, shiftEndMin: 1080 },
+      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 3, shiftStartMin: 720, shiftEndMin: 1080 },
+      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 5, shiftStartMin: 720, shiftEndMin: 1080 },
+      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekCurr, dayIndex: 6, shiftStartMin: 720, shiftEndMin: 1080 },
+
+      // ── Next week ─────────────────────────────────────────────────────────────
+      // Ivan Mon–Fri 06:00–14:00
+      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 0, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mIvan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 840 },
+      // Jordan Mon–Fri 06:00–14:00 (Thu: management meeting)
+      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 0, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 840 },
+      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 3, shiftStartMin: 600, shiftEndMin: 840, note: "Management meeting AM" },
+      { orgId: org.id, membershipId: mJordan.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 840 },
+      // Casey Tue–Sat 06:00–15:00
+      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 1, shiftStartMin: 360, shiftEndMin: 900 },
+      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 2, shiftStartMin: 360, shiftEndMin: 900 },
+      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 3, shiftStartMin: 360, shiftEndMin: 900 },
+      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 4, shiftStartMin: 360, shiftEndMin: 900 },
+      { orgId: org.id, membershipId: mCasey.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 5, shiftStartMin: 360, shiftEndMin: 900 },
+      // Riley Mon/Wed/Fri/Sat 10:00–18:00
+      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 0, shiftStartMin: 600, shiftEndMin: 1080 },
+      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 2, shiftStartMin: 600, shiftEndMin: 1080 },
+      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 4, shiftStartMin: 600, shiftEndMin: 1080 },
+      { orgId: org.id, membershipId: mRiley.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 5, shiftStartMin: 600, shiftEndMin: 1080 },
+      // Alex Tue/Thu/Sat/Sun 12:00–18:00
+      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 1, shiftStartMin: 720, shiftEndMin: 1080 },
+      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 3, shiftStartMin: 720, shiftEndMin: 1080 },
+      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 5, shiftStartMin: 720, shiftEndMin: 1080 },
+      { orgId: org.id, membershipId: mAlex.id, membershipOrgId: org.id, weekStart: weekNext, dayIndex: 6, shiftStartMin: 720, shiftEndMin: 1080 },
+    ],
+    skipDuplicates: true,
+  });
+  console.log("  ✓ Roster entries created (3 weeks)");
+
+  // ── Tool Items ─────────────────────────────────────────────────────────────
+  console.log("→ Creating tool items...");
+  const [
+    tiDoughRings,
+    tiCustardPowder,
+    tiColdWater,
+    tiWhippingCream,
+    tiBiscoffSpread,
+    tiVegetableOil,
+    tiNutella,
+    tiPeanutButter,
+    tiIcingSugar,
+    tiWhiteFondant,
+    tiButter,
+    tiChocButtons,
+    tiCocoaPowder,
+    tiHotWater,
+    tiChocPowder,
+    tiQuark,
+  ] = await Promise.all([
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Dough Rings", unit: "each" } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Custard Powder", unit: "g" } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Cold Water", unit: "ml" } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Whipping Cream", unit: "ml" } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Biscoff Spread", unit: "g" } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Vegetable Oil", unit: "ml" } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Nutella", unit: "g" } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Peanut Butter", unit: "g" } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Icing Sugar", unit: "g" } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "White Fondant", unit: "g" } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Butter", unit: "g" } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Chocolate Buttons", unit: "g" } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Cocoa Powder", unit: "g" } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Hot Water", unit: "ml" } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Chocolate Powder", unit: "scoops" } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Quark", unit: "g" } }),
+  ]);
+  console.log("  ✓ 16 tool items created");
+  // Silence unused-variable warnings for items not used directly in conversion rates
+  void tiVegetableOil;
+  void tiNutella;
+  void tiPeanutButter;
+  void tiIcingSugar;
+  void tiQuark;
+
+  // ── Conversion Sets ────────────────────────────────────────────────────────
+  console.log("→ Creating conversion sets...");
+
+  // — Custard Cream Batch —
+  const setCustardCream = await prisma.conversionSet.create({
+    data: { orgId: org.id, name: "Custard Cream Batch" },
+  });
+  await prisma.conversionRate.createMany({
+    data: [
+      // Recipe: 1250g Custard Powder + 2500ml Cold Water + 5000ml Whipping Cream ≈ 215 rings
+      { setId: setCustardCream.id, fromItemId: tiDoughRings.id, toItemId: tiCustardPowder.id, fromQty: 215, toQty: 1250 },
+      { setId: setCustardCream.id, fromItemId: tiDoughRings.id, toItemId: tiColdWater.id,     fromQty: 215, toQty: 2500 },
+      { setId: setCustardCream.id, fromItemId: tiDoughRings.id, toItemId: tiWhippingCream.id, fromQty: 215, toQty: 5000 },
+      // Choc upgrade: per 40 rings ≈ 10 scoops chocolate powder
+      { setId: setCustardCream.id, fromItemId: tiDoughRings.id, toItemId: tiChocPowder.id,    fromQty: 40,  toQty: 10  },
+    ],
+    skipDuplicates: true,
+  });
+  const [tplStandardDay, tplQuietDay] = await Promise.all([
+    prisma.conversionTemplate.create({ data: { setId: setCustardCream.id, name: "Standard Day — 200 rings" } }),
+    prisma.conversionTemplate.create({ data: { setId: setCustardCream.id, name: "Quiet Day — 150 rings" } }),
+  ]);
+  await prisma.conversionTemplateEntry.createMany({
+    data: [
+      { templateId: tplStandardDay.id, itemId: tiDoughRings.id, quantity: 200 },
+      { templateId: tplQuietDay.id,    itemId: tiDoughRings.id, quantity: 150 },
+    ],
+    skipDuplicates: true,
+  });
+
+  // — Chocolate Fondant Batch —
+  const setChocFondant = await prisma.conversionSet.create({
+    data: { orgId: org.id, name: "Chocolate Fondant Batch" },
+  });
+  await prisma.conversionRate.createMany({
+    data: [
+      // Recipe per 1000g White Fondant
+      { setId: setChocFondant.id, fromItemId: tiWhiteFondant.id, toItemId: tiButter.id,       fromQty: 1000, toQty: 100 },
+      { setId: setChocFondant.id, fromItemId: tiWhiteFondant.id, toItemId: tiChocButtons.id,  fromQty: 1000, toQty: 200 },
+      { setId: setChocFondant.id, fromItemId: tiWhiteFondant.id, toItemId: tiCocoaPowder.id,  fromQty: 1000, toQty: 60  },
+      { setId: setChocFondant.id, fromItemId: tiWhiteFondant.id, toItemId: tiHotWater.id,     fromQty: 1000, toQty: 60  },
+    ],
+    skipDuplicates: true,
+  });
+  const tplSingleChoc = await prisma.conversionTemplate.create({
+    data: { setId: setChocFondant.id, name: "Single Choc Fondant Batch" },
+  });
+  await prisma.conversionTemplateEntry.create({
+    data: { templateId: tplSingleChoc.id, itemId: tiWhiteFondant.id, quantity: 1000 },
+  });
+
+  // — Biscoff Fondant Batch —
+  const setBiscoffFondant = await prisma.conversionSet.create({
+    data: { orgId: org.id, name: "Biscoff Fondant Batch" },
+  });
+  await prisma.conversionRate.create({
+    data: {
+      setId: setBiscoffFondant.id,
+      fromItemId: tiWhiteFondant.id,
+      toItemId: tiBiscoffSpread.id,
+      fromQty: 1000,
+      toQty: 200,
+    },
+  });
+  const tplSingleBiscoff = await prisma.conversionTemplate.create({
+    data: { setId: setBiscoffFondant.id, name: "Single Biscoff Fondant Batch" },
+  });
+  await prisma.conversionTemplateEntry.create({
+    data: { templateId: tplSingleBiscoff.id, itemId: tiWhiteFondant.id, quantity: 1000 },
+  });
+  console.log("  ✓ 3 conversion sets + rates + templates created");
+
   return {
     org,
     roles: { roleOwner, roleWorker, roleFryer, roleCounter },
@@ -1734,1273 +2316,466 @@ async function seedOrg1(users: Users) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 4. ORG 2 — Coffee House B
-//    Owner: Ivan  |  Members: Riley, Morgan, Jordan, Taylor
+// 4. FRANCHISEE — Donut Shop A: Quinn (Melbourne)
+//    Owner: Quinn  |  Members: Morgan, Taylor
+//    Inherits all GLOBAL tasks from org1
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function seedOrg2(users: Users) {
-  const { ivan, riley, morgan, jordan, taylor } = users;
-  const { utcEntry } = makeDateUtils("Australia/Sydney");
+async function seedFranchisee(
+  users: Users,
+  org1: Awaited<ReturnType<typeof seedOrg1>>,
+) {
+  const { quinn, morgan, taylor } = users;
 
+  console.log("→ Creating franchisee org...");
   const org = await prisma.organization.create({
     data: {
-      name: "Coffee House B",
-      ownerId: ivan.id,
+      name: "Donut Shop A: Quinn",
+      ownerId: quinn.id,
+      image: null,
+      address: "12 Flinders Lane, Melbourne VIC 3000",
+      parentId: org1.org.id,
       openTimeMin: timeToMin("07:00"),
       closeTimeMin: timeToMin("17:00"),
-      timezone: "Australia/Sydney",
-      operatingDays: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
-    },
-  });
-
-  const [roleOwner, roleBarista, roleHeadBarista, roleKitchen] =
-    await Promise.all([
-      prisma.role.create({
-        data: {
-          orgId: org.id,
-          name: "Owner",
-          key: ROLE_KEYS.OWNER,
-          color: "#ef4444",
-          isDeletable: false,
-          isDefault: false,
-        },
-      }),
-      prisma.role.create({
-        data: {
-          orgId: org.id,
-          name: "Barista",
-          key: ROLE_KEYS.DEFAULT_MEMBER,
-          color: "#6b7280",
-          isDeletable: false,
-          isDefault: true,
-        },
-      }),
-      prisma.role.create({
-        data: {
-          orgId: org.id,
-          name: "Head Barista",
-          key: "head_barista",
-          color: "#0EA5E9",
-          isDeletable: true,
-          isDefault: false,
-        },
-      }),
-      prisma.role.create({
-        data: {
-          orgId: org.id,
-          name: "Kitchen Hand",
-          key: "kitchen_hand",
-          color: "#84CC16",
-          isDeletable: true,
-          isDefault: false,
-        },
-      }),
-    ]);
-
-  await prisma.permission.createMany({
-    data: [
-      ...ALL_OWNER_PERMISSIONS.map((action) => ({
-        roleId: roleOwner.id,
-        action,
-      })),
-      { roleId: roleBarista.id, action: PermissionAction.VIEW_TIMETABLE },
-      { roleId: roleHeadBarista.id, action: PermissionAction.VIEW_TIMETABLE },
-      { roleId: roleHeadBarista.id, action: PermissionAction.MANAGE_TIMETABLE },
-      { roleId: roleKitchen.id, action: PermissionAction.VIEW_TIMETABLE },
-    ],
-    skipDuplicates: true,
-  });
-
-  const [mIvan, mRiley, mMorgan, mJordan, mTaylor] = await Promise.all([
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: ivan.id,
-        workingDays: ["mon", "tue", "wed", "thu", "fri"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: riley.id,
-        workingDays: ["mon", "wed", "fri"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: morgan.id,
-        workingDays: ["tue", "thu", "sat"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: jordan.id,
-        workingDays: ["mon", "tue", "wed"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: taylor.id,
-        workingDays: ["wed", "thu", "fri", "sat"],
-      },
-    }),
-  ]);
-
-  // Bot placeholder — unfilled barista slot
-  const mBotSpare = await prisma.membership.create({
-    data: {
-      orgId: org.id,
-      userId: null,
-      botName: "Spare Barista",
-      workingDays: ["tue", "fri"],
-    },
-  });
-
-  await prisma.memberRole.createMany({
-    data: [
-      { membershipId: mIvan.id, roleId: roleOwner.id },
-      { membershipId: mRiley.id, roleId: roleBarista.id },
-      { membershipId: mRiley.id, roleId: roleHeadBarista.id },
-      { membershipId: mMorgan.id, roleId: roleBarista.id },
-      { membershipId: mJordan.id, roleId: roleBarista.id },
-      { membershipId: mTaylor.id, roleId: roleBarista.id },
-      { membershipId: mTaylor.id, roleId: roleKitchen.id },
-      { membershipId: mBotSpare.id, roleId: roleBarista.id },
-    ],
-  });
-
-  const [tOpen, tMachine, tClose, tMilk, tBeans, tClean] = await Promise.all([
-    prisma.task.create({
-      data: {
-        orgId: org.id,
-        name: "Open cafe checklist",
-        color: "#F97316",
-        description: "Unlock, start espresso machine, fill condiments.",
-        durationMin: 20,
-        preferredStartTimeMin: timeToMin("07:00"),
-        minPeople: 1,
-        minWaitDays: 0,
-        maxWaitDays: 1,
-      },
-    }),
-    prisma.task.create({
-      data: {
-        orgId: org.id,
-        name: "Clean espresso machine",
-        color: "#14B8A6",
-        description: "Backflush, descale group heads, clean steam wand.",
-        durationMin: 30,
-        preferredStartTimeMin: timeToMin("15:00"),
-        minPeople: 1,
-        minWaitDays: 1,
-        maxWaitDays: 2,
-      },
-    }),
-    prisma.task.create({
-      data: {
-        orgId: org.id,
-        name: "Close cafe checklist",
-        color: "#6366F1",
-        description: "Cash up, wipe down, lock up.",
-        durationMin: 25,
-        preferredStartTimeMin: timeToMin("16:30"),
-        minPeople: 1,
-        minWaitDays: 0,
-        maxWaitDays: 1,
-      },
-    }),
-    prisma.task.create({
-      data: {
-        orgId: org.id,
-        name: "Milk restocking",
-        color: "#0891B2",
-        description: "Check fridge levels and restock milk from cold storage.",
-        durationMin: 15,
-        preferredStartTimeMin: timeToMin("09:00"),
-        minPeople: 1,
-        minWaitDays: 0,
-        maxWaitDays: 1,
-      },
-    }),
-    prisma.task.create({
-      data: {
-        orgId: org.id,
-        name: "Coffee bean preparation",
-        color: "#7C3AED",
-        description: "Grind beans, calibrate grinder, prep portafilters.",
-        durationMin: 20,
-        preferredStartTimeMin: timeToMin("06:30"),
-        minPeople: 1,
-        minWaitDays: 0,
-        maxWaitDays: 1,
-      },
-    }),
-    prisma.task.create({
-      data: {
-        orgId: org.id,
-        name: "Customer area cleaning",
-        color: "#059669",
-        description: "Wipe tables, restock sugar and napkins, sweep floor.",
-        durationMin: 30,
-        preferredStartTimeMin: timeToMin("12:00"),
-        minPeople: 1,
-        minWaitDays: 0,
-        maxWaitDays: 2,
-      },
-    }),
-  ]);
-
-  await prisma.taskEligibility.createMany({
-    data: [
-      { taskId: tOpen.id, roleId: roleBarista.id },
-      { taskId: tMachine.id, roleId: roleHeadBarista.id },
-      { taskId: tClose.id, roleId: roleBarista.id },
-      { taskId: tMilk.id, roleId: roleKitchen.id },
-      { taskId: tBeans.id, roleId: roleHeadBarista.id },
-      { taskId: tClean.id, roleId: roleKitchen.id },
-    ],
-    skipDuplicates: true,
-  });
-
-  const template = await prisma.timetableTemplate.create({
-    data: { orgId: org.id, name: "Standard Week", cycleLengthDays: 7 },
-  });
-
-  await prisma.timetableTemplateEntry.createMany({
-    data: [
-      {
-        templateId: template.id,
-        taskId: tOpen.id,
-        dayIndex: 0,
-        startTimeMin: timeToMin("07:00"),
-        endTimeMin: timeToMin("07:20"),
-      },
-      {
-        templateId: template.id,
-        taskId: tMachine.id,
-        dayIndex: 3,
-        startTimeMin: timeToMin("15:00"),
-        endTimeMin: timeToMin("15:30"),
-      },
-      {
-        templateId: template.id,
-        taskId: tClose.id,
-        dayIndex: 4,
-        startTimeMin: timeToMin("16:30"),
-        endTimeMin: timeToMin("16:55"),
-      },
-    ],
-  });
-
-  await Promise.all([
-    // Past
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tOpen.id,
-        taskName: tOpen.name,
-        taskDescription: tOpen.description,
-        durationMin: 20,
-        ...utcEntry(-29, "07:00", 20),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mRiley.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tMachine.id,
-        taskName: tMachine.name,
-        taskDescription: tMachine.description,
-        durationMin: 30,
-        ...utcEntry(-27, "15:00", 30),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mMorgan.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tClose.id,
-        taskName: tClose.name,
-        taskDescription: tClose.description,
-        durationMin: 25,
-        ...utcEntry(-25, "16:30", 25),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mRiley.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tOpen.id,
-        taskName: tOpen.name,
-        taskDescription: tOpen.description,
-        durationMin: 20,
-        ...utcEntry(-22, "07:00", 20),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mMorgan.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tMachine.id,
-        taskName: tMachine.name,
-        taskDescription: tMachine.description,
-        durationMin: 30,
-        ...utcEntry(-20, "15:00", 30),
-        status: EntryStatus.SKIPPED,
-        assignees: { create: [{ membershipId: mRiley.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tClose.id,
-        taskName: tClose.name,
-        taskDescription: tClose.description,
-        durationMin: 25,
-        ...utcEntry(-18, "16:30", 25),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mMorgan.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tOpen.id,
-        taskName: tOpen.name,
-        taskDescription: tOpen.description,
-        durationMin: 20,
-        ...utcEntry(-15, "07:00", 20),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mRiley.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tMachine.id,
-        taskName: tMachine.name,
-        taskDescription: tMachine.description,
-        durationMin: 30,
-        ...utcEntry(-13, "15:00", 30),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mMorgan.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tClose.id,
-        taskName: tClose.name,
-        taskDescription: tClose.description,
-        durationMin: 25,
-        ...utcEntry(-11, "16:30", 25),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mRiley.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tOpen.id,
-        taskName: tOpen.name,
-        taskDescription: tOpen.description,
-        durationMin: 20,
-        ...utcEntry(-8, "07:00", 20),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mMorgan.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tMachine.id,
-        taskName: tMachine.name,
-        taskDescription: tMachine.description,
-        durationMin: 30,
-        ...utcEntry(-6, "15:00", 30),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mRiley.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tClose.id,
-        taskName: tClose.name,
-        taskDescription: tClose.description,
-        durationMin: 25,
-        ...utcEntry(-4, "16:30", 25),
-        status: EntryStatus.SKIPPED,
-        assignees: { create: [{ membershipId: mMorgan.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tOpen.id,
-        taskName: tOpen.name,
-        taskDescription: tOpen.description,
-        durationMin: 20,
-        ...utcEntry(-2, "07:00", 20),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mRiley.id }] },
-      },
-    }),
-    // Today
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tMachine.id,
-        taskName: tMachine.name,
-        taskDescription: tMachine.description,
-        durationMin: 30,
-        ...utcEntry(0, "15:00", 30),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mMorgan.id }] },
-      },
-    }),
-    // Tomorrow
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tClose.id,
-        taskName: tClose.name,
-        taskDescription: tClose.description,
-        durationMin: 25,
-        ...utcEntry(1, "16:30", 25),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mRiley.id }] },
-      },
-    }),
-    // Today — additional
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tOpen.id,
-        taskName: tOpen.name,
-        taskDescription: tOpen.description,
-        durationMin: 20,
-        ...utcEntry(0, "07:00", 20),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mJordan.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tMilk.id,
-        taskName: tMilk.name,
-        taskDescription: tMilk.description,
-        durationMin: 15,
-        ...utcEntry(0, "09:00", 15),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mBotSpare.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tBeans.id,
-        taskName: tBeans.name,
-        taskDescription: tBeans.description,
-        durationMin: 20,
-        ...utcEntry(0, "06:30", 20),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mRiley.id }] },
-      },
-    }),
-    // Day +1 — additional
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tMilk.id,
-        taskName: tMilk.name,
-        taskDescription: tMilk.description,
-        durationMin: 15,
-        ...utcEntry(1, "09:00", 15),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mBotSpare.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tClean.id,
-        taskName: tClean.name,
-        taskDescription: tClean.description,
-        durationMin: 30,
-        ...utcEntry(1, "12:00", 30),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mTaylor.id }] },
-      },
-    }),
-    // Day +2
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tOpen.id,
-        taskName: tOpen.name,
-        taskDescription: tOpen.description,
-        durationMin: 20,
-        ...utcEntry(2, "07:00", 20),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mMorgan.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tBeans.id,
-        taskName: tBeans.name,
-        taskDescription: tBeans.description,
-        durationMin: 20,
-        ...utcEntry(2, "06:30", 20),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mBotSpare.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tClean.id,
-        taskName: tClean.name,
-        taskDescription: tClean.description,
-        durationMin: 30,
-        ...utcEntry(2, "12:00", 30),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mJordan.id }] },
-      },
-    }),
-    // Day +3
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tMilk.id,
-        taskName: tMilk.name,
-        taskDescription: tMilk.description,
-        durationMin: 15,
-        ...utcEntry(3, "09:00", 15),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mBotSpare.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tMachine.id,
-        taskName: tMachine.name,
-        taskDescription: tMachine.description,
-        durationMin: 30,
-        ...utcEntry(3, "15:00", 30),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mRiley.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tClose.id,
-        taskName: tClose.name,
-        taskDescription: tClose.description,
-        durationMin: 25,
-        ...utcEntry(3, "16:30", 25),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mMorgan.id }] },
-      },
-    }),
-    // Day +4
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tOpen.id,
-        taskName: tOpen.name,
-        taskDescription: tOpen.description,
-        durationMin: 20,
-        ...utcEntry(4, "07:00", 20),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mJordan.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tBeans.id,
-        taskName: tBeans.name,
-        taskDescription: tBeans.description,
-        durationMin: 20,
-        ...utcEntry(4, "06:30", 20),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mBotSpare.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tClean.id,
-        taskName: tClean.name,
-        taskDescription: tClean.description,
-        durationMin: 30,
-        ...utcEntry(4, "12:00", 30),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mTaylor.id }] },
-      },
-    }),
-    // Day +5
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tMilk.id,
-        taskName: tMilk.name,
-        taskDescription: tMilk.description,
-        durationMin: 15,
-        ...utcEntry(5, "09:00", 15),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mBotSpare.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tClose.id,
-        taskName: tClose.name,
-        taskDescription: tClose.description,
-        durationMin: 25,
-        ...utcEntry(5, "16:30", 25),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mRiley.id }] },
-      },
-    }),
-    // Day +6
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tOpen.id,
-        taskName: tOpen.name,
-        taskDescription: tOpen.description,
-        durationMin: 20,
-        ...utcEntry(6, "07:00", 20),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mMorgan.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tClean.id,
-        taskName: tClean.name,
-        taskDescription: tClean.description,
-        durationMin: 30,
-        ...utcEntry(6, "12:00", 30),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mBotSpare.id }] },
-      },
-    }),
-    // Day +7
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tMilk.id,
-        taskName: tMilk.name,
-        taskDescription: tMilk.description,
-        durationMin: 15,
-        ...utcEntry(7, "09:00", 15),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mTaylor.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tBeans.id,
-        taskName: tBeans.name,
-        taskDescription: tBeans.description,
-        durationMin: 20,
-        ...utcEntry(7, "06:30", 20),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mBotSpare.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tClose.id,
-        taskName: tClose.name,
-        taskDescription: tClose.description,
-        durationMin: 25,
-        ...utcEntry(7, "16:30", 25),
-        status: EntryStatus.TODO,
-        assignees: { create: [{ membershipId: mJordan.id }] },
-      },
-    }),
-    // Past bot entries
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tMilk.id,
-        taskName: tMilk.name,
-        taskDescription: tMilk.description,
-        durationMin: 15,
-        ...utcEntry(-28, "09:00", 15),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mBotSpare.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tBeans.id,
-        taskName: tBeans.name,
-        taskDescription: tBeans.description,
-        durationMin: 20,
-        ...utcEntry(-21, "06:30", 20),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mBotSpare.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tClean.id,
-        taskName: tClean.name,
-        taskDescription: tClean.description,
-        durationMin: 30,
-        ...utcEntry(-14, "12:00", 30),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mBotSpare.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tMilk.id,
-        taskName: tMilk.name,
-        taskDescription: tMilk.description,
-        durationMin: 15,
-        ...utcEntry(-7, "09:00", 15),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mBotSpare.id }] },
-      },
-    }),
-  ]);
-
-  return {
-    org,
-    roles: { roleOwner, roleBarista, roleHeadBarista, roleKitchen },
-    botSpare: mBotSpare,
-  };
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 5. ORG 3 — Bakery C
-//    Owner: Jordan  |  Members: Casey, Riley, Morgan, Sam
-// ─────────────────────────────────────────────────────────────────────────────
-
-async function seedOrg3(users: Users) {
-  const { jordan, casey, riley, morgan, sam } = users;
-  const { utcEntry } = makeDateUtils("Australia/Sydney");
-
-  const org = await prisma.organization.create({
-    data: {
-      name: "Bakery C",
-      ownerId: jordan.id,
-      openTimeMin: timeToMin("05:00"),
-      closeTimeMin: timeToMin("14:00"),
-      timezone: "Australia/Sydney",
+      timezone: "Australia/Melbourne",
       operatingDays: ["mon", "tue", "wed", "thu", "fri", "sat"],
     },
   });
 
-  const [roleOwner, roleBaker, roleHeadBaker, rolePastry] = await Promise.all([
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Owner",
-        key: ROLE_KEYS.OWNER,
-        color: "#ef4444",
-        isDeletable: false,
-        isDefault: false,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Baker",
-        key: ROLE_KEYS.DEFAULT_MEMBER,
-        color: "#6b7280",
-        isDeletable: false,
-        isDefault: true,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Head Baker",
-        key: "head_baker",
-        color: "#D97706",
-        isDeletable: true,
-        isDefault: false,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Pastry Chef",
-        key: "pastry_chef",
-        color: "#EC4899",
-        isDeletable: true,
-        isDefault: false,
-      },
-    }),
-  ]);
+  // Upload org logo from public/ folder
+  try {
+    const logoBuffer = fs.readFileSync(
+      path.join(process.cwd(), "public/donut_a_logo.jpg"),
+    );
+    const logoPath = await uploadOrgLogo(org.id, logoBuffer);
+    if (logoPath) {
+      await prisma.organization.update({
+        where: { id: org.id },
+        data: { image: logoPath },
+      });
+      console.log("  ✓ Org logo uploaded");
+    }
+  } catch {
+    console.log("  ⚠ Org logo upload skipped (file not found or upload failed)");
+  }
+
+  // ── Roles (mirror parent structure) ───────────────────────────────────────
+  const [roleOwner, roleWorker, roleFryer, roleCounter, roleShiftLead, roleTrainee] =
+    await Promise.all([
+      prisma.role.create({ data: { orgId: org.id, name: "Owner", key: ROLE_KEYS.OWNER, color: "#ef4444", isDeletable: false, isDefault: false } }),
+      prisma.role.create({ data: { orgId: org.id, name: "Default Member", key: ROLE_KEYS.DEFAULT_MEMBER, color: "#6b7280", isDeletable: false, isDefault: true } }),
+      prisma.role.create({ data: { orgId: org.id, name: "Fryer Operator", key: "fryer_op", color: "#F97316", isDeletable: true, isDefault: false } }),
+      prisma.role.create({ data: { orgId: org.id, name: "Counter Staff", key: "counter_staff", color: "#06B6D4", isDeletable: true, isDefault: false } }),
+      prisma.role.create({ data: { orgId: org.id, name: "Shift Lead", key: "shift_lead", color: "#8B5CF6", isDeletable: true, isDefault: false } }),
+      prisma.role.create({ data: { orgId: org.id, name: "Trainee", key: "trainee", color: "#84CC16", isDeletable: true, isDefault: false } }),
+    ]);
 
   await prisma.permission.createMany({
     data: [
-      ...ALL_OWNER_PERMISSIONS.map((action) => ({
-        roleId: roleOwner.id,
-        action,
-      })),
-      { roleId: roleBaker.id, action: PermissionAction.VIEW_TIMETABLE },
-      { roleId: roleHeadBaker.id, action: PermissionAction.VIEW_TIMETABLE },
-      { roleId: roleHeadBaker.id, action: PermissionAction.MANAGE_TIMETABLE },
-      { roleId: rolePastry.id, action: PermissionAction.VIEW_TIMETABLE },
+      ...ALL_OWNER_PERMISSIONS.map((action) => ({ roleId: roleOwner.id, action })),
+      { roleId: roleWorker.id, action: PermissionAction.VIEW_TIMETABLE },
+      { roleId: roleFryer.id, action: PermissionAction.VIEW_TIMETABLE },
+      { roleId: roleFryer.id, action: PermissionAction.MANAGE_TASKS },
+      { roleId: roleCounter.id, action: PermissionAction.VIEW_TIMETABLE },
+      { roleId: roleShiftLead.id, action: PermissionAction.VIEW_TIMETABLE },
+      { roleId: roleShiftLead.id, action: PermissionAction.MANAGE_TIMETABLE },
+      { roleId: roleShiftLead.id, action: PermissionAction.MANAGE_MEMBERS },
+      { roleId: roleTrainee.id, action: PermissionAction.VIEW_TIMETABLE },
     ],
     skipDuplicates: true,
   });
 
-  const [mJordan, mCasey, mRiley, mMorgan, mSam] = await Promise.all([
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: jordan.id,
-        workingDays: ["mon", "tue", "wed", "thu", "fri", "sat"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: casey.id,
-        workingDays: ["mon", "wed", "fri", "sat"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: riley.id,
-        workingDays: ["tue", "thu", "sat"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: morgan.id,
-        workingDays: ["mon", "tue", "wed", "thu"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: sam.id,
-        workingDays: ["wed", "thu", "fri", "sat"],
-      },
-    }),
+  // ── Memberships ────────────────────────────────────────────────────────────
+  const [mQuinn, mMorgan, mTaylor] = await Promise.all([
+    prisma.membership.create({ data: { orgId: org.id, userId: quinn.id, workingDays: ["mon", "tue", "wed", "thu", "fri", "sat"] } }),
+    prisma.membership.create({ data: { orgId: org.id, userId: morgan.id, workingDays: ["tue", "wed", "thu", "fri", "sat"] } }),
+    prisma.membership.create({ data: { orgId: org.id, userId: taylor.id, workingDays: ["mon", "wed", "fri"] } }),
   ]);
 
   await prisma.memberRole.createMany({
     data: [
-      { membershipId: mJordan.id, roleId: roleOwner.id },
-      { membershipId: mJordan.id, roleId: roleHeadBaker.id },
-      { membershipId: mCasey.id, roleId: roleBaker.id },
-      { membershipId: mCasey.id, roleId: rolePastry.id },
-      { membershipId: mRiley.id, roleId: roleBaker.id },
-      { membershipId: mMorgan.id, roleId: roleBaker.id },
-      { membershipId: mMorgan.id, roleId: roleHeadBaker.id },
-      { membershipId: mSam.id, roleId: roleBaker.id },
-      { membershipId: mSam.id, roleId: rolePastry.id },
+      { membershipId: mQuinn.id, roleId: roleOwner.id },
+      { membershipId: mMorgan.id, roleId: roleWorker.id },
+      { membershipId: mMorgan.id, roleId: roleShiftLead.id },
+      { membershipId: mTaylor.id, roleId: roleWorker.id },
+      { membershipId: mTaylor.id, roleId: roleFryer.id },
     ],
   });
+  console.log("  ✓ Roles, permissions, and memberships created");
 
-  const [tPrep, tBread, tCleanup, tPastry, tWindow, tStock] = await Promise.all(
-    [
-      prisma.task.create({
-        data: {
-          orgId: org.id,
-          name: "Morning prep",
-          color: "#F59E0B",
-          description: "Preheat ovens, prep dough, set up station.",
-          durationMin: 45,
-          preferredStartTimeMin: timeToMin("05:00"),
-          minPeople: 1,
-          minWaitDays: 0,
-          maxWaitDays: 1,
-        },
-      }),
-      prisma.task.create({
-        data: {
-          orgId: org.id,
-          name: "Bread baking",
-          color: "#10B981",
-          description: "Score and bake loaves for the day.",
-          durationMin: 90,
-          preferredStartTimeMin: timeToMin("06:00"),
-          minPeople: 2,
-          minWaitDays: 0,
-          maxWaitDays: 1,
-        },
-      }),
-      prisma.task.create({
-        data: {
-          orgId: org.id,
-          name: "Evening cleanup",
-          color: "#8B5CF6",
-          description: "Clean ovens, sweep floor, store remaining stock.",
-          durationMin: 40,
-          preferredStartTimeMin: timeToMin("13:00"),
-          minPeople: 1,
-          minWaitDays: 0,
-          maxWaitDays: 1,
-        },
-      }),
-      prisma.task.create({
-        data: {
-          orgId: org.id,
-          name: "Pastry preparation",
-          color: "#F472B6",
-          description:
-            "Prepare croissants, danish, and daily pastry selection.",
-          durationMin: 60,
-          preferredStartTimeMin: timeToMin("05:30"),
-          minPeople: 1,
-          minWaitDays: 0,
-          maxWaitDays: 1,
-        },
-      }),
-      prisma.task.create({
-        data: {
-          orgId: org.id,
-          name: "Window display setup",
-          color: "#34D399",
-          description: "Arrange today's baked goods in the shop window.",
-          durationMin: 20,
-          preferredStartTimeMin: timeToMin("08:00"),
-          minPeople: 1,
-          minWaitDays: 0,
-          maxWaitDays: 2,
-        },
-      }),
-      prisma.task.create({
-        data: {
-          orgId: org.id,
-          name: "Stock count",
-          color: "#60A5FA",
-          description:
-            "Audit flour, yeast, butter and other ingredient levels.",
-          durationMin: 30,
-          preferredStartTimeMin: timeToMin("13:00"),
-          minPeople: 1,
-          minWaitDays: 2,
-          maxWaitDays: 7,
-        },
-      }),
-    ],
-  );
+  // ── Tool Items ─────────────────────────────────────────────────────────────
+  console.log("→ Creating franchisee tool items...");
+  const [
+    qtiDoughRings, qtiCustardPowder, qtiColdWater, qtiWhippingCream,
+    qtiChocButtons, qtiHoneycombFlavour, qtiStrawberryPowder, qtiVanillaChai,
+    qtiWhiteFondant, qtiBiscoffSpread, qtiButter, qtiCocoaPowder,
+    qtiHotWater, qtiCoconutMilk, qtiMatchaPowder, qtiEspressoShot,
+    qtiBananaFlavacol, qtiMilk, qtiIce, qtiDrink, qtiCinnamonPowder, qtiCasterSugar,
+  ] = await Promise.all([
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Dough Rings",              unit: "each"  } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Custard Powder",           unit: "g"     } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Cold Water",               unit: "ml"    } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Whipping Cream",           unit: "ml"    } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Chocolate Buttons",        unit: "g"     } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Honeycomb Flavour",        unit: "ml"    } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Strawberry Frappe Powder", unit: "g"     } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Vanilla Chai Powder",      unit: "g"     } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "White Fondant",            unit: "g"     } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Biscoff Spread",           unit: "g"     } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Butter",                   unit: "g"     } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Cocoa Powder",             unit: "g"     } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Hot Water",                unit: "ml"    } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Coconut Milk",             unit: "ml"    } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Matcha Powder",            unit: "g"     } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Espresso Shot",            unit: "ml"    } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Banana Flavacol",          unit: "ml"    } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Milk",                     unit: "ml"    } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Ice",                      unit: "cups"  } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Drink",                    unit: "each"  } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Cinnamon Powder",          unit: "g"     } }),
+    prisma.toolItem.create({ data: { orgId: org.id, name: "Caster Sugar",             unit: "g"     } }),
+  ]);
+  void qtiCinnamonPowder; void qtiCasterSugar;
+  console.log("  ✓ 22 tool items created");
 
-  await prisma.taskEligibility.createMany({
+  // ── Conversion Sets ────────────────────────────────────────────────────────
+  console.log("→ Creating franchisee conversion sets...");
+
+  // — Custard Cream — All Variants —
+  const qSetCustard = await prisma.conversionSet.create({
+    data: { orgId: org.id, name: "Custard Cream — All Variants" },
+  });
+  await prisma.conversionRate.createMany({
     data: [
-      { taskId: tPrep.id, roleId: roleBaker.id },
-      { taskId: tBread.id, roleId: roleBaker.id },
-      { taskId: tCleanup.id, roleId: roleBaker.id },
-      { taskId: tPastry.id, roleId: rolePastry.id },
-      { taskId: tWindow.id, roleId: roleHeadBaker.id },
-      { taskId: tStock.id, roleId: roleHeadBaker.id },
+      // Base recipe: 215 rings → base ingredients
+      { setId: qSetCustard.id, fromItemId: qtiDoughRings.id, toItemId: qtiCustardPowder.id,    fromQty: 215, toQty: 1250 },
+      { setId: qSetCustard.id, fromItemId: qtiDoughRings.id, toItemId: qtiColdWater.id,        fromQty: 215, toQty: 2500 },
+      { setId: qSetCustard.id, fromItemId: qtiDoughRings.id, toItemId: qtiWhippingCream.id,    fromQty: 215, toQty: 5000 },
+      // Flavour add-ins per 40 rings
+      { setId: qSetCustard.id, fromItemId: qtiDoughRings.id, toItemId: qtiChocButtons.id,      fromQty: 40,  toQty: 100  },
+      { setId: qSetCustard.id, fromItemId: qtiDoughRings.id, toItemId: qtiHoneycombFlavour.id, fromQty: 40,  toQty: 50   },
+      { setId: qSetCustard.id, fromItemId: qtiDoughRings.id, toItemId: qtiStrawberryPowder.id, fromQty: 40,  toQty: 160  },
+      { setId: qSetCustard.id, fromItemId: qtiDoughRings.id, toItemId: qtiVanillaChai.id,      fromQty: 40,  toQty: 120  },
+    ],
+    skipDuplicates: true,
+  });
+  const [qTplStandard, qTplWeekend, qTplQuiet] = await Promise.all([
+    prisma.conversionTemplate.create({ data: { setId: qSetCustard.id, name: "Standard Day — 180 rings"  } }),
+    prisma.conversionTemplate.create({ data: { setId: qSetCustard.id, name: "Weekend Rush — 280 rings"  } }),
+    prisma.conversionTemplate.create({ data: { setId: qSetCustard.id, name: "Quiet Monday — 120 rings"  } }),
+  ]);
+  await prisma.conversionTemplateEntry.createMany({
+    data: [
+      { templateId: qTplStandard.id, itemId: qtiDoughRings.id, quantity: 180 },
+      { templateId: qTplWeekend.id,  itemId: qtiDoughRings.id, quantity: 280 },
+      { templateId: qTplQuiet.id,    itemId: qtiDoughRings.id, quantity: 120 },
     ],
     skipDuplicates: true,
   });
 
-  const template = await prisma.timetableTemplate.create({
-    data: { orgId: org.id, name: "5-Day Rotation", cycleLengthDays: 5 },
+  // — Full Fondant Station —
+  const qSetFondant = await prisma.conversionSet.create({
+    data: { orgId: org.id, name: "Full Fondant Station" },
   });
-
-  await prisma.timetableTemplateEntry.createMany({
+  await prisma.conversionRate.createMany({
     data: [
-      {
-        templateId: template.id,
-        taskId: tPrep.id,
-        dayIndex: 0,
-        startTimeMin: timeToMin("05:00"),
-        endTimeMin: timeToMin("05:45"),
-      },
-      {
-        templateId: template.id,
-        taskId: tBread.id,
-        dayIndex: 0,
-        startTimeMin: timeToMin("06:00"),
-        endTimeMin: timeToMin("07:30"),
-      },
-      {
-        templateId: template.id,
-        taskId: tCleanup.id,
-        dayIndex: 4,
-        startTimeMin: timeToMin("13:00"),
-        endTimeMin: timeToMin("13:40"),
-      },
+      // Per 1000g White Fondant → add-ins for each flavour
+      { setId: qSetFondant.id, fromItemId: qtiWhiteFondant.id, toItemId: qtiBiscoffSpread.id,  fromQty: 1000, toQty: 200 },
+      { setId: qSetFondant.id, fromItemId: qtiWhiteFondant.id, toItemId: qtiButter.id,         fromQty: 1000, toQty: 100 },
+      { setId: qSetFondant.id, fromItemId: qtiWhiteFondant.id, toItemId: qtiChocButtons.id,    fromQty: 1000, toQty: 200 },
+      { setId: qSetFondant.id, fromItemId: qtiWhiteFondant.id, toItemId: qtiCocoaPowder.id,    fromQty: 1000, toQty: 60  },
+      { setId: qSetFondant.id, fromItemId: qtiWhiteFondant.id, toItemId: qtiHotWater.id,       fromQty: 1000, toQty: 60  },
+      { setId: qSetFondant.id, fromItemId: qtiWhiteFondant.id, toItemId: qtiCoconutMilk.id,    fromQty: 1000, toQty: 100 },
+      { setId: qSetFondant.id, fromItemId: qtiWhiteFondant.id, toItemId: qtiMatchaPowder.id,   fromQty: 1000, toQty: 15  },
+      { setId: qSetFondant.id, fromItemId: qtiWhiteFondant.id, toItemId: qtiEspressoShot.id,   fromQty: 1000, toQty: 60  },
+      { setId: qSetFondant.id, fromItemId: qtiWhiteFondant.id, toItemId: qtiBananaFlavacol.id, fromQty: 1000, toQty: 40  },
     ],
+    skipDuplicates: true,
+  });
+  const [qTplFondantSingle, qTplFondantDouble] = await Promise.all([
+    prisma.conversionTemplate.create({ data: { setId: qSetFondant.id, name: "Single Batch per Flavour (1000g)" } }),
+    prisma.conversionTemplate.create({ data: { setId: qSetFondant.id, name: "Double All Batches (2000g)"        } }),
+  ]);
+  await prisma.conversionTemplateEntry.createMany({
+    data: [
+      { templateId: qTplFondantSingle.id, itemId: qtiWhiteFondant.id, quantity: 1000 },
+      { templateId: qTplFondantDouble.id, itemId: qtiWhiteFondant.id, quantity: 2000 },
+    ],
+    skipDuplicates: true,
   });
 
-  await Promise.all([
-    // Past
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tPrep.id,
-        taskName: tPrep.name,
-        taskDescription: tPrep.description,
-        durationMin: 45,
-        ...utcEntry(-30, "05:00", 45),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mCasey.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tBread.id,
-        taskName: tBread.name,
-        taskDescription: tBread.description,
-        durationMin: 90,
-        ...utcEntry(-30, "06:00", 90),
-        status: EntryStatus.DONE,
-        assignees: {
-          create: [{ membershipId: mCasey.id }, { membershipId: mJordan.id }],
-        },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tCleanup.id,
-        taskName: tCleanup.name,
-        taskDescription: tCleanup.description,
-        durationMin: 40,
-        ...utcEntry(-27, "13:00", 40),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mRiley.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tPrep.id,
-        taskName: tPrep.name,
-        taskDescription: tPrep.description,
-        durationMin: 45,
-        ...utcEntry(-25, "05:00", 45),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mJordan.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tBread.id,
-        taskName: tBread.name,
-        taskDescription: tBread.description,
-        durationMin: 90,
-        ...utcEntry(-23, "06:00", 90),
-        status: EntryStatus.SKIPPED,
-        assignees: { create: [{ membershipId: mCasey.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tCleanup.id,
-        taskName: tCleanup.name,
-        taskDescription: tCleanup.description,
-        durationMin: 40,
-        ...utcEntry(-21, "13:00", 40),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mRiley.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tPrep.id,
-        taskName: tPrep.name,
-        taskDescription: tPrep.description,
-        durationMin: 45,
-        ...utcEntry(-18, "05:00", 45),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mCasey.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tBread.id,
-        taskName: tBread.name,
-        taskDescription: tBread.description,
-        durationMin: 90,
-        ...utcEntry(-16, "06:00", 90),
-        status: EntryStatus.DONE,
-        assignees: {
-          create: [{ membershipId: mCasey.id }, { membershipId: mJordan.id }],
-        },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tCleanup.id,
-        taskName: tCleanup.name,
-        taskDescription: tCleanup.description,
-        durationMin: 40,
-        ...utcEntry(-14, "13:00", 40),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mRiley.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tPrep.id,
-        taskName: tPrep.name,
-        taskDescription: tPrep.description,
-        durationMin: 45,
-        ...utcEntry(-11, "05:00", 45),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mJordan.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tBread.id,
-        taskName: tBread.name,
-        taskDescription: tBread.description,
-        durationMin: 90,
-        ...utcEntry(-9, "06:00", 90),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mCasey.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tCleanup.id,
-        taskName: tCleanup.name,
-        taskDescription: tCleanup.description,
-        durationMin: 40,
-        ...utcEntry(-7, "13:00", 40),
-        status: EntryStatus.SKIPPED,
-        assignees: { create: [{ membershipId: mRiley.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tPrep.id,
-        taskName: tPrep.name,
-        taskDescription: tPrep.description,
-        durationMin: 45,
-        ...utcEntry(-5, "05:00", 45),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mCasey.id }] },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tBread.id,
-        taskName: tBread.name,
-        taskDescription: tBread.description,
-        durationMin: 90,
-        ...utcEntry(-3, "06:00", 90),
-        status: EntryStatus.DONE,
-        assignees: {
-          create: [{ membershipId: mCasey.id }, { membershipId: mJordan.id }],
-        },
-      },
-    }),
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tCleanup.id,
-        taskName: tCleanup.name,
-        taskDescription: tCleanup.description,
-        durationMin: 40,
-        ...utcEntry(-1, "13:00", 40),
-        status: EntryStatus.DONE,
-        assignees: { create: [{ membershipId: mRiley.id }] },
-      },
-    }),
-    // Today
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tPrep.id,
-        taskName: tPrep.name,
-        taskDescription: tPrep.description,
-        durationMin: 45,
-        ...utcEntry(0, "05:00", 45),
-        status: EntryStatus.IN_PROGRESS,
-        assignees: { create: [{ membershipId: mJordan.id }] },
-      },
-    }),
-    // Tomorrow
-    prisma.timetableEntry.create({
-      data: {
-        orgId: org.id,
-        taskId: tBread.id,
-        taskName: tBread.name,
-        taskDescription: tBread.description,
-        durationMin: 90,
-        ...utcEntry(1, "06:00", 90),
-        status: EntryStatus.TODO,
-        assignees: {
-          create: [{ membershipId: mCasey.id }, { membershipId: mJordan.id }],
-        },
-      },
-    }),
+  // — Frappe Bar Daily Prep —
+  const qSetFrappe = await prisma.conversionSet.create({
+    data: { orgId: org.id, name: "Frappe Bar Daily Prep" },
+  });
+  await prisma.conversionRate.createMany({
+    data: [
+      // Per 1 Drink (each) → ingredients needed
+      { setId: qSetFrappe.id, fromItemId: qtiDrink.id, toItemId: qtiMilk.id,             fromQty: 1, toQty: 160 },
+      { setId: qSetFrappe.id, fromItemId: qtiDrink.id, toItemId: qtiIce.id,              fromQty: 1, toQty: 1   },
+      { setId: qSetFrappe.id, fromItemId: qtiDrink.id, toItemId: qtiBiscoffSpread.id,    fromQty: 1, toQty: 50  },
+      { setId: qSetFrappe.id, fromItemId: qtiDrink.id, toItemId: qtiMatchaPowder.id,     fromQty: 1, toQty: 5   },
+      { setId: qSetFrappe.id, fromItemId: qtiDrink.id, toItemId: qtiVanillaChai.id,      fromQty: 1, toQty: 20  },
+      { setId: qSetFrappe.id, fromItemId: qtiDrink.id, toItemId: qtiStrawberryPowder.id, fromQty: 1, toQty: 20  },
+    ],
+    skipDuplicates: true,
+  });
+  const [qTplFrappeWeekday, qTplFrappeWeekend] = await Promise.all([
+    prisma.conversionTemplate.create({ data: { setId: qSetFrappe.id, name: "Weekday Bar (30 drinks)"  } }),
+    prisma.conversionTemplate.create({ data: { setId: qSetFrappe.id, name: "Weekend Rush (80 drinks)" } }),
   ]);
+  await prisma.conversionTemplateEntry.createMany({
+    data: [
+      { templateId: qTplFrappeWeekday.id, itemId: qtiDrink.id, quantity: 30 },
+      { templateId: qTplFrappeWeekend.id, itemId: qtiDrink.id, quantity: 80 },
+    ],
+    skipDuplicates: true,
+  });
+  console.log("  ✓ 3 conversion sets + rates + templates created");
 
-  return { org, roles: { roleOwner, roleBaker, roleHeadBaker, rolePastry } };
+  // ── Own GLOBAL tasks (franchisee contributions) ───────────────────────────
+  console.log("→ Creating franchisee GLOBAL tasks...");
+  const roleByKey: Record<string, { id: string }> = {
+    fryer_op:      roleFryer,
+    counter_staff: roleCounter,
+  };
+  const QUINN_GLOBAL_TASKS = [
+    {
+      name: "Make Matcha White Choc Glaze",
+      color: "#10B981",
+      durationMin: 20,
+      description:
+        "**Ingredients**\n" +
+        "• 1000g White Fondant\n" +
+        "• 100ml Coconut Milk\n" +
+        "• 15g Ceremonial Matcha Powder\n" +
+        "• 50g White Chocolate Chips\n\n" +
+        "**Method**\n" +
+        "1. Warm White Fondant and Coconut Milk in bain-marie to 65°C.\n" +
+        "2. Sift in Matcha Powder gradually — whisk continuously to avoid lumps.\n" +
+        "3. Fold in White Chocolate Chips and stir until fully melted.\n" +
+        "4. Strain through a fine mesh sieve for a smooth, glossy finish.\n" +
+        "5. Use immediately or keep warm in bain-marie.\n\n" +
+        "_Developed by Donut Shop A: Quinn. Shared across the franchise network._",
+      roleKey: "fryer_op",
+      keyword: "matcha,white chocolate,glaze",
+    },
+    {
+      name: "Make Honeycomb Custard Cream",
+      color: "#F59E0B",
+      durationMin: 20,
+      description:
+        "**Per 1kg Custard Cream:**\n" +
+        "• 50ml Honeycomb Flavour\n\n" +
+        "**Method**\n" +
+        "1. Add Honeycomb Flavour to prepared Custard Cream.\n" +
+        "2. Mix thoroughly.\n\n" +
+        "_Developed by Donut Shop A: Quinn._",
+      roleKey: "fryer_op",
+      keyword: "honeycomb,cream,dessert",
+    },
+    {
+      name: "Make Strawberry Custard Cream",
+      color: "#F59E0B",
+      durationMin: 20,
+      description:
+        "**Per 1kg Custard Cream:**\n" +
+        "• 160g Strawberry Frappe Powder\n\n" +
+        "**Method**\n" +
+        "1. Add Strawberry Frappe Powder to prepared Custard Cream.\n" +
+        "2. Mix thoroughly.\n\n" +
+        "_Developed by Donut Shop A: Quinn._",
+      roleKey: "fryer_op",
+      keyword: "strawberry,cream,pastry",
+    },
+    {
+      name: "Prepare Coffee Fondant",
+      color: "#EAB308",
+      durationMin: 20,
+      description:
+        "**Ingredients**\n" +
+        "• 1000g White Fondant\n" +
+        "• 1 Double Espresso shot (60ml)\n\n" +
+        "**Method**\n" +
+        "1. Warm White Fondant in bain-marie to 65°C.\n" +
+        "2. Add espresso shot and mix thoroughly until fully incorporated.\n\n" +
+        "_Optimum working temperature: 65°C. Keep warm in bain-marie during service._",
+      roleKey: "fryer_op",
+      keyword: "coffee,fondant,espresso",
+    },
+    {
+      name: "Prepare Banana Fondant",
+      color: "#EAB308",
+      durationMin: 20,
+      description:
+        "**Ingredients**\n" +
+        "• 1000g White Fondant\n" +
+        "• 40ml Banana Flavacol\n\n" +
+        "**Method**\n" +
+        "1. Bring Fondant to 65°C in bain-marie.\n" +
+        "2. Add Banana Flavacol and mix thoroughly.\n\n" +
+        "_Bain-marie requires 30+ min to heat adequately — plan ahead._",
+      roleKey: "fryer_op",
+      keyword: "banana,fondant,pastry",
+    },
+    {
+      name: "Make French Toast Sugar",
+      color: "#F59E0B",
+      durationMin: 15,
+      description:
+        "**Ingredients**\n" +
+        "• 1000g Caster Sugar\n" +
+        "• 500g Icing Sugar _(NOT Snow Sugar)_\n" +
+        "• 100g Cinnamon Powder\n\n" +
+        "**Method**\n" +
+        "1. Mix all ingredients thoroughly.\n\n" +
+        "_Makes enough coating for 100+ doughnuts. Store in airtight container._",
+      roleKey: "fryer_op",
+      keyword: "cinnamon,sugar,baking",
+    },
+    {
+      name: "Recipe: Strawberries & Cream Frappe",
+      color: "#8B5CF6",
+      durationMin: 5,
+      description:
+        "**Ingredients**\n" +
+        "• 1 full cup Ice\n" +
+        "• 2/3 cup Milk\n" +
+        "• 3x small scoops White Chocolate Powder\n" +
+        "• 4x small scoops Strawberry Frappe Powder\n\n" +
+        "**Method**\n" +
+        "1. Blend 35 sec.\n" +
+        "2. Top with Whipped Cream Swirl and a dusting of Freeze Dried Raspberries.",
+      roleKey: "counter_staff",
+      keyword: "strawberry,cream,frappe",
+    },
+    {
+      name: "Recipe: Vanilla Chai Frappe",
+      color: "#8B5CF6",
+      durationMin: 5,
+      description:
+        "**Ingredients**\n" +
+        "• 1 full cup Ice\n" +
+        "• 1/2 cup Milk\n" +
+        "• 4x small scoops Vanilla Frappe Powder\n" +
+        "• 3x small scoops Vanilla Chai Powder\n\n" +
+        "**Method**\n" +
+        "1. Blend 35 sec.\n" +
+        "2. Top with Whipped Cream Swirl and dust with Cinnamon.",
+      roleKey: "counter_staff",
+      keyword: "chai,vanilla,drink",
+    },
+    {
+      name: "Recipe: Iced Latte",
+      color: "#06B6D4",
+      durationMin: 5,
+      description:
+        "**Ingredients**\n" +
+        "• 1 full cup Ice\n" +
+        "• 2x Double Espresso shots\n" +
+        "• 1 cup Milk\n\n" +
+        "**Method**\n" +
+        "1. Fill cup with Ice.\n" +
+        "2. Add espresso, then top with Milk to the brim.\n" +
+        "3. Serve in 16oz PET cup with Dome lid and straw.\n\n" +
+        "_Sugar syrup can be added at customer request._",
+      roleKey: "counter_staff",
+      keyword: "iced coffee,latte",
+    },
+    {
+      name: "Recipe: Iced Matcha",
+      color: "#06B6D4",
+      durationMin: 5,
+      description:
+        "**Ingredients**\n" +
+        "• 1 full cup Ice\n" +
+        "• 1 cup Milk\n" +
+        "• 1x small scoop Matcha Powder\n" +
+        "• Boiling water (for paste)\n\n" +
+        "**Method**\n" +
+        "1. Mix Matcha Powder with boiling water to form a paste.\n" +
+        "2. Fill cup with Ice, add Milk then Matcha paste, mix.\n" +
+        "3. Top up with Milk.\n" +
+        "4. Serve in 16oz PET cup with Dome lid and straw.\n\n" +
+        "_Always make Matcha paste fresh — no premix._",
+      roleKey: "counter_staff",
+      keyword: "matcha,iced,drink",
+    },
+    {
+      name: "Recipe: Iced Chai",
+      color: "#06B6D4",
+      durationMin: 5,
+      description:
+        "**Ingredients**\n" +
+        "• 1 full cup Ice\n" +
+        "• 1 cup Milk\n" +
+        "• 4x small scoops Vanilla Chai Powder\n" +
+        "• Boiling water (for paste)\n\n" +
+        "**Method**\n" +
+        "1. Mix Vanilla Chai Powder with boiling water to form a paste.\n" +
+        "2. Fill cup with Ice, add Milk then Chai paste, mix.\n" +
+        "3. Top up with Milk.\n" +
+        "4. Serve in 16oz PET cup with Dome lid and straw.",
+      roleKey: "counter_staff",
+      keyword: "chai,tea,iced",
+    },
+  ];
+
+  let globalTasksCreated = 0;
+  let globalTaskImages = 0;
+  for (const def of QUINN_GLOBAL_TASKS) {
+    const task = await prisma.task.create({
+      data: {
+        orgId: org.id,
+        name: def.name,
+        color: def.color,
+        durationMin: def.durationMin,
+        description: def.description,
+        preferredStartTimeMin: timeToMin("07:30"),
+        minPeople: 1,
+        minWaitDays: 0,
+        maxWaitDays: 1,
+        scope: TaskScope.GLOBAL,
+      },
+    });
+    const role = roleByKey[def.roleKey] ?? roleFryer;
+    await prisma.taskEligibility.create({ data: { taskId: task.id, roleId: role.id } });
+    await prisma.taskInheritance.create({ data: { taskId: task.id, orgId: org.id } });
+    const imgUrl = await uploadSeedTaskImage(org.id, task.id, def.keyword);
+    if (imgUrl) {
+      await prisma.task.update({ where: { id: task.id }, data: { imageUrl: imgUrl } });
+      globalTaskImages++;
+    }
+    globalTasksCreated++;
+  }
+  console.log(`  ✓ ${globalTasksCreated} GLOBAL tasks created (${globalTaskImages} with images)`);
+
+  // ── Inherit GLOBAL tasks from parent ──────────────────────────────────────
+  const globalTasks = await prisma.task.findMany({
+    where: { orgId: org1.org.id, scope: TaskScope.GLOBAL },
+    select: { id: true, name: true },
+  });
+  if (globalTasks.length > 0) {
+    await prisma.taskInheritance.createMany({
+      data: globalTasks.map(({ id }) => ({ taskId: id, orgId: org.id })),
+      skipDuplicates: true,
+    });
+  }
+  console.log(`  ✓ Franchisee created: ${org.name} (inherited ${globalTasks.length} tasks)`);
+
+  return { org };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 6. INVITES — Test data for notification panel
-//
-// Ivan (main dev account) is not a member of Bakery C, so a pending invite
-// from Jordan is realistic. Add more rows here to test other edge cases.
+// 5. INVITES — pending invite for Sam to join Donut Shop A
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function seedInvites(
   users: Users,
   org1: Awaited<ReturnType<typeof seedOrg1>>,
-  org3: Awaited<ReturnType<typeof seedOrg3>>,
 ) {
   await prisma.invite.createMany({
     data: [
-      // Pending — Ivan invited to join Bakery C by Jordan
-      {
-        orgId: org3.org.id,
-        invitedById: users.jordan.id,
-        recipientId: users.ivan.id,
-        type: InviteType.MEMBER,
-        orgName: "Bakery C",
-        inviterName: "Jordan",
-        metadata: {
-          roleIds: [org3.roles.roleBaker.id],
-          workingDays: ["mon", "wed", "fri"],
-        },
-      },
       // Bot-slot invite — Sam invited to fill "Open Slot" bot in Donut Shop A
       {
         orgId: org1.org.id,
@@ -3099,22 +2874,15 @@ async function main() {
   confirm();
   await cleanDatabase();
   const users = await seedUsers();
-
-  // Orgs are independent — seed in parallel
-  const [org1, org2, org3] = await Promise.all([
-    seedOrg1(users),
-    seedOrg2(users),
-    seedOrg3(users),
-  ]);
-
-  await seedInvites(users, org1, org3);
+  const org1 = await seedOrg1(users);
+  const franchisee = await seedFranchisee(users, org1);
+  await seedInvites(users, org1);
 
   console.log("Seeded successfully:", {
     users: Object.fromEntries(Object.entries(users).map(([k, v]) => [k, v.id])),
     orgs: {
       "Donut Shop A": org1.org.id,
-      "Coffee House B": org2.org.id,
-      "Bakery C": org3.org.id,
+      "Donut Shop A: Quinn": franchisee.org.id,
     },
   });
 }

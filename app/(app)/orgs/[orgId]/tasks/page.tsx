@@ -1,5 +1,6 @@
 import { getInheritedTasks, getSharedTasks } from "@/lib/services/tasks";
 import { getRoles } from "@/lib/services/roles";
+import { createSignedReadUrl } from "@/lib/supabase-storage";
 import { getOrgTags } from "@/lib/services/tags";
 import { requireOrgMemberPage } from "@/lib/authz";
 import {
@@ -75,6 +76,14 @@ const TasksPage = async ({
     getOrgTags(orgId),
   ]);
 
+  // Resolve signed image URLs in parallel (server-side; no extra round-trips from client)
+  const tasksWithImages = await Promise.all(
+    tasks.map(async (t) => ({
+      ...t,
+      imageSignedUrl: t.imageUrl ? await createSignedReadUrl(t.imageUrl) : null,
+    })),
+  );
+
   const sort: SortOption = VALID_SORT_VALUES.includes(sp.sort as SortOption)
     ? (sp.sort as SortOption)
     : "name-asc";
@@ -88,6 +97,7 @@ const TasksPage = async ({
     typeof sp.tagId === "string" && tags.some((t) => t.id === sp.tagId)
       ? sp.tagId
       : null;
+  const isFiltersExplicit = !!(sp.sort || sp.roleId || sp.view || sp.tagId);
 
   return (
     <>
@@ -104,12 +114,13 @@ const TasksPage = async ({
             view={view}
             mode={mode}
             isModeExplicit={isModeExplicit}
+            isFiltersExplicit={isFiltersExplicit}
           />
         }
       />
       <TaskTable
         orgId={orgId}
-        tasks={tasks}
+        tasks={tasksWithImages}
         canManageTasks={canManageTasks}
         sort={sort}
         filterRoleId={roleId}
