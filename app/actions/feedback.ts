@@ -9,7 +9,10 @@
 
 import { FeedbackType } from "@prisma/client";
 import { requireUserAction, requireSuperAdminAction } from "@/lib/authz";
-import { createFeedback, toggleFeedbackReviewed } from "@/lib/services/feedback";
+import {
+  createFeedback,
+  toggleFeedbackReviewed,
+} from "@/lib/services/feedback";
 import { getOrgMembership } from "@/lib/authz/_shared";
 
 /**
@@ -51,7 +54,13 @@ export async function submitFeedbackAction(
     }
   }
 
-  await createFeedback(authz.userId, type, trimmed, verifiedOrgId, verifiedImageUrl);
+  await createFeedback(
+    authz.userId,
+    type,
+    trimmed,
+    verifiedOrgId,
+    verifiedImageUrl,
+  );
   return { ok: true as const };
 }
 
@@ -59,7 +68,10 @@ export async function submitFeedbackAction(
  * Toggles the reviewed state of a feedback item.
  * Requires the caller to be a super-admin (AdminUser table lookup).
  */
-export async function toggleFeedbackReviewedAction(id: string, reviewed: boolean) {
+export async function toggleFeedbackReviewedAction(
+  id: string,
+  reviewed: boolean,
+) {
   const authz = await requireSuperAdminAction();
   if (!authz.ok) return { ok: false as const };
 

@@ -26,10 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  publishTaskAction,
-  unpublishTaskAction,
-} from "@/app/actions/tasks";
+import { publishTaskAction, unpublishTaskAction } from "@/app/actions/tasks";
 
 type TaskScope = "ORG" | "GLOBAL";
 
@@ -50,7 +47,11 @@ const SCOPE_LABELS: Record<TaskScope, { label: string; className: string }> = {
   },
 };
 
-export function TaskScopeControls({ orgId, taskId, scope: initialScope }: TaskScopeControlsProps) {
+export function TaskScopeControls({
+  orgId,
+  taskId,
+  scope: initialScope,
+}: TaskScopeControlsProps) {
   const [scope, setScope] = useState<TaskScope>(initialScope);
   const [unpublishDialogOpen, setUnpublishDialogOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -62,7 +63,9 @@ export function TaskScopeControls({ orgId, taskId, scope: initialScope }: TaskSc
       const result = await publishTaskAction(orgId, taskId);
       if (result.ok) {
         setScope("GLOBAL");
-        toast.success("Task published — franchisees can now add it to their list");
+        toast.success(
+          "Task published — franchisees can now add it to their list",
+        );
       } else {
         toast.error(result.error);
       }
@@ -71,7 +74,11 @@ export function TaskScopeControls({ orgId, taskId, scope: initialScope }: TaskSc
 
   function handleUnpublish(removeFromChildren: boolean) {
     startTransition(async () => {
-      const result = await unpublishTaskAction(orgId, taskId, removeFromChildren);
+      const result = await unpublishTaskAction(
+        orgId,
+        taskId,
+        removeFromChildren,
+      );
       if (result.ok) {
         setScope("ORG");
         toast.success(
@@ -94,7 +101,9 @@ export function TaskScopeControls({ orgId, taskId, scope: initialScope }: TaskSc
         ) : (
           <Lock className="h-3.5 w-3.5 text-muted-foreground" />
         )}
-        <span className={`text-xs font-medium ${info.className}`}>{info.label}</span>
+        <span className={`text-xs font-medium ${info.className}`}>
+          {info.label}
+        </span>
       </div>
 
       {scope === "ORG" && (
@@ -124,7 +133,10 @@ export function TaskScopeControls({ orgId, taskId, scope: initialScope }: TaskSc
       )}
 
       {/* Unpublish confirmation */}
-      <AlertDialog open={unpublishDialogOpen} onOpenChange={setUnpublishDialogOpen}>
+      <AlertDialog
+        open={unpublishDialogOpen}
+        onOpenChange={setUnpublishDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Make task private?</AlertDialogTitle>

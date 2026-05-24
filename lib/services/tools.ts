@@ -20,7 +20,12 @@ export async function getConversionSets(orgId: string) {
   return prisma.conversionSet.findMany({
     where: { orgId },
     orderBy: { updatedAt: "desc" },
-    select: { id: true, name: true, updatedAt: true, _count: { select: { templates: true } } },
+    select: {
+      id: true,
+      name: true,
+      updatedAt: true,
+      _count: { select: { templates: true } },
+    },
   });
 }
 
@@ -56,7 +61,10 @@ export async function createConversionSet(orgId: string, name: string) {
 }
 
 /** Creates a new conversion set with a Default template atomically. */
-export async function createConversionSetWithDefault(orgId: string, name: string) {
+export async function createConversionSetWithDefault(
+  orgId: string,
+  name: string,
+) {
   return prisma.$transaction(async (tx) => {
     const set = await tx.conversionSet.create({
       data: { orgId, name },
@@ -75,7 +83,11 @@ export async function deleteConversionSet(orgId: string, id: string) {
 }
 
 /** Renames a conversion set. Uses `updateMany` for implicit org-scope safety. */
-export async function renameConversionSet(orgId: string, id: string, name: string) {
+export async function renameConversionSet(
+  orgId: string,
+  id: string,
+  name: string,
+) {
   return prisma.conversionSet.updateMany({
     where: { id, orgId },
     data: { name },
@@ -121,7 +133,10 @@ export async function updateToolItem(
   name: string,
   unit: string,
 ) {
-  await prisma.toolItem.updateMany({ where: { id, orgId }, data: { name, unit } });
+  await prisma.toolItem.updateMany({
+    where: { id, orgId },
+    data: { name, unit },
+  });
 }
 
 // ─── ConversionRate ───────────────────────────────────────────────────────────
@@ -235,7 +250,11 @@ export async function getConversionTemplates(orgId: string, setId: string) {
 }
 
 /** Creates a new empty template. Names must be unique per set (DB constraint). */
-export async function createConversionTemplate(setId: string, name: string, orgId?: string) {
+export async function createConversionTemplate(
+  setId: string,
+  name: string,
+  orgId?: string,
+) {
   // orgId is optional for backward compatibility (e.g., when creating Default template during set creation)
   if (orgId) {
     return prisma.$transaction(async (tx) => {
@@ -274,7 +293,12 @@ export async function duplicateConversionTemplate(
     // Fetch source template (scoped to org)
     const source = await tx.conversionTemplate.findFirst({
       where: { id: templateId, set: { orgId } },
-      select: { setId: true, entries: { select: { itemId: true, quantity: true, pinnedOutput: true } } },
+      select: {
+        setId: true,
+        entries: {
+          select: { itemId: true, quantity: true, pinnedOutput: true },
+        },
+      },
     });
     if (!source) throw new Error("Template not found or access denied");
 
@@ -376,7 +400,11 @@ export async function upsertTemplateEntry(
 }
 
 /** Removes a single item slot from a template (used when the user removes a From or To item). */
-export async function deleteTemplateEntry(orgId: string, templateId: string, itemId: string) {
+export async function deleteTemplateEntry(
+  orgId: string,
+  templateId: string,
+  itemId: string,
+) {
   return prisma.$transaction(async (tx) => {
     // Verify template belongs to org via its set
     const template = await tx.conversionTemplate.findFirst({

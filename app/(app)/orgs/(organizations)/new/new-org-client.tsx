@@ -144,8 +144,12 @@ function useScheduleState() {
 }
 
 function buildSchedulePayload(s: ReturnType<typeof useScheduleState>) {
-  const openMin = s.openTime ? (timeToMinutes(s.openTime) ?? undefined) : undefined;
-  const closeMin = s.closeTime ? (timeToMinutes(s.closeTime) ?? undefined) : undefined;
+  const openMin = s.openTime
+    ? (timeToMinutes(s.openTime) ?? undefined)
+    : undefined;
+  const closeMin = s.closeTime
+    ? (timeToMinutes(s.closeTime) ?? undefined)
+    : undefined;
   if (openMin !== undefined && closeMin !== undefined && closeMin <= openMin) {
     throw new Error("Close time must be after open time");
   }

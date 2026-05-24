@@ -43,8 +43,7 @@ export async function createSignedUploadUrl(
   storagePath: string,
   maxSizeBytes?: number,
 ): Promise<
-  | { ok: true; signedUrl: string; path: string }
-  | { ok: false; error: string }
+  { ok: true; signedUrl: string; path: string } | { ok: false; error: string }
 > {
   const { url, key } = getConfig();
   const res = await fetch(
@@ -55,22 +54,28 @@ export async function createSignedUploadUrl(
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(maxSizeBytes !== undefined ? { sizeInBytes: maxSizeBytes } : {}),
+      body: JSON.stringify(
+        maxSizeBytes !== undefined ? { sizeInBytes: maxSizeBytes } : {},
+      ),
     },
   );
   if (!res.ok) {
     const body = await res.text().catch(() => res.statusText);
     return { ok: false, error: `Storage error: ${body}` };
   }
-  const data = await res.json() as Record<string, unknown>;
+  const data = (await res.json()) as Record<string, unknown>;
   // Field name varies by Supabase version: signedURL (older) or signedUrl (newer)
-  const rawUrl = (data.signedURL ?? data.signedUrl ?? data.url) as string | undefined;
+  const rawUrl = (data.signedURL ?? data.signedUrl ?? data.url) as
+    | string
+    | undefined;
   if (!rawUrl) {
     return { ok: false, error: `Storage error: unexpected response shape` };
   }
   return {
     ok: true,
-    signedUrl: rawUrl.startsWith("http") ? rawUrl : `${url}/storage/v1${rawUrl}`,
+    signedUrl: rawUrl.startsWith("http")
+      ? rawUrl
+      : `${url}/storage/v1${rawUrl}`,
     path: (data.path as string | undefined) ?? storagePath,
   };
 }
@@ -93,7 +98,10 @@ export async function createSignedReadUrl(
     body: JSON.stringify({ expiresIn, paths: [storagePath] }),
   });
   if (!res.ok) return null;
-  const data = await res.json() as Array<{ signedURL: string | null; error: string | null }>;
+  const data = (await res.json()) as Array<{
+    signedURL: string | null;
+    error: string | null;
+  }>;
   const entry = data[0];
   if (!entry?.signedURL) return null;
   return entry.signedURL.startsWith("http")
@@ -114,7 +122,9 @@ export async function deleteStorageFile(storagePath: string): Promise<void> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ prefixes: [storagePath] }),
-  }).catch(() => {/* silently ignore */});
+  }).catch(() => {
+    /* silently ignore */
+  });
 }
 
 // ─── Public bucket helpers ────────────────────────────────────────────────────
@@ -127,8 +137,7 @@ export async function createSignedUploadUrlPublic(
   storagePath: string,
   maxSizeBytes?: number,
 ): Promise<
-  | { ok: true; signedUrl: string; path: string }
-  | { ok: false; error: string }
+  { ok: true; signedUrl: string; path: string } | { ok: false; error: string }
 > {
   const { url, key } = getConfig();
   const res = await fetch(
@@ -139,21 +148,30 @@ export async function createSignedUploadUrlPublic(
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(maxSizeBytes !== undefined ? { sizeInBytes: maxSizeBytes } : {}),
+      body: JSON.stringify(
+        maxSizeBytes !== undefined ? { sizeInBytes: maxSizeBytes } : {},
+      ),
     },
   );
   if (!res.ok) {
     const body = await res.text().catch(() => res.statusText);
     return { ok: false, error: `Storage error: ${body}` };
   }
-  const data = await res.json() as Record<string, unknown>;
-  const rawUrl = (data.signedURL ?? data.signedUrl ?? data.url) as string | undefined;
+  const data = (await res.json()) as Record<string, unknown>;
+  const rawUrl = (data.signedURL ?? data.signedUrl ?? data.url) as
+    | string
+    | undefined;
   if (!rawUrl) {
-    return { ok: false, error: `Storage error: unexpected response: ${JSON.stringify(data)}` };
+    return {
+      ok: false,
+      error: `Storage error: unexpected response: ${JSON.stringify(data)}`,
+    };
   }
   return {
     ok: true,
-    signedUrl: rawUrl.startsWith("http") ? rawUrl : `${url}/storage/v1${rawUrl}`,
+    signedUrl: rawUrl.startsWith("http")
+      ? rawUrl
+      : `${url}/storage/v1${rawUrl}`,
     path: (data.path as string | undefined) ?? storagePath,
   };
 }
@@ -180,5 +198,7 @@ export async function deletePublicFile(storagePath: string): Promise<void> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ prefixes: [storagePath] }),
-  }).catch(() => {/* silently ignore */});
+  }).catch(() => {
+    /* silently ignore */
+  });
 }

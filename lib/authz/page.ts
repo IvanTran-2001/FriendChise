@@ -104,9 +104,9 @@ export async function requireOrgPermissionPage(
  * Requires the caller to be an app admin (row exists in AdminUser table).
  * Redirects to /signin if not signed in, or redirectTo if not an admin.
  */
-export async function requireSuperAdminPage(
-  { redirectTo = "/" } = {},
-): Promise<{ userId: string }> {
+export async function requireSuperAdminPage({
+  redirectTo = "/",
+} = {}): Promise<{ userId: string }> {
   const user = await getAuthUser();
   if (!user) redirect("/signin");
   if (!(await isAdminUser(user.email))) redirect(redirectTo);

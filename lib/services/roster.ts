@@ -34,7 +34,11 @@ export type RosterDayConfigRow = {
  */
 export async function getOrgSchedule(
   orgId: string,
-): Promise<{ openTimeMin: number | null; closeTimeMin: number | null; timezone: string }> {
+): Promise<{
+  openTimeMin: number | null;
+  closeTimeMin: number | null;
+  timezone: string;
+}> {
   const org = await prisma.organization.findUnique({
     where: { id: orgId },
     select: { openTimeMin: true, closeTimeMin: true, timezone: true },
@@ -336,7 +340,11 @@ export async function createRosterTemplate(
     where: { orgId, name: trimmed },
   });
   if (existing)
-    return { ok: false, error: "A template with that name already exists", code: "CONFLICT" };
+    return {
+      ok: false,
+      error: "A template with that name already exists",
+      code: "CONFLICT",
+    };
 
   const template = await prisma.rosterTemplate.create({
     data: { orgId, name: trimmed, cycleWeeks },
@@ -383,7 +391,11 @@ export async function renameRosterTemplate(
     where: { orgId, name: trimmed, id: { not: templateId } },
   });
   if (conflict)
-    return { ok: false, error: "A template with that name already exists", code: "CONFLICT" };
+    return {
+      ok: false,
+      error: "A template with that name already exists",
+      code: "CONFLICT",
+    };
 
   await prisma.rosterTemplate.update({
     where: { id: templateId },
@@ -402,7 +414,11 @@ export async function updateRosterTemplateCycleWeeks(
   cycleWeeks: number,
 ): Promise<ServiceResult<null>> {
   if (cycleWeeks < 1 || cycleWeeks > 12)
-    return { ok: false, error: "Cycle weeks must be between 1 and 12", code: "INVALID" };
+    return {
+      ok: false,
+      error: "Cycle weeks must be between 1 and 12",
+      code: "INVALID",
+    };
 
   const template = await prisma.rosterTemplate.findFirst({
     where: { id: templateId, orgId },
@@ -484,18 +500,25 @@ export async function applyRosterTemplate(
       where: { orgId, weekStart: { in: weekStarts } },
     });
     if (conflictCount > 0)
-      return { ok: false, error: "Target weeks already have entries", code: "CONFLICT" };
+      return {
+        ok: false,
+        error: "Target weeks already have entries",
+        code: "CONFLICT",
+      };
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.rosterEntry.deleteMany({ where: { orgId, weekStart: { in: weekStarts } } });
+    await tx.rosterEntry.deleteMany({
+      where: { orgId, weekStart: { in: weekStarts } },
+    });
 
     const insertData = [];
     for (let r = 0; r < cycleRepeats; r++) {
       for (const entry of template.entries) {
         const weekStart = new Date(startMonday);
         weekStart.setUTCDate(
-          weekStart.getUTCDate() + (r * template.cycleWeeks + entry.weekIndex) * 7,
+          weekStart.getUTCDate() +
+            (r * template.cycleWeeks + entry.weekIndex) * 7,
         );
         insertData.push({
           orgId,
@@ -509,7 +532,10 @@ export async function applyRosterTemplate(
       }
     }
     if (insertData.length > 0)
-      await tx.rosterEntry.createMany({ data: insertData, skipDuplicates: true });
+      await tx.rosterEntry.createMany({
+        data: insertData,
+        skipDuplicates: true,
+      });
   });
 
   return { ok: true, data: null };

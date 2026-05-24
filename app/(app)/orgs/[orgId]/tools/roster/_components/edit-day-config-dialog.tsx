@@ -10,7 +10,9 @@ import type { DayConfigRow } from "./roster-board";
 
 function minToTime(min: number | null): string {
   if (min === null) return "";
-  const h = Math.floor(min / 60).toString().padStart(2, "0");
+  const h = Math.floor(min / 60)
+    .toString()
+    .padStart(2, "0");
   const m = (min % 60).toString().padStart(2, "0");
   return `${h}:${m}`;
 }

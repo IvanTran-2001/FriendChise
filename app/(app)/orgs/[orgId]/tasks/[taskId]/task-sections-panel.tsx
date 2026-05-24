@@ -13,7 +13,14 @@
  * Changes are saved when the user clicks "Save Layout".
  */
 import { useState, useRef, useTransition } from "react";
-import { Eye, EyeOff, GripVertical, Save, ChevronUp, ChevronDown } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  GripVertical,
+  Save,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { updateSectionLayoutAction } from "@/app/actions/tasks";

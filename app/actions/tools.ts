@@ -40,7 +40,10 @@ import {
  * Maps Prisma errors to user-friendly messages.
  * Returns null if the error should be handled with a generic message.
  */
-function mapPrismaError(err: unknown, errorMessages: Record<string, string>): string | null {
+function mapPrismaError(
+  err: unknown,
+  errorMessages: Record<string, string>,
+): string | null {
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     return errorMessages[err.code] ?? null;
   }
@@ -54,7 +57,10 @@ function mapPrismaError(err: unknown, errorMessages: Record<string, string>): st
  * for it. Navigating to the set page will land on this Default template.
  */
 export async function createConversionSetAction(orgId: string, name: string) {
-  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!auth.ok) return { ok: false as const };
 
   const trimmed = name.trim();
@@ -68,13 +74,19 @@ export async function createConversionSetAction(orgId: string, name: string) {
     const mappedError = mapPrismaError(err, {
       P2002: "A set with that name already exists.",
     });
-    return { ok: false as const, error: mappedError ?? "Failed to create set." };
+    return {
+      ok: false as const,
+      error: mappedError ?? "Failed to create set.",
+    };
   }
 }
 
 /** Deletes a ConversionSet and all its rates, templates, and entries via DB cascade. */
 export async function deleteConversionSetAction(orgId: string, id: string) {
-  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!auth.ok) return { ok: false as const };
 
   try {
@@ -85,13 +97,23 @@ export async function deleteConversionSetAction(orgId: string, id: string) {
     const mappedError = mapPrismaError(err, {
       P2025: "Set not found.",
     });
-    return { ok: false as const, error: mappedError ?? "Failed to delete set." };
+    return {
+      ok: false as const,
+      error: mappedError ?? "Failed to delete set.",
+    };
   }
 }
 
 /** Renames a ConversionSet. */
-export async function renameConversionSetAction(orgId: string, id: string, name: string) {
-  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+export async function renameConversionSetAction(
+  orgId: string,
+  id: string,
+  name: string,
+) {
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!auth.ok) return { ok: false as const };
 
   const trimmed = name.trim();
@@ -106,7 +128,10 @@ export async function renameConversionSetAction(orgId: string, id: string, name:
       P2002: "A set with that name already exists.",
       P2025: "Set not found.",
     });
-    return { ok: false as const, error: mappedError ?? "Failed to rename set." };
+    return {
+      ok: false as const,
+      error: mappedError ?? "Failed to rename set.",
+    };
   }
 }
 
@@ -122,7 +147,10 @@ export async function createToolItemAction(
   name: string,
   unit: string,
 ) {
-  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!auth.ok) return { ok: false as const };
 
   const trimmedName = name.trim();
@@ -138,7 +166,10 @@ export async function createToolItemAction(
     const mappedError = mapPrismaError(err, {
       P2002: "An item with that name already exists.",
     });
-    return { ok: false as const, error: mappedError ?? "Failed to create item." };
+    return {
+      ok: false as const,
+      error: mappedError ?? "Failed to create item.",
+    };
   }
 }
 
@@ -149,7 +180,10 @@ export async function updateToolItemAction(
   name: string,
   unit: string,
 ) {
-  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!auth.ok) return { ok: false as const };
 
   const trimmedName = name.trim();
@@ -166,13 +200,19 @@ export async function updateToolItemAction(
       P2002: "An item with that name already exists.",
       P2025: "Item not found.",
     });
-    return { ok: false as const, error: mappedError ?? "Failed to update item." };
+    return {
+      ok: false as const,
+      error: mappedError ?? "Failed to update item.",
+    };
   }
 }
 
 /** Deletes a tool item by ID. Will fail if the item is used in any ConversionRate. */
 export async function deleteToolItemAction(orgId: string, id: string) {
-  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!auth.ok) return { ok: false as const };
 
   try {
@@ -184,7 +224,10 @@ export async function deleteToolItemAction(orgId: string, id: string) {
       P2003: "Cannot delete an item that is used in a conversion rate.",
       P2025: "Item not found.",
     });
-    return { ok: false as const, error: mappedError ?? "Failed to delete item." };
+    return {
+      ok: false as const,
+      error: mappedError ?? "Failed to delete item.",
+    };
   }
 }
 
@@ -207,15 +250,37 @@ export async function createConversionRateAction(
   fromQty: number,
   toQty: number,
 ) {
-  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!auth.ok) return { ok: false as const };
 
-  if (!Number.isFinite(fromQty) || fromQty <= 0) return { ok: false as const, error: "From quantity must be a finite number greater than 0." };
-  if (!Number.isFinite(toQty) || toQty <= 0) return { ok: false as const, error: "To quantity must be a finite number greater than 0." };
-  if (fromItemId === toItemId) return { ok: false as const, error: "From and To items must be different." };
+  if (!Number.isFinite(fromQty) || fromQty <= 0)
+    return {
+      ok: false as const,
+      error: "From quantity must be a finite number greater than 0.",
+    };
+  if (!Number.isFinite(toQty) || toQty <= 0)
+    return {
+      ok: false as const,
+      error: "To quantity must be a finite number greater than 0.",
+    };
+  if (fromItemId === toItemId)
+    return {
+      ok: false as const,
+      error: "From and To items must be different.",
+    };
 
   try {
-    const rate = await createConversionRate(orgId, setId, fromItemId, toItemId, fromQty, toQty);
+    const rate = await createConversionRate(
+      orgId,
+      setId,
+      fromItemId,
+      toItemId,
+      fromQty,
+      toQty,
+    );
     revalidatePath(`/orgs/${orgId}/tools/conversion/${setId}`);
     return { ok: true as const, rate };
   } catch (err: unknown) {
@@ -223,13 +288,23 @@ export async function createConversionRateAction(
       P2002: "Rate already exists for this item pair.",
       P2003: "Invalid item or set reference.",
     });
-    return { ok: false as const, error: mappedError ?? "Failed to create rate." };
+    return {
+      ok: false as const,
+      error: mappedError ?? "Failed to create rate.",
+    };
   }
 }
 
 /** Deletes a single conversion rate by ID. Requires `setId` only for cache revalidation. */
-export async function deleteConversionRateAction(orgId: string, setId: string, rateId: string) {
-  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+export async function deleteConversionRateAction(
+  orgId: string,
+  setId: string,
+  rateId: string,
+) {
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!auth.ok) return { ok: false as const };
 
   try {
@@ -240,7 +315,10 @@ export async function deleteConversionRateAction(orgId: string, setId: string, r
     const mappedError = mapPrismaError(err, {
       P2025: "Rate not found.",
     });
-    return { ok: false as const, error: mappedError ?? "Failed to delete rate." };
+    return {
+      ok: false as const,
+      error: mappedError ?? "Failed to delete rate.",
+    };
   }
 }
 
@@ -252,7 +330,10 @@ export async function updateConversionRateAction(
   fromQty: number,
   toQty: number,
 ) {
-  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!auth.ok) return { ok: false as const };
 
   if (!Number.isFinite(fromQty) || fromQty <= 0)
@@ -268,7 +349,10 @@ export async function updateConversionRateAction(
     const mappedError = mapPrismaError(err, {
       P2025: "Rate not found.",
     });
-    return { ok: false as const, error: mappedError ?? "Failed to update rate." };
+    return {
+      ok: false as const,
+      error: mappedError ?? "Failed to update rate.",
+    };
   }
 }
 
@@ -285,7 +369,10 @@ export async function createConversionTemplateAction(
   setId: string,
   name: string,
 ) {
-  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!auth.ok) return { ok: false as const };
 
   const trimmed = name.trim();
@@ -300,7 +387,10 @@ export async function createConversionTemplateAction(
       P2002: "A template with that name already exists.",
       P2003: "Set not found.",
     });
-    return { ok: false as const, error: mappedError ?? "Failed to create template." };
+    return {
+      ok: false as const,
+      error: mappedError ?? "Failed to create template.",
+    };
   }
 }
 
@@ -314,7 +404,10 @@ export async function deleteConversionTemplateAction(
   setId: string,
   templateId: string,
 ) {
-  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!auth.ok) return { ok: false as const };
 
   try {
@@ -323,7 +416,10 @@ export async function deleteConversionTemplateAction(
       select: { name: true },
     });
     if (template?.name === "Default") {
-      return { ok: false as const, error: "The Default template cannot be deleted." };
+      return {
+        ok: false as const,
+        error: "The Default template cannot be deleted.",
+      };
     }
 
     await deleteConversionTemplate(orgId, templateId);
@@ -333,7 +429,10 @@ export async function deleteConversionTemplateAction(
     const mappedError = mapPrismaError(err, {
       P2025: "Template not found.",
     });
-    return { ok: false as const, error: mappedError ?? "Failed to delete template." };
+    return {
+      ok: false as const,
+      error: mappedError ?? "Failed to delete template.",
+    };
   }
 }
 
@@ -346,7 +445,10 @@ export async function renameConversionTemplateAction(
   templateId: string,
   name: string,
 ) {
-  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!auth.ok) return { ok: false as const };
 
   const trimmed = name.trim();
@@ -358,7 +460,10 @@ export async function renameConversionTemplateAction(
       select: { name: true },
     });
     if (template?.name === "Default") {
-      return { ok: false as const, error: "The Default template cannot be renamed." };
+      return {
+        ok: false as const,
+        error: "The Default template cannot be renamed.",
+      };
     }
 
     await renameConversionTemplate(orgId, templateId, trimmed);
@@ -368,7 +473,10 @@ export async function renameConversionTemplateAction(
     const mappedError = mapPrismaError(err, {
       P2002: "A template with that name already exists.",
     });
-    return { ok: false as const, error: mappedError ?? "Failed to rename template." };
+    return {
+      ok: false as const,
+      error: mappedError ?? "Failed to rename template.",
+    };
   }
 }
 
@@ -382,21 +490,31 @@ export async function duplicateConversionTemplateAction(
   templateId: string,
   newName: string,
 ) {
-  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!auth.ok) return { ok: false as const };
 
   const trimmed = newName.trim();
   if (!trimmed) return { ok: false as const, error: "Name is required." };
 
   try {
-    const template = await duplicateConversionTemplate(orgId, templateId, trimmed);
+    const template = await duplicateConversionTemplate(
+      orgId,
+      templateId,
+      trimmed,
+    );
     revalidatePath(`/orgs/${orgId}/tools/conversion/${setId}`);
     return { ok: true as const, template };
   } catch (err: unknown) {
     const mappedError = mapPrismaError(err, {
       P2002: "A template with that name already exists.",
     });
-    return { ok: false as const, error: mappedError ?? "Failed to duplicate template." };
+    return {
+      ok: false as const,
+      error: mappedError ?? "Failed to duplicate template.",
+    };
   }
 }
 
@@ -413,25 +531,40 @@ export async function upsertTemplateEntryAction(
   quantity: number | null,
   pinnedOutput: number,
 ) {
-  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!auth.ok) return { ok: false as const };
 
   if (![1, 2, 3].includes(pinnedOutput)) {
     return { ok: false as const, error: "pinnedOutput must be 1, 2, or 3." };
   }
   if (quantity !== null && (!Number.isInteger(quantity) || quantity < 0)) {
-    return { ok: false as const, error: "quantity must be null or a non-negative integer." };
+    return {
+      ok: false as const,
+      error: "quantity must be null or a non-negative integer.",
+    };
   }
 
   try {
-    await upsertTemplateEntry(orgId, templateId, itemId, quantity, pinnedOutput);
+    await upsertTemplateEntry(
+      orgId,
+      templateId,
+      itemId,
+      quantity,
+      pinnedOutput,
+    );
     return { ok: true as const };
   } catch (err: unknown) {
     const mappedError = mapPrismaError(err, {
       P2003: "Invalid template or item reference.",
       P2025: "Template not found.",
     });
-    return { ok: false as const, error: mappedError ?? "Failed to update entry." };
+    return {
+      ok: false as const,
+      error: mappedError ?? "Failed to update entry.",
+    };
   }
 }
 
@@ -444,7 +577,10 @@ export async function removeTemplateEntryAction(
   templateId: string,
   itemId: string,
 ) {
-  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
   if (!auth.ok) return { ok: false as const };
 
   try {
@@ -454,6 +590,9 @@ export async function removeTemplateEntryAction(
     const mappedError = mapPrismaError(err, {
       P2025: "Entry not found.",
     });
-    return { ok: false as const, error: mappedError ?? "Failed to delete entry." };
+    return {
+      ok: false as const,
+      error: mappedError ?? "Failed to delete entry.",
+    };
   }
 }

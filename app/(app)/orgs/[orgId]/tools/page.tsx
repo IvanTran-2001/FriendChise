@@ -21,7 +21,11 @@ export default async function ToolsPage({
   return (
     <>
       <RegisterPageSidebar content={<ToolsSidebarContent orgId={orgId} />} />
-      <ToolsClient orgId={orgId} recentSets={recentSets} hasRoster={hasRoster} />
+      <ToolsClient
+        orgId={orgId}
+        recentSets={recentSets}
+        hasRoster={hasRoster}
+      />
     </>
   );
 }

@@ -16,7 +16,11 @@ interface TaskSectionsTriggerProps {
   sections: SectionRow[];
 }
 
-export function TaskSectionsTrigger({ orgId, taskId, sections }: TaskSectionsTriggerProps) {
+export function TaskSectionsTrigger({
+  orgId,
+  taskId,
+  sections,
+}: TaskSectionsTriggerProps) {
   const { open, close, activeTitle } = useActionSidebar();
   const PANEL_TITLE = "Sections";
 

@@ -102,20 +102,26 @@ export default async function TimetablePage({
     : false;
 
   // Build membership→roles map for client rendering
-  const clientMemberships = memberships.map((m: typeof memberships[number]) => ({
-    id: m.id,
-    user: m.user ? { id: m.user.id, name: m.user.name } : null,
-    botName: m.botName ?? null,
-    roles: m.memberRoles.map((mr: typeof m.memberRoles[number]) => ({
-      id: mr.role.id,
-      name: mr.role.name,
-      color: mr.role.color,
-    })),
-  }));
+  const clientMemberships = memberships.map(
+    (m: (typeof memberships)[number]) => ({
+      id: m.id,
+      user: m.user ? { id: m.user.id, name: m.user.name } : null,
+      botName: m.botName ?? null,
+      roles: m.memberRoles.map((mr: (typeof m.memberRoles)[number]) => ({
+        id: mr.role.id,
+        name: mr.role.name,
+        color: mr.role.color,
+      })),
+    }),
+  );
 
   // Roles for filter dropdown — all org roles
   const filterRoles = orgRoles
-    .map((r: typeof orgRoles[number]) => ({ id: r.id, name: r.name, color: r.color }))
+    .map((r: (typeof orgRoles)[number]) => ({
+      id: r.id,
+      name: r.name,
+      color: r.color,
+    }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
   // Filter instances by task eligibility for the selected role
@@ -135,7 +141,11 @@ export default async function TimetablePage({
   }
 
   // Filter instances by tag for the selected tag
-  const filterTags = orgTags.map((t) => ({ id: t.id, name: t.name, color: t.color }));
+  const filterTags = orgTags.map((t) => ({
+    id: t.id,
+    name: t.name,
+    color: t.color,
+  }));
   const selectedTagId =
     rawTagId && filterTags.some((t) => t.id === rawTagId) ? rawTagId : null;
   if (selectedTagId) {

@@ -17,9 +17,7 @@ import { getInvitesForUser } from "@/lib/services/invites";
 function OrgInitials({ name }: { name: string }) {
   const words = name.trim().split(/\s+/);
   const initials =
-    words.length >= 2
-      ? words[0][0] + words[1][0]
-      : name.slice(0, 2);
+    words.length >= 2 ? words[0][0] + words[1][0] : name.slice(0, 2);
   return (
     <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold shrink-0 uppercase">
       {initials}
@@ -59,7 +57,9 @@ function OrgCard({ org }: { org: OrgEntry }) {
           <OrgInitials name={org.name} />
         )}
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm truncate leading-tight">{org.name}</p>
+          <p className="font-semibold text-sm truncate leading-tight">
+            {org.name}
+          </p>
           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
             {org.isOwner && (
               <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs font-medium">
@@ -118,7 +118,9 @@ function EmptyActionCard({
       <div
         className={cn(
           "w-12 h-12 rounded-xl flex items-center justify-center",
-          primary ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+          primary
+            ? "bg-primary/10 text-primary"
+            : "bg-muted text-muted-foreground",
         )}
       >
         <Icon className="h-6 w-6" />
@@ -145,16 +147,18 @@ export default async function HubPage({
 
   const [memberships, allInvites] = await Promise.all([
     prisma.membership.findMany({
-    where: { userId },
-    include: {
-      organization: {
-        include: {
-          _count: { select: { memberships: { where: { userId: { not: null } } } } },
+      where: { userId },
+      include: {
+        organization: {
+          include: {
+            _count: {
+              select: { memberships: { where: { userId: { not: null } } } },
+            },
+          },
         },
       },
-    },
-    orderBy: { joinedAt: "asc" },
-  }),
+      orderBy: { joinedAt: "asc" },
+    }),
     getInvitesForUser(userId),
   ]);
 
@@ -181,7 +185,9 @@ export default async function HubPage({
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Organizations</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Organizations
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {orgs.length === 0
               ? "You're not part of any organization yet."

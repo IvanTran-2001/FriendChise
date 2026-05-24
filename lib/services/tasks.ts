@@ -29,7 +29,6 @@ import {
 import type { ServiceResult } from "./types";
 import type { CreateTaskInput, UpdateTaskInput } from "@/lib/validators/task";
 
-
 /**
  * Creates a new task for the given org using validated input.
  * Optional fields are null-coalesced so callers never need to handle `undefined`.
@@ -396,9 +395,15 @@ export async function getTasksSimple(orgId: string) {
  * record for it. Use this before creating timetable entries or displaying
  * task details to a franchisee org.
  */
-export async function canAccessTask(orgId: string, taskId: string): Promise<boolean> {
+export async function canAccessTask(
+  orgId: string,
+  taskId: string,
+): Promise<boolean> {
   const [owned, inherited] = await Promise.all([
-    prisma.task.findFirst({ where: { id: taskId, orgId }, select: { id: true } }),
+    prisma.task.findFirst({
+      where: { id: taskId, orgId },
+      select: { id: true },
+    }),
     prisma.taskInheritance.findUnique({
       where: { taskId_orgId: { taskId, orgId } },
     }),
@@ -443,7 +448,8 @@ export async function publishTask(
     where: { id: taskId, orgId },
     data: { scope: TaskScope.GLOBAL },
   });
-  if (count === 0) return { ok: false, error: "Task not found", code: "NOT_FOUND" };
+  if (count === 0)
+    return { ok: false, error: "Task not found", code: "NOT_FOUND" };
 
   log.info("Task published", { orgId, taskId });
   recordAudit({
@@ -476,11 +482,19 @@ export async function unpublishTask(
 
   if (removeFromChildren) {
     await prisma.$transaction([
-      prisma.task.update({ where: { id: taskId }, data: { scope: TaskScope.ORG } }),
-      prisma.taskInheritance.deleteMany({ where: { taskId, orgId: { not: orgId } } }),
+      prisma.task.update({
+        where: { id: taskId },
+        data: { scope: TaskScope.ORG },
+      }),
+      prisma.taskInheritance.deleteMany({
+        where: { taskId, orgId: { not: orgId } },
+      }),
     ]);
   } else {
-    await prisma.task.update({ where: { id: taskId }, data: { scope: TaskScope.ORG } });
+    await prisma.task.update({
+      where: { id: taskId },
+      data: { scope: TaskScope.ORG },
+    });
   }
 
   log.info("Task unpublished", { orgId, taskId, removeFromChildren });
@@ -518,7 +532,8 @@ export async function inheritTask(
     },
     select: { id: true, orgId: true },
   });
-  if (!task) return { ok: false, error: "Task not available", code: "NOT_FOUND" };
+  if (!task)
+    return { ok: false, error: "Task not available", code: "NOT_FOUND" };
 
   const [requestingOrg, taskOwnerOrg] = await Promise.all([
     prisma.organization.findUnique({
@@ -538,7 +553,8 @@ export async function inheritTask(
   const isRelated =
     requestingOrg.parentId === taskOwnerOrg.id ||
     taskOwnerOrg.parentId === requestingOrg.id ||
-    (requestingOrg.parentId && requestingOrg.parentId === taskOwnerOrg.parentId);
+    (requestingOrg.parentId &&
+      requestingOrg.parentId === taskOwnerOrg.parentId);
 
   if (!isRelated) {
     return { ok: false, error: "Forbidden", code: "FORBIDDEN" };

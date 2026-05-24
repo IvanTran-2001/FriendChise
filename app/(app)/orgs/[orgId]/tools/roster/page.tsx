@@ -43,16 +43,23 @@ export default async function RosterPage({
 
   const weekStarts = getInitialWeekStarts();
 
-  const [entries, dayConfigs, members, membership, roles, orgSchedule, templates] =
-    await Promise.all([
-      getRosterEntries(orgId, weekStarts),
-      getRosterDayConfigs(orgId),
-      getOrgMembersForRoster(orgId),
-      getOrgMembership(orgId, userId),
-      getRoles(orgId),
-      getOrgSchedule(orgId),
-      getRosterTemplates(orgId),
-    ]);
+  const [
+    entries,
+    dayConfigs,
+    members,
+    membership,
+    roles,
+    orgSchedule,
+    templates,
+  ] = await Promise.all([
+    getRosterEntries(orgId, weekStarts),
+    getRosterDayConfigs(orgId),
+    getOrgMembersForRoster(orgId),
+    getOrgMembership(orgId, userId),
+    getRoles(orgId),
+    getOrgSchedule(orgId),
+    getRosterTemplates(orgId),
+  ]);
 
   const canManage = membership
     ? await memberHasPermission(
@@ -70,7 +77,11 @@ export default async function RosterPage({
       dayConfigs={dayConfigs}
       members={members}
       roles={roles.map((r) => ({ id: r.id, name: r.name, color: r.color }))}
-      templates={templates.map((t) => ({ id: t.id, name: t.name, cycleWeeks: t.cycleWeeks }))}
+      templates={templates.map((t) => ({
+        id: t.id,
+        name: t.name,
+        cycleWeeks: t.cycleWeeks,
+      }))}
       canManage={canManage}
       currentMembershipId={membership?.id ?? null}
       orgOpenTimeMin={orgSchedule.openTimeMin}

@@ -89,38 +89,41 @@ Provider: PostgreSQL (Supabase), managed via Prisma ORM.
 
 ### Models
 
-| Model                      | Description                                                                                                                                                                                                                                                                                                                                                     |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Organization`             | Top-level tenant. Owns all other resources. Supports franchise hierarchy via `parentId`.                                                                                                                                                                                                                                                                        |
-| `User`                     | Auth account, identified by email. Linked to orgs via `Membership`.                                                                                                                                                                                                                                                                                             |
-| `Membership`               | Links a `User` to an `Organization`. Tracks `workingDays` and `status` (ACTIVE / RESTRICTED).                                                                                                                                                                                                                                                                   |
-| `Role`                     | Org-scoped role (e.g. Owner, Worker) with a required `name`, `color` (hex), and stable `key`. System roles have `isDeletable: false`.                                                                                                                                                                                                                           |
-| `Permission`               | Grants a `PermissionAction` enum value to a `Role`. One row per action per role.                                                                                                                                                                                                                                                                                |
-| `MemberRole`               | Many-to-many junction between `Membership` and `Role`. A member can hold multiple roles.                                                                                                                                                                                                                                                                        |
-| `Task`                     | Reusable task definition (name, required `color` hex, duration, recurrence constraints, eligibility by role).                                                                                                                                                                                                                                                   |
-| `TaskEligibility`          | Links a `Task` to a `Role`, defining which roles can be assigned to it.                                                                                                                                                                                                                                                                                         |
-| `TimetableEntry`           | A scheduled task occurrence with date, start/end times, status, and assignees.                                                                                                                                                                                                                                                                                  |
-| `TimetableEntryAssignee`   | Links a `Membership` to a `TimetableEntry` (many-to-many).                                                                                                                                                                                                                                                                                                      |
-| `TimetableSettings`        | Per-org timetable display preferences (view type, start day, slot duration).                                                                                                                                                                                                                                                                                    |
-| `TimetableTemplate`        | A reusable schedule template with a `cycleLengthDays`. Contains `TimetableTemplateEntry` rows.                                                                                                                                                                                                                                                                  |
-| `TimetableTemplateEntry`   | One time slot in a `TimetableTemplate` — which task, which day index, start/end times.                                                                                                                                                                                                                                                                          |
-| `TimetableTemplateEntryAssignee` | Pre-assigns a `Membership` to a `TimetableTemplateEntry`.                                                                                                                                                                                                                                                                                               |
-| `RosterEntry`              | One shift assignment: a membership assigned to a specific `weekStart` + `dayIndex` combination, with optional `shiftStartMin`/`shiftEndMin`.                                                                                                                                                                                                                     |
-| `RosterDayConfig`          | Per-org day configuration for the roster grid: `recommendedSize` (target headcount), optional `openTimeMin`/`closeTimeMin` for the default shift time range.                                                                                                                                                                                                     |
-| `RosterTemplate`           | A reusable roster staffing pattern with a `cycleWeeks` (1–12). Contains `RosterTemplateEntry` rows that can be stamped onto the live roster.                                                                                                                                                                                                                     |
-| `RosterTemplateEntry`      | One shift slot in a `RosterTemplate` — which member, which `weekIndex` (0-based within the cycle), which `dayIndex` (0 = Mon … 6 = Sun), optional `shiftStartMin`/`shiftEndMin`.                                                                                                                                                                                |
-| `FranchiseToken`           | One-time invite token issued by a parent org for a franchisee to join.                                                                                                                                                                                                                                                                                          |
-| `Invite`                   | A member or franchise invite sent to a `User`. Carries a status (`PENDING`/`ACCEPTED`/`DECLINED`), snapshot fields for the org name and inviter name, and a JSON `metadata` blob with the roleIds/workingDays pre-filled for the accept step. Visible in the notification panel.                                                                                |
-| `AuditLog`                 | Append-only record of significant org mutations. Stores `action` (e.g. `task.create`), `entityType`, `entityId`, optional `before`/`after` JSON snapshots, the `actorId` who triggered the change, and a `createdAt` timestamp. Scoped per org. Actor is nullable (set to `NULL` on user deletion via `onDelete: SetNull`). Org deletion cascades all its logs. |
-| `ToolItem`                 | An org-scoped ingredient / unit pair used in the Conversion tool (e.g. "Boston Cream", unit "doz"). Shared across all `ConversionSet`s in the org.                                                                                                                                                                                                              |
-| `ConversionSet`            | A named collection of conversion rates for an org (e.g. "Donut Batches"). Acts as the container for rates and templates.                                                                                                                                                                                                                                        |
-| `ConversionRate`           | A directional rate between two `ToolItem`s within a `ConversionSet`. Stored as a single `rate` scalar (`toQty / fromQty`). Bidirectional resolution is handled at query time.                                                                                                                                                                                   |
-| `ConversionTemplate`       | A named saved state of From/To item selections within a `ConversionSet` (e.g. "Default", "Monday Batch"). Each set always has a "Default" template created automatically.                                                                                                                                                                                       |
-| `ConversionTemplateEntry`  | One item slot in a `ConversionTemplate`. `quantity` is non-null for From items (the input quantity); `null` for To items (display-only calculated outputs). `visible` controls whether the item is shown.                                                                                                                                                        |
-| `Feedback`                 | A user-submitted feedback item. Linked to a `User` and optionally an `Organization`. `type` is `ISSUE` or `IDEA`. `message` is free text. `imageUrl` is an optional Supabase Storage path (public bucket) for an attached screenshot. `reviewed` is an admin toggle.                                                                                           |
-| `AdminUser`                | Super-admin allow-list. Any `User` whose email appears here gains access to `/admin/*` routes and admin-only server actions.                                                                                                                                                                                                                                     |
-| `TaskInheritance`          | Tracks which orgs have added a GLOBAL task to their library. Created when a franchisee clicks "Add" on a shared task; deleted when they remove it. The owning org also gets an auto-created row on task creation. Unique on `(taskId, orgId)`.                                                                                                                   |
-| `TaskSectionLayout`        | Per-org, per-task section configuration. Stores `type` (e.g. `"PICTURE"`, `"DETAIL"`, `"COMMENT"`), display `title`, `scope` (`ORG`/`GLOBAL`), `position` (sort order), and `visible` flag. Defaults are seeded on task creation and copied from the parent org on inheritance. Unique on `(taskId, orgId, type)`.                                               |
+| Model                            | Description                                                                                                                                                                                                                                                                                                                                                     |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Organization`                   | Top-level tenant. Owns all other resources. Supports franchise hierarchy via `parentId`.                                                                                                                                                                                                                                                                        |
+| `User`                           | Auth account, identified by email. Linked to orgs via `Membership`.                                                                                                                                                                                                                                                                                             |
+| `Membership`                     | Links a `User` to an `Organization`. Tracks `workingDays` and `status` (ACTIVE / RESTRICTED).                                                                                                                                                                                                                                                                   |
+| `Role`                           | Org-scoped role (e.g. Owner, Worker) with a required `name`, `color` (hex), and stable `key`. System roles have `isDeletable: false`.                                                                                                                                                                                                                           |
+| `Permission`                     | Grants a `PermissionAction` enum value to a `Role`. One row per action per role.                                                                                                                                                                                                                                                                                |
+| `MemberRole`                     | Many-to-many junction between `Membership` and `Role`. A member can hold multiple roles.                                                                                                                                                                                                                                                                        |
+| `Task`                           | Reusable task definition (name, required `color` hex, duration, recurrence constraints, eligibility by role).                                                                                                                                                                                                                                                   |
+| `TaskEligibility`                | Links a `Task` to a `Role`, defining which roles can be assigned to it.                                                                                                                                                                                                                                                                                         |
+| `Tag`                            | An org-scoped label with a `name` and `color` hex. `isDefault: true` protects built-in tags from deletion. Unique on `(orgId, name)`.                                                                                                                                                                                                                           |
+| `TaskTag`                        | Many-to-many junction between `Task` and `Tag`. Composite PK on `(taskId, tagId)`.                                                                                                                                                                                                                                                                             |
+| `TimetableEntry`                 | A scheduled task occurrence with date, start/end times, status, and assignees.                                                                                                                                                                                                                                                                                  |
+| `TimetableEntryAssignee`         | Links a `Membership` to a `TimetableEntry` (many-to-many).                                                                                                                                                                                                                                                                                                      |
+| `TimetableSettings`              | Per-org timetable display preferences (view type, start day, slot duration).                                                                                                                                                                                                                                                                                    |
+| `TimetableTemplate`              | A reusable schedule template with a `cycleLengthDays`. Contains `TimetableTemplateEntry` rows.                                                                                                                                                                                                                                                                  |
+| `TimetableTemplateEntry`         | One time slot in a `TimetableTemplate` — which task, which day index, start/end times.                                                                                                                                                                                                                                                                          |
+| `TimetableTemplateEntryAssignee` | Pre-assigns a `Membership` to a `TimetableTemplateEntry`.                                                                                                                                                                                                                                                                                                       |
+| `RosterEntry`                    | One shift assignment: a membership assigned to a specific `weekStart` + `dayIndex` combination, with optional `shiftStartMin`/`shiftEndMin`.                                                                                                                                                                                                                    |
+| `RosterDayConfig`                | Per-org day configuration for the roster grid: `recommendedSize` (target headcount), optional `openTimeMin`/`closeTimeMin` for the default shift time range.                                                                                                                                                                                                    |
+| `RosterTemplate`                 | A reusable roster staffing pattern with a `cycleWeeks` (1–12). Contains `RosterTemplateEntry` rows that can be stamped onto the live roster.                                                                                                                                                                                                                    |
+| `RosterTemplateEntry`            | One shift slot in a `RosterTemplate` — which member, which `weekIndex` (0-based within the cycle), which `dayIndex` (0 = Mon … 6 = Sun), optional `shiftStartMin`/`shiftEndMin`.                                                                                                                                                                                |
+| `FranchiseToken`                 | One-time invite token issued by a parent org for a franchisee to join.                                                                                                                                                                                                                                                                                          |
+| `Invite`                         | A member or franchise invite sent to a `User`. Carries a status (`PENDING`/`ACCEPTED`/`DECLINED`), snapshot fields for the org name and inviter name, and a JSON `metadata` blob with the roleIds/workingDays pre-filled for the accept step. Visible in the notification panel.                                                                                |
+| `Notification`                   | A generic in-app notification tied to a `User`. Stores a human-readable `message` and an optional `seenAt` timestamp. Used for invite-acceptance confirmations and other system events.                                                                                                                                                                          |
+| `AuditLog`                       | Append-only record of significant org mutations. Stores `action` (e.g. `task.create`), `entityType`, `entityId`, optional `before`/`after` JSON snapshots, the `actorId` who triggered the change, and a `createdAt` timestamp. Scoped per org. Actor is nullable (set to `NULL` on user deletion via `onDelete: SetNull`). Org deletion cascades all its logs. |
+| `ToolItem`                       | An org-scoped ingredient / unit pair used in the Conversion tool (e.g. "Boston Cream", unit "doz"). Shared across all `ConversionSet`s in the org.                                                                                                                                                                                                              |
+| `ConversionSet`                  | A named collection of conversion rates for an org (e.g. "Donut Batches"). Acts as the container for rates and templates.                                                                                                                                                                                                                                        |
+| `ConversionRate`                 | A directional rate between two `ToolItem`s within a `ConversionSet`. Stored as a single `rate` scalar (`toQty / fromQty`). Bidirectional resolution is handled at query time.                                                                                                                                                                                   |
+| `ConversionTemplate`             | A named saved state of From/To item selections within a `ConversionSet` (e.g. "Default", "Monday Batch"). Each set always has a "Default" template created automatically.                                                                                                                                                                                       |
+| `ConversionTemplateEntry`        | One item slot in a `ConversionTemplate`. `quantity` is non-null for From items (the input quantity); `null` for To items (display-only calculated outputs). `visible` controls whether the item is shown.                                                                                                                                                       |
+| `Feedback`                       | A user-submitted feedback item. Linked to a `User` and optionally an `Organization`. `type` is `ISSUE` or `IDEA`. `message` is free text. `imageUrl` is an optional Supabase Storage path (public bucket) for an attached screenshot. `reviewed` is an admin toggle.                                                                                            |
+| `AdminUser`                      | Super-admin allow-list. Any `User` whose email appears here gains access to `/admin/*` routes and admin-only server actions.                                                                                                                                                                                                                                    |
+| `TaskInheritance`                | Tracks which orgs have added a GLOBAL task to their library. Created when a franchisee clicks "Add" on a shared task; deleted when they remove it. The owning org also gets an auto-created row on task creation. Unique on `(taskId, orgId)`.                                                                                                                  |
+| `TaskSectionLayout`              | Per-org, per-task section configuration. Stores `type` (e.g. `"PICTURE"`, `"DETAIL"`, `"COMMENT"`), display `title`, `scope` (`ORG`/`GLOBAL`), `position` (sort order), and `visible` flag. Defaults are seeded on task creation and copied from the parent org on inheritance. Unique on `(taskId, orgId, type)`.                                              |
 
 ### Enums
 
@@ -133,8 +136,8 @@ Provider: PostgreSQL (Supabase), managed via Prisma ORM.
 | `InviteType`       | `MEMBER`, `FRANCHISE`                                                                                     |
 | `ViewType`         | `DAILY`, `WEEKLY`                                                                                         |
 | `FeedbackType`     | `ISSUE`, `IDEA`                                                                                           |
-| `TaskScope`        | `ORG` (private — visible to owning org only), `GLOBAL` (shared — franchisees can discover and inherit)   |
-| `SectionScope`     | `ORG` (section interaction limited to the viewing org), `GLOBAL` (shared back to the franchisor)         |
+| `TaskScope`        | `ORG` (private — visible to owning org only), `GLOBAL` (shared — franchisees can discover and inherit)    |
+| `SectionScope`     | `ORG` (section interaction limited to the viewing org), `GLOBAL` (shared back to the franchisor)          |
 
 ### Migrations
 
@@ -154,21 +157,21 @@ pnpm seed
 
 #### Migration history
 
-| Migration                              | Description                                                                                                                                                                                                      |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `20260414033638_init`                  | Full initial schema — all models, enums, indexes                                                                                                                                                                 |
-| `20260414035009_add_invite_metadata`   | Add `metadata` JSON field to `Invite` for storing roleIds/workingDays for the accept step                                                                                                                        |
-| `20260414045652_add_invite_snapshots`  | Add snapshot fields (`orgName`, `inviterName`) to `Invite` so cards render without joins                                                                                                                         |
-| `20260415021658_invite_pending_unique` | Partial unique index on `Invite(orgId, recipientId, type)` where `status = 'PENDING'` — DB-level guard against duplicate pending invites                                                                         |
-| _(schema push)_                        | `AuditLog` model added (`orgId`, `actorId`, `action`, `entityType`, `entityId`, `before`, `after`, `createdAt`). Applied via `pnpm prisma db push` (dev DB had migration drift — no timestamped migration file). |
-| `20260513023554_rename_template_to_timetable_template_add_roster` | Rename `Template`/`TemplateEntry`/`TemplateEntryAssignee` → `TimetableTemplate`/`TimetableTemplateEntry`/`TimetableTemplateEntryAssignee` using `ALTER TABLE ... RENAME TO` (data-safe). Add `RosterEntry` and `RosterDayConfig` tables with shift-time and day-config columns. |
-| `20260513030121_add_shift_times_to_roster_entry` | Add `shiftStartMin`/`shiftEndMin` (nullable `Int`) to `RosterEntry`.                                                                                                                          |
-| `20260513031027_add_open_close_time_to_roster_day_config` | Add `openTimeMin`/`closeTimeMin` (nullable `Int`) to `RosterDayConfig`.                                                                                                             |
-| `20260513122627_add_roster_template`   | Add `RosterTemplate` and `RosterTemplateEntry` tables with cascade deletes and a composite unique index on `(templateId, membershipId, weekIndex, dayIndex)`.                                                     |
-| `20260513123326_roster_template_cycle_weeks` | Add `cycleWeeks Int @default(1)` to `RosterTemplate`.                                                                                                                                        |
-| `20260514000000_add_check_constraints` | DB-level CHECK constraints enforcing field bounds: time fields 0–1440, `dayIndex` 0–6, `cycleWeeks` 1–12.                                                                                                        |
-| _(schema push)_                        | `Feedback` model (`userId`, `orgId?`, `type`, `message`, `imageUrl?`, `reviewed`) and `AdminUser` model (`email unique`) added. Applied via `prisma db push` (dev DB had migration drift).                       |
-| _(schema push)_                        | `TaskInheritance` (`taskId`, `orgId`, `inheritedAt`) and `TaskSectionLayout` (`taskId`, `orgId`, `type`, `title`, `scope`, `position`, `visible`) models added. `Task.scope` (`TaskScope` enum, default `ORG`) added. `SectionScope` enum added. Applied via `prisma db push` on the `feat/task-inheritance-sections` branch. |
+| Migration                                                         | Description                                                                                                                                                                                                                                                                                                                   |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `20260414033638_init`                                             | Full initial schema — all models, enums, indexes                                                                                                                                                                                                                                                                              |
+| `20260414035009_add_invite_metadata`                              | Add `metadata` JSON field to `Invite` for storing roleIds/workingDays for the accept step                                                                                                                                                                                                                                     |
+| `20260414045652_add_invite_snapshots`                             | Add snapshot fields (`orgName`, `inviterName`) to `Invite` so cards render without joins                                                                                                                                                                                                                                      |
+| `20260415021658_invite_pending_unique`                            | Partial unique index on `Invite(orgId, recipientId, type)` where `status = 'PENDING'` — DB-level guard against duplicate pending invites                                                                                                                                                                                      |
+| _(schema push)_                                                   | `AuditLog` model added (`orgId`, `actorId`, `action`, `entityType`, `entityId`, `before`, `after`, `createdAt`). Applied via `pnpm prisma db push` (dev DB had migration drift — no timestamped migration file).                                                                                                              |
+| `20260513023554_rename_template_to_timetable_template_add_roster` | Rename `Template`/`TemplateEntry`/`TemplateEntryAssignee` → `TimetableTemplate`/`TimetableTemplateEntry`/`TimetableTemplateEntryAssignee` using `ALTER TABLE ... RENAME TO` (data-safe). Add `RosterEntry` and `RosterDayConfig` tables with shift-time and day-config columns.                                               |
+| `20260513030121_add_shift_times_to_roster_entry`                  | Add `shiftStartMin`/`shiftEndMin` (nullable `Int`) to `RosterEntry`.                                                                                                                                                                                                                                                          |
+| `20260513031027_add_open_close_time_to_roster_day_config`         | Add `openTimeMin`/`closeTimeMin` (nullable `Int`) to `RosterDayConfig`.                                                                                                                                                                                                                                                       |
+| `20260513122627_add_roster_template`                              | Add `RosterTemplate` and `RosterTemplateEntry` tables with cascade deletes and a composite unique index on `(templateId, membershipId, weekIndex, dayIndex)`.                                                                                                                                                                 |
+| `20260513123326_roster_template_cycle_weeks`                      | Add `cycleWeeks Int @default(1)` to `RosterTemplate`.                                                                                                                                                                                                                                                                         |
+| `20260514000000_add_check_constraints`                            | DB-level CHECK constraints enforcing field bounds: time fields 0–1440, `dayIndex` 0–6, `cycleWeeks` 1–12.                                                                                                                                                                                                                     |
+| _(schema push)_                                                   | `Feedback` model (`userId`, `orgId?`, `type`, `message`, `imageUrl?`, `reviewed`) and `AdminUser` model (`email unique`) added. Applied via `prisma db push` (dev DB had migration drift).                                                                                                                                    |
+| _(schema push)_                                                   | `TaskInheritance` (`taskId`, `orgId`, `inheritedAt`) and `TaskSectionLayout` (`taskId`, `orgId`, `type`, `title`, `scope`, `position`, `visible`) models added. `Task.scope` (`TaskScope` enum, default `ORG`) added. `SectionScope` enum added. Applied via `prisma db push` on the `feat/task-inheritance-sections` branch. |
 
 ## Authentication
 
@@ -419,6 +422,12 @@ app/
               roles-sidebar-content.tsx   # Page sidebar: "+ Create Role" button → opens RoleForm in ActionSidebar
             page.tsx                      # Registers RolesSidebarContent as page sidebar; table rendered by RolesClient
             roles-client.tsx              # Table of roles; row ··· menu Edit → ActionSidebar, Delete → AlertDialog
+          tags/           # Tag list (MANAGE_TASKS)
+            _components/
+              tag-form.tsx                # Shared create/edit form (name, color)
+              tags-sidebar-content.tsx    # Page sidebar: "+ Create Tag" button → opens TagForm in ActionSidebar
+            page.tsx                      # Registers TagsSidebarContent as page sidebar; table rendered by TagsClient
+            tags-client.tsx               # Table of tags; row ··· menu Edit → ActionSidebar, Delete → AlertDialog
           timetable/      # Timetable display settings (stub)
           notification/   # Notification preferences (stub)
   (auth)/
@@ -431,6 +440,9 @@ app/
     timetable-entries.ts
     franchisee.ts
     roles.ts
+    tags.ts               # Tag CRUD mutations (createTag, updateTag, deleteTag) — all require MANAGE_TASKS
+    roster.ts             # Roster entry and day-config mutations
+    feedback.ts           # submitFeedbackAction — creates a Feedback row + optional screenshot upload
     tools.ts              # Conversion tool mutations — all require MANAGE_TASKS
     storage.ts            # Image upload actions for task images (private) and org logos (public)
   api/                    # REST API route handlers (session-authenticated)
@@ -492,6 +504,10 @@ lib/
     franchise.ts
     invites.ts
     bots.ts
+    tags.ts             # Tag CRUD — createTag, updateTag, deleteTag
+    task-sections.ts    # TaskSectionLayout reads and updates (per-org section config)
+    feedback.ts         # submitFeedback — creates Feedback row, resolves storage path
+    roster.ts           # RosterEntry + RosterDayConfig CRUD, template-apply helper
     tools.ts            # ConversionSet · ToolItem · ConversionRate · ConversionTemplate · ConversionTemplateEntry CRUD
   validators/
     org.ts
@@ -583,12 +599,13 @@ Both buckets must exist in the Supabase project. `NEXT_PUBLIC_SUPABASE_URL` (the
 
 ### Storage path conventions
 
-| File type  | Path pattern                               | DB field                |
-| ---------- | ------------------------------------------ | ----------------------- |
-| Task image | `orgs/{orgId}/tasks/{taskId}/{uuid}.{ext}` | `Task.imageUrl`         |
-| Org logo   | `orgs/{orgId}/{uuid}.{ext}`                | `Organization.image`    |
+| File type  | Path pattern                               | DB field             |
+| ---------- | ------------------------------------------ | -------------------- |
+| Task image | `orgs/{orgId}/tasks/{taskId}/{uuid}.{ext}` | `Task.imageUrl`      |
+| Org logo   | `orgs/{orgId}/{uuid}.{ext}`                | `Organization.image` |
 
 Both fields store the **bare storage path**, not a full URL. URLs are resolved at display time:
+
 - Task images → `createSignedReadUrl(path)` (server-side, expires in 1 h)
 - Org logos → `getPublicUrl(path)` (permanent; used in hub page, org switcher)
 
@@ -602,41 +619,41 @@ Both fields store the **bare storage path**, not a full URL. URLs are resolved a
 
 `components/ui/image-crop-dialog.tsx` is a shared dialog used by both org logo and task image upload. It is controlled via `file: File | null` — passing a `File` opens the dialog; `null` closes it.
 
-| Prop     | Type              | Description                                                   |
-| -------- | ----------------- | ------------------------------------------------------------- |
-| `file`   | `File \| null`    | The raw file selected by the user; `null` = dialog closed     |
-| `config` | `ImageCropConfig` | `{ aspect, outputWidth, outputHeight }` — crop shape and size |
-| `onCrop` | `(f: File) => void` | Called with the cropped canvas output as a new `File`       |
-| `onCancel` | `() => void`    | Called when the user dismisses the dialog                     |
+| Prop       | Type                | Description                                                   |
+| ---------- | ------------------- | ------------------------------------------------------------- |
+| `file`     | `File \| null`      | The raw file selected by the user; `null` = dialog closed     |
+| `config`   | `ImageCropConfig`   | `{ aspect, outputWidth, outputHeight }` — crop shape and size |
+| `onCrop`   | `(f: File) => void` | Called with the cropped canvas output as a new `File`         |
+| `onCancel` | `() => void`        | Called when the user dismisses the dialog                     |
 
 Crop configurations:
 
-| Use case  | `aspect` | Output size | Match                             |
-| --------- | -------- | ----------- | --------------------------------- |
-| Org logo  | `1`      | 512 × 512   | Round/square logo display         |
-| Task image | `1`     | 600 × 600   | `aspect-square` task view display |
+| Use case   | `aspect` | Output size | Match                             |
+| ---------- | -------- | ----------- | --------------------------------- |
+| Org logo   | `1`      | 512 × 512   | Round/square logo display         |
+| Task image | `1`      | 600 × 600   | `aspect-square` task view display |
 
 ### Server actions (`app/actions/storage.ts`)
 
-| Action                 | Permission         | Description                                              |
-| ---------------------- | ------------------ | -------------------------------------------------------- |
-| `getSignedUploadUrl`   | `MANAGE_TASKS`     | Returns signed URL for private bucket (task images)      |
-| `saveTaskImagePath`    | `MANAGE_TASKS`     | Saves path to `Task.imageUrl`, deletes old file          |
-| `removeTaskImage`      | `MANAGE_TASKS`     | Deletes file and clears `Task.imageUrl`                  |
-| `getOrgLogoUploadUrl`  | `MANAGE_SETTINGS`  | Returns signed URL for public bucket (org logos)         |
-| `saveOrgLogoPath`      | `MANAGE_SETTINGS`  | Saves path to `Organization.image`, deletes old logo     |
-| `removeOrgLogo`        | `MANAGE_SETTINGS`  | Deletes logo file and clears `Organization.image`        |
+| Action                | Permission        | Description                                          |
+| --------------------- | ----------------- | ---------------------------------------------------- |
+| `getSignedUploadUrl`  | `MANAGE_TASKS`    | Returns signed URL for private bucket (task images)  |
+| `saveTaskImagePath`   | `MANAGE_TASKS`    | Saves path to `Task.imageUrl`, deletes old file      |
+| `removeTaskImage`     | `MANAGE_TASKS`    | Deletes file and clears `Task.imageUrl`              |
+| `getOrgLogoUploadUrl` | `MANAGE_SETTINGS` | Returns signed URL for public bucket (org logos)     |
+| `saveOrgLogoPath`     | `MANAGE_SETTINGS` | Saves path to `Organization.image`, deletes old logo |
+| `removeOrgLogo`       | `MANAGE_SETTINGS` | Deletes logo file and clears `Organization.image`    |
 
 ### Storage helpers (`lib/supabase-storage.ts`)
 
-| Function                      | Bucket  | Description                                               |
-| ----------------------------- | ------- | --------------------------------------------------------- |
-| `createSignedUploadUrl`       | Private | Signed URL for browser to PUT a task image                |
-| `createSignedReadUrl`         | Private | Short-lived signed URL to display a task image            |
-| `deleteStorageFile`           | Private | Delete a task image (silent on failure)                   |
-| `createSignedUploadUrlPublic` | Public  | Signed URL for browser to PUT an org logo                 |
-| `getPublicUrl`                | Public  | Permanent public URL for an org logo (no signing needed)  |
-| `deletePublicFile`            | Public  | Delete an org logo (silent on failure)                    |
+| Function                      | Bucket  | Description                                              |
+| ----------------------------- | ------- | -------------------------------------------------------- |
+| `createSignedUploadUrl`       | Private | Signed URL for browser to PUT a task image               |
+| `createSignedReadUrl`         | Private | Short-lived signed URL to display a task image           |
+| `deleteStorageFile`           | Private | Delete a task image (silent on failure)                  |
+| `createSignedUploadUrlPublic` | Public  | Signed URL for browser to PUT an org logo                |
+| `getPublicUrl`                | Public  | Permanent public URL for an org logo (no signing needed) |
+| `deletePublicFile`            | Public  | Delete an org logo (silent on failure)                   |
 
 ### next/image hostname
 
@@ -663,6 +680,7 @@ ToolItem               — org-scoped ingredient/unit pair, shared across all se
 ### URL-driven template switching
 
 The active template is encoded in the URL as `?template=<id>`. When the param changes:
+
 1. The server page re-runs, resolves the template ID (URL → Default → first), and fetches its `ConversionTemplateEntry` rows.
 2. `SetDetailClient` receives `key={activeTemplateId}`, forcing a full remount with the new DB state.
 3. The action sidebar stays open because it only closes on pathname changes (not query param changes).
@@ -671,12 +689,12 @@ The active template is encoded in the URL as `?template=<id>`. When the param ch
 
 All calculator state is persisted immediately to the database — there is no `localStorage` involvement:
 
-| Action | DB write |
-| --- | --- |
-| Add a From item | `upsertTemplateEntryAction` with `quantity = 0` |
-| Change a From quantity (on blur) | `upsertTemplateEntryAction` with the new quantity |
-| Remove a From/To item | `removeTemplateEntryAction` |
-| Add a To item | `upsertTemplateEntryAction` with `quantity = null` |
+| Action                           | DB write                                           |
+| -------------------------------- | -------------------------------------------------- |
+| Add a From item                  | `upsertTemplateEntryAction` with `quantity = 0`    |
+| Change a From quantity (on blur) | `upsertTemplateEntryAction` with the new quantity  |
+| Remove a From/To item            | `removeTemplateEntryAction`                        |
+| Add a To item                    | `upsertTemplateEntryAction` with `quantity = null` |
 
 ### Unit abbreviation
 
@@ -684,43 +702,43 @@ All calculator state is persisted immediately to the database — there is no `l
 
 ### Service layer (`lib/services/tools.ts`)
 
-| Function | Description |
-| --- | --- |
-| `getConversionSets(orgId)` | List all sets for an org |
-| `getConversionSet(orgId, setId)` | Fetch a single set |
-| `createConversionSet(orgId, name)` | Create a set |
-| `deleteConversionSet(orgId, id)` | Delete a set |
-| `renameConversionSet(orgId, id, name)` | Rename a set |
-| `getToolItems(orgId)` | List all tool items for an org |
-| `createToolItem(orgId, name, unit)` | Create a tool item |
-| `deleteToolItem(orgId, id)` | Delete a tool item |
-| `getConversionRates(orgId, setId)` | List all rates for a set (includes from/to item names and units) |
-| `createConversionRate(orgId, setId, fromItemId, toItemId, fromQty, toQty)` | Create a rate; stored as `toQty / fromQty` |
-| `deleteConversionRate(orgId, rateId)` | Delete a rate |
-| `getConversionTemplates(orgId, setId)` | List all templates for a set |
-| `createConversionTemplate(setId, name)` | Create a template |
-| `deleteConversionTemplate(orgId, templateId)` | Delete a template |
-| `getTemplateEntries(templateId)` | List all entries for a template |
-| `upsertTemplateEntry(templateId, itemId, quantity, visible)` | Insert or update an entry |
-| `deleteTemplateEntry(templateId, itemId)` | Remove an entry |
+| Function                                                                   | Description                                                      |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `getConversionSets(orgId)`                                                 | List all sets for an org                                         |
+| `getConversionSet(orgId, setId)`                                           | Fetch a single set                                               |
+| `createConversionSet(orgId, name)`                                         | Create a set                                                     |
+| `deleteConversionSet(orgId, id)`                                           | Delete a set                                                     |
+| `renameConversionSet(orgId, id, name)`                                     | Rename a set                                                     |
+| `getToolItems(orgId)`                                                      | List all tool items for an org                                   |
+| `createToolItem(orgId, name, unit)`                                        | Create a tool item                                               |
+| `deleteToolItem(orgId, id)`                                                | Delete a tool item                                               |
+| `getConversionRates(orgId, setId)`                                         | List all rates for a set (includes from/to item names and units) |
+| `createConversionRate(orgId, setId, fromItemId, toItemId, fromQty, toQty)` | Create a rate; stored as `toQty / fromQty`                       |
+| `deleteConversionRate(orgId, rateId)`                                      | Delete a rate                                                    |
+| `getConversionTemplates(orgId, setId)`                                     | List all templates for a set                                     |
+| `createConversionTemplate(setId, name)`                                    | Create a template                                                |
+| `deleteConversionTemplate(orgId, templateId)`                              | Delete a template                                                |
+| `getTemplateEntries(templateId)`                                           | List all entries for a template                                  |
+| `upsertTemplateEntry(templateId, itemId, quantity, visible)`               | Insert or update an entry                                        |
+| `deleteTemplateEntry(templateId, itemId)`                                  | Remove an entry                                                  |
 
 ### Server actions (`app/actions/tools.ts`)
 
 All write actions require `MANAGE_TASKS` permission.
 
-| Action | Description |
-| --- | --- |
-| `createConversionSetAction` | Create a new set; auto-creates a "Default" template |
-| `deleteConversionSetAction` | Delete a set and all its rates/templates |
-| `renameConversionSetAction` | Rename a set |
-| `createToolItemAction` | Create an org-scoped tool item |
-| `deleteToolItemAction` | Delete a tool item |
-| `createConversionRateAction` | Add a rate between two items |
-| `deleteConversionRateAction` | Remove a rate |
-| `createConversionTemplateAction` | Create a template |
-| `deleteConversionTemplateAction` | Delete a template |
-| `upsertTemplateEntryAction` | Save a calculator item slot (add/update) |
-| `removeTemplateEntryAction` | Remove a calculator item slot |
+| Action                           | Description                                         |
+| -------------------------------- | --------------------------------------------------- |
+| `createConversionSetAction`      | Create a new set; auto-creates a "Default" template |
+| `deleteConversionSetAction`      | Delete a set and all its rates/templates            |
+| `renameConversionSetAction`      | Rename a set                                        |
+| `createToolItemAction`           | Create an org-scoped tool item                      |
+| `deleteToolItemAction`           | Delete a tool item                                  |
+| `createConversionRateAction`     | Add a rate between two items                        |
+| `deleteConversionRateAction`     | Remove a rate                                       |
+| `createConversionTemplateAction` | Create a template                                   |
+| `deleteConversionTemplateAction` | Delete a template                                   |
+| `upsertTemplateEntryAction`      | Save a calculator item slot (add/update)            |
+| `removeTemplateEntryAction`      | Remove a calculator item slot                       |
 
 ## Roster Tool
 
@@ -737,40 +755,40 @@ RosterTemplate         — reusable pattern with cycleWeeks (1–12)
 
 ### Service layer (`lib/services/roster.ts`)
 
-| Function | Description |
-| --- | --- |
-| `getOrgSchedule(orgId)` | Returns org default `openTimeMin`, `closeTimeMin`, `timezone` |
-| `hasRosterActivity(orgId)` | Returns true if the org has any roster entries, day configs, or templates |
-| `getRosterEntries(orgId, weekStarts)` | Fetches entries for a list of week-start dates |
-| `getRosterDayConfigs(orgId)` | Returns all day configs ordered by `dayIndex` |
-| `getOrgMembersForRoster(orgId)` | Active members for the cell member picker |
-| `setRosterCellMembers(orgId, weekStart, dayIndex, members)` | Replaces the member list for one (weekStart, dayIndex) cell in a transaction |
-| `upsertRosterDayConfig(orgId, dayIndex, data)` | Upserts `recommendedSize`, `openTimeMin`, `closeTimeMin` for a day |
-| `getRosterTemplates(orgId)` | Lists all templates with entry count |
-| `getRosterTemplate(orgId, templateId)` | Fetches a single template with expanded entries |
-| `createRosterTemplate(orgId, name, cycleWeeks)` | Creates a template; name must be unique within the org |
-| `deleteRosterTemplate(orgId, templateId)` | Deletes a template and all its entries |
-| `renameRosterTemplate(orgId, templateId, name)` | Renames with uniqueness check |
-| `setRosterTemplateCellMembers(orgId, templateId, weekIndex, dayIndex, members)` | Replaces entries for one template cell in a transaction |
-| `updateRosterTemplateCycleWeeks(orgId, templateId, cycleWeeks)` | Resizes the cycle; blocked if entries exist in the removed range |
-| `clearRosterTemplateWeek(orgId, templateId, weekIndex)` | Deletes all entries in one week column of a template |
-| `applyRosterTemplate(orgId, templateId, startMonday, cycleRepeats, force)` | Stamps the template onto the live roster starting from `startMonday`, repeating `cycleRepeats` times |
+| Function                                                                        | Description                                                                                          |
+| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `getOrgSchedule(orgId)`                                                         | Returns org default `openTimeMin`, `closeTimeMin`, `timezone`                                        |
+| `hasRosterActivity(orgId)`                                                      | Returns true if the org has any roster entries, day configs, or templates                            |
+| `getRosterEntries(orgId, weekStarts)`                                           | Fetches entries for a list of week-start dates                                                       |
+| `getRosterDayConfigs(orgId)`                                                    | Returns all day configs ordered by `dayIndex`                                                        |
+| `getOrgMembersForRoster(orgId)`                                                 | Active members for the cell member picker                                                            |
+| `setRosterCellMembers(orgId, weekStart, dayIndex, members)`                     | Replaces the member list for one (weekStart, dayIndex) cell in a transaction                         |
+| `upsertRosterDayConfig(orgId, dayIndex, data)`                                  | Upserts `recommendedSize`, `openTimeMin`, `closeTimeMin` for a day                                   |
+| `getRosterTemplates(orgId)`                                                     | Lists all templates with entry count                                                                 |
+| `getRosterTemplate(orgId, templateId)`                                          | Fetches a single template with expanded entries                                                      |
+| `createRosterTemplate(orgId, name, cycleWeeks)`                                 | Creates a template; name must be unique within the org                                               |
+| `deleteRosterTemplate(orgId, templateId)`                                       | Deletes a template and all its entries                                                               |
+| `renameRosterTemplate(orgId, templateId, name)`                                 | Renames with uniqueness check                                                                        |
+| `setRosterTemplateCellMembers(orgId, templateId, weekIndex, dayIndex, members)` | Replaces entries for one template cell in a transaction                                              |
+| `updateRosterTemplateCycleWeeks(orgId, templateId, cycleWeeks)`                 | Resizes the cycle; blocked if entries exist in the removed range                                     |
+| `clearRosterTemplateWeek(orgId, templateId, weekIndex)`                         | Deletes all entries in one week column of a template                                                 |
+| `applyRosterTemplate(orgId, templateId, startMonday, cycleRepeats, force)`      | Stamps the template onto the live roster starting from `startMonday`, repeating `cycleRepeats` times |
 
 ### Server actions (`app/actions/roster.ts`)
 
 All write actions require `MANAGE_TIMETABLE` permission.
 
-| Action | Description |
-| --- | --- |
-| `setRosterCellMembersAction` | Replace members for a live roster cell |
-| `upsertRosterDayConfigAction` | Save day config (recommended size + open/close times) |
-| `createRosterTemplateAction` | Create a template; returns `templateId` on success |
-| `deleteRosterTemplateAction` | Delete a template |
-| `renameRosterTemplateAction` | Rename a template |
-| `setRosterTemplateCellMembersAction` | Replace members for a template cell |
-| `updateRosterTemplateCycleWeeksAction` | Resize the cycle (blocked if out-of-range entries exist) |
-| `clearRosterTemplateWeekAction` | Clear all entries in one week column |
-| `applyRosterTemplateAction` | Apply a template to the live roster; accepts ISO date string + repeat count + force flag |
+| Action                                 | Description                                                                              |
+| -------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `setRosterCellMembersAction`           | Replace members for a live roster cell                                                   |
+| `upsertRosterDayConfigAction`          | Save day config (recommended size + open/close times)                                    |
+| `createRosterTemplateAction`           | Create a template; returns `templateId` on success                                       |
+| `deleteRosterTemplateAction`           | Delete a template                                                                        |
+| `renameRosterTemplateAction`           | Rename a template                                                                        |
+| `setRosterTemplateCellMembersAction`   | Replace members for a template cell                                                      |
+| `updateRosterTemplateCycleWeeksAction` | Resize the cycle (blocked if out-of-range entries exist)                                 |
+| `clearRosterTemplateWeekAction`        | Clear all entries in one week column                                                     |
+| `applyRosterTemplateAction`            | Apply a template to the live roster; accepts ISO date string + repeat count + force flag |
 
 ### Apply workflow
 
@@ -781,10 +799,10 @@ All write actions require `MANAGE_TIMETABLE` permission.
 
 ### Shared time utilities (`_utils/time-utils.ts`)
 
-| Export | Description |
-| --- | --- |
-| `formatMinutes(min)` | Integer minutes → `"HH:MM"` string (e.g. 90 → `"01:30"`) |
-| `timeToMinutes(time)` | `"HH:MM"` string → integer minutes, or `null` for invalid input |
+| Export                    | Description                                                        |
+| ------------------------- | ------------------------------------------------------------------ |
+| `formatMinutes(min)`      | Integer minutes → `"HH:MM"` string (e.g. 90 → `"01:30"`)           |
+| `timeToMinutes(time)`     | `"HH:MM"` string → integer minutes, or `null` for invalid input    |
 | `hoursWorked(start, end)` | Duration string (e.g. `"7h 30m"`) from two nullable minute offsets |
 
 ## Server Actions vs API Routes
@@ -800,44 +818,44 @@ Server Actions call `revalidatePath` to invalidate the Next.js cache so server-r
 
 ## Pages
 
-| Route                                            | Guard                                      | Description                                                                                                                                                |
-| ------------------------------------------------ | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/`                                              | Signed in                                  | Hub — org cards with logo images (falls back to colored initial badge); recent org banner                                                                 |
-| `/signin`                                        | —                                          | Google OAuth sign-in                                                                                                                                       |
-| `/orgs/new`                                      | Signed in                                  | Create a new organization                                                                                                                                  |
-| `/orgs/join`                                     | Signed in                                  | Join an existing org as a franchisee using a one-time token                                                                                                |
-| `/orgs/[orgId]`                                  | `requireOrgMemberPage`                     | Org overview — stat cards (members, tasks, roles, today's schedule completion), today's schedule list, org header (name, address, timezone, settings link for owner) |
-| `/orgs/[orgId]/tools`                            | `requireOrgMemberPage`                     | Tools hub — sidebar with search + nav links (Item List, Conversion, Roster); content area stub                                                             |
-| `/orgs/[orgId]/tools/item-list`                  | `requireOrgMemberPage`                     | Item List tool stub — own page sidebar with Back link                                                                                                      |
-| `/orgs/[orgId]/tools/conversion`                 | `requireOrgMemberPage`                     | Conversion tool — lists all ConversionSets for the org; sidebar: Back + "Add Set" action                                                                   |
-| `/orgs/[orgId]/tools/conversion/[setId]`         | `requireOrgMemberPage`                     | Conversion calculator — two-column From/To grid with live calculations; template switcher dropdown in toolbar; template state persisted in DB via `ConversionTemplateEntry`; sidebar: Items · Rates · Templates actions |
-| `/orgs/[orgId]/tools/roster`                     | `requireOrgMemberPage`                     | Roster tool — scrollable weekly shift grid (Mon–Sun rows × multi-week columns); week navigation; Edit Day Config + Apply Template actions in sidebar        |
-| `/orgs/[orgId]/tools/roster/templates`           | `requireOrgMemberPage`                     | Roster template list — card view; MANAGE_TIMETABLE holders can create, rename, and delete templates                                                         |
-| `/orgs/[orgId]/tools/roster/templates/[templateId]` | `requireOrgMemberPage`                  | Roster template editor — cycle-week stepper, column-paged board (7 day rows × cycleWeeks columns); clicking a cell opens the member/shift-time panel        |
-| `/orgs/[orgId]/franchisee`                       | `requireParentOrgOwnerPage`                | Franchise management — invite tokens + franchisee list                                                                                                     |
-| `/orgs/[orgId]/tasks`                            | `requireOrgMemberPage`                     | Task definition list — sort, role filter, list/card toggle in sidebar; search in toolbar; Create Task action in sidebar (managers only)                    |
-| `/orgs/[orgId]/tasks/new`                        | `requireOrgPermissionPage MANAGE_TASKS`    | Create task — includes color picker                                                                                                                        |
-| `/orgs/[orgId]/tasks/[taskId]`                   | `requireOrgMemberPage`                     | Task detail view — description, color, image preview (aspect-square); clicking a task name in the timetable navigates here |
-| `/orgs/[orgId]/tasks/[taskId]/edit`              | `requireOrgPermissionPage MANAGE_TASKS`    | Edit task — color picker pre-filled with current color                                                                                                     |
-| `/orgs/[orgId]/memberships`                      | `requireOrgMemberPage`                     | Member list — role filter, list/card toggle in sidebar; search in toolbar; Invite Member + Add Bot in sidebar (ActionSidebar on desktop, Dialog on mobile) |
-| `/orgs/[orgId]/memberships/new`                  | `requireOrgPermissionPage MANAGE_MEMBERS`  | Invite a new member by email (standalone page, also accessible from sidebar action)                                                                        |
-| `/orgs/[orgId]/memberships/[memberId]`           | `requireOrgMemberPage`                     | Member detail view — avatar, roles (multi-badge), working days, status, join date                                                                          |
-| `/orgs/[orgId]/memberships/[memberId]/edit`      | `requireOrgPermissionPage MANAGE_MEMBERS`  | Edit member — working days, roles (owner role excluded from picker)                                                                                        |
-| `/orgs/[orgId]/timetable`                        | `requireOrgMemberPage`                     | Timetable — calendar or simple mode, week navigation                                                                                                       |
-| `/orgs/[orgId]/timetable/templates`              | `requireOrgMemberPage`                     | Timetable template list — card or list view; MANAGE_TASKS holders can rename, duplicate, and delete                                                        |
-| `/orgs/[orgId]/timetable/templates/new`          | `requireOrgMemberPage`                     | Create a new timetable template                                                                                                                            |
-| `/orgs/[orgId]/timetable/templates/[templateId]` | `requireOrgMemberPage`                     | Template editor — Calendar (drag-and-drop grid) or Simple (day table) view; cycle-length controls                                                          |
-| `/orgs/[orgId]/settings`                         | —                                          | Redirects to `/settings/organization`                                                                                                                      |
-| `/orgs/[orgId]/settings/organization`            | `requireOrgPermissionPage MANAGE_SETTINGS` | Org settings — logo upload (crop dialog, 512×512 square, public bucket), org info, timezone, hours, transfer, delete |
-| `/orgs/[orgId]/settings/roles`                   | `requireOrgPermissionPage MANAGE_ROLES`    | Role list with page sidebar — "+ Create Role" opens the form in the action sidebar; row ··· menu "Edit" also opens in action sidebar |
-| `/orgs/[orgId]/settings/timetable`               | —                                          | Timetable display settings (stub)                                                                                                                          |
-| `/orgs/[orgId]/settings/notification`            | —                                          | Notification preferences (stub)                                                                                                                            |
+| Route                                               | Guard                                      | Description                                                                                                                                                                                                             |
+| --------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                                                 | Signed in                                  | Hub — org cards with logo images (falls back to colored initial badge); recent org banner                                                                                                                               |
+| `/signin`                                           | —                                          | Google OAuth sign-in                                                                                                                                                                                                    |
+| `/orgs/new`                                         | Signed in                                  | Create a new organization                                                                                                                                                                                               |
+| `/orgs/join`                                        | Signed in                                  | Join an existing org as a franchisee using a one-time token                                                                                                                                                             |
+| `/orgs/[orgId]`                                     | `requireOrgMemberPage`                     | Org overview — stat cards (members, tasks, roles, today's schedule completion), today's schedule list, org header (name, address, timezone, settings link for owner)                                                    |
+| `/orgs/[orgId]/tools`                               | `requireOrgMemberPage`                     | Tools hub — sidebar with search + nav links (Item List, Conversion, Roster); content area stub                                                                                                                          |
+| `/orgs/[orgId]/tools/item-list`                     | `requireOrgMemberPage`                     | Item List tool stub — own page sidebar with Back link                                                                                                                                                                   |
+| `/orgs/[orgId]/tools/conversion`                    | `requireOrgMemberPage`                     | Conversion tool — lists all ConversionSets for the org; sidebar: Back + "Add Set" action                                                                                                                                |
+| `/orgs/[orgId]/tools/conversion/[setId]`            | `requireOrgMemberPage`                     | Conversion calculator — two-column From/To grid with live calculations; template switcher dropdown in toolbar; template state persisted in DB via `ConversionTemplateEntry`; sidebar: Items · Rates · Templates actions |
+| `/orgs/[orgId]/tools/roster`                        | `requireOrgMemberPage`                     | Roster tool — scrollable weekly shift grid (Mon–Sun rows × multi-week columns); week navigation; Edit Day Config + Apply Template actions in sidebar                                                                    |
+| `/orgs/[orgId]/tools/roster/templates`              | `requireOrgMemberPage`                     | Roster template list — card view; MANAGE_TIMETABLE holders can create, rename, and delete templates                                                                                                                     |
+| `/orgs/[orgId]/tools/roster/templates/[templateId]` | `requireOrgMemberPage`                     | Roster template editor — cycle-week stepper, column-paged board (7 day rows × cycleWeeks columns); clicking a cell opens the member/shift-time panel                                                                    |
+| `/orgs/[orgId]/franchisee`                          | `requireParentOrgOwnerPage`                | Franchise management — invite tokens + franchisee list                                                                                                                                                                  |
+| `/orgs/[orgId]/tasks`                               | `requireOrgMemberPage`                     | Task definition list — sort, role filter, list/card toggle in sidebar; search in toolbar; Create Task action in sidebar (managers only)                                                                                 |
+| `/orgs/[orgId]/tasks/new`                           | `requireOrgPermissionPage MANAGE_TASKS`    | Create task — includes color picker                                                                                                                                                                                     |
+| `/orgs/[orgId]/tasks/[taskId]`                      | `requireOrgMemberPage`                     | Task detail view — description, color, image preview (aspect-square); clicking a task name in the timetable navigates here                                                                                              |
+| `/orgs/[orgId]/tasks/[taskId]/edit`                 | `requireOrgPermissionPage MANAGE_TASKS`    | Edit task — color picker pre-filled with current color                                                                                                                                                                  |
+| `/orgs/[orgId]/memberships`                         | `requireOrgMemberPage`                     | Member list — role filter, list/card toggle in sidebar; search in toolbar; Invite Member + Add Bot in sidebar (ActionSidebar on desktop, Dialog on mobile)                                                              |
+| `/orgs/[orgId]/memberships/new`                     | `requireOrgPermissionPage MANAGE_MEMBERS`  | Invite a new member by email (standalone page, also accessible from sidebar action)                                                                                                                                     |
+| `/orgs/[orgId]/memberships/[memberId]`              | `requireOrgMemberPage`                     | Member detail view — avatar, roles (multi-badge), working days, status, join date                                                                                                                                       |
+| `/orgs/[orgId]/memberships/[memberId]/edit`         | `requireOrgPermissionPage MANAGE_MEMBERS`  | Edit member — working days, roles (owner role excluded from picker)                                                                                                                                                     |
+| `/orgs/[orgId]/timetable`                           | `requireOrgMemberPage`                     | Timetable — calendar or simple mode, week navigation                                                                                                                                                                    |
+| `/orgs/[orgId]/timetable/templates`                 | `requireOrgMemberPage`                     | Timetable template list — card or list view; MANAGE_TASKS holders can rename, duplicate, and delete                                                                                                                     |
+| `/orgs/[orgId]/timetable/templates/new`             | `requireOrgMemberPage`                     | Create a new timetable template                                                                                                                                                                                         |
+| `/orgs/[orgId]/timetable/templates/[templateId]`    | `requireOrgMemberPage`                     | Template editor — Calendar (drag-and-drop grid) or Simple (day table) view; cycle-length controls                                                                                                                       |
+| `/orgs/[orgId]/settings`                            | —                                          | Redirects to `/settings/organization`                                                                                                                                                                                   |
+| `/orgs/[orgId]/settings/organization`               | `requireOrgPermissionPage MANAGE_SETTINGS` | Org settings — logo upload (crop dialog, 512×512 square, public bucket), org info, timezone, hours, transfer, delete                                                                                                    |
+| `/orgs/[orgId]/settings/roles`                      | `requireOrgPermissionPage MANAGE_ROLES`    | Role list with page sidebar — "+ Create Role" opens the form in the action sidebar; row ··· menu "Edit" also opens in action sidebar                                                                                    |
+| `/orgs/[orgId]/settings/timetable`                  | —                                          | Timetable display settings (stub)                                                                                                                                                                                       |
+| `/orgs/[orgId]/settings/notification`               | —                                          | Notification preferences (stub)                                                                                                                                                                                         |
 
 All `/orgs/[orgId]/*` pages are guarded by at least `requireOrgMemberPage` — users not in the org are redirected.
 
 ## Notification System
 
-In-app notifications are implemented via the `Invite` model and a bell icon in the navbar.
+In-app notifications are implemented via the `Invite` and `Notification` models and a bell icon in the navbar.
 
 - The `NavBar` server component fetches all visible invites and an unseen count for the session user on every render.
 - **Visibility window**: `PENDING` invites are always shown; `ACCEPTED`/`DECLINED` invites are shown for 7 days after being handled, then disappear naturally.

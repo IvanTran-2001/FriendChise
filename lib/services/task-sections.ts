@@ -28,16 +28,37 @@ export type SectionLayoutInput = {
 };
 
 export const DEFAULT_SECTIONS: SectionLayoutInput[] = [
-  { type: "PICTURE", title: "Picture", scope: SectionScope.ORG, position: 0, visible: true },
-  { type: "DETAIL", title: "Details", scope: SectionScope.ORG, position: 1, visible: true },
-  { type: "COMMENT", title: "Comments", scope: SectionScope.ORG, position: 2, visible: true },
+  {
+    type: "PICTURE",
+    title: "Picture",
+    scope: SectionScope.ORG,
+    position: 0,
+    visible: true,
+  },
+  {
+    type: "DETAIL",
+    title: "Details",
+    scope: SectionScope.ORG,
+    position: 1,
+    visible: true,
+  },
+  {
+    type: "COMMENT",
+    title: "Comments",
+    scope: SectionScope.ORG,
+    position: 2,
+    visible: true,
+  },
 ];
 
 /**
  * Creates the three default section rows for a task+org, skipping any that
  * already exist (safe to call multiple times).
  */
-export async function createDefaultSectionLayouts(taskId: string, orgId: string) {
+export async function createDefaultSectionLayouts(
+  taskId: string,
+  orgId: string,
+) {
   await prisma.taskSectionLayout.createMany({
     data: DEFAULT_SECTIONS.map((s) => ({ taskId, orgId, ...s })),
     skipDuplicates: true,
@@ -49,7 +70,10 @@ export async function createDefaultSectionLayouts(taskId: string, orgId: string)
  * Falls back to the DEFAULT_SECTIONS constants (without DB ids) when no rows
  * exist yet — callers should treat virtual rows as unsaved.
  */
-export async function getSectionLayout(taskId: string, orgId: string): Promise<SectionLayoutRow[]> {
+export async function getSectionLayout(
+  taskId: string,
+  orgId: string,
+): Promise<SectionLayoutRow[]> {
   const rows = await prisma.taskSectionLayout.findMany({
     where: { taskId, orgId },
     orderBy: { position: "asc" },

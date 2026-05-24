@@ -16,7 +16,11 @@ import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { ApplyTemplatePanel } from "./apply-template-panel";
 
 type Role = { id: string; name: string; color: string };
-type OrgMember = { id: string; botName: string | null; user: { name: string | null } | null };
+type OrgMember = {
+  id: string;
+  botName: string | null;
+  user: { name: string | null } | null;
+};
 type RosterTemplate = { id: string; name: string; cycleWeeks: number };
 
 function memberName(m: OrgMember): string {
@@ -50,7 +54,9 @@ export function RosterSidebarContent({
     ...members.map((m) => ({ id: m.id, name: memberName(m) })),
   ];
   const selectedMember = members.find((m) => m.id === filterMembershipId);
-  const filterLabel = selectedMember ? memberName(selectedMember) : "All members";
+  const filterLabel = selectedMember
+    ? memberName(selectedMember)
+    : "All members";
 
   function handleFilterSelect(item: ComboboxItem) {
     onFilterChange(item.id === "" ? null : item.id);

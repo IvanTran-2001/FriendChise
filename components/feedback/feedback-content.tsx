@@ -12,7 +12,13 @@
 
 import { useRef, useState, useTransition, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { AlertCircle, CheckCircle2, ImagePlus, Lightbulb, X } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ImagePlus,
+  Lightbulb,
+  X,
+} from "lucide-react";
 import { FeedbackType } from "@prisma/client";
 import imageCompression from "browser-image-compression";
 import { toast } from "sonner";
@@ -123,7 +129,12 @@ export function FeedbackContent({ onClose }: FeedbackContentProps) {
   function handleSubmit() {
     if (!type || !message.trim()) return;
     startTransition(async () => {
-      const result = await submitFeedbackAction(type, message, orgId, imageStoragePath);
+      const result = await submitFeedbackAction(
+        type,
+        message,
+        orgId,
+        imageStoragePath,
+      );
       if (result.ok) {
         setStep("done");
       } else {
@@ -195,7 +206,11 @@ export function FeedbackContent({ onClose }: FeedbackContentProps) {
         {imagePreview ? (
           <div className="relative rounded-md overflow-hidden border border-border">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imagePreview} alt="Screenshot preview" className="w-full object-cover max-h-48" />
+            <img
+              src={imagePreview}
+              alt="Screenshot preview"
+              className="w-full object-cover max-h-48"
+            />
             <button
               onClick={handleRemoveImage}
               className="absolute top-1.5 right-1.5 rounded-full bg-background/80 p-0.5 hover:bg-background transition-colors"
@@ -233,7 +248,9 @@ export function FeedbackContent({ onClose }: FeedbackContentProps) {
   // ── Step 1: type picker ───────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-3 p-4">
-      <p className="text-xs text-muted-foreground">What kind of feedback do you have?</p>
+      <p className="text-xs text-muted-foreground">
+        What kind of feedback do you have?
+      </p>
       <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => selectType("ISSUE")}

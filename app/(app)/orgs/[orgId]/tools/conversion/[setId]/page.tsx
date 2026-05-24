@@ -47,7 +47,9 @@ export default async function ConversionSetPage({
     templates[0]?.id ??
     null;
 
-  const initialEntries = activeTemplateId ? await getTemplateEntries(orgId, activeTemplateId) : [];
+  const initialEntries = activeTemplateId
+    ? await getTemplateEntries(orgId, activeTemplateId)
+    : [];
 
   return (
     <>

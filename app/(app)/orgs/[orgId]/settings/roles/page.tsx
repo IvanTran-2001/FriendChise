@@ -40,7 +40,11 @@ export default async function RolesPage({
         }
       />
       <div className="max-w-3xl mx-auto">
-        <RolesClient orgId={orgId} roles={roles} tasks={tasks.map((t) => ({ id: t.id, name: t.name }))} />
+        <RolesClient
+          orgId={orgId}
+          roles={roles}
+          tasks={tasks.map((t) => ({ id: t.id, name: t.name }))}
+        />
       </div>
     </>
   );

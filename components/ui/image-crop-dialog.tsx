@@ -89,7 +89,10 @@ async function cropToFile(
   return new Promise<File>((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
-        if (!blob) { reject(new Error("Canvas produced no output")); return; }
+        if (!blob) {
+          reject(new Error("Canvas produced no output"));
+          return;
+        }
         resolve(new File([blob], fileName, { type: mimeType }));
       },
       mimeType,
@@ -131,7 +134,9 @@ export function ImageCropDialog({
     [file],
   );
   useEffect(() => {
-    return () => { if (imageSrc) URL.revokeObjectURL(imageSrc); };
+    return () => {
+      if (imageSrc) URL.revokeObjectURL(imageSrc);
+    };
   }, [imageSrc]);
 
   const onCropComplete = useCallback((_: Area, pixels: Area) => {
@@ -203,7 +208,9 @@ export function ImageCropDialog({
 
         {/* Zoom slider */}
         <div className="flex items-center gap-3 px-1">
-          <span className="text-xs text-muted-foreground w-8 shrink-0">Zoom</span>
+          <span className="text-xs text-muted-foreground w-8 shrink-0">
+            Zoom
+          </span>
           <input
             type="range"
             min={1}
@@ -225,7 +232,12 @@ export function ImageCropDialog({
         </p>
 
         <DialogFooter>
-          <Button variant="outline" size="sm" onClick={handleCancel} disabled={isProcessing}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCancel}
+            disabled={isProcessing}
+          >
             Cancel
           </Button>
           <Button size="sm" onClick={handleConfirm} disabled={isProcessing}>

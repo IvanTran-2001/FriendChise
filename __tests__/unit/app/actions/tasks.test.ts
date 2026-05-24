@@ -28,7 +28,10 @@ vi.mock("@/lib/services/tasks", () => ({
   setTaskEligibilities: vi.fn(),
 }));
 
-import { requireOrgPermissionAction, requireParentOrgOwnerAction } from "@/lib/authz";
+import {
+  requireOrgPermissionAction,
+  requireParentOrgOwnerAction,
+} from "@/lib/authz";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -260,9 +263,7 @@ describe("updateTaskAction", () => {
       "user@example.com",
     );
     expect(revalidatePath).toHaveBeenCalledWith("/orgs/org-1/tasks");
-    expect(revalidatePath).toHaveBeenCalledWith(
-      "/orgs/org-1/tasks/task-1",
-    );
+    expect(revalidatePath).toHaveBeenCalledWith("/orgs/org-1/tasks/task-1");
   });
 });
 

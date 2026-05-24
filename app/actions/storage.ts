@@ -49,7 +49,9 @@ export async function getSignedUploadUrl(
   orgId: string,
   taskId: string,
   mimeType: string,
-): Promise<{ ok: true; signedUrl: string; path: string } | { ok: false; error: string }> {
+): Promise<
+  { ok: true; signedUrl: string; path: string } | { ok: false; error: string }
+> {
   const authz = await requireOrgPermissionAction(
     orgId,
     PermissionAction.MANAGE_TASKS,
@@ -66,7 +68,10 @@ export async function getSignedUploadUrl(
   }
 
   if (!ALLOWED_MIME_TYPES.includes(mimeType as AllowedMime)) {
-    return { ok: false, error: "Unsupported file type. Use JPEG, PNG, or WebP." };
+    return {
+      ok: false,
+      error: "Unsupported file type. Use JPEG, PNG, or WebP.",
+    };
   }
 
   const ext = EXT[mimeType as AllowedMime];
@@ -151,12 +156,20 @@ export async function removeTaskImage(
 export async function getOrgLogoUploadUrl(
   orgId: string,
   mimeType: string,
-): Promise<{ ok: true; signedUrl: string; path: string } | { ok: false; error: string }> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_SETTINGS);
+): Promise<
+  { ok: true; signedUrl: string; path: string } | { ok: false; error: string }
+> {
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_SETTINGS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   if (!ALLOWED_MIME_TYPES.includes(mimeType as AllowedMime)) {
-    return { ok: false, error: "Unsupported file type. Use JPEG, PNG, or WebP." };
+    return {
+      ok: false,
+      error: "Unsupported file type. Use JPEG, PNG, or WebP.",
+    };
   }
 
   const ext = EXT[mimeType as AllowedMime];
@@ -173,7 +186,10 @@ export async function saveOrgLogoPath(
   orgId: string,
   storagePath: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_SETTINGS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_SETTINGS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   // Normalize and validate storagePath
@@ -207,7 +223,10 @@ export async function saveOrgLogoPath(
 export async function removeOrgLogo(
   orgId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_SETTINGS);
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_SETTINGS,
+  );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   const existing = await prisma.organization.findUnique({
@@ -237,13 +256,18 @@ const FEEDBACK_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 
 export async function getFeedbackImageUploadUrl(
   mimeType: string,
-): Promise<{ ok: true; signedUrl: string; path: string } | { ok: false; error: string }> {
+): Promise<
+  { ok: true; signedUrl: string; path: string } | { ok: false; error: string }
+> {
   const { requireUserAction } = await import("@/lib/authz");
   const authz = await requireUserAction();
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   if (!ALLOWED_MIME_TYPES.includes(mimeType as AllowedMime)) {
-    return { ok: false, error: "Unsupported file type. Use JPEG, PNG, or WebP." };
+    return {
+      ok: false,
+      error: "Unsupported file type. Use JPEG, PNG, or WebP.",
+    };
   }
 
   const ext = EXT[mimeType as AllowedMime];
@@ -274,4 +298,3 @@ export async function getFeedbackImageReadUrl(
 
   return { ok: true, signedUrl };
 }
-

@@ -54,7 +54,13 @@ interface RoleFormProps {
   onCancel?: () => void;
 }
 
-export function RoleForm({ orgId, role, tasks, onSuccess, onCancel }: RoleFormProps) {
+export function RoleForm({
+  orgId,
+  role,
+  tasks,
+  onSuccess,
+  onCancel,
+}: RoleFormProps) {
   const nameId = useId();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -249,9 +255,7 @@ export function RoleForm({ orgId, role, tasks, onSuccess, onCancel }: RoleFormPr
           type="button"
           variant="outline"
           onClick={() =>
-            onCancel
-              ? onCancel()
-              : router.push(`/orgs/${orgId}/settings/roles`)
+            onCancel ? onCancel() : router.push(`/orgs/${orgId}/settings/roles`)
           }
           disabled={isPending}
         >

@@ -81,7 +81,13 @@ const LOGO_CROP_CONFIG: ImageCropConfig = {
   outputHeight: 512,
 };
 
-function OrgLogoPanel({ orgId, initialPath }: { orgId: string; initialPath: string | null }) {
+function OrgLogoPanel({
+  orgId,
+  initialPath,
+}: {
+  orgId: string;
+  initialPath: string | null;
+}) {
   const [storagePath, setStoragePath] = useState<string | null>(initialPath);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -114,17 +120,26 @@ function OrgLogoPanel({ orgId, initialPath }: { orgId: string; initialPath: stri
     startTransition(async () => {
       try {
         const urlResult = await getOrgLogoUploadUrl(orgId, croppedFile.type);
-        if (!urlResult.ok) { setError(urlResult.error); return; }
+        if (!urlResult.ok) {
+          setError(urlResult.error);
+          return;
+        }
 
         const uploadRes = await fetch(urlResult.signedUrl, {
           method: "PUT",
           body: croppedFile,
           headers: { "Content-Type": croppedFile.type },
         });
-        if (!uploadRes.ok) { setError("Upload failed. Please try again."); return; }
+        if (!uploadRes.ok) {
+          setError("Upload failed. Please try again.");
+          return;
+        }
 
         const saveResult = await saveOrgLogoPath(orgId, urlResult.path);
-        if (!saveResult.ok) { setError(saveResult.error); return; }
+        if (!saveResult.ok) {
+          setError(saveResult.error);
+          return;
+        }
 
         setStoragePath(urlResult.path);
       } catch {
@@ -137,7 +152,10 @@ function OrgLogoPanel({ orgId, initialPath }: { orgId: string; initialPath: stri
     setError(null);
     startTransition(async () => {
       const result = await removeOrgLogo(orgId);
-      if (!result.ok) { setError(result.error); return; }
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
       setStoragePath(null);
     });
   }
@@ -160,7 +178,11 @@ function OrgLogoPanel({ orgId, initialPath }: { orgId: string; initialPath: stri
           <div className="size-20 rounded-lg border bg-muted flex items-center justify-center overflow-hidden shrink-0">
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={logoUrl} alt="Org logo" className="size-full object-cover" />
+              <img
+                src={logoUrl}
+                alt="Org logo"
+                className="size-full object-cover"
+              />
             ) : (
               <ImageIcon className="size-8 text-muted-foreground" />
             )}

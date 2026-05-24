@@ -127,11 +127,15 @@ function TagRow({
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete &ldquo;{tag.name}&rdquo;?</AlertDialogTitle>
+              <AlertDialogTitle>
+                Delete &ldquo;{tag.name}&rdquo;?
+              </AlertDialogTitle>
               <AlertDialogDescription>
                 This will remove the tag from all{" "}
                 {tag._count.tasks > 0 ? (
-                  <strong>{tag._count.tasks} task{tag._count.tasks !== 1 ? "s" : ""}</strong>
+                  <strong>
+                    {tag._count.tasks} task{tag._count.tasks !== 1 ? "s" : ""}
+                  </strong>
                 ) : (
                   "tasks"
                 )}
@@ -202,7 +206,10 @@ export function TagsClient({ orgId, tags, allTasks }: Props) {
               </span>
             </div>
             {filtered.map((tag, i) => (
-              <div key={tag.id} className={i < filtered.length - 1 ? "border-b" : ""}>
+              <div
+                key={tag.id}
+                className={i < filtered.length - 1 ? "border-b" : ""}
+              >
                 <TagRow orgId={orgId} tag={tag} allTasks={allTasks} />
               </div>
             ))}

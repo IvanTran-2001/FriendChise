@@ -1,5 +1,6 @@
 import { getInheritedTasks, getSharedTasks } from "@/lib/services/tasks";
 import { getRoles } from "@/lib/services/roles";
+import { createSignedReadUrl } from "@/lib/supabase-storage";
 import { getOrgTags } from "@/lib/services/tags";
 import { requireOrgMemberPage } from "@/lib/authz";
 import {
@@ -37,12 +38,24 @@ const TasksPage = async ({
   searchParams,
 }: {
   params: Promise<{ orgId: string }>;
-  searchParams: Promise<{ sort?: string; roleId?: string; view?: string; tagId?: string; mode?: string }>;
+  searchParams: Promise<{
+    sort?: string;
+    roleId?: string;
+    view?: string;
+    tagId?: string;
+    mode?: string;
+  }>;
 }) => {
   const { orgId } = await params;
   const sp = await searchParams;
-  const isModeExplicit = sp.mode === "shared" || sp.mode === "list" || sp.mode === "available";
-  const mode: "list" | "shared" | "available" = sp.mode === "list" ? "list" : sp.mode === "available" ? "available" : "shared";
+  const isModeExplicit =
+    sp.mode === "shared" || sp.mode === "list" || sp.mode === "available";
+  const mode: "list" | "shared" | "available" =
+    sp.mode === "list"
+      ? "list"
+      : sp.mode === "available"
+        ? "available"
+        : "shared";
 
   await requireOrgMemberPage(orgId);
 
@@ -65,12 +78,12 @@ const TasksPage = async ({
           ],
         )
       : mode === "available"
-      ? getSharedTasks(orgId).then((shared) =>
-          shared.map((t) => ({ ...t, _available: true as const })),
-        )
-      : getInheritedTasks(orgId).then((inherited) =>
-          inherited.map((t) => ({ ...t, _available: false as const })),
-        ),
+        ? getSharedTasks(orgId).then((shared) =>
+            shared.map((t) => ({ ...t, _available: true as const })),
+          )
+        : getInheritedTasks(orgId).then((inherited) =>
+            inherited.map((t) => ({ ...t, _available: false as const })),
+          ),
     getRoles(orgId),
     getOrgTags(orgId),
   ]);
@@ -83,11 +96,26 @@ const TasksPage = async ({
       ? sp.roleId
       : null;
   const view: "list" | "card" = sp.view === "card" ? "card" : "list";
+
+  // Resolve signed image URLs only when images will be displayed (not in list view)
+  const tasksWithImages =
+    view !== "list"
+      ? await Promise.all(
+          tasks.map(async (t) => ({
+            ...t,
+            imageSignedUrl: t.imageUrl
+              ? await createSignedReadUrl(t.imageUrl)
+              : null,
+          })),
+        )
+      : tasks.map((t) => ({ ...t, imageSignedUrl: null }));
+
   const tags = orgTags.map((t) => ({ id: t.id, name: t.name, color: t.color }));
   const tagId =
     typeof sp.tagId === "string" && tags.some((t) => t.id === sp.tagId)
       ? sp.tagId
       : null;
+  const isFiltersExplicit = !!(sp.sort || sp.roleId || sp.view || sp.tagId);
 
   return (
     <>
@@ -104,12 +132,13 @@ const TasksPage = async ({
             view={view}
             mode={mode}
             isModeExplicit={isModeExplicit}
+            isFiltersExplicit={isFiltersExplicit}
           />
         }
       />
       <TaskTable
         orgId={orgId}
-        tasks={tasks}
+        tasks={tasksWithImages}
         canManageTasks={canManageTasks}
         sort={sort}
         filterRoleId={roleId}

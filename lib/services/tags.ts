@@ -31,7 +31,9 @@ export async function createTag(
   data: { name: string; color?: string },
   actorId?: string | null,
   actorEmail?: string | null,
-): Promise<ServiceResult<{ id: string; name: string; color: string; isDefault: boolean }>> {
+): Promise<
+  ServiceResult<{ id: string; name: string; color: string; isDefault: boolean }>
+> {
   let tag;
   try {
     tag = await prisma.tag.create({
@@ -43,7 +45,11 @@ export async function createTag(
     });
   } catch (e: unknown) {
     if ((e as { code?: string }).code === "P2002") {
-      return { ok: false, error: "A tag with that name already exists.", code: "CONFLICT" };
+      return {
+        ok: false,
+        error: "A tag with that name already exists.",
+        code: "CONFLICT",
+      };
     }
     throw e;
   }
@@ -76,8 +82,14 @@ export async function deleteTag(
   const existing = await prisma.tag.findFirst({
     where: { id: tagId, orgId },
   });
-  if (!existing) return { ok: false, error: "Tag not found.", code: "NOT_FOUND" };
-  if (existing.isDefault) return { ok: false, error: "Default tags cannot be deleted.", code: "INVALID" };
+  if (!existing)
+    return { ok: false, error: "Tag not found.", code: "NOT_FOUND" };
+  if (existing.isDefault)
+    return {
+      ok: false,
+      error: "Default tags cannot be deleted.",
+      code: "INVALID",
+    };
 
   await prisma.tag.delete({ where: { id: tagId } });
 
@@ -106,17 +118,29 @@ export async function updateTag(
   data: { name?: string; color?: string },
   actorId?: string | null,
   actorEmail?: string | null,
-): Promise<ServiceResult<{ id: string; name: string; color: string; isDefault: boolean }>> {
+): Promise<
+  ServiceResult<{ id: string; name: string; color: string; isDefault: boolean }>
+> {
   const existing = await prisma.tag.findFirst({ where: { id: tagId, orgId } });
-  if (!existing) return { ok: false, error: "Tag not found.", code: "NOT_FOUND" };
+  if (!existing)
+    return { ok: false, error: "Tag not found.", code: "NOT_FOUND" };
 
   if (data.name && data.name !== existing.name) {
     if (existing.isDefault)
-      return { ok: false, error: "Cannot rename a default tag.", code: "INVALID" };
+      return {
+        ok: false,
+        error: "Cannot rename a default tag.",
+        code: "INVALID",
+      };
     const conflict = await prisma.tag.findUnique({
       where: { orgId_name: { orgId, name: data.name } },
     });
-    if (conflict) return { ok: false, error: "A tag with that name already exists.", code: "CONFLICT" };
+    if (conflict)
+      return {
+        ok: false,
+        error: "A tag with that name already exists.",
+        code: "CONFLICT",
+      };
   }
 
   let tag;
@@ -130,7 +154,11 @@ export async function updateTag(
     });
   } catch (e: unknown) {
     if ((e as { code?: string }).code === "P2002") {
-      return { ok: false, error: "A tag with that name already exists.", code: "CONFLICT" };
+      return {
+        ok: false,
+        error: "A tag with that name already exists.",
+        code: "CONFLICT",
+      };
     }
     throw e;
   }
@@ -162,7 +190,10 @@ export async function addTagToTask(
   tagId: string,
 ): Promise<ServiceResult<null>> {
   const [task, tag] = await Promise.all([
-    prisma.task.findFirst({ where: { id: taskId, orgId }, select: { id: true } }),
+    prisma.task.findFirst({
+      where: { id: taskId, orgId },
+      select: { id: true },
+    }),
     prisma.tag.findFirst({ where: { id: tagId, orgId }, select: { id: true } }),
   ]);
   if (!task) return { ok: false, error: "Task not found.", code: "NOT_FOUND" };
@@ -187,7 +218,10 @@ export async function removeTagFromTask(
   tagId: string,
 ): Promise<ServiceResult<null>> {
   const [task, tag] = await Promise.all([
-    prisma.task.findFirst({ where: { id: taskId, orgId }, select: { id: true } }),
+    prisma.task.findFirst({
+      where: { id: taskId, orgId },
+      select: { id: true },
+    }),
     prisma.tag.findFirst({ where: { id: tagId, orgId }, select: { id: true } }),
   ]);
   if (!task) return { ok: false, error: "Task not found.", code: "NOT_FOUND" };

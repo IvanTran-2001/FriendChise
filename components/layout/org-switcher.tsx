@@ -71,9 +71,7 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
           className="gap-1.5 max-w-48 pl-1.5"
           disabled={isPending}
         >
-          {activeOrg ? (
-            <OrgBadge org={activeOrg} />
-          ) : null}
+          {activeOrg ? <OrgBadge org={activeOrg} /> : null}
           <span className="truncate max-w-28 sm:max-w-40">
             {activeOrg?.name ?? "Select Org"}
           </span>
@@ -110,10 +108,14 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
                   className="gap-2"
                 >
                   <OrgBadge org={org} />
-                  <span className={cn("flex-1 truncate", isActive && "font-medium")}>
+                  <span
+                    className={cn("flex-1 truncate", isActive && "font-medium")}
+                  >
                     {org.name}
                   </span>
-                  {isActive && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                  {isActive && (
+                    <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
+                  )}
                 </DropdownMenuItem>
               );
             })}

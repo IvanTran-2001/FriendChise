@@ -124,7 +124,8 @@ export function TimetableClient({
     if (!hasPanel) return;
     const handler = () => setTaskPanelOpen(true);
     window.addEventListener("timetable:open-task-panel", handler);
-    return () => window.removeEventListener("timetable:open-task-panel", handler);
+    return () =>
+      window.removeEventListener("timetable:open-task-panel", handler);
   }, [hasPanel]);
 
   // Track the actual column count reported by CalendarView (ResizeObserver).

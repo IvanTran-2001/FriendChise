@@ -18,7 +18,10 @@ import { PermissionAction } from "@prisma/client";
 import { requireOrgMemberPage } from "@/lib/authz";
 import { getOrgMembership, memberHasPermission } from "@/lib/authz/_shared";
 import { getAccessibleTaskById } from "@/lib/services/tasks";
-import { getSectionLayout, type SectionLayoutRow } from "@/lib/services/task-sections";
+import {
+  getSectionLayout,
+  type SectionLayoutRow,
+} from "@/lib/services/task-sections";
 import { createSignedReadUrl } from "@/lib/supabase-storage";
 import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
 import { Toolbar } from "@/components/layout/toolbar";
@@ -76,7 +79,7 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
   ]);
 
   const sharedBy = !isOwner
-    ? task?.organization?.name ?? undefined
+    ? (task?.organization?.name ?? undefined)
     : undefined;
   const createdByName = task?.createdByName ?? undefined;
 

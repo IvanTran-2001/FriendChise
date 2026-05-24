@@ -1,9 +1,8 @@
 allowBuilds:
-  '@prisma/engines': true
-  '@sentry/cli': true
+  "@prisma/engines": true
+  "@sentry/cli": true
   esbuild: true
   msw: true
   prisma: true
   sharp: true
   unrs-resolver: true
-

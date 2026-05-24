@@ -13,7 +13,12 @@
 "use client";
 
 import { useRef } from "react";
-import { ArrowLeft, ArrowLeftRight, LayoutTemplate, Package } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowLeftRight,
+  LayoutTemplate,
+  Package,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarNavItem } from "@/components/layout/sidebar-nav-item";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
@@ -53,7 +58,12 @@ export function SetSidebarContent({
 
   function openPanel(title: string, content: React.ReactNode) {
     const k = ++keyRef.current;
-    open(title, <div key={k} className="p-4">{content}</div>);
+    open(
+      title,
+      <div key={k} className="p-4">
+        {content}
+      </div>,
+    );
   }
 
   function handleItems() {

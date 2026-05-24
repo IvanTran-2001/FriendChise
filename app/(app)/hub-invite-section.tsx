@@ -92,7 +92,9 @@ function InviteHubCard({
       {/* Text */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-semibold truncate">{invite.orgName}</span>
+          <span className="text-sm font-semibold truncate">
+            {invite.orgName}
+          </span>
           <span
             className={cn(
               "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
@@ -122,11 +124,7 @@ function InviteHubCard({
           <X className="h-3.5 w-3.5" />
           Decline
         </Button>
-        <Button
-          size="sm"
-          disabled={isPending}
-          onClick={handleAccept}
-        >
+        <Button size="sm" disabled={isPending} onClick={handleAccept}>
           <Check className="h-3.5 w-3.5" />
           {isFranchise ? "Join Franchise" : "Accept"}
         </Button>

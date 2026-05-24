@@ -17,7 +17,13 @@ export async function createFeedback(
   imageUrl?: string | null,
 ) {
   return prisma.feedback.create({
-    data: { userId, type, message, orgId: orgId ?? null, imageUrl: imageUrl ?? null },
+    data: {
+      userId,
+      type,
+      message,
+      orgId: orgId ?? null,
+      imageUrl: imageUrl ?? null,
+    },
     select: { id: true },
   });
 }

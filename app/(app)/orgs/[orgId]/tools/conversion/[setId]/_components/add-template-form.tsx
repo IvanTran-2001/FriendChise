@@ -70,7 +70,9 @@ export function AddTemplateForm({
     startTransition(async () => {
       const result = await createConversionTemplateAction(orgId, setId, name);
       if (!result.ok) {
-        toast.error("error" in result ? result.error : "Failed to create template.");
+        toast.error(
+          "error" in result ? result.error : "Failed to create template.",
+        );
         return;
       }
       if (result.ok) {
@@ -85,9 +87,15 @@ export function AddTemplateForm({
   function handleDelete(templateId: string) {
     setDeletingId(templateId);
     startTransition(async () => {
-      const result = await deleteConversionTemplateAction(orgId, setId, templateId);
+      const result = await deleteConversionTemplateAction(
+        orgId,
+        setId,
+        templateId,
+      );
       if (!result.ok) {
-        toast.error("error" in result ? result.error : "Failed to delete template.");
+        toast.error(
+          "error" in result ? result.error : "Failed to delete template.",
+        );
       } else {
         const remaining = templateList.filter((t) => t.id !== templateId);
         setTemplateList(remaining);
@@ -107,9 +115,16 @@ export function AddTemplateForm({
     setDuplicatingId(template.id);
     startTransition(async () => {
       const newName = `${template.name} (Copy)`;
-      const result = await duplicateConversionTemplateAction(orgId, setId, template.id, newName);
+      const result = await duplicateConversionTemplateAction(
+        orgId,
+        setId,
+        template.id,
+        newName,
+      );
       if (!result.ok) {
-        toast.error("error" in result ? result.error : "Failed to duplicate template.");
+        toast.error(
+          "error" in result ? result.error : "Failed to duplicate template.",
+        );
       } else {
         setTemplateList((prev) => [...prev, result.template]);
         selectTemplate(result.template.id);
@@ -123,12 +138,21 @@ export function AddTemplateForm({
     const trimmed = editName.trim();
     if (!trimmed) return;
     startTransition(async () => {
-      const result = await renameConversionTemplateAction(orgId, setId, templateId, trimmed);
+      const result = await renameConversionTemplateAction(
+        orgId,
+        setId,
+        templateId,
+        trimmed,
+      );
       if (!result.ok) {
-        toast.error("error" in result ? result.error : "Failed to rename template.");
+        toast.error(
+          "error" in result ? result.error : "Failed to rename template.",
+        );
       } else {
         setTemplateList((prev) =>
-          prev.map((t) => (t.id === templateId ? { ...t, name: result.name } : t)),
+          prev.map((t) =>
+            t.id === templateId ? { ...t, name: result.name } : t,
+          ),
         );
         setEditingId(null);
         toast.success("Template renamed.");
@@ -185,7 +209,9 @@ export function AddTemplateForm({
           />
         </div>
         {templateList.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-2">No templates yet.</p>
+          <p className="text-xs text-muted-foreground py-2">
+            No templates yet.
+          </p>
         ) : filteredTemplates.length === 0 ? (
           <p className="text-xs text-muted-foreground py-2">No matches.</p>
         ) : (
@@ -197,7 +223,10 @@ export function AddTemplateForm({
 
               if (isEditing) {
                 return (
-                  <div key={t.id} className="flex flex-col gap-1.5 rounded-lg border border-primary bg-primary/5 px-3 py-2">
+                  <div
+                    key={t.id}
+                    className="flex flex-col gap-1.5 rounded-lg border border-primary bg-primary/5 px-3 py-2"
+                  >
                     <Input
                       autoFocus
                       value={editName}
@@ -215,7 +244,11 @@ export function AddTemplateForm({
                           size="sm"
                           className="h-7 px-2 text-xs"
                           onClick={() => handleRename(t.id)}
-                          disabled={isPending || !editName.trim() || editName.trim() === t.name}
+                          disabled={
+                            isPending ||
+                            !editName.trim() ||
+                            editName.trim() === t.name
+                          }
                         >
                           <Check className="h-3 w-3 mr-1" />
                           Save
@@ -263,17 +296,24 @@ export function AddTemplateForm({
                           : "bg-card hover:border-primary/40",
                     )}
                   >
-                    <span className={cn(
-                      "text-sm font-medium truncate",
-                      isDefault ? "text-amber-800 dark:text-amber-300" : isActive && "text-primary",
-                    )}>
+                    <span
+                      className={cn(
+                        "text-sm font-medium truncate",
+                        isDefault
+                          ? "text-amber-800 dark:text-amber-300"
+                          : isActive && "text-primary",
+                      )}
+                    >
                       {t.name}
                     </span>
                   </button>
                   <Button
                     size="icon-sm"
                     variant="ghost"
-                    onClick={(e) => { e.stopPropagation(); handleDuplicate(t); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDuplicate(t);
+                    }}
                     disabled={isPending || duplicatingId === t.id}
                     aria-label="Duplicate template"
                   >

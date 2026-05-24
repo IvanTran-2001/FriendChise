@@ -50,7 +50,9 @@ function EditItemForm({
     startTransition(async () => {
       const result = await updateToolItemAction(orgId, item.id, name, unit);
       if (!result.ok) {
-        toast.error("error" in result ? result.error : "Failed to update item.");
+        toast.error(
+          "error" in result ? result.error : "Failed to update item.",
+        );
         return;
       }
       onUpdate({ ...item, name: name.trim(), unit: unit.trim() });
@@ -63,7 +65,9 @@ function EditItemForm({
     startTransition(async () => {
       const result = await deleteToolItemAction(orgId, item.id);
       if (!result.ok) {
-        toast.error("error" in result ? result.error : "Failed to delete item.");
+        toast.error(
+          "error" in result ? result.error : "Failed to delete item.",
+        );
         return;
       }
       onDelete(item.id);
@@ -128,7 +132,12 @@ interface AddItemFormProps {
   onCancel: () => void;
 }
 
-export function AddItemForm({ orgId, toolItems, onSuccess, onCancel: _onCancel }: AddItemFormProps) {
+export function AddItemForm({
+  orgId,
+  toolItems,
+  onSuccess,
+  onCancel: _onCancel,
+}: AddItemFormProps) {
   const { open } = useActionSidebar();
   const editKeyRef = useRef(0);
   const [items, setItems] = useState(toolItems);
@@ -176,9 +185,13 @@ export function AddItemForm({ orgId, toolItems, onSuccess, onCancel: _onCancel }
           orgId={orgId}
           item={item}
           onUpdate={(updated) =>
-            updateItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
+            updateItems((prev) =>
+              prev.map((i) => (i.id === updated.id ? updated : i)),
+            )
           }
-          onDelete={(id) => updateItems((prev) => prev.filter((i) => i.id !== id))}
+          onDelete={(id) =>
+            updateItems((prev) => prev.filter((i) => i.id !== id))
+          }
           onBack={goBack}
         />
       </div>,
@@ -190,7 +203,9 @@ export function AddItemForm({ orgId, toolItems, onSuccess, onCancel: _onCancel }
     startTransition(async () => {
       const result = await createToolItemAction(orgId, name, unit);
       if (!result.ok) {
-        toast.error("error" in result ? result.error : "Failed to create item.");
+        toast.error(
+          "error" in result ? result.error : "Failed to create item.",
+        );
         return;
       }
       updateItems((prev) => [...prev, result.item]);
@@ -203,79 +218,85 @@ export function AddItemForm({ orgId, toolItems, onSuccess, onCancel: _onCancel }
 
   return (
     <div className="flex flex-col gap-5">
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="item-name" className="text-sm font-medium">
-          Name
-        </label>
-        <Input
-          id="item-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Custard"
-          required
-          autoFocus
-          disabled={isPending}
-        />
-      </div>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="item-name" className="text-sm font-medium">
+            Name
+          </label>
+          <Input
+            id="item-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Custard"
+            required
+            autoFocus
+            disabled={isPending}
+          />
+        </div>
 
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="item-unit" className="text-sm font-medium">
-          Unit
-        </label>
-        <Input
-          id="item-unit"
-          value={unit}
-          onChange={(e) => setUnit(e.target.value)}
-          placeholder="e.g. g, ml, each"
-          required
-          disabled={isPending}
-        />
-      </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="item-unit" className="text-sm font-medium">
+            Unit
+          </label>
+          <Input
+            id="item-unit"
+            value={unit}
+            onChange={(e) => setUnit(e.target.value)}
+            placeholder="e.g. g, ml, each"
+            required
+            disabled={isPending}
+          />
+        </div>
 
-      <Button
+        <Button
           type="submit"
           disabled={isPending || !name.trim() || !unit.trim()}
           className="w-full"
         >
           Add Item
         </Button>
-    </form>
+      </form>
 
-    <hr className="border-border" />
+      <hr className="border-border" />
 
-    {/* Item list */}
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          Items
-        </span>
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search…"
-          className="h-7 w-32 text-xs"
-        />
-      </div>
-      {items.length === 0 ? (
-        <p className="text-xs text-muted-foreground py-2">No items yet.</p>
-      ) : filteredItems.length === 0 ? (
-        <p className="text-xs text-muted-foreground py-2">No matches.</p>
-      ) : (
-        <div className="flex flex-col gap-1">
-          {filteredItems.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => openEdit(item)}
-              className="flex items-center justify-between rounded-lg border bg-card px-3 py-2 cursor-pointer hover:border-primary/40 transition-colors"
-            >
-              <span className="text-sm font-medium truncate">{item.name.length > 20 ? item.name.slice(0, 20) + "…" : item.name}</span>
-              <span className="text-xs text-muted-foreground ml-2 shrink-0">{item.unit.length > 3 ? item.unit.slice(0, 3) : item.unit}</span>
-            </div>
-          ))}
+      {/* Item list */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Items
+          </span>
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="h-7 w-32 text-xs"
+          />
         </div>
-      )}
+        {items.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-2">No items yet.</p>
+        ) : filteredItems.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-2">No matches.</p>
+        ) : (
+          <div className="flex flex-col gap-1">
+            {filteredItems.map((item) => (
+              <div
+                key={item.id}
+                onClick={() => openEdit(item)}
+                className="flex items-center justify-between rounded-lg border bg-card px-3 py-2 cursor-pointer hover:border-primary/40 transition-colors"
+              >
+                <span className="text-sm font-medium truncate">
+                  {item.name.length > 20
+                    ? item.name.slice(0, 20) + "…"
+                    : item.name}
+                </span>
+                <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                  {item.unit.length > 3 ? item.unit.slice(0, 3) : item.unit}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
-  </div>
   );
 }

@@ -21,7 +21,9 @@ export default async function TagsPage({
 
   return (
     <>
-      <RegisterPageSidebar content={<TagsSidebarContent orgId={orgId} allTasks={allTasks} />} />
+      <RegisterPageSidebar
+        content={<TagsSidebarContent orgId={orgId} allTasks={allTasks} />}
+      />
       <TagsClient orgId={orgId} tags={tags} allTasks={allTasks} />
     </>
   );

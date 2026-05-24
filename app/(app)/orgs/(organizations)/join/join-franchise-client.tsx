@@ -128,7 +128,9 @@ function ScheduleFields({
 }
 
 function minutesToTime(min: number): string {
-  const h = Math.floor(min / 60).toString().padStart(2, "0");
+  const h = Math.floor(min / 60)
+    .toString()
+    .padStart(2, "0");
   const m = (min % 60).toString().padStart(2, "0");
   return `${h}:${m}`;
 }
@@ -142,7 +144,9 @@ type ScheduleDefaults = {
 };
 
 function useScheduleState(defaults?: ScheduleDefaults) {
-  const [timezone, setTimezone] = useState(defaults?.timezone ?? "Australia/Sydney");
+  const [timezone, setTimezone] = useState(
+    defaults?.timezone ?? "Australia/Sydney",
+  );
   const [address, setAddress] = useState(defaults?.address ?? "");
   const [openTime, setOpenTime] = useState(
     defaults?.openTimeMin != null ? minutesToTime(defaults.openTimeMin) : "",
@@ -152,9 +156,20 @@ function useScheduleState(defaults?: ScheduleDefaults) {
   );
 
   const validDays: DayKey[] = (() => {
-    if (!defaults?.operatingDays?.length) return ["mon", "tue", "wed", "thu", "fri"];
-    const allowedDays = new Set<string>(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
-    const filtered = defaults.operatingDays.filter((d): d is DayKey => allowedDays.has(d));
+    if (!defaults?.operatingDays?.length)
+      return ["mon", "tue", "wed", "thu", "fri"];
+    const allowedDays = new Set<string>([
+      "mon",
+      "tue",
+      "wed",
+      "thu",
+      "fri",
+      "sat",
+      "sun",
+    ]);
+    const filtered = defaults.operatingDays.filter((d): d is DayKey =>
+      allowedDays.has(d),
+    );
     return filtered.length > 0 ? filtered : ["mon", "tue", "wed", "thu", "fri"];
   })();
 
@@ -174,8 +189,12 @@ function useScheduleState(defaults?: ScheduleDefaults) {
 }
 
 function buildSchedulePayload(s: ReturnType<typeof useScheduleState>) {
-  const openMin = s.openTime ? (timeToMinutes(s.openTime) ?? undefined) : undefined;
-  const closeMin = s.closeTime ? (timeToMinutes(s.closeTime) ?? undefined) : undefined;
+  const openMin = s.openTime
+    ? (timeToMinutes(s.openTime) ?? undefined)
+    : undefined;
+  const closeMin = s.closeTime
+    ? (timeToMinutes(s.closeTime) ?? undefined)
+    : undefined;
   if (openMin !== undefined && closeMin !== undefined && closeMin <= openMin) {
     throw new Error("Close time must be after open time");
   }

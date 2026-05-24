@@ -9,7 +9,11 @@ import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { setRosterTemplateCellMembersAction } from "@/app/actions/roster";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import type { OrgMember } from "@/app/(app)/orgs/[orgId]/tools/roster/_components/roster-board";
-import { formatMinutes, hoursWorked, timeToMinutes } from "@/app/(app)/orgs/[orgId]/tools/roster/_utils/time-utils";
+import {
+  formatMinutes,
+  hoursWorked,
+  timeToMinutes,
+} from "@/app/(app)/orgs/[orgId]/tools/roster/_utils/time-utils";
 
 function memberDisplayName(m: OrgMember): string {
   return m.botName ?? m.user?.name ?? "Unknown";
@@ -93,7 +97,11 @@ export function EditTemplateCellPanel({
     setShifts((prev) => prev.filter((s) => s.membershipId !== id));
   }
 
-  function updateShift(id: string, field: "startTime" | "endTime", value: string) {
+  function updateShift(
+    id: string,
+    field: "startTime" | "endTime",
+    value: string,
+  ) {
     setShifts((prev) =>
       prev.map((s) => (s.membershipId === id ? { ...s, [field]: value } : s)),
     );
@@ -122,61 +130,84 @@ export function EditTemplateCellPanel({
 
   return (
     <div className="flex flex-col gap-3 p-4">
-        {available.length > 0 && (
-          <SearchableCombobox
-            items={available.map((m) => ({ id: m.id, name: memberDisplayName(m) }))}
-            onSelect={(item) => addMember(item.id)}
-            triggerLabel="Add member…"
-            placeholder="Search members…"
-          />
-        )}
+      {available.length > 0 && (
+        <SearchableCombobox
+          items={available.map((m) => ({
+            id: m.id,
+            name: memberDisplayName(m),
+          }))}
+          onSelect={(item) => addMember(item.id)}
+          triggerLabel="Add member…"
+          placeholder="Search members…"
+        />
+      )}
 
-        {shifts.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-2">No members assigned.</p>
-        ) : (
-          shifts.map((s) => {
-            const member = members.find((m) => m.id === s.membershipId);
-            if (!member) return null;
-            const worked = hoursWorked(timeToMin(s.startTime), timeToMin(s.endTime));
-            return (
-              <div key={s.membershipId} className="flex flex-col gap-2 rounded-md border border-border p-2.5">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-sm font-medium break-all min-w-0">{memberDisplayName(member)}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeMember(s.membershipId)}
-                    className="shrink-0 mt-0.5 text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    <Minus className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <label className="text-[10px] text-muted-foreground uppercase tracking-wide w-8 shrink-0">Start</label>
-                    <Input
-                      type="time"
-                      value={s.startTime}
-                      onChange={(e) => updateShift(s.membershipId, "startTime", e.target.value)}
-                      className="h-8 text-sm px-2 flex-1"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-[10px] text-muted-foreground uppercase tracking-wide w-8 shrink-0">End</label>
-                    <Input
-                      type="time"
-                      value={s.endTime}
-                      onChange={(e) => updateShift(s.membershipId, "endTime", e.target.value)}
-                      className="h-8 text-sm px-2 flex-1"
-                    />
-                  </div>
-                </div>
-                {worked && (
-                  <span className="text-[10px] text-muted-foreground">{worked}</span>
-                )}
+      {shifts.length === 0 ? (
+        <p className="text-xs text-muted-foreground py-2">
+          No members assigned.
+        </p>
+      ) : (
+        shifts.map((s) => {
+          const member = members.find((m) => m.id === s.membershipId);
+          if (!member) return null;
+          const worked = hoursWorked(
+            timeToMin(s.startTime),
+            timeToMin(s.endTime),
+          );
+          return (
+            <div
+              key={s.membershipId}
+              className="flex flex-col gap-2 rounded-md border border-border p-2.5"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-sm font-medium break-all min-w-0">
+                  {memberDisplayName(member)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeMember(s.membershipId)}
+                  className="shrink-0 mt-0.5 text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                </button>
               </div>
-            );
-          })
-        )}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <label className="text-[10px] text-muted-foreground uppercase tracking-wide w-8 shrink-0">
+                    Start
+                  </label>
+                  <Input
+                    type="time"
+                    value={s.startTime}
+                    onChange={(e) =>
+                      updateShift(s.membershipId, "startTime", e.target.value)
+                    }
+                    className="h-8 text-sm px-2 flex-1"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-[10px] text-muted-foreground uppercase tracking-wide w-8 shrink-0">
+                    End
+                  </label>
+                  <Input
+                    type="time"
+                    value={s.endTime}
+                    onChange={(e) =>
+                      updateShift(s.membershipId, "endTime", e.target.value)
+                    }
+                    className="h-8 text-sm px-2 flex-1"
+                  />
+                </div>
+              </div>
+              {worked && (
+                <span className="text-[10px] text-muted-foreground">
+                  {worked}
+                </span>
+              )}
+            </div>
+          );
+        })
+      )}
 
       <div className="flex gap-2 justify-end pt-1">
         <Button variant="outline" size="sm" onClick={close}>

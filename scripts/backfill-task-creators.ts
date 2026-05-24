@@ -80,7 +80,9 @@ async function main() {
     }
   }
 
-  console.log(`\nDone. Updated: ${updated}, Skipped: ${skipped}, Failed: ${failed}.`);
+  console.log(
+    `\nDone. Updated: ${updated}, Skipped: ${skipped}, Failed: ${failed}.`,
+  );
 }
 
 main()

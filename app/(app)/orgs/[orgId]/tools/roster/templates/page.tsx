@@ -21,7 +21,11 @@ export default async function RosterTemplatesPage({
   ]);
 
   const canManage = membership
-    ? await memberHasPermission(membership.id, orgId, PermissionAction.MANAGE_TIMETABLE)
+    ? await memberHasPermission(
+        membership.id,
+        orgId,
+        PermissionAction.MANAGE_TIMETABLE,
+      )
     : false;
 
   return (

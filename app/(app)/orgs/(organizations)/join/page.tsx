@@ -59,7 +59,10 @@ export default async function Page({
         </div>
       }
     >
-      <JoinFranchisePage timezones={TIMEZONES} defaultSchedule={defaultSchedule} />
+      <JoinFranchisePage
+        timezones={TIMEZONES}
+        defaultSchedule={defaultSchedule}
+      />
     </Suspense>
   );
 }

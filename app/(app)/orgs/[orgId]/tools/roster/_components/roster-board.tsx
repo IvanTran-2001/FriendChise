@@ -65,7 +65,11 @@ export type RosterBoardProps = {
   orgOpenTimeMin: number | null;
   orgCloseTimeMin: number | null;
   /** Called after a cell is successfully saved so the parent can update its local entries state. */
-  onCellSaved?: (weekStart: Date, dayIndex: number, entries: SavedRosterEntry[]) => void;
+  onCellSaved?: (
+    weekStart: Date,
+    dayIndex: number,
+    entries: SavedRosterEntry[],
+  ) => void;
 };
 
 function memberName(m: OrgMember): string {
@@ -75,7 +79,20 @@ function memberName(m: OrgMember): string {
 function formatWeekRange(monday: Date): string {
   const sunday = new Date(monday);
   sunday.setUTCDate(monday.getUTCDate() + 6);
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   const fmt = (d: Date) => `${d.getUTCDate()} ${months[d.getUTCMonth()]}`;
   return `${fmt(monday)} – ${fmt(sunday)}`;
 }
@@ -83,12 +100,24 @@ function formatWeekRange(monday: Date): string {
 function formatWeekDate(weekStart: Date, dayIndex: number): string {
   const d = new Date(weekStart);
   d.setUTCDate(d.getUTCDate() + dayIndex);
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   return `${d.getUTCDate()} ${months[d.getUTCMonth()]}`;
 }
 
-
-const DAY_ABBR = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"] as const;
+const DAY_ABBR = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
 export function RosterBoard({
   orgId,
@@ -179,10 +208,20 @@ export function RosterBoard({
                 )
               }
             >
-              <span className={cn("text-sm font-semibold", isTodayRow && "text-primary")}>
+              <span
+                className={cn(
+                  "text-sm font-semibold",
+                  isTodayRow && "text-primary",
+                )}
+              >
                 {DAY_ABBR[dayIndex]}
               </span>
-              <span className={cn("text-[10px]", isTodayRow ? "text-primary/70" : "text-muted-foreground")}>
+              <span
+                className={cn(
+                  "text-[10px]",
+                  isTodayRow ? "text-primary/70" : "text-muted-foreground",
+                )}
+              >
                 ×{recommendedSize} needed
               </span>
             </button>
@@ -255,9 +294,7 @@ export function RosterBoard({
                   ) : (
                     cellEntries.map((e) => {
                       const name =
-                        e.membership.botName ??
-                        e.membership.user?.name ??
-                        "?";
+                        e.membership.botName ?? e.membership.user?.name ?? "?";
                       const isHighlighted =
                         filterMembershipId === e.membershipId;
                       return (

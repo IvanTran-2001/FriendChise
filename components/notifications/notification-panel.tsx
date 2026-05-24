@@ -67,10 +67,7 @@ export function NotificationPanel({
     return (
       <Sheet open={open} onOpenChange={handleOpen}>
         <SheetTrigger asChild>{BellButton}</SheetTrigger>
-        <SheetContent
-          side="bottom"
-          className="p-0 flex flex-col rounded-t-2xl"
-        >
+        <SheetContent side="bottom" className="p-0 flex flex-col rounded-t-2xl">
           <SheetHeader className="sr-only">
             <SheetTitle>Notifications</SheetTitle>
           </SheetHeader>
