@@ -150,7 +150,7 @@ async function uploadOrgLogo(
           "Content-Type": "image/jpeg",
           "x-upsert": "true",
         },
-        body: imageBuffer,
+        body: imageBuffer as unknown as BodyInit,
       },
     );
     return res.ok ? storagePath : null;
