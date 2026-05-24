@@ -105,10 +105,16 @@ export function TasksSidebarContent({
             overrides.sort = prefs.sort as SortOption;
           }
           if (typeof prefs.roleId === "string" && prefs.roleId !== roleId) {
-            overrides.roleId = prefs.roleId;
+            // Only restore roleId if it exists in current roles list
+            if (roles.find((r) => r.id === prefs.roleId)) {
+              overrides.roleId = prefs.roleId;
+            }
           }
           if (typeof prefs.tagId === "string" && prefs.tagId !== tagId) {
-            overrides.tagId = prefs.tagId;
+            // Only restore tagId if it exists in current tags list
+            if (tags.find((t) => t.id === prefs.tagId)) {
+              overrides.tagId = prefs.tagId;
+            }
           }
           if (
             (prefs.view === "card" || prefs.view === "list") &&

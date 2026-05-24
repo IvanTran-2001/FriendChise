@@ -88,14 +88,6 @@ const TasksPage = async ({
     getOrgTags(orgId),
   ]);
 
-  // Resolve signed image URLs in parallel (server-side; no extra round-trips from client)
-  const tasksWithImages = await Promise.all(
-    tasks.map(async (t) => ({
-      ...t,
-      imageSignedUrl: t.imageUrl ? await createSignedReadUrl(t.imageUrl) : null,
-    })),
-  );
-
   const sort: SortOption = VALID_SORT_VALUES.includes(sp.sort as SortOption)
     ? (sp.sort as SortOption)
     : "name-asc";
@@ -104,6 +96,20 @@ const TasksPage = async ({
       ? sp.roleId
       : null;
   const view: "list" | "card" = sp.view === "card" ? "card" : "list";
+
+  // Resolve signed image URLs only when images will be displayed (not in list view)
+  const tasksWithImages =
+    view !== "list"
+      ? await Promise.all(
+          tasks.map(async (t) => ({
+            ...t,
+            imageSignedUrl: t.imageUrl
+              ? await createSignedReadUrl(t.imageUrl)
+              : null,
+          })),
+        )
+      : tasks.map((t) => ({ ...t, imageSignedUrl: null }));
+
   const tags = orgTags.map((t) => ({ id: t.id, name: t.name, color: t.color }));
   const tagId =
     typeof sp.tagId === "string" && tags.some((t) => t.id === sp.tagId)
