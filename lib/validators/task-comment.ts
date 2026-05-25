@@ -9,12 +9,12 @@
 import { z } from "zod";
 
 export const addCommentSchema = z.object({
-  content: z.string().min(1, "Comment cannot be empty").max(2000),
+  content: z.string().trim().min(1, "Comment cannot be empty").max(2000),
   parentId: z.string().cuid().optional(),
 });
 
 export const editCommentSchema = z.object({
-  content: z.string().min(1, "Comment cannot be empty").max(2000),
+  content: z.string().trim().min(1, "Comment cannot be empty").max(2000),
 });
 
 export type AddCommentInput = z.infer<typeof addCommentSchema>;

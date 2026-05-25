@@ -126,12 +126,13 @@ export async function createComment(
 }
 
 export async function editComment(
+  taskId: string,
   commentId: string,
   authorId: string,
   data: EditCommentInput,
 ): Promise<ServiceResult<CommentRow>> {
-  const existing = await prisma.taskComment.findUnique({
-    where: { id: commentId },
+  const existing = await prisma.taskComment.findFirst({
+    where: { id: commentId, taskId },
     select: { authorId: true, isDeleted: true },
   });
   if (!existing)
@@ -142,7 +143,7 @@ export async function editComment(
     return { ok: false, error: "Not the author", code: "FORBIDDEN" };
 
   const updated = await prisma.taskComment.update({
-    where: { id: commentId },
+    where: { id: commentId, taskId },
     data: { content: data.content, editedAt: new Date() },
     include: commentInclude,
   });
@@ -150,12 +151,13 @@ export async function editComment(
 }
 
 export async function softDeleteComment(
+  taskId: string,
   commentId: string,
   userId: string,
   canManage: boolean,
 ): Promise<ServiceResult<null>> {
-  const existing = await prisma.taskComment.findUnique({
-    where: { id: commentId },
+  const existing = await prisma.taskComment.findFirst({
+    where: { id: commentId, taskId },
     select: { authorId: true, isDeleted: true },
   });
   if (!existing)
@@ -165,17 +167,25 @@ export async function softDeleteComment(
     return { ok: false, error: "Not the author", code: "FORBIDDEN" };
 
   await prisma.taskComment.update({
-    where: { id: commentId },
+    where: { id: commentId, taskId },
     data: { isDeleted: true, content: "" },
   });
   return { ok: true, data: null };
 }
 
 export async function voteOnComment(
+  taskId: string,
   commentId: string,
   userId: string,
   type: VoteType | null,
 ): Promise<ServiceResult<null>> {
+  const comment = await prisma.taskComment.findFirst({
+    where: { id: commentId, taskId },
+    select: { id: true },
+  });
+  if (!comment)
+    return { ok: false, error: "Comment not found", code: "NOT_FOUND" };
+
   if (type === null) {
     await prisma.taskCommentVote.deleteMany({ where: { commentId, userId } });
   } else {
@@ -189,11 +199,12 @@ export async function voteOnComment(
 }
 
 export async function setPinComment(
+  taskId: string,
   commentId: string,
   isPinned: boolean,
 ): Promise<ServiceResult<null>> {
-  const existing = await prisma.taskComment.findUnique({
-    where: { id: commentId },
+  const existing = await prisma.taskComment.findFirst({
+    where: { id: commentId, taskId },
     select: { parentId: true },
   });
   if (!existing)
@@ -202,7 +213,7 @@ export async function setPinComment(
     return { ok: false, error: "Cannot pin a reply", code: "INVALID" };
 
   await prisma.taskComment.update({
-    where: { id: commentId },
+    where: { id: commentId, taskId },
     data: { isPinned, pinnedAt: isPinned ? new Date() : null },
   });
   return { ok: true, data: null };

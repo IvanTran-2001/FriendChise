@@ -275,6 +275,14 @@ function CardGrid({
             key={m.id}
             className="group relative cursor-pointer"
             onClick={() => onView(m)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+                if (e.key === ' ' || e.key === 'Spacebar') e.preventDefault();
+                onView(m);
+              }
+            }}
           >
             <Card className="h-full items-center text-center transition-all group-hover:shadow-md group-hover:border-primary/20 cursor-pointer overflow-hidden">
               <div className="pt-5 flex justify-center">

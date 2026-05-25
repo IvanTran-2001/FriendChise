@@ -233,7 +233,7 @@ export async function getAccessibleTaskById(orgId: string, taskId: string) {
   if (ownedTask) return { task: ownedTask, isOwner: true as const };
 
   // Check for explicit inheritance first, then fall back to GLOBAL visibility
-  const [inheritance, sharedTask] = await Promise.all([
+  const [inheritance, sharedTask, viewerOrg] = await Promise.all([
     prisma.taskInheritance.findUnique({
       where: { taskId_orgId: { taskId, orgId } },
     }),
@@ -241,14 +241,35 @@ export async function getAccessibleTaskById(orgId: string, taskId: string) {
       where: { id: taskId },
       include: taskInclude,
     }),
+    prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { id: true, parentId: true },
+    }),
   ]);
 
-  if (!sharedTask) return null;
+  if (!sharedTask || !viewerOrg) return null;
 
-  // Allow viewing if the org has inherited it OR if the task is published (GLOBAL)
-  if (!inheritance && sharedTask.scope !== "GLOBAL") return null;
+  // Allow viewing if the org has inherited it
+  if (inheritance) return { task: sharedTask, isOwner: false as const };
 
-  return { task: sharedTask, isOwner: false as const };
+  // For GLOBAL tasks, check franchise scoping
+  if (sharedTask.scope === "GLOBAL") {
+    const taskOrg = await prisma.organization.findUnique({
+      where: { id: sharedTask.orgId },
+      select: { id: true, parentId: true },
+    });
+    if (!taskOrg) return null;
+
+    // Compare franchise roots
+    const taskRoot = taskOrg.parentId ?? taskOrg.id;
+    const viewerRoot = viewerOrg.parentId ?? viewerOrg.id;
+
+    if (taskRoot === viewerRoot) {
+      return { task: sharedTask, isOwner: false as const };
+    }
+  }
+
+  return null;
 }
 
 /**

@@ -81,7 +81,7 @@ export async function editCommentAction(
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
-  const result = await editComment(commentId, authz.userId, parsed.data);
+  const result = await editComment(taskId, commentId, authz.userId, parsed.data);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);
@@ -104,7 +104,7 @@ export async function deleteCommentAction(
     PermissionAction.MANAGE_TASKS,
   );
 
-  const result = await softDeleteComment(commentId, authz.userId, canManage);
+  const result = await softDeleteComment(taskId, commentId, authz.userId, canManage);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);
@@ -125,7 +125,7 @@ export async function voteCommentAction(
   const allowed = await canUserCommentOnTask(taskId, orgId);
   if (!allowed) return { ok: false, error: "Unauthorized" };
 
-  const result = await voteOnComment(commentId, authz.userId, type);
+  const result = await voteOnComment(taskId, commentId, authz.userId, type);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);
@@ -150,7 +150,7 @@ export async function pinCommentAction(
   );
   if (!canManage) return { ok: false, error: "Insufficient permissions" };
 
-  const result = await setPinComment(commentId, isPinned);
+  const result = await setPinComment(taskId, commentId, isPinned);
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);

@@ -846,8 +846,8 @@ Org members with `MANAGE_TASKS` can additionally pin and delete any comment.
 | ------------------------------------------------- | ----------------------------------------------------- |
 | `canUserCommentOnTask(taskId, userOrgId)`          | Franchise root check — returns `true` if allowed      |
 | `getTaskComments(taskId)`                         | All top-level comments + one level of replies (asc)   |
-| `createComment(taskId, orgId, authorId, input)`   | Insert a new comment or reply                         |
-| `editComment(commentId, authorId, input)`         | Update content and set `editedAt`; author-only guard  |
+| `createComment(taskId, orgId, authorId, authorName, authorImage, input)`   | Insert a new comment or reply with author snapshot                         |
+| `editComment(taskId, commentId, authorId, input)`         | Update content and set `editedAt`; author-only guard  |
 | `softDeleteComment(commentId)`                    | Sets `isDeleted = true`; content replaced at render   |
 | `voteOnComment(commentId, userId, type)`          | Upserts a `TaskCommentVote`; removes vote if same type toggled |
 | `setPinComment(commentId, isPinned)`              | Toggles `isPinned` and `pinnedAt`                     |

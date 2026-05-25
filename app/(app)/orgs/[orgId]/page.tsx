@@ -344,6 +344,7 @@ const Page = async ({ params }: { params: Promise<{ orgId: string }> }) => {
                         "w-1.5 h-1.5 rounded-full shrink-0 sm:hidden",
                         statusDotClass(inst.status),
                       )}
+                      aria-label={statusLabel(inst.status)}
                     />
                   </div>
                 ))}

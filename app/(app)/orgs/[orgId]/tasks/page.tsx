@@ -90,7 +90,7 @@ const TasksPage = async ({
     if (!isFiltersExplicit) {
       try {
         const raw = cookieStore.get(`tasks-prefs-${orgId}`)?.value;
-        const prefs = raw ? (JSON.parse(raw) as Record<string, string>) : null;
+        const prefs = raw ? (JSON.parse(decodeURIComponent(raw)) as Record<string, string>) : null;
         if (prefs) {
           if (prefs.sort && VALID_SORT_VALUES.includes(prefs.sort as SortOption) && prefs.sort !== "name-asc") {
             urlParams.set("sort", prefs.sort);

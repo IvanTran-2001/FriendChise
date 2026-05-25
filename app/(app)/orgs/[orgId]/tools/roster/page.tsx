@@ -65,7 +65,7 @@ export default async function RosterPage({
     ? await memberHasPermission(
         membership.id,
         orgId,
-        PermissionAction.MANAGE_TIMETABLE,
+        PermissionAction.MANAGE_MEMBERS,
       )
     : false;
 

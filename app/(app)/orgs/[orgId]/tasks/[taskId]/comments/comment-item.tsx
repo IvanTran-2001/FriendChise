@@ -341,7 +341,10 @@ export function CommentItem({
               {!comment.isDeleted && (isOwn || canManage) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="inline-flex items-center rounded px-1 py-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                    <button
+                      className="inline-flex items-center rounded px-1 py-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      aria-label="Comment actions"
+                    >
                       <MoreHorizontal className="w-3.5 h-3.5" />
                     </button>
                   </DropdownMenuTrigger>
