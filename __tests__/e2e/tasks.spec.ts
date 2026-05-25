@@ -126,7 +126,7 @@ test("edit task → updated title visible in task list and detail", async ({
 
   // Navigate to task detail
   await searchTasks(page, taskTitle);
-  await page.getByRole("cell", { name: taskTitle }).click();
+  await page.getByRole("button").filter({ hasText: taskTitle }).click();
   await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+/);
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
 
@@ -159,7 +159,7 @@ test("delete task from detail → removed from task list", async ({ page }) => {
 
   // Navigate to detail
   await searchTasks(page, taskTitle);
-  await page.getByRole("cell", { name: taskTitle }).click();
+  await page.getByRole("button").filter({ hasText: taskTitle }).click();
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
 
   // Delete via task-actions toolbar
@@ -177,7 +177,7 @@ test("delete task from detail → removed from task list", async ({ page }) => {
   await expect(page).toHaveURL(`/orgs/${orgId}/tasks`, { timeout: 15000 });
 
   await searchTasks(page, taskTitle);
-  await expect(page.getByRole("cell", { name: taskTitle })).not.toBeVisible();
+  await expect(page.getByRole("button").filter({ hasText: taskTitle })).not.toBeVisible();
 });
 
 test("delete task from table row menu → removed from task list", async ({
@@ -195,7 +195,7 @@ test("delete task from table row menu → removed from task list", async ({
   // Open the row menu and click Delete
   await searchTasks(page, taskTitle);
   await page
-    .getByRole("row")
+    .getByRole("button")
     .filter({ hasText: taskTitle })
     .getByRole("button", { name: /task actions/i })
     .click();
@@ -209,7 +209,7 @@ test("delete task from table row menu → removed from task list", async ({
     .click();
 
   // Table refreshes in place (router.refresh), task is gone
-  await expect(page.getByRole("cell", { name: taskTitle })).not.toBeVisible();
+  await expect(page.getByRole("button").filter({ hasText: taskTitle })).not.toBeVisible();
 });
 
 test("create task without title → stays on page, does not submit", async ({
@@ -239,7 +239,7 @@ test("edit task without title → stays on edit page, does not submit", async ({
 
   // Navigate to edit
   await searchTasks(page, taskTitle);
-  await page.getByRole("cell", { name: taskTitle }).click();
+  await page.getByRole("button").filter({ hasText: taskTitle }).click();
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
   await page
     .getByTestId("task-actions")
@@ -278,7 +278,7 @@ test("create task with role → role badge visible in task list", async ({
 
   await searchTasks(page, taskTitle);
   await expect(
-    page.getByRole("row").filter({ hasText: taskTitle }).getByText(roleName),
+    page.getByRole("button").filter({ hasText: taskTitle }).getByText(roleName),
   ).toBeVisible();
 });
 
@@ -299,7 +299,7 @@ test("edit task to add role → role badge visible in task list", async ({
 
   // Navigate to edit
   await searchTasks(page, taskTitle);
-  await page.getByRole("cell", { name: taskTitle }).click();
+  await page.getByRole("button").filter({ hasText: taskTitle }).click();
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
   await page
     .getByTestId("task-actions")
@@ -323,7 +323,7 @@ test("edit task to add role → role badge visible in task list", async ({
   await page.waitForLoadState("networkidle");
   await searchTasks(page, taskTitle);
   await expect(
-    page.getByRole("row").filter({ hasText: taskTitle }).getByText(roleName),
+    page.getByRole("button").filter({ hasText: taskTitle }).getByText(roleName),
   ).toBeVisible();
 });
 
@@ -347,7 +347,7 @@ test("edit task to remove role → role badge no longer visible in task list", a
 
   // Navigate to edit
   await searchTasks(page, taskTitle);
-  await page.getByRole("cell", { name: taskTitle }).click();
+  await page.getByRole("button").filter({ hasText: taskTitle }).click();
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
   await page
     .getByTestId("task-actions")
@@ -367,7 +367,7 @@ test("edit task to remove role → role badge no longer visible in task list", a
   await page.goto(`/orgs/${orgId}/tasks`);
   await searchTasks(page, taskTitle);
   await expect(
-    page.getByRole("row").filter({ hasText: taskTitle }).getByText(roleName),
+    page.getByRole("button").filter({ hasText: taskTitle }).getByText(roleName),
   ).not.toBeVisible();
 });
 
@@ -386,9 +386,9 @@ test("search filter → only matching tasks visible", async ({ page }) => {
   }
 
   await searchTasks(page, matchTitle);
-  await expect(page.getByRole("cell", { name: matchTitle })).toBeVisible();
+  await expect(page.getByRole("button").filter({ hasText: matchTitle })).toBeVisible();
   await expect(
-    page.getByRole("cell", { name: noMatchTitle }),
+    page.getByRole("button").filter({ hasText: noMatchTitle }),
   ).not.toBeVisible();
 });
 
@@ -420,9 +420,9 @@ test("role filter → only tasks with that role visible", async ({ page }) => {
   await page.getByRole("button", { name: /filter by role/i }).click();
   await page.getByRole("menuitem", { name: roleName }).click();
 
-  await expect(page.getByRole("cell", { name: taskWithRole })).toBeVisible();
+  await expect(page.getByRole("button").filter({ hasText: taskWithRole })).toBeVisible();
   await expect(
-    page.getByRole("cell", { name: taskWithoutRole }),
+    page.getByRole("button").filter({ hasText: taskWithoutRole }),
   ).not.toBeVisible();
 });
 
@@ -447,17 +447,18 @@ test("task detail → shows correct fields after create", async ({ page }) => {
 
   // Navigate to detail
   await searchTasks(page, taskTitle);
-  await page.getByRole("cell", { name: taskTitle }).click();
+  await page.getByRole("button").filter({ hasText: taskTitle }).click();
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
 
   await expect(page.getByText("1 h 30 min")).toBeVisible();
-  await expect(page.getByText("2 – 5 days")).toBeVisible();
+  await expect(page.getByText("2–5 days")).toBeVisible();
   await expect(page.getByText(description)).toBeVisible();
+  // "People" label is a <p>, followed immediately by the value <p>
   await expect(
     page
-      .locator("dt")
-      .filter({ hasText: /people required/i })
-      .locator("+ dd"),
+      .locator("p")
+      .filter({ hasText: /^people$/i })
+      .locator("+ p"),
   ).toHaveText("3");
 });
 
@@ -479,7 +480,7 @@ test("task detail → shows updated values after edit", async ({ page }) => {
 
   // Navigate to edit
   await searchTasks(page, taskTitle);
-  await page.getByRole("cell", { name: taskTitle }).click();
+  await page.getByRole("button").filter({ hasText: taskTitle }).click();
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
   await page
     .getByTestId("task-actions")
@@ -500,7 +501,7 @@ test("task detail → shows updated values after edit", async ({ page }) => {
 
   await expect(page.getByRole("heading", { name: updatedTitle })).toBeVisible();
   await expect(page.getByText("2 h 15 min")).toBeVisible();
-  await expect(page.getByText("3 – 7 days")).toBeVisible();
+  await expect(page.getByText("3–7 days")).toBeVisible();
   await expect(page.getByText(updatedDescription)).toBeVisible();
 });
 

@@ -3,6 +3,8 @@
  * Timetable week-view server component.
  */
 import { PermissionAction } from "@prisma/client";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { requireOrgMemberPage } from "@/lib/authz";
 import { getOrgMembership, memberHasPermission } from "@/lib/authz/_shared";
 import { getRangeTimetableInstances } from "@/lib/services/timetable-entries";
@@ -43,6 +45,77 @@ export default async function TimetablePage({
   const rawTagId = first(rawSearchParams.tagId) ?? null;
 
   const { userId } = await requireOrgMemberPage(orgId);
+
+  // ── Cookie-based pref restore ───────────────────────────────────────────────
+  // Restore mode/span/roleId/tagId from the `timetable-prefs-{orgId}` cookie
+  // when the user navigates to the page without explicit URL params (e.g. the
+  // sidebar link). This happens server-side before any data fetch so there is
+  // no client-side flash or round-trip.
+  //
+  // The cookie is written by TimetablePrefRedirect on every URL param change,
+  // so it always reflects the user's last explicit state.
+  //
+  // We only enter this block when mode OR span are absent — within the timetable
+  // both are always set explicitly (by week navigation, view picker, and filter
+  // buttons), so a missing mode/span reliably signals a bare navigation from
+  // outside the page (e.g. sidebar link → `/orgs/[orgId]/timetable`).
+  const isModeExplicit = modeParam === "simple" || modeParam === "calendar";
+  const isSpanExplicit = spanParam === "day" || spanParam === "week";
+
+  if (!isModeExplicit || !isSpanExplicit) {
+    const cookieStore = await cookies();
+    const raw = cookieStore.get(`timetable-prefs-${orgId}`)?.value;
+    if (raw) {
+      try {
+        const saved = JSON.parse(decodeURIComponent(raw)) as {
+          mode?: string;
+          span?: string;
+          roleId?: string | null;
+          tagId?: string | null;
+        };
+        const urlParams = new URLSearchParams();
+        if (anchorParam) urlParams.set("anchor", anchorParam);
+        let needsRedirect = false;
+
+        if (isModeExplicit && modeParam) {
+          urlParams.set("mode", modeParam);
+        } else if (saved.mode === "simple" || saved.mode === "calendar") {
+          urlParams.set("mode", saved.mode);
+          needsRedirect = true;
+        }
+
+        if (isSpanExplicit && spanParam) {
+          urlParams.set("span", spanParam);
+        } else if (saved.span === "day" || saved.span === "week") {
+          urlParams.set("span", saved.span);
+          needsRedirect = true;
+        }
+
+        // Only restore roleId/tagId if not already in the URL
+        if (rawRoleId) {
+          urlParams.set("roleId", rawRoleId);
+        } else if (saved.roleId) {
+          urlParams.set("roleId", saved.roleId);
+          needsRedirect = true;
+        }
+
+        if (rawTagId) {
+          urlParams.set("tagId", rawTagId);
+        } else if (saved.tagId) {
+          urlParams.set("tagId", saved.tagId);
+          needsRedirect = true;
+        }
+
+        if (needsRedirect) {
+          const qs = urlParams.toString();
+          redirect(`/orgs/${orgId}/timetable${qs ? `?${qs}` : ""}`);
+        }
+      } catch {
+        /* ignore malformed cookie */
+      }
+    }
+  }
+  // ──────────────────────────────────────────────────────────────────────────
 
   const orgMeta = await getOrgTimetableMeta(orgId);
   const orgTz = orgMeta?.timezone ?? "UTC";
