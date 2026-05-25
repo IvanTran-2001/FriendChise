@@ -1,5 +1,18 @@
 "use client";
 
+/**
+ * MemberForm — shared create/edit form for org members and bot slots.
+ *
+ * Modes:
+ *  - `create`   — adds a new human member (email + working days + roles) or
+ *                 creates a bot placeholder (empty email path).
+ *  - `edit`     — updates working days and roles for an existing member.
+ *  - `bot-edit` — updates the display name and roles of a bot membership.
+ *
+ * Also exposes a "Convert to Bot" section (edit mode, non-bot human member)
+ * that calls `memberToBotAction` to strip the linked user account and turn the
+ * membership into a named placeholder.
+ */
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -15,6 +28,7 @@ import {
 import {
   createBotAction,
   inviteBotSlotAction,
+  memberToBotAction,
   updateBotAction,
 } from "@/app/actions/bots";
 
@@ -73,6 +87,11 @@ export function MemberForm({
   const [roleIds, setRoleIds] = useState<string[]>(initialRoleIds);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [inviteErrors, setInviteErrors] = useState<Record<string, string>>({});
+  const [convertBotName, setConvertBotName] = useState(name ?? "");
+  const [convertErrors, setConvertErrors] = useState<Record<string, string>>(
+    {},
+  );
+  const [isConvertPending, startConvertTransition] = useTransition();
 
   // In create mode: empty email = creating a new bot
   const isBot = mode === "create" && email.trim() === "";
@@ -166,6 +185,31 @@ export function MemberForm({
         onSuccess();
       } else {
         router.push(`/orgs/${orgId}/memberships/${membershipId}`);
+      }
+    });
+  }
+
+  function handleConvertToBot() {
+    if (!convertBotName.trim()) {
+      setConvertErrors({ name: "Bot name is required" });
+      return;
+    }
+    setConvertErrors({});
+    startConvertTransition(async () => {
+      const result = await memberToBotAction(orgId, {
+        membershipId: membershipId!,
+        overrideName: convertBotName.trim(),
+      });
+      if (!result.ok) {
+        setConvertErrors({ _: result.error });
+        return;
+      }
+      toast.success(`${name ?? "Member"} converted to bot.`);
+      if (onSuccess) {
+        router.refresh();
+        onSuccess();
+      } else {
+        router.push(`/orgs/${orgId}/memberships`);
       }
     });
   }
@@ -436,6 +480,45 @@ export function MemberForm({
               : "Invite"
             : "Save"}
       </Button>
+
+      {mode === "edit" && !isCurrentlyBot && (
+        <div className="flex flex-col gap-3 pt-4 border-t border-border">
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              Convert to Bot
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Detaches this user account and turns the slot into a bot
+              placeholder. Their timetable assignments are preserved.
+            </p>
+          </div>
+          {convertErrors._ && (
+            <p className="text-sm text-destructive">{convertErrors._}</p>
+          )}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium">Bot Name</label>
+            <Input
+              type="text"
+              placeholder="e.g. Open Slot"
+              value={convertBotName}
+              onChange={(e) => setConvertBotName(e.target.value)}
+            />
+            {convertErrors.name && (
+              <p className="text-xs text-destructive">{convertErrors.name}</p>
+            )}
+          </div>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            className="self-start"
+            disabled={isConvertPending}
+            onClick={handleConvertToBot}
+          >
+            {isConvertPending ? "Converting…" : "Convert to Bot"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

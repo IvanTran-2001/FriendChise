@@ -63,6 +63,11 @@ enum ViewType {
   WEEKLY
 }
 
+enum VoteType {
+  UPVOTE
+  DOWNVOTE
+}
+
 // ─────────────────────────────────────
 // AUTH (NextAuth)
 // ─────────────────────────────────────
@@ -125,8 +130,10 @@ model User {
   receivedNotifications     Notification[] @relation("ReceivedNotifications")
   auditLogs                 AuditLog[]
 
-  feedback      Feedback[]
-  createdTasks  Task[]     @relation("CreatedTasks")
+  feedback            Feedback[]
+  createdTasks        Task[]              @relation("CreatedTasks")
+  taskComments        TaskComment[]
+  taskCommentVotes    TaskCommentVote[]
 
   accounts      Account[]
   sessions      Session[]
@@ -179,6 +186,7 @@ model Organization {
   feedback            Feedback[]
   taskInheritances    TaskInheritance[]
   sectionLayouts      TaskSectionLayout[]
+  taskComments        TaskComment[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -321,6 +329,7 @@ model Task {
   timetableTemplateEntries TimetableTemplateEntry[]
   inheritedBy           TaskInheritance[]
   sectionLayouts        TaskSectionLayout[]
+  comments              TaskComment[]
 
   scope                 TaskScope @default(ORG)
 
@@ -912,4 +921,66 @@ model TaskSectionLayout {
 
   @@unique([taskId, orgId, type])
   @@index([taskId, orgId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TASK COMMENT
+// One-level threading: top-level comments have parentId = null;
+// replies point to a top-level comment. Replies cannot themselves be replied to.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model TaskComment {
+  id          String   @id @default(cuid())
+
+  taskId      String
+  task        Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  // Nullable — preserved as a tombstone when the author deletes their account
+  authorId    String?
+  author      User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorName  String       // snapshot at post time
+  authorImage String?      // snapshot at post time
+
+  content     String
+
+  // One-level reply: null = top-level, non-null = reply to a top-level comment
+  parentId    String?
+  parent      TaskComment?  @relation("TaskCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     TaskComment[] @relation("TaskCommentReplies")
+
+  isDeleted   Boolean  @default(false)
+  isPinned    Boolean  @default(false)
+  pinnedAt    DateTime?
+  editedAt    DateTime?
+
+  votes       TaskCommentVote[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([taskId, orgId])
+  @@index([parentId])
+  @@index([authorId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TASK COMMENT VOTE
+// One row per (comment, user) pair. Composite PK prevents double-voting.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model TaskCommentVote {
+  commentId String
+  userId    String
+  type      VoteType
+
+  comment   TaskComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([commentId, userId])
+  @@index([userId])
 }

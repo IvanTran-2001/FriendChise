@@ -124,6 +124,8 @@ Provider: PostgreSQL (Supabase), managed via Prisma ORM.
 | `AdminUser`                      | Super-admin allow-list. Any `User` whose email appears here gains access to `/admin/*` routes and admin-only server actions.                                                                                                                                                                                                                                    |
 | `TaskInheritance`                | Tracks which orgs have added a GLOBAL task to their library. Created when a franchisee clicks "Add" on a shared task; deleted when they remove it. The owning org also gets an auto-created row on task creation. Unique on `(taskId, orgId)`.                                                                                                                  |
 | `TaskSectionLayout`              | Per-org, per-task section configuration. Stores `type` (e.g. `"PICTURE"`, `"DETAIL"`, `"COMMENT"`), display `title`, `scope` (`ORG`/`GLOBAL`), `position` (sort order), and `visible` flag. Defaults are seeded on task creation and copied from the parent org on inheritance. Unique on `(taskId, orgId, type)`.                                              |
+| `TaskComment`                    | One comment on a task. Scoped to both a `Task` and an `Organization` (the commenter's org). Supports one level of threading via `parentId`. `authorName`/`authorImage` are snapshotted at post time so display survives account deletion (`authorId` set to `NULL` via `onDelete: SetNull`). Soft-deletable (`isDeleted`). Supports pinning (`isPinned`, `pinnedAt`) and inline editing (`editedAt`). Indexed on `(taskId, orgId)`, `parentId`, and `authorId`. |
+| `TaskCommentVote`                | Up/down vote cast by a `User` on a `TaskComment`. Composite PK on `(commentId, userId)` prevents double-voting. `type` is `VoteType` (`UPVOTE` / `DOWNVOTE`). Cascades on comment and user deletion.                                                                                                                                                             |
 
 ### Enums
 
@@ -136,6 +138,7 @@ Provider: PostgreSQL (Supabase), managed via Prisma ORM.
 | `InviteType`       | `MEMBER`, `FRANCHISE`                                                                                     |
 | `ViewType`         | `DAILY`, `WEEKLY`                                                                                         |
 | `FeedbackType`     | `ISSUE`, `IDEA`                                                                                           |
+| `VoteType`         | `UPVOTE`, `DOWNVOTE` — used by `TaskCommentVote`                                                          |
 | `TaskScope`        | `ORG` (private — visible to owning org only), `GLOBAL` (shared — franchisees can discover and inherit)    |
 | `SectionScope`     | `ORG` (section interaction limited to the viewing org), `GLOBAL` (shared back to the franchisor)          |
 
@@ -172,6 +175,7 @@ pnpm seed
 | `20260514000000_add_check_constraints`                            | DB-level CHECK constraints enforcing field bounds: time fields 0–1440, `dayIndex` 0–6, `cycleWeeks` 1–12.                                                                                                                                                                                                                     |
 | _(schema push)_                                                   | `Feedback` model (`userId`, `orgId?`, `type`, `message`, `imageUrl?`, `reviewed`) and `AdminUser` model (`email unique`) added. Applied via `prisma db push` (dev DB had migration drift).                                                                                                                                    |
 | _(schema push)_                                                   | `TaskInheritance` (`taskId`, `orgId`, `inheritedAt`) and `TaskSectionLayout` (`taskId`, `orgId`, `type`, `title`, `scope`, `position`, `visible`) models added. `Task.scope` (`TaskScope` enum, default `ORG`) added. `SectionScope` enum added. Applied via `prisma db push` on the `feat/task-inheritance-sections` branch. |
+| _(schema push)_                                                   | `TaskComment` and `TaskCommentVote` models added. `VoteType` enum (`UPVOTE`, `DOWNVOTE`) added. `Task.comments`, `Organization.taskComments`, `User.taskComments`/`taskCommentVotes` relations added. Applied via `prisma db push` on the `feature/task-comment-section` branch.                                               |
 
 ## Authentication
 
@@ -388,6 +392,12 @@ app/
           layout.tsx            # Registers TasksSidebarShell for all tasks routes
           [taskId]/       # Task detail view (links from timetable)
             edit/         # Edit task form (includes color picker)
+            comments/     # Task comment section
+              index.tsx             # Async server component — gates access, fetches comments, passes to client
+              comment-section.tsx   # Client shell — owns reply/edit open state, calls router.refresh() after mutations
+              comment-item.tsx      # One comment row — votes (optimistic), pin, edit, delete, reply
+              comment-input.tsx     # Controlled textarea for posting/replying
+              types.ts              # CommentFE type (ISO string dates, aggregated votes)
           task-form.tsx   # Shared create/edit form — title, color picker, image upload (crop dialog), eligibility
           _components/
             tasks-config.ts             # Shared sort constants (SortOption, SORT_OPTIONS) — plain module, no "use client"
@@ -441,10 +451,11 @@ app/
     franchisee.ts
     roles.ts
     tags.ts               # Tag CRUD mutations (createTag, updateTag, deleteTag) — all require MANAGE_TASKS
-    roster.ts             # Roster entry and day-config mutations
+    roster.ts             # Roster entry and day-config mutations (requires MANAGE_MEMBERS)
     feedback.ts           # submitFeedbackAction — creates a Feedback row + optional screenshot upload
     tools.ts              # Conversion tool mutations — all require MANAGE_TASKS
     storage.ts            # Image upload actions for task images (private) and org logos (public)
+    task-comments.ts      # addCommentAction, editCommentAction, deleteCommentAction, voteCommentAction, pinCommentAction
   api/                    # REST API route handlers (session-authenticated)
     auth/[...nextauth]/
     orgs/
@@ -509,6 +520,7 @@ lib/
     feedback.ts         # submitFeedback — creates Feedback row, resolves storage path
     roster.ts           # RosterEntry + RosterDayConfig CRUD, template-apply helper
     tools.ts            # ConversionSet · ToolItem · ConversionRate · ConversionTemplate · ConversionTemplateEntry CRUD
+    task-comments.ts    # getTaskComments, canUserCommentOnTask, createComment, editComment, softDeleteComment, voteOnComment, setPinComment
   validators/
     org.ts
     membership.ts
@@ -516,6 +528,7 @@ lib/
     task-instance.ts
     assignee.ts
     role.ts
+    task-comment.ts     # addCommentSchema (content + optional parentId), editCommentSchema (content only)
 
 prisma/
   schema.prisma         # Role.color String (non-nullable), Task.color String (non-nullable)
@@ -776,7 +789,7 @@ RosterTemplate         — reusable pattern with cycleWeeks (1–12)
 
 ### Server actions (`app/actions/roster.ts`)
 
-All write actions require `MANAGE_TIMETABLE` permission.
+All write actions require `MANAGE_MEMBERS` permission.
 
 | Action                                 | Description                                                                              |
 | -------------------------------------- | ---------------------------------------------------------------------------------------- |
@@ -804,6 +817,60 @@ All write actions require `MANAGE_TIMETABLE` permission.
 | `formatMinutes(min)`      | Integer minutes → `"HH:MM"` string (e.g. 90 → `"01:30"`)           |
 | `timeToMinutes(time)`     | `"HH:MM"` string → integer minutes, or `null` for invalid input    |
 | `hoursWorked(start, end)` | Duration string (e.g. `"7h 30m"`) from two nullable minute offsets |
+
+## Task Comments
+
+Task comments are threaded discussions attached to a task definition. Any member whose org is in the same franchise network as the task's owning org can comment.
+
+### Permission model
+
+```
+franchiseRoot(org) = org.parentId ?? org.id
+canComment         = franchiseRoot(taskOrg) === franchiseRoot(userOrg)
+```
+
+Org members with `MANAGE_TASKS` can additionally pin and delete any comment.
+
+### Features
+
+- **Threaded replies** — one level deep (top-level comments + inline replies)
+- **Voting** — up/down votes per comment; one vote per user enforced by composite PK
+- **Pinning** — managers can pin a top-level comment to the top of the thread
+- **Inline editing** — authors can edit their own comment content; `editedAt` is set
+- **Soft delete** — deleted comments show a "[deleted]" tombstone; replies are preserved
+- **Author snapshot** — `authorName` and `authorImage` are captured at post time so comments display correctly even if the author's account is later deleted
+
+### Service layer (`lib/services/task-comments.ts`)
+
+| Function                                          | Description                                           |
+| ------------------------------------------------- | ----------------------------------------------------- |
+| `canUserCommentOnTask(taskId, userOrgId)`          | Franchise root check — returns `true` if allowed      |
+| `getTaskComments(taskId)`                         | All top-level comments + one level of replies (asc)   |
+| `createComment(taskId, orgId, authorId, input)`   | Insert a new comment or reply                         |
+| `editComment(commentId, authorId, input)`         | Update content and set `editedAt`; author-only guard  |
+| `softDeleteComment(commentId)`                    | Sets `isDeleted = true`; content replaced at render   |
+| `voteOnComment(commentId, userId, type)`          | Upserts a `TaskCommentVote`; removes vote if same type toggled |
+| `setPinComment(commentId, isPinned)`              | Toggles `isPinned` and `pinnedAt`                     |
+
+### Server actions (`app/actions/task-comments.ts`)
+
+| Action                | Auth requirement      | Description                                      |
+| --------------------- | --------------------- | ------------------------------------------------ |
+| `addCommentAction`    | Franchise member      | Post a new comment or reply                      |
+| `editCommentAction`   | Comment author        | Edit content of own comment                      |
+| `deleteCommentAction` | Author or `MANAGE_TASKS` | Soft-delete a comment                         |
+| `voteCommentAction`   | Franchise member      | Cast or toggle an up/down vote                   |
+| `pinCommentAction`    | `MANAGE_TASKS`        | Pin or unpin a top-level comment                 |
+
+### UI components (`app/(app)/orgs/[orgId]/tasks/[taskId]/comments/`)
+
+| File                   | Type   | Description                                                                     |
+| ---------------------- | ------ | ------------------------------------------------------------------------------- |
+| `index.tsx`            | Server | Async gate + hydration — parallel-fetches comments, canComment, canManage       |
+| `comment-section.tsx`  | Client | Stateful shell — owns reply/edit open state; calls `router.refresh()` on change |
+| `comment-item.tsx`     | Client | One comment row — votes (optimistic), pin, edit, delete, reply                  |
+| `comment-input.tsx`    | Client | Controlled textarea for new comments or replies                                 |
+| `types.ts`             | —      | `CommentFE` type (ISO string dates, aggregated vote counts, one-level replies)  |
 
 ## Server Actions vs API Routes
 
@@ -876,6 +943,7 @@ A parent org can spawn franchisee orgs using a one-time invite token flow:
 
 ## UI Notes
 
+- **Org color accents** — both the hub page (`/`) org cards and the org overview page (`/orgs/[orgId]`) derive a deterministic accent color from the org name via a seeded palette (`orgColor(name)` hashes the character codes mod 9). The hub card uses the color for the initials badge background and a top color bar; the overview page renders a `h-1.5` color bar at the top of the card. No extra DB field is required.
 - **Sidebar architecture** — Three context layers work together:
   - `MobileSidebarContext` — boolean open/close state for the global app sidebar overlay on mobile.
   - `AppSidebar` — desktop hover-expand strip (`w-12` → `w-52`); mobile fixed overlay. Uses `SidebarNavItem variant="app"`.
@@ -890,6 +958,8 @@ A parent org can spawn franchisee orgs using a one-time invite token flow:
 - **Role picker** — Searchable text input with a dropdown. Selecting a role auto-adds it; no `+` button. The owner role is never shown in the picker (filtered in the edit page query and enforced in the service layer).
 - **Owner role guard** — Three layers: (1) DB query filters it from `allRoles` on the edit page, (2) `updateMembership` rejects any `roleId` whose key is `"owner"`, (3) the new-member query uses `NOT: { key: "owner" }`.
 - **Clicking tasks in timetable** — In Calendar view the task title inside each block is a `<Link>` to the task detail page. In Simple (table) view the task name cell is a `<Link>`; clicking elsewhere in the row still opens the edit popup.
+- **Timetable simple view** — Replaced the `<table>` layout with flex rows. Each row has a colored accent bar (`w-1 self-stretch rounded-full`, color from `inst.taskColor`), a monospace time column, the task name (linked, truncated, line-through when done/skipped), assignee initials chips (max 3 + "+N" overflow, hidden on mobile), a compact duration label (`formatDuration` — e.g. `"45m"`, `"1h 30m"`), and a status badge pill. A small status dot replaces the badge on mobile (`sm:hidden`). The edit button fades out on hover focus for desktop.
+- **Mobile page sidebar X close button** — The mobile overlay for the page sidebar (`PageSidebarSlot`) includes an `absolute` positioned X button (top-right corner) to close the panel. It is positioned in the outer `fixed` container (not the scrollable inner div) so it stays visible while the user scrolls the sidebar content.
 - **Form validation** — server-action errors rendered inline with `aria-invalid`/`aria-describedby` plus a Sonner toast summary.
 - **Timetable** — Calendar and Simple mode toggle, week navigation via `?week=` and `?mode=` params. Calendar view uses absolute positioning for task blocks; overlapping tasks get side-by-side columns. Status colours: gray = TODO, amber = IN_PROGRESS, green = DONE, red = SKIPPED.
 - **Fixed toolbar / scroll containment** — `h-dvh` on `SidebarProvider` + `overflow-hidden` on `SidebarInset` keep the body from scrolling so toolbars can stay visually fixed. The `<main>` element is the actual scroll container. Child pages that need a pinned toolbar use `flex flex-col h-full` on their root, a static `<Toolbar>` at the top, and a `flex-1 overflow-auto` div below it for the scrollable list. Negative horizontal margins on the scrollable div cancel `<main>`'s padding so the list extends edge-to-edge.
@@ -898,7 +968,7 @@ A parent org can spawn franchisee orgs using a one-time invite token flow:
 - **Roster templates** — Reusable multi-week staffing patterns. A template has a `cycleWeeks` (1–12); the editor shows a 7-row × cycleWeeks-column grid. Clicking a cell opens an `ActionSidebar` panel to assign members and shift times. The +/− stepper adds/removes week columns — removing a column is blocked when entries exist in the last week. Applying a template (via the Apply Template panel on the live roster page) stamps the pattern starting from a selected Monday, repeating it `N` times; a conflict check prevents overwriting existing entries unless the force checkbox is ticked.
 - **Template list management** — MANAGE_TASKS holders see a ··· dropdown on each template (card and list view) with Rename (inline Dialog), Duplicate ("Copy of …" with collision suffix), and Delete (AlertDialog confirmation). Mutations call `revalidatePath` so the list refreshes without a full reload.
 - **Task descriptions** — Task descriptions are stored as GFM markdown and rendered via `react-markdown` + `remark-gfm` on the task detail page. The task list (card and table views) strips markdown via a lightweight `stripMd()` helper for plain-text previews.
-- **Task table** — `TaskTable` client component: search, sort (name/duration/people), role filter, row `···` menu (Edit / Duplicate / Delete with confirm). Clicking the row navigates to the task detail page.
+- **Task table** — `TaskTable` client component: search, sort (name/duration/people), role filter, row `···` menu (Edit / Duplicate / Delete with confirm). Clicking the row navigates to the task detail page (keyboard accessible — `role="button"` + `tabIndex=0`). In "All" and "Shared" modes each task row shows an ownership badge: **Mine** (org owns it), **Franchise** (inherited from parent), or **Available** (franchise global, not yet added).
 - **Roles page** — System roles show a `system` badge and cannot be deleted; Owner also cannot be edited. "+ Create Role" in the page sidebar opens an `ActionSidebar` panel with the full role form (name, color, permissions, task eligibility). The row `···` menu's "Edit" item opens the same form pre-filled in the action sidebar — no standalone `/new` or `/[roleId]/edit` pages. On success the panel closes and `router.refresh()` updates the table in place.
 - **Role security** — `createRole` and `updateRole` validate `taskIds` against tasks scoped to `orgId` inside a transaction. Cross-tenant IDs abort the transaction with an `INVALID` error.
 
@@ -1048,7 +1118,7 @@ SENTRY_AUTH_TOKEN=   # Required whenever source maps are uploaded at build time 
 
 ## Status
 
-Work in progress. Fully implemented: service layer (all 10 services with 93 integration tests), REST API, auth, member management (list, view, edit, restrict, delete), task management (list, view, create, edit with color), timetable view (calendar + simple, task links), timetable templates (create, rename, duplicate, delete, calendar/simple editor, cycle-length controls, apply to timetable), org settings, role management (list, create, edit, delete, task eligibility, color — all via action sidebar panels; no standalone create/edit pages), franchise management, required colors on tasks and roles, async breadcrumbs with name resolution, fixed-toolbar scroll containment on members and tasks pages, audit log (DB table + Zod-validated service layer, all significant mutations instrumented — UI pending), tasks/members/roles page sidebar redesign (shell + sub-content pattern matching timetable architecture, URL-param-driven filters, ActionSidebar panels for Invite Member + Add Bot + Create Role + Edit Role with mobile Dialog fallback).
+Work in progress. Fully implemented: service layer (all 10 services with 93 integration tests), REST API, auth, member management (list, view, edit, restrict, delete, convert-to-bot), task management (list, view, create, edit with color; ownership badges; card keyboard navigation), timetable view (calendar + simple, task links; simple view redesigned as flex rows with color accent bars, assignee chips, duration labels, status badge pills, and mobile status dots), timetable templates (create, rename, duplicate, delete, calendar/simple editor, cycle-length controls, apply to timetable), org settings, role management (list, create, edit, delete, task eligibility, color — all via action sidebar panels; no standalone create/edit pages), franchise management, required colors on tasks and roles, async breadcrumbs with name resolution, fixed-toolbar scroll containment on members and tasks pages, audit log (DB table + Zod-validated service layer, all significant mutations instrumented — UI pending), tasks/members/roles page sidebar redesign (shell + sub-content pattern matching timetable architecture, URL-param-driven filters, ActionSidebar panels for Invite Member + Add Bot + Create Role + Edit Role with mobile Dialog fallback), task comments (threaded comments with replies, voting, pinning, soft delete, inline edit — franchise-scoped permission model), mobile page sidebar X close button, org color accent bars (hub + overview), task filter/sort/view preferences persisted to both localStorage and cookies (server-side redirect on first load, no client round-trip), roster tool permissions corrected to MANAGE_MEMBERS.
 
 Not yet started: schedule generation (automatic cycle-based rotation), worker "Today" checklist, completion stats, timetable/notification settings pages, real-time notification refresh, audit log UI (activity feed page).
 

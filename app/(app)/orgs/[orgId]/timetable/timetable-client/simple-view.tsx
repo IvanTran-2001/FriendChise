@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CalendarDays, MoreHorizontal } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   addDays,
   getDayName,
@@ -12,11 +13,16 @@ import {
   minTo12h,
 } from "../_shared/grid-utils";
 import {
-  STATUS_LABELS,
   statusDotClass,
-  statusRowClass,
   getMondayOf,
 } from "./helpers";
+
+function formatDuration(min: number): string {
+  if (min < 60) return `${min}m`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
 import { CalendarEditPopup } from "./calendar-edit-popup";
 import type { ClientTimetableInstance, ClientMembership } from "./types";
 
@@ -69,10 +75,10 @@ export function SimpleView({
 
   if (visibleInstances.length === 0) {
     return (
-      <div className="flex items-center justify-center border py-24">
+      <div className="flex items-center justify-center rounded-xl border border-dashed bg-muted/20 py-16">
         <div className="flex flex-col items-center gap-3 text-center">
           <CalendarDays className="h-10 w-10 text-muted-foreground/40" />
-          <p className="text-2xl font-semibold text-foreground">
+          <p className="text-xl font-semibold text-foreground">
             {span === "day" ? "No tasks today" : "No tasks this week"}
           </p>
         </div>
@@ -95,7 +101,12 @@ export function SimpleView({
               className={`rounded-xl border shadow-sm overflow-hidden ${today ? "border-primary/40 bg-card ring-1 ring-primary/20" : "bg-card"}`}
             >
               <div
-                className={`px-4 py-2.5 flex items-center gap-2 font-semibold text-sm border-b ${today ? "bg-primary/8 text-primary border-primary/20" : "bg-muted/20"}`}
+                className={cn(
+                "px-4 py-2.5 flex items-center gap-2 font-semibold text-sm border-b",
+                today
+                  ? "bg-primary/10 text-primary border-primary/20"
+                  : "bg-muted/20",
+              )}
               >
                 {dayLabel}
                 {today && (
@@ -110,100 +121,141 @@ export function SimpleView({
                   No tasks scheduled
                 </div>
               ) : (
-                <table className="w-full text-sm">
-                  <thead className="border-b bg-muted/20">
-                    <tr className="text-xs text-muted-foreground uppercase tracking-wide">
-                      <th className="px-3 py-1.5 text-left font-medium w-8">
-                        #
-                      </th>
-                      <th className="px-3 py-1.5 text-left font-medium">
-                        Time
-                      </th>
-                      <th className="px-3 py-1.5 text-left font-medium">
-                        Status
-                      </th>
-                      <th className="px-3 py-1.5 text-left font-medium">
-                        Task
-                      </th>
-                      <th className="px-3 py-1.5 text-left font-medium">
-                        Duration
-                      </th>
-                      <th className="px-3 py-1.5 text-left font-medium">
-                        Assigned To
-                      </th>
-                      {memberships && <th className="px-3 py-1.5 w-8" />}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {dayInstances.map((inst, idx) => {
-                      const assigneeNames =
-                        inst.assignees
-                          .map(
-                            (a) =>
-                              a.membership.user?.name ??
-                              a.membership.botName ??
-                              "Bot",
-                          )
-                          .join(", ") || "—";
-                      const isSkipped = effStatus(inst) === "SKIPPED";
-                      return (
-                        <tr
-                          key={inst.id}
-                          onClick={() =>
-                            memberships && setEditingInstance(inst)
-                          }
-                          className={`hover:bg-primary/5 active:bg-primary/10 transition-colors ${memberships ? "cursor-pointer" : ""} ${statusRowClass(effStatus(inst))}`}
-                        >
-                          <td className="px-3 py-2 text-muted-foreground">
-                            {idx + 1}
-                          </td>
-                          <td className="px-3 py-2 text-muted-foreground text-xs font-mono">
-                            {minTo12h(inst.startTimeMin)}
-                          </td>
-                          <td className="px-3 py-2">
-                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">
-                              <span
-                                className={`w-2 h-2 rounded-full ${statusDotClass(effStatus(inst))}`}
-                              />
-                              {STATUS_LABELS[effStatus(inst)]}
-                            </span>
-                          </td>
-                          <td
-                            className={`px-3 py-2 font-medium ${isSkipped ? "line-through text-muted-foreground" : ""}`}
+                <div className="divide-y">
+                  {dayInstances.map((inst) => {
+                    const effectiveStatus = effStatus(inst);
+                    const isSkipped = effectiveStatus === "SKIPPED";
+                    const isDone = effectiveStatus === "DONE";
+                    return (
+                      <div
+                        key={inst.id}
+                        className={cn(
+                          "group flex items-center gap-3 px-4 py-3 transition-colors",
+                          memberships
+                            ? "cursor-pointer hover:bg-primary/5 active:bg-primary/10"
+                            : "",
+                        )}
+                        onClick={() => memberships && setEditingInstance(inst)}
+                      >
+                        {/* Task color accent */}
+                        <div
+                          className="w-1 self-stretch rounded-full shrink-0"
+                          style={{
+                            backgroundColor: inst.taskColor ?? "#94a3b8",
+                          }}
+                        />
+
+                        {/* Time */}
+                        <span className="text-xs text-muted-foreground font-mono w-14 shrink-0 tabular-nums">
+                          {minTo12h(inst.startTimeMin)}
+                        </span>
+
+                        {/* Task name */}
+                        <div className="flex-1 min-w-0">
+                          <Link
+                            href={`/orgs/${orgId}/tasks/${inst.taskId}?ref=timetable`}
+                            onClick={(e) => e.stopPropagation()}
+                            className={cn(
+                              "text-sm font-medium hover:underline block truncate",
+                              isSkipped || isDone
+                                ? "text-muted-foreground"
+                                : "",
+                              isSkipped ? "line-through" : "",
+                            )}
                           >
-                            <Link
-                              href={`/orgs/${orgId}/tasks/${inst.taskId}?ref=timetable`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="hover:underline"
-                            >
-                              {inst.task.title}
-                            </Link>
-                          </td>
-                          <td className="px-3 py-2 text-muted-foreground text-xs">
-                            {inst.task.durationMin} min
-                          </td>
-                          <td className="px-3 py-2 text-muted-foreground text-xs">
-                            {assigneeNames}
-                          </td>
-                          {memberships && (
-                            <td className="px-2 py-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingInstance(inst);
-                                }}
-                                className="flex items-center justify-center w-6 h-6 rounded hover:bg-muted transition-colors cursor-pointer text-muted-foreground"
-                                aria-label="Edit"
-                              >
-                                <MoreHorizontal className="h-3.5 w-3.5" />
-                              </button>
-                            </td>
+                            {inst.task.title}
+                          </Link>
+                        </div>
+
+                        {/* Assignee initials */}
+                        <div className="hidden sm:flex items-center gap-0.5 shrink-0">
+                          {inst.assignees.length === 0 ? (
+                            <span className="text-xs text-muted-foreground/50">
+                              —
+                            </span>
+                          ) : (
+                            <>
+                              {inst.assignees.slice(0, 3).map((a) => {
+                                const name =
+                                  a.membership.user?.name ??
+                                  a.membership.botName ??
+                                  "?";
+                                const initials = name
+                                  .trim()
+                                  .split(/\s+/)
+                                  .map((w) => w[0])
+                                  .slice(0, 2)
+                                  .join("")
+                                  .toUpperCase();
+                                return (
+                                  <span
+                                    key={a.id}
+                                    title={name}
+                                    className="w-6 h-6 rounded-full bg-muted text-muted-foreground text-[10px] font-semibold flex items-center justify-center"
+                                  >
+                                    {initials}
+                                  </span>
+                                );
+                              })}
+                              {inst.assignees.length > 3 && (
+                                <span className="w-6 h-6 rounded-full bg-muted text-muted-foreground text-[10px] font-semibold flex items-center justify-center">
+                                  +{inst.assignees.length - 3}
+                                </span>
+                              )}
+                            </>
                           )}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                        </div>
+
+                        {/* Duration */}
+                        <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
+                          {formatDuration(inst.task.durationMin)}
+                        </span>
+
+                        {/* Status badge (sm+) / dot (mobile) */}
+                        <span
+                          className={cn(
+                            "hidden sm:inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0",
+                            effectiveStatus === "IN_PROGRESS"
+                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                              : effectiveStatus === "DONE"
+                                ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                                : effectiveStatus === "SKIPPED"
+                                  ? "bg-red-500/10 text-red-500"
+                                  : "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          {effectiveStatus === "IN_PROGRESS"
+                            ? "In progress"
+                            : effectiveStatus === "DONE"
+                              ? "Done"
+                              : effectiveStatus === "SKIPPED"
+                                ? "Skipped"
+                                : "To do"}
+                        </span>
+                        <span
+                          className={cn(
+                            "w-2 h-2 rounded-full shrink-0 sm:hidden",
+                            statusDotClass(effectiveStatus),
+                          )}
+                        />
+
+                        {/* Edit button */}
+                        {memberships && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingInstance(inst);
+                            }}
+                            className="flex items-center justify-center w-6 h-6 rounded hover:bg-muted transition-colors shrink-0 text-muted-foreground sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100"
+                            aria-label="Edit"
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
           );

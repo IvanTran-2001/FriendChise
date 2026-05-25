@@ -51,6 +51,35 @@ import {
 } from "@/app/actions/tasks";
 import type { SortOption } from "./tasks-config";
 
+function formatDuration(min: number): string {
+  if (min < 60) return `${min}m`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+function ownershipBadge(task: Task, orgId: string) {
+  if (task._available) {
+    return (
+      <span className="inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 text-xs font-medium whitespace-nowrap">
+        Available
+      </span>
+    );
+  }
+  if (task.orgId !== orgId) {
+    return (
+      <span className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 px-2 py-0.5 text-xs font-medium whitespace-nowrap">
+        Franchise
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-full bg-muted text-muted-foreground border border-border px-2 py-0.5 text-xs font-medium whitespace-nowrap">
+      Mine
+    </span>
+  );
+}
+
 // Strip markdown syntax for plain-text previews
 function stripMd(text: string): string {
   return text
@@ -223,9 +252,18 @@ export function TaskTable({
             {visible.map((task) => (
               <div
                 key={task.id}
-                className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden relative group"
+                tabIndex={0}
+                role="button"
+                className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden relative group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => router.push(`/orgs/${orgId}/tasks/${task.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    router.push(`/orgs/${orgId}/tasks/${task.id}`);
+                  }
+                }}
               >
-                {/* Cover image or color accent bar */}
+                {/* Cover image or colored initial block */}
                 {task.imageSignedUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -235,57 +273,31 @@ export function TaskTable({
                   />
                 ) : (
                   <div
-                    className="h-1.5 w-full"
-                    style={{ backgroundColor: task.color }}
-                  />
+                    className="h-36 w-full flex items-center justify-center text-5xl font-bold select-none"
+                    style={{
+                      backgroundColor: task.color + "25",
+                      color: task.color,
+                    }}
+                  >
+                    {task.name.charAt(0).toUpperCase()}
+                  </div>
                 )}
-                <div
-                  className={`block p-4${!task._available ? " cursor-pointer" : ""}`}
-                  tabIndex={!task._available ? 0 : undefined}
-                  role={!task._available ? "button" : undefined}
-                  onClick={() => {
-                    if (!task._available)
-                      router.push(`/orgs/${orgId}/tasks/${task.id}`);
-                  }}
-                  onKeyDown={(e) => {
-                    if (
-                      !task._available &&
-                      (e.key === "Enter" || e.key === " ")
-                    ) {
-                      e.preventDefault();
-                      router.push(`/orgs/${orgId}/tasks/${task.id}`);
-                    }
-                  }}
-                >
+                <div className="p-4">
                   <div className="flex flex-col gap-3">
-                    <div className="flex items-start gap-2">
-                      <span
-                        className="w-2.5 h-2.5 rounded-full shrink-0 mt-0.5"
-                        style={{ backgroundColor: task.color }}
-                      />
-                      <div className="font-semibold text-sm leading-snug">
-                        {task.name}
-                      </div>
+                    <div className="font-semibold text-sm leading-snug">
+                      {task.name}
                     </div>
                     {task.description && (
                       <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                         {stripMd(task.description)}
                       </p>
                     )}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                        {task.durationMin} min
-                      </span>
-                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                        {task.minPeople}+ people
-                      </span>
-                    </div>
                     {task.eligibility.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {task.eligibility.map((e) => (
                           <span
                             key={e.role.id}
-                            className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium"
+                            className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium"
                           >
                             {e.role.color && (
                               <span
@@ -298,22 +310,221 @@ export function TaskTable({
                         ))}
                       </div>
                     )}
+                    {task.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {task.tags.map((tt) => (
+                          <span
+                            key={tt.tag.id}
+                            className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium"
+                          >
+                            <span
+                              className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
+                              style={{ backgroundColor: tt.tag.color }}
+                            />
+                            {tt.tag.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
+                <div
+                  className="flex items-center justify-between px-3 py-2 border-t"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center gap-2">
+                    {ownershipBadge(task, orgId)}
+                    <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                      {formatDuration(task.durationMin)}
+                    </span>
+                    <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                      {task.minPeople}+ ppl
+                    </span>
+                  </div>
+                  {canManageTasks && task._available && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      disabled={isPending}
+                      title="Add to my list"
+                      onClick={() => handleAddToList(task)}
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span className="sr-only">Add to list</span>
+                    </Button>
+                  )}
+                  {canManageTasks && !task._available && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          disabled={isPending}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Task actions</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(
+                              `/orgs/${orgId}/tasks/${task.id}/edit`,
+                            );
+                          }}
+                        >
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabled
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(
+                              `/orgs/${orgId}/tasks/new?duplicateFrom=${task.id}`,
+                            );
+                          }}
+                        >
+                          Duplicate
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteClick(task);
+                          }}
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border bg-card overflow-hidden shadow-sm divide-y divide-border">
+            {visible.map((task) => (
+              <div
+                key={task.id}
+                tabIndex={0}
+                role="button"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                onClick={() => router.push(`/orgs/${orgId}/tasks/${task.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    router.push(`/orgs/${orgId}/tasks/${task.id}`);
+                  }
+                }}
+              >
+                {/* Color accent bar */}
+                <div
+                  className="w-1 self-stretch rounded-full shrink-0"
+                  style={{ backgroundColor: task.color }}
+                />
+
+                {/* Thumbnail */}
+                {task.imageSignedUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={task.imageSignedUrl}
+                    alt=""
+                    className="w-9 h-9 rounded-md object-cover shrink-0 hidden sm:block"
+                  />
+                )}
+
+                {/* Main content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm truncate">
+                      {task.name}
+                    </span>
+                    {task.tags.length > 0 && (
+                      <div className="hidden md:flex items-center gap-1 shrink-0">
+                        {task.tags.slice(0, 5).map((tt) => (
+                          <span
+                            key={tt.tag.id}
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{ backgroundColor: tt.tag.color }}
+                            title={tt.tag.name}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {task.description && (
+                    <p className="text-xs text-muted-foreground truncate mt-0.5 leading-relaxed">
+                      {stripMd(task.description)}
+                    </p>
+                  )}
+                  {/* Mobile-only metadata row */}
+                  <div className="flex sm:hidden items-center gap-2 mt-1.5 flex-wrap">
+                    {ownershipBadge(task, orgId)}
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {formatDuration(task.durationMin)}
+                    </span>
+                    <span className="text-muted-foreground/40 text-xs select-none">·</span>
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {task.minPeople}+ ppl
+                    </span>
+                  </div>
+                </div>
+
+                {/* Metadata */}
+                <div className="hidden sm:flex items-center gap-4 shrink-0 text-xs text-muted-foreground">
+                  {ownershipBadge(task, orgId)}
+                  <span className="tabular-nums">
+                    {formatDuration(task.durationMin)}
+                  </span>
+                  <span className="tabular-nums">{task.minPeople}+ ppl</span>
+                  <div className="hidden md:flex items-center gap-1">
+                    {task.eligibility.length === 0 ? (
+                      <span className="text-muted-foreground/40">—</span>
+                    ) : (
+                      <>
+                        {task.eligibility.slice(0, 2).map((e) => (
+                          <span
+                            key={e.role.id}
+                            className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap"
+                          >
+                            {e.role.color && (
+                              <span
+                                className="h-1.5 w-1.5 rounded-full shrink-0"
+                                style={{ backgroundColor: e.role.color }}
+                              />
+                            )}
+                            {e.role.name}
+                          </span>
+                        ))}
+                        {task.eligibility.length > 2 && (
+                          <span>+{task.eligibility.length - 2}</span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions — hidden until hover */}
                 {canManageTasks && (
-                  <div className="absolute top-3 right-3">
+                  <div
+                    className="shrink-0 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {task._available ? (
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 opacity-100 transition-opacity sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto sm:focus-visible:opacity-100 sm:focus-visible:pointer-events-auto"
+                        className="h-8 w-8"
                         disabled={isPending}
                         title="Add to my list"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleAddToList(task);
-                        }}
+                        onClick={() => handleAddToList(task)}
                       >
                         <Plus className="h-4 w-4" />
                         <span className="sr-only">Add to list</span>
@@ -324,48 +535,36 @@ export function TaskTable({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 opacity-100 transition-opacity sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto sm:focus-visible:opacity-100 sm:focus-visible:pointer-events-auto"
+                            className="h-8 w-8"
                             disabled={isPending}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }}
                           >
                             <MoreHorizontal className="h-4 w-4" />
                             <span className="sr-only">Task actions</span>
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="end"
-                          onClick={(e) => e.stopPropagation()}
-                        >
+                        <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
+                            onClick={() =>
                               router.push(
                                 `/orgs/${orgId}/tasks/${task.id}/edit`,
-                              );
-                            }}
+                              )
+                            }
                           >
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             disabled
-                            onClick={(e) => {
-                              e.stopPropagation();
+                            onClick={() =>
                               router.push(
                                 `/orgs/${orgId}/tasks/new?duplicateFrom=${task.id}`,
-                              );
-                            }}
+                              )
+                            }
                           >
                             Duplicate
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteClick(task);
-                            }}
+                            onClick={() => handleDeleteClick(task)}
                           >
                             Delete
                           </DropdownMenuItem>
@@ -376,152 +575,6 @@ export function TaskTable({
                 )}
               </div>
             ))}
-          </div>
-        ) : (
-          <div className="rounded-lg border bg-card overflow-hidden shadow-sm overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/40">
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Title
-                  </th>
-                  <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Description
-                  </th>
-                  <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Duration
-                  </th>
-                  <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    People
-                  </th>
-                  <th className="hidden sm:table-cell text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Role
-                  </th>
-                  {canManageTasks && <th className="w-10" />}
-                </tr>
-              </thead>
-              <tbody>
-                {visible.map((task) => (
-                  <tr
-                    key={task.id}
-                    tabIndex={0}
-                    onClick={() => {
-                      if (!task._available)
-                        router.push(`/orgs/${orgId}/tasks/${task.id}`);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key !== "Enter") return;
-                      if (e.target !== e.currentTarget) return;
-                      if (!task._available)
-                        router.push(`/orgs/${orgId}/tasks/${task.id}`);
-                    }}
-                    className={`border-b last:border-0 hover:bg-primary/5 active:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset${!task._available ? " cursor-pointer" : ""}`}
-                  >
-                    <td className="px-4 py-3 font-medium">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="w-2 h-2 rounded-full shrink-0"
-                          style={{ backgroundColor: task.color }}
-                        />
-                        {task.name}
-                      </div>
-                    </td>
-                    <td className="hidden sm:table-cell px-4 py-3 text-muted-foreground max-w-60 truncate">
-                      {task.description ? stripMd(task.description) : "—"}
-                    </td>
-                    <td className="hidden sm:table-cell px-4 py-3 tabular-nums">
-                      {task.durationMin} min
-                    </td>
-                    <td className="hidden sm:table-cell px-4 py-3 tabular-nums">
-                      {task.minPeople}
-                    </td>
-                    <td className="hidden sm:table-cell px-4 py-3">
-                      {task.eligibility.length === 0 ? (
-                        <span className="text-muted-foreground">—</span>
-                      ) : (
-                        <div className="flex flex-wrap gap-1">
-                          {task.eligibility.map((e) => (
-                            <span
-                              key={e.role.id}
-                              className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium"
-                            >
-                              {e.role.color && (
-                                <span
-                                  className="h-1.5 w-1.5 rounded-full shrink-0"
-                                  style={{ backgroundColor: e.role.color }}
-                                />
-                              )}
-                              {e.role.name}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                    {canManageTasks && (
-                      <td
-                        className="px-2 py-3 text-right"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {task._available ? (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            disabled={isPending}
-                            title="Add to my list"
-                            onClick={() => handleAddToList(task)}
-                          >
-                            <Plus className="h-4 w-4" />
-                            <span className="sr-only">Add to list</span>
-                          </Button>
-                        ) : (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                disabled={isPending}
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">Task actions</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  router.push(
-                                    `/orgs/${orgId}/tasks/${task.id}/edit`,
-                                  )
-                                }
-                              >
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                disabled
-                                onClick={() =>
-                                  router.push(
-                                    `/orgs/${orgId}/tasks/new?duplicateFrom=${task.id}`,
-                                  )
-                                }
-                              >
-                                Duplicate
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => handleDeleteClick(task)}
-                              >
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         )}
       </div>

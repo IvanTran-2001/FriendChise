@@ -14,7 +14,8 @@
  *   - `Avatar`      — shows the member's profile photo or a two-letter
  *                     initial fallback at three sizes (sm / md / lg).
  *   - `StatusBadge` — shown only when a member's status is RESTRICTED.
- *   - `RolesBadge`  — comma-separated list of role names, or "No role".
+ *   - `RolesBadge`  — pill list of role names; `align` prop controls
+ *                     left-align (list view) vs center-align (card view).
  *   - `CardGrid`    — responsive grid of shadcn Cards (card view).
  *   - `MemberList`  — bordered list of rows (list view).
  *
@@ -110,14 +111,17 @@ function StatusBadge({ status }: { status: "ACTIVE" | "RESTRICTED" }) {
 
 function RolesBadge({
   roles,
+  align = "center",
 }: {
   roles: { id: string; name: string; color: string }[];
+  align?: "center" | "start";
 }) {
+  const justifyClass = align === "start" ? "justify-start" : "justify-center";
   if (roles.length === 0)
     return <span className="text-xs text-muted-foreground">No role</span>;
   if (roles.length > 2) {
     return (
-      <div className="flex flex-wrap gap-1 justify-center">
+      <div className={cn("flex flex-wrap gap-1", justifyClass)}>
         {roles.map((r) => (
           <span
             key={r.id}
@@ -132,7 +136,7 @@ function RolesBadge({
     );
   }
   return (
-    <div className="flex flex-wrap gap-1 justify-center">
+    <div className={cn("flex flex-wrap gap-1", justifyClass)}>
       {roles.map((r) => (
         <span
           key={r.id}
@@ -245,15 +249,6 @@ export function MembersView({
   );
 }
 
-function abbreviateName(name: string, maxLen = 12): string {
-  if (name.length <= maxLen) return name;
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, maxLen);
-  const first = parts[0].slice(0, 4);
-  const last = parts[parts.length - 1].slice(0, 4);
-  return `${first}. ${last}.`;
-}
-
 function CardGrid({
   members,
   orgId,
@@ -268,7 +263,7 @@ function CardGrid({
   onView: (m: Member) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-4 justify-center">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
       {members.map((m) => {
         const roles = m.memberRoles.map(({ role }) => ({
           id: role.id,
@@ -278,11 +273,11 @@ function CardGrid({
         return (
           <div
             key={m.id}
-            className="group relative cursor-pointer w-44 h-56 shrink-0"
+            className="group relative cursor-pointer"
             onClick={() => onView(m)}
           >
             <Card className="h-full items-center text-center transition-all group-hover:shadow-md group-hover:border-primary/20 cursor-pointer overflow-hidden">
-              <div className="pt-4 flex justify-center">
+              <div className="pt-5 flex justify-center">
                 <Avatar
                   name={m.user?.name ?? m.botName}
                   image={m.user?.image ?? null}
@@ -290,11 +285,13 @@ function CardGrid({
                 />
               </div>
               <CardContent className="flex flex-col items-center gap-1.5 pb-4 pt-3">
-                <CardTitle className="text-sm leading-tight flex items-center gap-1.5">
-                  {abbreviateName(m.user?.name ?? m.botName ?? "Unnamed")}
+                <CardTitle className="text-sm leading-tight w-full flex items-center justify-center gap-1.5 flex-wrap">
+                  <span className="truncate">
+                    {m.user?.name ?? m.botName ?? "Unnamed"}
+                  </span>
                   {m.userId === null && (
-                    <span className="text-xs font-bold font-mono text-red-500 tracking-tight">
-                      [Bot]
+                    <span className="inline-flex items-center rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 text-[10px] font-medium shrink-0">
+                      Bot
                     </span>
                   )}
                 </CardTitle>
@@ -304,7 +301,7 @@ function CardGrid({
             </Card>
             {canManage && (
               <div
-                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-1 right-1"
                 onClick={(e) => e.stopPropagation()}
               >
                 <MemberActions
@@ -360,20 +357,31 @@ function MemberList({
               <Avatar
                 name={m.user?.name ?? m.botName}
                 image={m.user?.image ?? null}
-                size="sm"
+                size="md"
               />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate flex items-center gap-1.5">
-                  {m.user?.name ?? m.botName ?? "Unnamed"}
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <p className="text-sm font-medium truncate">
+                    {m.user?.name ?? m.botName ?? "Unnamed"}
+                  </p>
                   {m.userId === null && (
-                    <span className="text-xs font-bold font-mono text-red-500 tracking-tight">
-                      [Bot]
+                    <span className="inline-flex items-center rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 text-[10px] font-medium shrink-0">
+                      Bot
                     </span>
                   )}
-                </p>
-                <RolesBadge roles={roles} />
+                </div>
+                <RolesBadge roles={roles} align="start" />
               </div>
-              <StatusBadge status={m.status} />
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <StatusBadge status={m.status} />
+                <span className="text-xs text-muted-foreground hidden sm:block">
+                  Joined{" "}
+                  {m.joinedAt.toLocaleDateString(undefined, {
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
+              </div>
             </button>
             {canManage && (
               <div className="pr-3 shrink-0">

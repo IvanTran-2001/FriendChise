@@ -25,7 +25,7 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import { useMobileSidebar } from "@/components/layout/mobile-sidebar-context";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 
@@ -88,7 +88,7 @@ export function usePageSidebarCollapsed() {
  */
 export function PageSidebarSlot() {
   const { sidebar, collapsed, setCollapsed } = useContext(PageSidebarCtx);
-  const { open } = useMobileSidebar();
+  const { open, setOpen } = useMobileSidebar();
 
   if (!sidebar) return null;
 
@@ -124,8 +124,17 @@ export function PageSidebarSlot() {
 
       {/* Mobile: overlay anchored right of the AppSidebar icon strip */}
       {open && (
-        <div className="md:hidden fixed inset-y-0 left-12 z-50 flex flex-col w-65 bg-sidebar border-r border-border overflow-y-auto max-h-screen">
-          {sidebar}
+        <div className="md:hidden fixed inset-y-0 left-12 z-50 flex flex-col w-65 bg-sidebar border-r border-border">
+          <button
+            onClick={() => setOpen(false)}
+            className="absolute top-2 right-2 z-10 flex items-center justify-center w-8 h-8 rounded-md text-muted-foreground hover:bg-muted transition-colors"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <div className="flex-1 overflow-y-auto flex flex-col">
+            {sidebar}
+          </div>
         </div>
       )}
     </>

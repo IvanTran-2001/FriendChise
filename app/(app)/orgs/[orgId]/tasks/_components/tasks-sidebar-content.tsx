@@ -12,8 +12,10 @@
  *  - Actions — Create Task link (canManageTasks only)
  *
  * All mode/filter/sort/view state is URL-driven: each control pushes a new URL
- * so the server page re-renders with updated params. The last-used mode is also
- * persisted to localStorage so it survives navigation away and back.
+ * so the server page re-renders with updated params. The last-used mode and prefs
+ * are persisted to both localStorage and cookies. Cookies allow the server page to
+ * perform a redirect before render (no client round-trip); localStorage keeps prefs
+ * alive across browser sessions when cookies have not yet been set.
  */
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -75,6 +77,12 @@ export function TasksSidebarContent({
   const TASKS_PREFS_KEY = `tasks-prefs-${orgId}`;
   const isFirstRender = useRef(true);
 
+  function setTasksCookie(key: string, value: string) {
+    try {
+      document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=31536000; SameSite=Lax`;
+    } catch { /* ignore */ }
+  }
+
   // On mount: restore saved mode and/or filter prefs if URL has no explicit params
   useEffect(() => {
     const overrides: Parameters<typeof buildHref>[0] = {};
@@ -130,6 +138,18 @@ export function TasksSidebarContent({
     if (Object.keys(overrides).length > 0) {
       router.replace(buildHref(overrides));
     }
+    // Seed cookies so the server can restore prefs without a client-side round-trip
+    // on the next bare navigation (no URL params). This is a one-time migration for
+    // users who have localStorage data but no cookie yet.
+    const resolvedMode = (overrides.mode ?? mode) as string;
+    const resolvedPrefs = JSON.stringify({
+      sort: overrides.sort ?? sort,
+      roleId: overrides.roleId !== undefined ? overrides.roleId : roleId,
+      tagId: overrides.tagId !== undefined ? overrides.tagId : tagId,
+      view: overrides.view ?? view,
+    });
+    setTasksCookie(TASKS_MODE_KEY, resolvedMode);
+    setTasksCookie(TASKS_PREFS_KEY, resolvedPrefs);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -139,14 +159,11 @@ export function TasksSidebarContent({
       isFirstRender.current = false;
       return;
     }
+    const prefsJson = JSON.stringify({ sort, roleId, tagId, view });
     try {
-      localStorage.setItem(
-        `tasks-prefs-${orgId}`,
-        JSON.stringify({ sort, roleId, tagId, view }),
-      );
-    } catch {
-      // Ignore localStorage errors
-    }
+      localStorage.setItem(`tasks-prefs-${orgId}`, prefsJson);
+    } catch { /* ignore */ }
+    setTasksCookie(TASKS_PREFS_KEY, prefsJson);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sort, roleId, tagId, view]);
 
@@ -186,21 +203,30 @@ export function TasksSidebarContent({
           url={buildHref({ mode: "shared" })}
           icon={Globe}
           isActive={mode === "shared"}
-          onClick={() => localStorage.setItem(TASKS_MODE_KEY, "shared")}
+          onClick={() => {
+            localStorage.setItem(TASKS_MODE_KEY, "shared");
+            setTasksCookie(TASKS_MODE_KEY, "shared");
+          }}
         />
         <SidebarNavItem
           title="My Tasks"
           url={buildHref({ mode: "list" })}
           icon={ListTodo}
           isActive={mode === "list"}
-          onClick={() => localStorage.setItem(TASKS_MODE_KEY, "list")}
+          onClick={() => {
+            localStorage.setItem(TASKS_MODE_KEY, "list");
+            setTasksCookie(TASKS_MODE_KEY, "list");
+          }}
         />
         <SidebarNavItem
           title="Shared"
           url={buildHref({ mode: "available" })}
           icon={Share2}
           isActive={mode === "available"}
-          onClick={() => localStorage.setItem(TASKS_MODE_KEY, "available")}
+          onClick={() => {
+            localStorage.setItem(TASKS_MODE_KEY, "available");
+            setTasksCookie(TASKS_MODE_KEY, "available");
+          }}
         />
       </div>
 
@@ -291,9 +317,15 @@ export function TasksSidebarContent({
             size="sm"
             className="w-fit"
             value={view}
-            onChange={(v) =>
-              router.push(buildHref({ view: v as "list" | "card" }))
-            }
+            onChange={(v) => {
+              const newView = v as "list" | "card";
+              // Update cookie before navigating so the server-side redirect
+              // doesn't restore the old view when the URL has no ?view param
+              const newPrefs = JSON.stringify({ sort, roleId, tagId, view: newView });
+              try { localStorage.setItem(TASKS_PREFS_KEY, newPrefs); } catch { /* ignore */ }
+              setTasksCookie(TASKS_PREFS_KEY, newPrefs);
+              router.push(buildHref({ view: newView }));
+            }}
             options={[
               { value: "list", label: <List className="h-4 w-4" /> },
               { value: "card", label: <LayoutGrid className="h-4 w-4" /> },

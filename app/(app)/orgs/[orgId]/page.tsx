@@ -8,9 +8,22 @@ import {
   Settings,
   MapPin,
   Clock,
+  Globe,
   ArrowRight,
   ArrowLeftRight,
 } from "lucide-react";
+
+// ─── org color ────────────────────────────────────────────────────────────────
+
+const ORG_COLOR_PALETTE = [
+  "#6366f1", "#8b5cf6", "#ec4899", "#f43f5e",
+  "#f97316", "#22c55e", "#14b8a6", "#06b6d4", "#3b82f6",
+];
+
+function orgColor(name: string): string {
+  const sum = [...name].reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return ORG_COLOR_PALETTE[sum % ORG_COLOR_PALETTE.length];
+}
 import { requireOrgMemberPage } from "@/lib/authz";
 import { getAuthUserId } from "@/lib/authz/_shared";
 import { prisma } from "@/lib/prisma";
@@ -127,11 +140,24 @@ const Page = async ({ params }: { params: Promise<{ orgId: string }> }) => {
 
   return (
     <>
-      <div className="max-w-3xl mx-auto w-full rounded-2xl border bg-card shadow-sm p-6 sm:p-8">
+      <div className="max-w-3xl mx-auto w-full rounded-2xl border bg-card shadow-sm">
+        {/* Color accent bar */}
+        <div
+          className="h-1.5 rounded-t-2xl"
+          style={{ backgroundColor: orgColor(org.name) }}
+        />
+        <div className="p-6 sm:p-8">
         {/* Org header */}
         <div className="flex items-start justify-between gap-4 mb-8">
           <div>
-            <h1 className="font-heading text-2xl tracking-tight">{org.name}</h1>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="font-heading text-2xl tracking-tight">{org.name}</h1>
+              {isOwner && (
+                <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs font-medium">
+                  Owner
+                </span>
+              )}
+            </div>
             <div className="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-muted-foreground">
               {org.address && (
                 <span className="flex items-center gap-1">
@@ -140,9 +166,15 @@ const Page = async ({ params }: { params: Promise<{ orgId: string }> }) => {
                 </span>
               )}
               <span className="flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5" />
+                <Globe className="h-3.5 w-3.5" />
                 {org.timezone.replace(/_/g, " ")}
               </span>
+              {org.openTimeMin != null && org.closeTimeMin != null && (
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  {minTo12h(org.openTimeMin)} – {minTo12h(org.closeTimeMin)}
+                </span>
+              )}
             </div>
           </div>
           {isOwner && (
@@ -203,7 +235,7 @@ const Page = async ({ params }: { params: Promise<{ orgId: string }> }) => {
                 All tools →
               </Link>
             </div>
-            <div className="max-h-46 overflow-y-auto rounded-xl border divide-y">
+            <div className="max-h-44 overflow-y-auto rounded-xl border divide-y">
               {recentSets.map((s) => (
                 <Link
                   key={s.id}
@@ -245,7 +277,20 @@ const Page = async ({ params }: { params: Promise<{ orgId: string }> }) => {
               </p>
             </div>
           ) : (
-            <div className="rounded-xl border divide-y overflow-hidden">
+            <>
+              <div className="mb-3">
+                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+                  <span>{doneToday} of {todayInstances.length} done</span>
+                  <span>{Math.round((doneToday / todayInstances.length) * 100)}%</span>
+                </div>
+                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-green-500 rounded-full transition-all"
+                    style={{ width: `${(doneToday / todayInstances.length) * 100}%` }}
+                  />
+                </div>
+              </div>
+              <div className="rounded-xl border divide-y overflow-hidden">
               {todayInstances
                 .slice()
                 .sort((a, b) => a.startTimeMin - b.startTimeMin)
@@ -280,21 +325,32 @@ const Page = async ({ params }: { params: Promise<{ orgId: string }> }) => {
                     </span>
 
                     {/* Status */}
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span
-                        className={cn(
-                          "w-1.5 h-1.5 rounded-full",
-                          statusDotClass(inst.status),
-                        )}
-                      />
-                      <span className="text-xs text-muted-foreground hidden sm:inline">
-                        {statusLabel(inst.status)}
-                      </span>
-                    </div>
+                    <span
+                      className={cn(
+                        "hidden sm:inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0",
+                        inst.status === "IN_PROGRESS"
+                          ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                          : inst.status === "DONE"
+                          ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                          : inst.status === "SKIPPED"
+                          ? "bg-red-500/10 text-red-500"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {statusLabel(inst.status)}
+                    </span>
+                    <span
+                      className={cn(
+                        "w-1.5 h-1.5 rounded-full shrink-0 sm:hidden",
+                        statusDotClass(inst.status),
+                      )}
+                    />
                   </div>
                 ))}
-            </div>
+              </div>
+            </>
           )}
+        </div>
         </div>
       </div>
     </>

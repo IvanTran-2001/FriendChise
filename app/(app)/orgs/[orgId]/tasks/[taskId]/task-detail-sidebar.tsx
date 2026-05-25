@@ -324,10 +324,10 @@ export function TaskDetailSidebar({
             Layout
           </p>
           <Button
-            variant={activeTitle === SECTIONS_TITLE ? "secondary" : "outline"}
+            variant="outline"
             size="sm"
             className="w-full justify-start gap-2"
-            onClick={handleSectionsOpen}
+            disabled
           >
             <LayoutList className="h-3.5 w-3.5" />
             Edit Sections

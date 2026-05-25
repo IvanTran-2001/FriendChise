@@ -217,10 +217,13 @@ export async function getTaskById(orgId: string, taskId: string) {
 }
 
 /**
- * Returns a task the org can access — either because it owns the task or
- * because it has an active TaskInheritance row. Returns null if neither.
- * The `isOwner` flag distinguishes between the two cases so callers can
- * conditionally render publish controls, edit buttons, etc.
+ * Returns a task the org can access — either because it owns the task,
+ * because it has an active TaskInheritance row, or because the task is
+ * GLOBAL (viewable by any org even without inheriting it). Returns null
+ * only if the task doesn't exist or isn't accessible.
+ *
+ * `isOwner: true`  — org owns the task (can edit, delete, publish)
+ * `isOwner: false` — org has inherited or is viewing a shared GLOBAL task
  */
 export async function getAccessibleTaskById(orgId: string, taskId: string) {
   const ownedTask = await prisma.task.findFirst({
@@ -229,18 +232,23 @@ export async function getAccessibleTaskById(orgId: string, taskId: string) {
   });
   if (ownedTask) return { task: ownedTask, isOwner: true as const };
 
-  const inheritance = await prisma.taskInheritance.findUnique({
-    where: { taskId_orgId: { taskId, orgId } },
-  });
-  if (!inheritance) return null;
+  // Check for explicit inheritance first, then fall back to GLOBAL visibility
+  const [inheritance, sharedTask] = await Promise.all([
+    prisma.taskInheritance.findUnique({
+      where: { taskId_orgId: { taskId, orgId } },
+    }),
+    prisma.task.findUnique({
+      where: { id: taskId },
+      include: taskInclude,
+    }),
+  ]);
 
-  const inheritedTask = await prisma.task.findUnique({
-    where: { id: taskId },
-    include: taskInclude,
-  });
-  if (!inheritedTask) return null;
+  if (!sharedTask) return null;
 
-  return { task: inheritedTask, isOwner: false as const };
+  // Allow viewing if the org has inherited it OR if the task is published (GLOBAL)
+  if (!inheritance && sharedTask.scope !== "GLOBAL") return null;
+
+  return { task: sharedTask, isOwner: false as const };
 }
 
 /**

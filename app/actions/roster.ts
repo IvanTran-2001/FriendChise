@@ -1,7 +1,7 @@
 /**
  * @file app/actions/roster.ts
  * Server actions for the Roster tool.
- * All write actions require MANAGE_TIMETABLE permission.
+ * All write actions require MANAGE_MEMBERS permission.
  * Thin wrappers: validate auth → delegate to lib/services/roster → revalidatePath.
  */
 "use server";
@@ -42,7 +42,7 @@ export async function setRosterCellMembersAction(
 ): Promise<{ ok: boolean; error?: string; entries?: SavedRosterEntry[] }> {
   const authz = await requireOrgPermissionAction(
     orgId,
-    PermissionAction.MANAGE_TIMETABLE,
+    PermissionAction.MANAGE_MEMBERS,
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
@@ -69,7 +69,7 @@ export async function upsertRosterDayConfigAction(
 ): Promise<{ ok: boolean; error?: string }> {
   const authz = await requireOrgPermissionAction(
     orgId,
-    PermissionAction.MANAGE_TIMETABLE,
+    PermissionAction.MANAGE_MEMBERS,
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
@@ -89,7 +89,7 @@ export async function createRosterTemplateAction(
 ): Promise<{ ok: boolean; error?: string; templateId?: string }> {
   const authz = await requireOrgPermissionAction(
     orgId,
-    PermissionAction.MANAGE_TIMETABLE,
+    PermissionAction.MANAGE_MEMBERS,
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
@@ -106,7 +106,7 @@ export async function deleteRosterTemplateAction(
 ): Promise<{ ok: boolean; error?: string }> {
   const authz = await requireOrgPermissionAction(
     orgId,
-    PermissionAction.MANAGE_TIMETABLE,
+    PermissionAction.MANAGE_MEMBERS,
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
@@ -124,7 +124,7 @@ export async function renameRosterTemplateAction(
 ): Promise<{ ok: boolean; error?: string }> {
   const authz = await requireOrgPermissionAction(
     orgId,
-    PermissionAction.MANAGE_TIMETABLE,
+    PermissionAction.MANAGE_MEMBERS,
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
@@ -144,7 +144,7 @@ export async function setRosterTemplateCellMembersAction(
 ): Promise<{ ok: boolean; error?: string }> {
   const authz = await requireOrgPermissionAction(
     orgId,
-    PermissionAction.MANAGE_TIMETABLE,
+    PermissionAction.MANAGE_MEMBERS,
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
@@ -168,7 +168,7 @@ export async function updateRosterTemplateCycleWeeksAction(
 ): Promise<{ ok: boolean; error?: string }> {
   const authz = await requireOrgPermissionAction(
     orgId,
-    PermissionAction.MANAGE_TIMETABLE,
+    PermissionAction.MANAGE_MEMBERS,
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
@@ -190,7 +190,7 @@ export async function clearRosterTemplateWeekAction(
 ): Promise<{ ok: boolean; error?: string }> {
   const authz = await requireOrgPermissionAction(
     orgId,
-    PermissionAction.MANAGE_TIMETABLE,
+    PermissionAction.MANAGE_MEMBERS,
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
@@ -210,7 +210,7 @@ export async function applyRosterTemplateAction(
 ): Promise<{ ok: boolean; error?: string; conflict?: boolean }> {
   const authz = await requireOrgPermissionAction(
     orgId,
-    PermissionAction.MANAGE_TIMETABLE,
+    PermissionAction.MANAGE_MEMBERS,
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 

@@ -26,8 +26,10 @@ import { createSignedReadUrl } from "@/lib/supabase-storage";
 import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
 import { Toolbar } from "@/components/layout/toolbar";
 import { BackButton } from "@/components/layout/back-button";
+import { Clock, Users, AlarmClock, RefreshCw, Globe, Lock } from "lucide-react";
 import { TaskDescription } from "./task-description";
 import { TaskDetailSidebar } from "./task-detail-sidebar";
+import { TaskComments } from "./comments/index";
 import { formatDate } from "@/lib/utils";
 
 function formatDuration(min: number): string {
@@ -121,127 +123,204 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
       </Toolbar>
 
       <div className="w-full max-w-3xl mx-auto flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold">{task.name}</h1>
-
-        {/* Detail card */}
-        <div className="w-full rounded-lg border bg-card p-6 grid grid-cols-1 md:grid-cols-[1fr_200px] gap-8">
-          {/* Left: task fields */}
-          <dl className="flex flex-col gap-4">
-            <div>
-              <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">
-                Duration
-              </dt>
-              <dd className="text-sm">{formatDuration(task.durationMin)}</dd>
+        {/* Page header */}
+        <div className="flex items-start gap-3">
+          <span
+            className="w-3 h-3 rounded-full shrink-0 mt-2"
+            style={{ backgroundColor: task.color }}
+          />
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold leading-tight">
+              {task.name}
+            </h1>
+            <div className="flex flex-wrap items-center gap-x-1.5 mt-1">
+              {createdByName && (
+                <span className="text-sm text-muted-foreground">
+                  By {createdByName}
+                </span>
+              )}
+              {createdByName && (
+                <span className="text-muted-foreground/40 select-none">·</span>
+              )}
+              <span className="text-sm text-muted-foreground">
+                {formatDate(task.createdAt)}
+              </span>
+              {sharedBy && (
+                <>
+                  <span className="text-muted-foreground/40 select-none">·</span>
+                  <span className="text-sm text-muted-foreground">
+                    Shared from {sharedBy}
+                  </span>
+                </>
+              )}
             </div>
-
-            {task.preferredStartTimeMin != null && (
-              <div>
-                <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">
-                  Preferred start time
-                </dt>
-                <dd className="text-sm">
-                  {formatTime(task.preferredStartTimeMin)}
-                </dd>
-              </div>
-            )}
-
-            <div>
-              <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">
-                People required
-              </dt>
-              <dd className="text-sm">{task.minPeople}</dd>
-            </div>
-
-            {(task.minWaitDays != null || task.maxWaitDays != null) && (
-              <div>
-                <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">
-                  Wait days
-                </dt>
-                <dd className="text-sm">
-                  {task.minWaitDays != null && task.maxWaitDays != null
-                    ? `${task.minWaitDays} – ${task.maxWaitDays} days`
-                    : task.minWaitDays != null
-                      ? `Min ${task.minWaitDays} days`
-                      : `Max ${task.maxWaitDays} days`}
-                </dd>
-              </div>
-            )}
-
-            {task.description && (
-              <div>
-                <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">
-                  Description
-                </dt>
-                <dd>
-                  <TaskDescription description={task.description} />
-                </dd>
-              </div>
-            )}
-          </dl>
-
-          {/* Right: photo placeholder + created date */}
-          <div className="flex flex-col gap-4 order-first md:order-last">
-            {imageSignedUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={imageSignedUrl}
-                alt={`Photo for ${task.name}`}
-                className="rounded-md aspect-square w-full object-cover"
-              />
-            ) : (
-              <div className="rounded-md bg-muted aspect-square w-full flex items-center justify-center text-xs text-muted-foreground">
-                No photo
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Created {formatDate(task.createdAt)}
-            </p>
           </div>
         </div>
 
-        {/* Tags */}
-        {taskTags.length > 0 && (
-          <div className="rounded-lg border bg-card p-6">
-            <h2 className="text-sm font-medium mb-3">Tags</h2>
-            <div className="flex flex-wrap gap-2">
-              {taskTags.map((tag) => (
-                <span
-                  key={tag.id}
-                  className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs"
+        {/* Main unified card */}
+        <div className="rounded-lg border bg-card overflow-hidden">
+          {/* Color accent bar */}
+          <div className="h-1.5" style={{ backgroundColor: task.color }} />
+
+          {/* Image + structured fields */}
+          <div className="p-6 grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-6">
+            {/* Left: cover image or colored initial block */}
+            <div>
+              {imageSignedUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={imageSignedUrl}
+                  alt={`Photo for ${task.name}`}
+                  className="rounded-md aspect-square w-full object-cover"
+                />
+              ) : (
+                <div
+                  className="rounded-md aspect-square w-full flex items-center justify-center text-3xl font-bold select-none"
+                  style={{
+                    backgroundColor: task.color + "20",
+                    color: task.color,
+                  }}
                 >
-                  <span
-                    className="inline-block w-2 h-2 rounded-full shrink-0"
-                    style={{ backgroundColor: tag.color }}
-                  />
-                  {tag.name}
-                </span>
-              ))}
+                  {task.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+
+            {/* Right: key fields */}
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                {/* Duration */}
+                <div className="flex items-start gap-2">
+                  <Clock className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Duration</p>
+                    <p className="text-sm font-medium">
+                      {formatDuration(task.durationMin)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* People */}
+                <div className="flex items-start gap-2">
+                  <Users className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">People</p>
+                    <p className="text-sm font-medium">{task.minPeople}</p>
+                  </div>
+                </div>
+
+                {/* Start time */}
+                {task.preferredStartTimeMin != null && (
+                  <div className="flex items-start gap-2">
+                    <AlarmClock className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Start time</p>
+                      <p className="text-sm font-medium">
+                        {formatTime(task.preferredStartTimeMin)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Wait days */}
+                {(task.minWaitDays != null || task.maxWaitDays != null) && (
+                  <div className="flex items-start gap-2">
+                    <RefreshCw className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Wait days</p>
+                      <p className="text-sm font-medium">
+                        {task.minWaitDays != null && task.maxWaitDays != null
+                          ? `${task.minWaitDays}–${task.maxWaitDays} days`
+                          : task.minWaitDays != null
+                            ? `Min ${task.minWaitDays} days`
+                            : `Max ${task.maxWaitDays} days`}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Scope badge */}
+              <div className="mt-auto">
+                {task.scope === "GLOBAL" ? (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950 rounded-full px-2.5 py-1 border border-emerald-200 dark:border-emerald-800">
+                    <Globe className="w-3 h-3" />
+                    Shared with franchise
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-muted rounded-full px-2.5 py-1 border border-border">
+                    <Lock className="w-3 h-3" />
+                    Private
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-        )}
 
-        {/* Eligible roles */}
-        <div className="rounded-lg border bg-card p-6">
-          <h2 className="text-sm font-medium mb-3">Eligible roles</h2>
-          {eligibleRoles.length === 0 ? (
-            <p className="text-sm text-muted-foreground">All roles eligible</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {eligibleRoles.map((role) => (
-                <span
-                  key={role.id}
-                  className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs"
-                >
-                  <span
-                    className="inline-block w-2 h-2 rounded-full shrink-0"
-                    style={{ backgroundColor: role.color }}
-                  />
-                  {role.name}
-                </span>
-              ))}
+          {/* Description */}
+          {task.description && (
+            <div className="border-t border-border px-6 py-5">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+                Description
+              </h2>
+              <TaskDescription description={task.description} />
             </div>
           )}
+
+          {/* Tags + Eligible roles */}
+          <div className="border-t border-border px-6 py-5 flex flex-col gap-5">
+            {taskTags.length > 0 && (
+              <div>
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                  Tags
+                </h2>
+                <div className="flex flex-wrap gap-1.5">
+                  {taskTags.map((tag) => (
+                    <span
+                      key={tag.id}
+                      className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                    >
+                      <span
+                        className="inline-block w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: tag.color }}
+                      />
+                      {tag.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                Eligible roles
+              </h2>
+              {eligibleRoles.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  All roles eligible
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {eligibleRoles.map((role) => (
+                    <span
+                      key={role.id}
+                      className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                    >
+                      <span
+                        className="inline-block w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: role.color }}
+                      />
+                      {role.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
+
+        {/* Comments */}
+        <TaskComments orgId={orgId} taskId={taskId} />
       </div>
     </>
   );

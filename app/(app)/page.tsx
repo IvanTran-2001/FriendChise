@@ -4,7 +4,19 @@ import Image from "next/image";
 import { requireUserPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { getPublicUrl } from "@/lib/supabase-storage";
-import { Building2, Plus, Network, Users, Globe } from "lucide-react";
+import { Building2, Plus, Network, Users, Globe, ChevronRight } from "lucide-react";
+
+// ─── Org color ────────────────────────────────────────────────────────────────
+
+const ORG_COLOR_PALETTE = [
+  "#6366f1", "#8b5cf6", "#ec4899", "#f43f5e",
+  "#f97316", "#22c55e", "#14b8a6", "#06b6d4", "#3b82f6",
+];
+
+function orgColor(name: string): string {
+  const sum = [...name].reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return ORG_COLOR_PALETTE[sum % ORG_COLOR_PALETTE.length];
+}
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { OrgNotFoundToast } from "./org-not-found-toast";
@@ -14,12 +26,15 @@ import { getInvitesForUser } from "@/lib/services/invites";
 
 // ─── Org card ─────────────────────────────────────────────────────────────────
 
-function OrgInitials({ name }: { name: string }) {
+function OrgInitials({ name, color }: { name: string; color: string }) {
   const words = name.trim().split(/\s+/);
   const initials =
     words.length >= 2 ? words[0][0] + words[1][0] : name.slice(0, 2);
   return (
-    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold shrink-0 uppercase">
+    <div
+      className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-semibold shrink-0 uppercase"
+      style={{ backgroundColor: color + "25", color }}
+    >
       {initials}
     </div>
   );
@@ -36,56 +51,88 @@ type OrgEntry = {
 };
 
 function OrgCard({ org }: { org: OrgEntry }) {
+  const color = orgColor(org.name);
   return (
     <Link
       href={`/orgs/${org.id}`}
       className={cn(
-        "group flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm",
+        "group flex flex-col rounded-xl border bg-card shadow-sm overflow-hidden",
         "hover:border-primary/40 hover:shadow-md transition-all duration-150",
       )}
     >
-      <div className="flex items-start gap-3">
-        {org.image ? (
-          <Image
-            src={org.image}
-            alt={org.name}
-            width={44}
-            height={44}
-            className="rounded-xl object-cover shrink-0"
-          />
-        ) : (
-          <OrgInitials name={org.name} />
-        )}
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm truncate leading-tight">
-            {org.name}
-          </p>
-          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-            {org.isOwner && (
-              <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs font-medium">
-                Owner
-              </span>
-            )}
-            {org.isParent && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 text-xs font-medium">
-                <Network className="h-3 w-3" />
-                Franchisor
-              </span>
-            )}
+      {/* Color accent bar */}
+      <div className="h-1.5" style={{ backgroundColor: color }} />
+
+      <div className="flex flex-col gap-4 p-5 flex-1">
+        <div className="flex items-start gap-3">
+          {org.image ? (
+            <Image
+              src={org.image}
+              alt={org.name}
+              width={44}
+              height={44}
+              className="rounded-xl object-cover shrink-0"
+            />
+          ) : (
+            <OrgInitials name={org.name} color={color} />
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm truncate leading-tight">
+              {org.name}
+            </p>
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              {org.isOwner && (
+                <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs font-medium">
+                  Owner
+                </span>
+              )}
+              {org.isParent && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 text-xs font-medium">
+                  <Network className="h-3 w-3" />
+                  Franchisor
+                </span>
+              )}
+              {!org.isOwner && !org.isParent && (
+                <span className="inline-flex items-center rounded-full bg-muted text-muted-foreground px-2 py-0.5 text-xs font-medium">
+                  Member
+                </span>
+              )}
+            </div>
           </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
+        </div>
+
+        <div className="flex items-center gap-4 text-xs text-muted-foreground mt-auto">
+          <span className="flex items-center gap-1.5">
+            <Users className="h-3.5 w-3.5" />
+            {org.memberCount}{" "}
+            {org.memberCount === 1 ? "member" : "members"}
+          </span>
+          <span className="flex items-center gap-1.5 truncate">
+            <Globe className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{org.timezone.replace(/_/g, " ")}</span>
+          </span>
         </div>
       </div>
+    </Link>
+  );
+}
 
-      <div className="flex items-center gap-4 text-xs text-muted-foreground border-t border-border pt-3">
-        <span className="flex items-center gap-1.5">
-          <Users className="h-3.5 w-3.5" />
-          {org.memberCount} {org.memberCount === 1 ? "member" : "members"}
-        </span>
-        <span className="flex items-center gap-1.5 truncate">
-          <Globe className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate">{org.timezone.replace(/_/g, " ")}</span>
-        </span>
+// ─── New org tile ─────────────────────────────────────────────────────────────
+
+function NewOrgTile() {
+  return (
+    <Link
+      href="/orgs/new"
+      className={cn(
+        "group flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-5 transition-all duration-150 min-h-[120px]",
+        "border-border hover:border-primary/40 hover:bg-primary/5 text-muted-foreground hover:text-primary",
+      )}
+    >
+      <div className="w-10 h-10 rounded-xl bg-muted group-hover:bg-primary/10 flex items-center justify-center transition-colors">
+        <Plus className="h-5 w-5" />
       </div>
+      <p className="text-sm font-medium">New Organization</p>
     </Link>
   );
 }
@@ -185,9 +232,16 @@ export default async function HubPage({
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Organizations
-          </h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Organizations
+            </h1>
+            {orgs.length > 0 && (
+              <span className="inline-flex items-center rounded-full bg-muted text-muted-foreground px-2.5 py-0.5 text-xs font-medium">
+                {orgs.length}
+              </span>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             {orgs.length === 0
               ? "You're not part of any organization yet."
@@ -224,6 +278,7 @@ export default async function HubPage({
           {orgs.map((org) => (
             <OrgCard key={org.id} org={org} />
           ))}
+          <NewOrgTile />
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 gap-4">
