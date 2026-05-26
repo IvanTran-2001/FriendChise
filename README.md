@@ -51,7 +51,7 @@ pnpm seed
 pnpm dev
 ```
 
-> For production deployments use `pnpm prisma migrate deploy`.
+> For production deployments use `pnpm migrate:prod` (loads `.env`, skips `.env.local`).
 
 Required environment variables:
 
@@ -156,6 +156,25 @@ pnpm migrate:prod
 
 # Seed the database
 pnpm seed
+```
+
+> **Never run `pnpm prisma migrate deploy` directly** — it picks up `.env.local` (the dev DB).
+> Always use `pnpm migrate:prod`, which explicitly loads `.env` (the production DB) and skips `.env.local`.
+
+#### Adding a new model — workflow
+
+```
+1. Add the model to prisma/schema.prisma
+2. Create the migration file:
+     pnpm prisma migrate dev --name <migration-name>
+     # If the local dev DB has drift, use --create-only to generate the SQL without applying:
+     pnpm prisma migrate dev --create-only --name <migration-name>
+3. Deploy to CI (automatic — prisma migrate deploy runs on every push)
+4a. If the table does NOT yet exist in production:
+     pnpm migrate:prod
+4b. If you already applied via db push (table already exists in production):
+     pnpm exec dotenv -e .env -- prisma migrate resolve --applied <migration-name>
+     pnpm migrate:prod   # should print "No pending migrations to apply"
 ```
 
 #### Migration history
