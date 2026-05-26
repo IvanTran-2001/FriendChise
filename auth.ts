@@ -1,4 +1,5 @@
 import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
@@ -16,6 +17,24 @@ import { log } from "@/lib/observability";
  */
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  providers: [
+    ...authConfig.providers,
+    // Demo sign-in: only authenticates users whose email ends with
+    // @demo.friendchise.app (created exclusively by prepareDemoSession).
+    Credentials({
+      id: "demo",
+      name: "Demo",
+      credentials: {},
+      async authorize(credentials) {
+        const { userId } = credentials as { userId?: string };
+        if (!userId) return null;
+        const user = await prisma.user.findFirst({
+          where: { id: userId, email: { endsWith: "@demo.friendchise.app" } },
+        });
+        return user;
+      },
+    }),
+  ],
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" }, // ← change this
   callbacks: {

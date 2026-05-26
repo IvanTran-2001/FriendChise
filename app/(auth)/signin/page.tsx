@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth, signIn } from "@/auth";
 import { Logo } from "@/components/layout/logo";
 import { SignInToast } from "./sign-in-toast";
+import { prepareDemoSession } from "@/lib/demo";
 
 type SignInPageProps = {
   searchParams?: Promise<{ callbackUrl?: string; hint?: string }>;
@@ -90,6 +91,34 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
             </form>
           ))}
         </div>
+
+        <div className="mt-5 flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="flex-1 border-t border-border" />
+          <span>or</span>
+          <span className="flex-1 border-t border-border" />
+        </div>
+
+        <form
+          className="mt-3"
+          action={async () => {
+            "use server";
+            const { userId, orgId } = await prepareDemoSession();
+            await signIn("demo", {
+              userId,
+              redirectTo: `/orgs/${orgId}`,
+            });
+          }}
+        >
+          <button
+            type="submit"
+            className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Try Demo
+          </button>
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            No account needed — creates an isolated demo session.
+          </p>
+        </form>
       </div>
       <p className="text-xs text-muted-foreground">
         By signing in, you agree to our{" "}
