@@ -33,7 +33,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -100,7 +99,7 @@ export const NavBar = async () => {
           <Button
             variant="ghost"
             asChild
-            className="h-auto px-2 py-1.5 rounded-md hidden md:flex hover:bg-blue-100 hover:text-blue-700 transition-colors"
+            className="h-auto px-2 py-1.5 rounded-md hidden md:flex hover:bg-accent hover:text-foreground transition-colors"
           >
             <Link href="/">
               <Logo className="text-current" />
@@ -131,7 +130,7 @@ export const NavBar = async () => {
                   variant="ghost"
                   size="icon"
                   aria-label="Open user menu"
-                  className="h-10 w-10 min-h-[40px] min-w-[40px] rounded-full hover:bg-accent p-0 flex items-center justify-center"
+                  className="h-9 w-9 rounded-full hover:bg-accent p-0 flex items-center justify-center"
                 >
                   <div className="h-7 w-7 rounded-full bg-primary hover:bg-primary/90 overflow-hidden flex items-center justify-center">
                     {user.image ? (
@@ -151,10 +150,12 @@ export const NavBar = async () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>{user.name ?? "Profile"}</DropdownMenuLabel>
-                <DropdownMenuLabel className="text-xs text-muted-foreground font-normal -mt-2 w-full truncate block">
-                  {user.email}
-                </DropdownMenuLabel>
+                <div className="px-2 py-1.5">
+                  <p className="text-sm font-medium leading-none truncate">{user.name ?? "Profile"}</p>
+                  {user.email && (
+                    <p className="text-xs text-muted-foreground mt-1 truncate">{user.email}</p>
+                  )}
+                </div>
                 <DropdownMenuSeparator />
                 {/* TODO: restore <DropdownMenuItem asChild><Link href="/profile">Profile</Link></DropdownMenuItem> when profile page is implemented */}
                 <DropdownMenuItem disabled>Profile</DropdownMenuItem>

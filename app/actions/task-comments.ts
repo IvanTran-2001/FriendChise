@@ -77,6 +77,9 @@ export async function editCommentAction(
   const authz = await requireOrgMemberAction(orgId);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
+  const allowed = await canUserCommentOnTask(taskId, orgId);
+  if (!allowed) return { ok: false, error: "Unauthorized" };
+
   const parsed = editCommentSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -97,6 +100,9 @@ export async function deleteCommentAction(
 ): Promise<CommentActionResult> {
   const authz = await requireOrgMemberAction(orgId);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
+
+  const allowed = await canUserCommentOnTask(taskId, orgId);
+  if (!allowed) return { ok: false, error: "Unauthorized" };
 
   const canManage = await memberHasPermission(
     authz.membership.id,
@@ -142,6 +148,9 @@ export async function pinCommentAction(
 ): Promise<CommentActionResult> {
   const authz = await requireOrgMemberAction(orgId);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
+
+  const allowed = await canUserCommentOnTask(taskId, orgId);
+  if (!allowed) return { ok: false, error: "Unauthorized" };
 
   const canManage = await memberHasPermission(
     authz.membership.id,

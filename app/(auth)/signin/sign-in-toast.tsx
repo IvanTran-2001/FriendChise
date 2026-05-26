@@ -16,6 +16,11 @@ export function SignInToast({ hint }: { hint?: string }) {
         duration: 5000,
       });
     }
+    if (hint === "demo_unavailable") {
+      toast.error("Demo is at capacity right now. Try again in a moment.", {
+        duration: 6000,
+      });
+    }
   }, [hint]);
 
   return null;

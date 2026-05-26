@@ -257,6 +257,8 @@ export function TaskTable({
                 className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden relative group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => router.push(`/orgs/${orgId}/tasks/${task.id}`)}
                 onKeyDown={(e) => {
+                  // Bail out if event originates from a nested control
+                  if (e.target !== e.currentTarget) return;
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     router.push(`/orgs/${orgId}/tasks/${task.id}`);
@@ -418,6 +420,8 @@ export function TaskTable({
                 className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                 onClick={() => router.push(`/orgs/${orgId}/tasks/${task.id}`)}
                 onKeyDown={(e) => {
+                  // Bail out if event originates from a nested control
+                  if (e.target !== e.currentTarget) return;
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     router.push(`/orgs/${orgId}/tasks/${task.id}`);

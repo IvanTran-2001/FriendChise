@@ -13,6 +13,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { sendMemberInviteSchema } from "@/lib/validators/membership";
 import { normalizeEmail } from "@/lib/utils";
+import { checkDemoLimit } from "@/lib/demo";
 
 export async function sendMemberInviteAction(
   orgId: string,
@@ -23,6 +24,9 @@ export async function sendMemberInviteAction(
     PermissionAction.MANAGE_MEMBERS,
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
+
+  const demoCheck = await checkDemoLimit(authz.userEmail, "member", orgId);
+  if (!demoCheck.ok) return { ok: false, error: demoCheck.error };
 
   const session = await auth();
   const invitedById = session?.user?.id ?? null;

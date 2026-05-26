@@ -74,6 +74,7 @@ import {
   createTag,
 } from "@/lib/services/tags";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validators/task";
+import { checkDemoLimit } from "@/lib/demo";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -127,6 +128,9 @@ export async function createTaskAction(
     PermissionAction.MANAGE_TASKS,
   );
   if (!authz.ok) return { ok: false, errors: { _: ["Unauthorized"] } };
+
+  const demoCheck = await checkDemoLimit(authz.userEmail, "task", orgId);
+  if (!demoCheck.ok) return { ok: false, errors: { _: [demoCheck.error] } };
 
   const raw = parseTaskFormData(formData);
   const parsed = createTaskSchema.safeParse(raw);

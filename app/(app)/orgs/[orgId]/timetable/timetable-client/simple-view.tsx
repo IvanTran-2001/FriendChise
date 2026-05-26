@@ -232,12 +232,24 @@ export function SimpleView({
                                 ? "Skipped"
                                 : "To do"}
                         </span>
-                        <span
-                          className={cn(
-                            "w-2 h-2 rounded-full shrink-0 sm:hidden",
-                            statusDotClass(effectiveStatus),
-                          )}
-                        />
+                        <span className="sm:hidden inline-flex items-center gap-1 shrink-0">
+                          <span
+                            className={cn(
+                              "w-2 h-2 rounded-full",
+                              statusDotClass(effectiveStatus),
+                            )}
+                            aria-hidden="true"
+                          />
+                          <span className="text-xs text-muted-foreground">
+                            {effectiveStatus === "IN_PROGRESS"
+                              ? "In"
+                              : effectiveStatus === "DONE"
+                                ? "Done"
+                                : effectiveStatus === "SKIPPED"
+                                  ? "Skip"
+                                  : "To do"}
+                          </span>
+                        </span>
 
                         {/* Edit button */}
                         {memberships && (

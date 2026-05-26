@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { auth, signIn } from "@/auth";
 import { Logo } from "@/components/layout/logo";
 import { SignInToast } from "./sign-in-toast";
+import { prepareDemoSession } from "@/lib/demo";
+import { TryDemoButton } from "./try-demo-button";
 
 type SignInPageProps = {
   searchParams?: Promise<{ callbackUrl?: string; hint?: string }>;
@@ -82,7 +84,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
             >
               <button
                 type="submit"
-                className="flex w-full items-center justify-center gap-3 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                className="flex w-full cursor-pointer items-center justify-center gap-3 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
               >
                 <Logo />
                 {label}
@@ -90,6 +92,35 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
             </form>
           ))}
         </div>
+
+        <div className="mt-5 flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="flex-1 border-t border-border" />
+          <span>or</span>
+          <span className="flex-1 border-t border-border" />
+        </div>
+
+        <form
+          className="mt-3"
+          action={async () => {
+            "use server";
+            let session: { userId: string; orgId: string } | undefined;
+            try {
+              session = await prepareDemoSession();
+            } catch {
+              redirect("/signin?hint=demo_unavailable");
+            }
+            if (!session) return;
+            await signIn("demo", {
+              userId: session.userId,
+              redirectTo: `/orgs/${session.orgId}`,
+            });
+          }}
+        >
+          <TryDemoButton />
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            No account needed — creates an isolated demo session.
+          </p>
+        </form>
       </div>
       <p className="text-xs text-muted-foreground">
         By signing in, you agree to our{" "}

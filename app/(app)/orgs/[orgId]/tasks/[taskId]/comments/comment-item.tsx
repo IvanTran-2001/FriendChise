@@ -209,7 +209,8 @@ export function CommentItem({
   );
 
   function handleVote(type: VoteType) {
-    if (!currentUserId) return;
+    // Bail out if not logged in or doesn't have comment permission
+    if (!currentUserId || !canComment) return;
     // Toggle: clicking same vote removes it
     const newType = optimistic.userVote === type ? null : type;
     startTransition(async () => {
@@ -292,13 +293,13 @@ export function CommentItem({
               {/* Upvote */}
               <button
                 onClick={() => handleVote("UPVOTE")}
-                disabled={!currentUserId}
+                disabled={!currentUserId || !canComment}
                 className={cn(
                   "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors",
                   optimistic.userVote === "UPVOTE"
                     ? "text-blue-600 bg-blue-50 dark:bg-blue-950"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted",
-                  !currentUserId && "cursor-default",
+                  (!currentUserId || !canComment) && "cursor-default",
                 )}
               >
                 <ThumbsUp className="w-3.5 h-3.5" />
@@ -308,13 +309,13 @@ export function CommentItem({
               {/* Downvote */}
               <button
                 onClick={() => handleVote("DOWNVOTE")}
-                disabled={!currentUserId}
+                disabled={!currentUserId || !canComment}
                 className={cn(
                   "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors",
                   optimistic.userVote === "DOWNVOTE"
                     ? "text-red-600 bg-red-50 dark:bg-red-950"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted",
-                  !currentUserId && "cursor-default",
+                  (!currentUserId || !canComment) && "cursor-default",
                 )}
               >
                 <ThumbsDown className="w-3.5 h-3.5" />

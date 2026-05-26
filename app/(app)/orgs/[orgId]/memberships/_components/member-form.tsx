@@ -103,6 +103,9 @@ export function MemberForm({
   }
 
   function handleSubmit() {
+    // Early return if any mutation is pending
+    if (isPending || isConvertPending) return;
+
     const next: Record<string, string> = {};
     if (mode === "create" && isBot && !botName.trim())
       next.botName = "Name is required for a bot";
@@ -164,6 +167,9 @@ export function MemberForm({
 
   // Saves bot name, working days, and roles for a bot slot.
   function handleSaveBotProps() {
+    // Early return if any mutation is pending
+    if (isPending || isConvertPending) return;
+
     if (!botName.trim()) {
       setErrors({ botName: "Bot name is required" });
       return;
@@ -190,6 +196,9 @@ export function MemberForm({
   }
 
   function handleConvertToBot() {
+    // Early return if any mutation is pending
+    if (isPending || isConvertPending) return;
+
     if (!convertBotName.trim()) {
       setConvertErrors({ name: "Bot name is required" });
       return;
@@ -310,7 +319,7 @@ export function MemberForm({
           <Button
             type="button"
             onClick={handleSaveBotProps}
-            disabled={isPending}
+            disabled={isPending || isConvertPending}
             size="sm"
             className="self-start"
           >
@@ -464,7 +473,7 @@ export function MemberForm({
       <Button
         type="button"
         onClick={handleSubmit}
-        disabled={isPending}
+        disabled={isPending || isConvertPending}
         size="sm"
         className="self-start"
       >
@@ -512,7 +521,7 @@ export function MemberForm({
             variant="destructive"
             size="sm"
             className="self-start"
-            disabled={isConvertPending}
+            disabled={isPending || isConvertPending}
             onClick={handleConvertToBot}
           >
             {isConvertPending ? "Converting…" : "Convert to Bot"}

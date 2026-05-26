@@ -8,6 +8,7 @@ import {
   ActionSidebarProvider,
   ActionSidebarSlot,
 } from "@/components/layout/action-sidebar-context";
+import { DemoBanner } from "@/components/layout/demo-banner";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -17,6 +18,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="app-root">
             {/* Full-height flex column: navbar on top, sidebar+content row below */}
             <div className="h-dvh flex flex-col">
+              <DemoBanner />
               <NavBar />
               <div className="flex flex-1 min-h-0 overflow-hidden">
                 <AppSidebar />

@@ -5,18 +5,7 @@ import { requireUserPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { getPublicUrl } from "@/lib/supabase-storage";
 import { Building2, Plus, Network, Users, Globe, ChevronRight } from "lucide-react";
-
-// ─── Org color ────────────────────────────────────────────────────────────────
-
-const ORG_COLOR_PALETTE = [
-  "#6366f1", "#8b5cf6", "#ec4899", "#f43f5e",
-  "#f97316", "#22c55e", "#14b8a6", "#06b6d4", "#3b82f6",
-];
-
-function orgColor(name: string): string {
-  const sum = [...name].reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return ORG_COLOR_PALETTE[sum % ORG_COLOR_PALETTE.length];
-}
+import { orgColor } from "@/lib/org-color";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { OrgNotFoundToast } from "./org-not-found-toast";

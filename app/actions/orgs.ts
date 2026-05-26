@@ -28,6 +28,7 @@ import {
   transferOrgOwnership as transferOrgOwnershipService,
   deleteOrg as deleteOrgService,
 } from "@/lib/services/orgs";
+import { checkDemoLimit } from "@/lib/demo";
 
 type OrgResult = { ok: true; orgId: string } | { ok: false; error: string };
 
@@ -40,6 +41,9 @@ export async function createOrg(raw: unknown): Promise<OrgResult> {
   const userId = session?.user?.id as string | undefined;
   const userEmail = session?.user?.email as string | undefined;
   if (!userId) return { ok: false, error: "Unauthorized" };
+
+  const demoCheck = await checkDemoLimit(userEmail ?? "", "org", undefined, userId);
+  if (!demoCheck.ok) return { ok: false, error: demoCheck.error };
 
   const parsed = createOrgSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: "Validation failed" };

@@ -29,6 +29,7 @@ import {
 import { updateTaskImageUrl } from "@/lib/services/tasks";
 import { updateOrgImage } from "@/lib/services/orgs";
 import { prisma } from "@/lib/prisma";
+import { isDemoEmail } from "@/lib/demo";
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 type AllowedMime = (typeof ALLOWED_MIME_TYPES)[number];
@@ -57,6 +58,8 @@ export async function getSignedUploadUrl(
     PermissionAction.MANAGE_TASKS,
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  if (isDemoEmail(authz.userEmail))
+    return { ok: false, error: "Image uploads are not available in demo mode." };
 
   // Verify task belongs to this org
   const task = await prisma.task.findUnique({
@@ -164,6 +167,8 @@ export async function getOrgLogoUploadUrl(
     PermissionAction.MANAGE_SETTINGS,
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  if (isDemoEmail(authz.userEmail))
+    return { ok: false, error: "Logo uploads are not available in demo mode." };
 
   if (!ALLOWED_MIME_TYPES.includes(mimeType as AllowedMime)) {
     return {

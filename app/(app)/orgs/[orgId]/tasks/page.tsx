@@ -10,7 +10,7 @@ import {
 } from "@/lib/authz/_shared";
 import { PermissionAction } from "@prisma/client";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+
 import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
 import { TaskTable } from "./_components/task-table";
 import { TasksSidebarContent } from "./_components/tasks-sidebar-content";
@@ -54,61 +54,39 @@ const TasksPage = async ({
   const sp = await searchParams;
   const isModeExplicit =
     sp.mode === "shared" || sp.mode === "list" || sp.mode === "available";
+  const isFiltersExplicit = !!(sp.sort || sp.roleId || sp.view || sp.tagId);
+
+  await requireOrgMemberPage(orgId);
+
+  // ── Cookie-based mode default ───────────────────────────────────────────────
+  // Read the saved mode from the cookie and use it as the server-side default so
+  // the page renders with the correct view on bare navigation — no redirect needed.
+  // sort/roleId/tagId/view are kept URL-only; the client mount effect handles their
+  // restoration to avoid a "stuck filter" when the user explicitly clears them.
+  const cookieStore = await cookies();
+  const savedMode = cookieStore.get(`tasks-mode-${orgId}`)?.value;
   const mode: "list" | "shared" | "available" =
     sp.mode === "list"
       ? "list"
       : sp.mode === "available"
         ? "available"
-        : "shared";
-  const isFiltersExplicit = !!(sp.sort || sp.roleId || sp.view || sp.tagId);
-
-  await requireOrgMemberPage(orgId);
-
-  // ── Restore prefs from cookies before any data fetch ──────────────────────
-  // Cookies are readable server-side, so we can redirect to the correct URL
-  // immediately instead of letting the client read localStorage and re-render.
-  if (!isModeExplicit || !isFiltersExplicit) {
-    const cookieStore = await cookies();
-    const urlParams = new URLSearchParams();
-    let needsRedirect = false;
-
-    // Keep any params that are already explicit in the URL
-    if (isModeExplicit && sp.mode) urlParams.set("mode", sp.mode);
-    if (sp.sort) urlParams.set("sort", sp.sort);
-    if (sp.roleId) urlParams.set("roleId", sp.roleId);
-    if (sp.tagId) urlParams.set("tagId", sp.tagId);
-    if (sp.view) urlParams.set("view", sp.view);
-
-    if (!isModeExplicit) {
-      const saved = cookieStore.get(`tasks-mode-${orgId}`)?.value;
-      if (saved === "list" || saved === "available") {
-        urlParams.set("mode", saved);
-        needsRedirect = true;
-      }
-    }
-
-    if (!isFiltersExplicit) {
-      try {
-        const raw = cookieStore.get(`tasks-prefs-${orgId}`)?.value;
-        const prefs = raw ? (JSON.parse(decodeURIComponent(raw)) as Record<string, string>) : null;
-        if (prefs) {
-          if (prefs.sort && VALID_SORT_VALUES.includes(prefs.sort as SortOption) && prefs.sort !== "name-asc") {
-            urlParams.set("sort", prefs.sort);
-            needsRedirect = true;
-          }
-          if (prefs.roleId) { urlParams.set("roleId", prefs.roleId); needsRedirect = true; }
-          if (prefs.tagId) { urlParams.set("tagId", prefs.tagId); needsRedirect = true; }
-          if (prefs.view === "card") { urlParams.set("view", prefs.view); needsRedirect = true; }
-        }
-      } catch { /* ignore malformed cookie */ }
-    }
-
-    if (needsRedirect) {
-      const qs = urlParams.toString();
-      redirect(`/orgs/${orgId}/tasks${qs ? `?${qs}` : ""}`);
-    }
+        : sp.mode === "shared"
+          ? "shared"
+          : savedMode === "list"
+            ? "list"
+            : savedMode === "available"
+              ? "available"
+              : "shared";
+  // Also read view/sort/roleId/tagId from the prefs cookie as server-side defaults.
+  // Safe because every control that can change these writes the cookie synchronously
+  // BEFORE calling router.push, so the cookie is always current on the next request.
+  let savedPrefs: { sort?: string; view?: string; roleId?: string | null; tagId?: string | null } | null = null;
+  const rawPrefsCookie = cookieStore.get(`tasks-prefs-${orgId}`)?.value;
+  if (rawPrefsCookie) {
+    try { savedPrefs = JSON.parse(decodeURIComponent(rawPrefsCookie)); } catch { /* ignore */ }
   }
   // ──────────────────────────────────────────────────────────────────────────
+
 
   const userId = await getAuthUserId();
   const membership = userId ? await getOrgMembership(orgId, userId) : null;
@@ -141,12 +119,19 @@ const TasksPage = async ({
 
   const sort: SortOption = VALID_SORT_VALUES.includes(sp.sort as SortOption)
     ? (sp.sort as SortOption)
-    : "name-asc";
+    : VALID_SORT_VALUES.includes(savedPrefs?.sort as SortOption)
+      ? (savedPrefs!.sort as SortOption)
+      : "name-asc";
   const roleId =
     typeof sp.roleId === "string" && roles.some((r) => r.id === sp.roleId)
       ? sp.roleId
-      : null;
-  const view: "list" | "card" = sp.view === "card" ? "card" : "list";
+      : typeof savedPrefs?.roleId === "string" && roles.some((r) => r.id === savedPrefs!.roleId)
+        ? (savedPrefs!.roleId as string)
+        : null;
+  const view: "list" | "card" =
+    sp.view === "card" ? "card" :
+    sp.view === "list" ? "list" :
+    savedPrefs?.view === "card" ? "card" : "list";
 
   // Resolve signed image URLs only when images will be displayed (not in list view)
   const tasksWithImages =
@@ -165,7 +150,9 @@ const TasksPage = async ({
   const tagId =
     typeof sp.tagId === "string" && tags.some((t) => t.id === sp.tagId)
       ? sp.tagId
-      : null;
+      : typeof savedPrefs?.tagId === "string" && tags.some((t) => t.id === savedPrefs!.tagId)
+        ? (savedPrefs!.tagId as string)
+        : null;
 
   return (
     <>
