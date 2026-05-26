@@ -12,13 +12,20 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import { ROLE_KEYS } from "@/lib/rbac";
 import { localToUTC } from "@/lib/date-utils";
 import { PermissionAction, EntryStatus, VoteType, TaskScope } from "@prisma/client";
 
 const DEMO_MAX_CONCURRENT = 20;
 const DEMO_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-const DEMO_INACTIVE_TTL_MS = 60 * 60 * 1000; // 1 hour — used for aggressive cleanup
+/**
+ * JWT session lifetime for demo accounts.
+ * Aggressive cleanup uses this as its cutoff so sessions are never removed
+ * before their token expires. Capacity checks use it to exclude rows whose
+ * JWT has already expired. Must stay in sync with the token.exp logic in auth.ts.
+ */
+export const DEMO_JWT_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 const DEMO_GLOBAL_TASK_SOFT_CAP = 800; // trigger aggressive cleanup at this threshold
 const DEMO_GLOBAL_TASK_HARD_CAP = 1000; // hard reject new sessions above this threshold
 
@@ -461,17 +468,18 @@ const TASKS: TaskDef[] = [
  * Deletes expired demo users + their orgs.
  *
  * Normal mode:     removes sessions older than DEMO_TTL_MS (24 h).
- * Aggressive mode: also removes sessions older than DEMO_INACTIVE_TTL_MS (1 h)
+ * Aggressive mode: removes sessions older than DEMO_JWT_TTL_MS (2 h, the JWT lifetime)
  *                  — triggered when the global task count nears the soft cap.
+ *                  The cutoff is bounded to ≥ DEMO_JWT_TTL_MS so a session is never
+ *                  deleted while its JWT is still valid.
  *
  * Org must be deleted before User (no cascade on Organization.ownerId).
  *
- * Note: This uses user.createdAt as a proxy for session age since adding a dedicated
- * demoSessionExpiresAt field would require a schema migration. The current approach
- * is sufficient for the demo use case where users are single-session ephemeral accounts.
+ * Note: user.createdAt ≈ demoIssuedAt (the JWT is issued immediately after the user
+ * row is created), so it is a reliable proxy for session expiry.
  */
 async function cleanupExpiredDemos(aggressive = false) {
-  const cutoff = new Date(Date.now() - (aggressive ? DEMO_INACTIVE_TTL_MS : DEMO_TTL_MS));
+  const cutoff = new Date(Date.now() - (aggressive ? DEMO_JWT_TTL_MS : DEMO_TTL_MS));
   const expired = await prisma.user.findMany({
     where: { email: { endsWith: "@demo.friendchise.app" }, createdAt: { lt: cutoff } },
     select: { id: true },
@@ -490,7 +498,8 @@ export async function prepareDemoSession(): Promise<{
   await cleanupExpiredDemos();
 
   // Check global task count. If near the soft cap, run aggressive cleanup
-  // (removes sessions older than 1 h) to free space before accepting new visitors.
+  // (removes sessions whose JWT has expired, i.e. older than DEMO_JWT_TTL_MS)
+  // to free space before accepting new visitors.
   const globalTaskCount = await prisma.task.count({
     where: { organization: { owner: { email: { endsWith: "@demo.friendchise.app" } } } },
   });
@@ -504,8 +513,14 @@ export async function prepareDemoSession(): Promise<{
     }
   }
 
+  // Count only rows whose JWT could still be valid (createdAt within the last
+  // DEMO_JWT_TTL_MS). Rows outside that window have expired JWTs and should not
+  // consume a concurrency slot even if cleanup hasn't run yet.
   const active = await prisma.user.count({
-    where: { email: { endsWith: "@demo.friendchise.app" } },
+    where: {
+      email: { endsWith: "@demo.friendchise.app" },
+      createdAt: { gte: new Date(Date.now() - DEMO_JWT_TTL_MS) },
+    },
   });
   if (active >= DEMO_MAX_CONCURRENT) {
     throw new Error("Demo capacity reached. Please try again in a few minutes.");
@@ -538,7 +553,10 @@ function randImg(): string {
   return `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70) + 1}`;
 }
 
-async function seedDemoOrg(ownerId: string, tx: any): Promise<string> {
+async function seedDemoOrg(
+  ownerId: string,
+  tx: Prisma.TransactionClient,
+): Promise<string> {
   const { utcEntry } = makeDateUtils("Australia/Sydney");
   const now = new Date();
 

@@ -4,7 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
 import { log } from "@/lib/observability";
-import { isDemoEmail } from "@/lib/demo";
+import { isDemoEmail, DEMO_JWT_TTL_MS } from "@/lib/demo";
 
 /**
  * Full Auth.js config. Used by API routes and server components (Node.js runtime only).
@@ -49,7 +49,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Enforce the 2-hour cap on every JWT refresh for demo sessions.
       const demoIssuedAt = (token as Record<string, unknown>).demoIssuedAt;
       if (typeof demoIssuedAt === "number") {
-        token.exp = demoIssuedAt + 2 * 60 * 60;
+        token.exp = demoIssuedAt + DEMO_JWT_TTL_MS / 1000;
       }
       return token;
     },

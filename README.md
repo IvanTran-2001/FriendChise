@@ -163,7 +163,7 @@ pnpm seed
 
 #### Adding a new model — workflow
 
-```
+```text
 1. Add the model to prisma/schema.prisma
 2. Create the migration file:
      pnpm prisma migrate dev --name <migration-name>
@@ -843,7 +843,7 @@ Task comments are threaded discussions attached to a task definition. Any member
 
 ### Permission model
 
-```
+```text
 franchiseRoot(org) = org.parentId ?? org.id
 canComment         = franchiseRoot(taskOrg) === franchiseRoot(userOrg)
 ```
