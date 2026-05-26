@@ -130,12 +130,13 @@ export function FilterCombobox({
             />
           </div>
         )}
-        <ul className="max-h-52 overflow-y-auto p-1">
+        <ul role="menu" className="max-h-52 overflow-y-auto p-1">
           {selectedId && (
             <>
               <li>
                 <button
                   type="button"
+                  role="menuitem"
                   className="flex w-full cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                   onClick={() => handleSelect(null)}
                 >
@@ -155,6 +156,7 @@ export function FilterCombobox({
               <li key={item.id}>
                 <button
                   type="button"
+                  role="menuitem"
                   className="flex w-full cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
                   onClick={() => handleSelect(item.id)}
                 >
