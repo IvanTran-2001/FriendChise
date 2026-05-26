@@ -4,7 +4,7 @@
  */
 import { PermissionAction } from "@prisma/client";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+
 import { requireOrgMemberPage } from "@/lib/authz";
 import { getOrgMembership, memberHasPermission } from "@/lib/authz/_shared";
 import { getRangeTimetableInstances } from "@/lib/services/timetable-entries";
@@ -16,7 +16,6 @@ import { getRoles } from "@/lib/services/roles";
 import { getOrgTags } from "@/lib/services/tags";
 import { prisma } from "@/lib/prisma";
 import { TimetableClient } from "./timetable-client";
-import { TimetablePrefRedirect } from "./_components/timetable-pref-redirect";
 import { TimetableSidebarContent } from "./_components/timetable-sidebar-content";
 import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
 import { toLocalDateStr, addCalendarDays } from "@/lib/date-utils";
@@ -41,80 +40,39 @@ export default async function TimetablePage({
   const anchorParam = first(rawSearchParams.anchor);
   const modeParam = first(rawSearchParams.mode);
   const spanParam = first(rawSearchParams.span);
-  const rawRoleId = first(rawSearchParams.roleId) ?? null;
-  const rawTagId = first(rawSearchParams.tagId) ?? null;
+  const urlRoleId = first(rawSearchParams.roleId) ?? null;
+  const urlTagId = first(rawSearchParams.tagId) ?? null;
 
   const { userId } = await requireOrgMemberPage(orgId);
 
-  // ── Cookie-based pref restore ───────────────────────────────────────────────
-  // Restore mode/span/roleId/tagId from the `timetable-prefs-{orgId}` cookie
-  // when the user navigates to the page without explicit URL params (e.g. the
-  // sidebar link). This happens server-side before any data fetch so there is
-  // no client-side flash or round-trip.
-  //
-  // The cookie is written by TimetablePrefRedirect on every URL param change,
-  // so it always reflects the user's last explicit state.
-  //
-  // We only enter this block when mode OR span are absent — within the timetable
-  // both are always set explicitly (by week navigation, view picker, and filter
-  // buttons), so a missing mode/span reliably signals a bare navigation from
-  // outside the page (e.g. sidebar link → `/orgs/[orgId]/timetable`).
+  // ── Cookie-based pref defaults ─────────────────────────────────────────────
+  // Read saved prefs from the cookie and use them as server-side defaults so
+  // the page always renders with the correct mode/span/filters on the first
+  // request — no redirect needed, no calendar→simple flash on the client.
+  // TimetableSidebarContent writes the cookie on every pref change so future
+  // navigations to the bare URL pick up the correct state instantly.
+  const cookieStore = await cookies();
+  let savedPrefs: {
+    mode?: string;
+    span?: string;
+    roleId?: string | null;
+    tagId?: string | null;
+  } | null = null;
+  const rawPrefsCookie = cookieStore.get(`timetable-prefs-${orgId}`)?.value;
+  if (rawPrefsCookie) {
+    try {
+      savedPrefs = JSON.parse(decodeURIComponent(rawPrefsCookie));
+    } catch { /* ignore malformed cookie */ }
+  }
+
+  // Role/tag: apply cookie as server-side default when the URL has no explicit filter.
+  // RoleFilterButton and TagFilterButton both write the cookie before navigating so
+  // clearing a filter updates the cookie first — no stuck-filter risk.
+  const rawRoleId = urlRoleId ?? (typeof savedPrefs?.roleId === "string" ? savedPrefs.roleId : null);
+  const rawTagId = urlTagId ?? (typeof savedPrefs?.tagId === "string" ? savedPrefs.tagId : null);
+
   const isModeExplicit = modeParam === "simple" || modeParam === "calendar";
   const isSpanExplicit = spanParam === "day" || spanParam === "week";
-
-  if (!isModeExplicit || !isSpanExplicit) {
-    const cookieStore = await cookies();
-    const raw = cookieStore.get(`timetable-prefs-${orgId}`)?.value;
-    if (raw) {
-      try {
-        const saved = JSON.parse(decodeURIComponent(raw)) as {
-          mode?: string;
-          span?: string;
-          roleId?: string | null;
-          tagId?: string | null;
-        };
-        const urlParams = new URLSearchParams();
-        if (anchorParam) urlParams.set("anchor", anchorParam);
-        let needsRedirect = false;
-
-        if (isModeExplicit && modeParam) {
-          urlParams.set("mode", modeParam);
-        } else if (saved.mode === "simple" || saved.mode === "calendar") {
-          urlParams.set("mode", saved.mode);
-          needsRedirect = true;
-        }
-
-        if (isSpanExplicit && spanParam) {
-          urlParams.set("span", spanParam);
-        } else if (saved.span === "day" || saved.span === "week") {
-          urlParams.set("span", saved.span);
-          needsRedirect = true;
-        }
-
-        // Only restore roleId/tagId if not already in the URL
-        if (rawRoleId) {
-          urlParams.set("roleId", rawRoleId);
-        } else if (saved.roleId) {
-          urlParams.set("roleId", saved.roleId);
-          needsRedirect = true;
-        }
-
-        if (rawTagId) {
-          urlParams.set("tagId", rawTagId);
-        } else if (saved.tagId) {
-          urlParams.set("tagId", saved.tagId);
-          needsRedirect = true;
-        }
-
-        if (needsRedirect) {
-          const qs = urlParams.toString();
-          redirect(`/orgs/${orgId}/timetable${qs ? `?${qs}` : ""}`);
-        }
-      } catch {
-        /* ignore malformed cookie */
-      }
-    }
-  }
   // ──────────────────────────────────────────────────────────────────────────
 
   const orgMeta = await getOrgTimetableMeta(orgId);
@@ -145,9 +103,16 @@ export default async function TimetablePage({
   // outside a ±4 window. ±6 guarantees the full Mon–Sun is always loaded.
   const rangeStart = addCalendarDays(anchor, -6);
 
+  // Use cookie as fallback when URL has no explicit mode/span, so the page
+  // renders with the correct view on bare navigation without any redirect.
   const mode: "calendar" | "simple" =
-    modeParam === "simple" ? "simple" : "calendar";
-  const span: "day" | "week" = spanParam === "day" ? "day" : "week";
+    modeParam === "simple" ? "simple" :
+    modeParam === "calendar" ? "calendar" :
+    savedPrefs?.mode === "simple" ? "simple" : "calendar";
+  const span: "day" | "week" =
+    spanParam === "day" ? "day" :
+    spanParam === "week" ? "week" :
+    savedPrefs?.span === "day" ? "day" : "week";
   const [
     instances,
     templates,
@@ -197,13 +162,16 @@ export default async function TimetablePage({
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  // Validate rawRoleId against the fetched roles to guard against stale cookie IDs.
+  const selectedRoleId = rawRoleId && filterRoles.some((r) => r.id === rawRoleId) ? rawRoleId : null;
+
   // Filter instances by task eligibility for the selected role
   let filteredInstances = instances;
-  if (rawRoleId) {
+  if (selectedRoleId) {
     const eligibleTaskIds = new Set(
       (
         await prisma.taskEligibility.findMany({
-          where: { roleId: rawRoleId, task: { orgId } },
+          where: { roleId: selectedRoleId, task: { orgId } },
           select: { taskId: true },
         })
       ).map((e) => e.taskId),
@@ -281,8 +249,8 @@ export default async function TimetablePage({
   // Map taskId → role color (use filtered role when active, else first eligible)
   const taskRoleColorMap = new Map(
     tasks.map((t) => {
-      if (rawRoleId) {
-        const filteredRole = t.eligibility.find((e) => e.role.id === rawRoleId);
+      if (selectedRoleId) {
+        const filteredRole = t.eligibility.find((e) => e.role.id === selectedRoleId);
         return [t.id, filteredRole?.role?.color ?? null];
       }
       return [t.id, t.eligibility[0]?.role?.color ?? null];
@@ -295,17 +263,19 @@ export default async function TimetablePage({
 
   const timetableHref = (m: string, s = span) => {
     const params = new URLSearchParams({ anchor, mode: m, span: s });
-    if (rawRoleId) params.set("roleId", rawRoleId);
+    if (selectedRoleId) params.set("roleId", selectedRoleId);
     if (selectedTagId) params.set("tagId", selectedTagId);
     return `/orgs/${orgId}/timetable?${params.toString()}`;
   };
+
+  const isFiltersExplicit = !!(urlRoleId || urlTagId);
 
   const sidebarProps = {
     orgId,
     anchor,
     mode,
     span,
-    selectedRoleId: rawRoleId,
+    selectedRoleId,
     roles: filterRoles,
     tags: filterTags,
     selectedTagId,
@@ -321,12 +291,15 @@ export default async function TimetablePage({
     })),
     todayStr,
     userId,
+    isModeExplicit,
+    isSpanExplicit,
+    isFiltersExplicit,
   };
 
   const availableTasks = canManageTimetable
     ? tasks.map((t) => {
-        const displayRole = rawRoleId
-          ? t.eligibility.find((e) => e.role.id === rawRoleId)?.role
+        const displayRole = selectedRoleId
+          ? t.eligibility.find((e) => e.role.id === selectedRoleId)?.role
           : t.eligibility[0]?.role;
         return {
           id: t.id,
@@ -351,7 +324,6 @@ export default async function TimetablePage({
         }
       />
 
-      <TimetablePrefRedirect orgId={orgId} />
       <TimetableClient
         orgId={orgId}
         instances={coloredInstances}
@@ -363,6 +335,7 @@ export default async function TimetablePage({
         fillHeight
         todayStr={todayStr}
         roleId={rawRoleId}
+        tagId={selectedTagId}
         canManage={canManageTimetable}
         userId={userId}
         availableTasks={availableTasks}

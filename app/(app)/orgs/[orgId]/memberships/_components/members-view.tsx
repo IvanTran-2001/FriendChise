@@ -25,6 +25,7 @@
 
 import { useState, useMemo } from "react";
 import Image from "next/image";
+import { Users } from "lucide-react";
 import { SearchInput } from "@/components/ui/search-input";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -218,15 +219,30 @@ export function MembersView({
           containerClassName="flex-1 min-w-50"
           aria-label="Search members by name"
         />
+        <span className="ml-auto text-xs text-muted-foreground shrink-0">
+          {filtered.length === members.length
+            ? `${members.length} member${members.length !== 1 ? "s" : ""}`
+            : `${filtered.length} of ${members.length}`}
+        </span>
       </Toolbar>
 
       <div className="flex-1 min-h-0 overflow-auto -mx-4 sm:-mx-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-4 sm:pb-6">
         {filtered.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {members.length === 0
-              ? "No members yet."
-              : "No members match your search."}
-          </p>
+          <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+            <div className="rounded-full bg-muted p-4">
+              <Users className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">
+                {members.length === 0 ? "No members yet" : "No members found"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {members.length === 0
+                  ? "Invite someone to get started."
+                  : "Try adjusting your search or role filter."}
+              </p>
+            </div>
+          </div>
         ) : view === "card" ? (
           <CardGrid
             members={filtered}

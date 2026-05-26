@@ -75,6 +75,7 @@ interface TimetableClientProps {
   fillHeight?: boolean;
   todayStr: string;
   roleId?: string | null;
+  tagId?: string | null;
   canManage?: boolean;
   availableTasks?: ClientTask[];
   memberships?: ClientMembership[];
@@ -95,6 +96,7 @@ export function TimetableClient({
   fillHeight,
   todayStr,
   roleId,
+  tagId,
   canManage = false,
   availableTasks,
   memberships,
@@ -143,6 +145,7 @@ export function TimetableClient({
   const makeHref = (a: string, m: string) => {
     const p = new URLSearchParams({ anchor: a, mode: m, span });
     if (roleId) p.set("roleId", roleId);
+    if (tagId) p.set("tagId", tagId);
     return `/orgs/${orgId}/timetable?${p.toString()}`;
   };
 
