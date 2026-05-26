@@ -294,6 +294,8 @@ function CardGrid({
             role="button"
             tabIndex={0}
             onKeyDown={(e) => {
+              // Only handle key events directly on the card container, not from nested controls
+              if (e.target !== e.currentTarget) return;
               if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
                 if (e.key === ' ' || e.key === 'Spacebar') e.preventDefault();
                 onView(m);

@@ -465,6 +465,10 @@ const TASKS: TaskDef[] = [
  *                  — triggered when the global task count nears the soft cap.
  *
  * Org must be deleted before User (no cascade on Organization.ownerId).
+ *
+ * Note: This uses user.createdAt as a proxy for session age since adding a dedicated
+ * demoSessionExpiresAt field would require a schema migration. The current approach
+ * is sufficient for the demo use case where users are single-session ephemeral accounts.
  */
 async function cleanupExpiredDemos(aggressive = false) {
   const cutoff = new Date(Date.now() - (aggressive ? DEMO_INACTIVE_TTL_MS : DEMO_TTL_MS));
@@ -510,16 +514,21 @@ export async function prepareDemoSession(): Promise<{
   const demoId = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
   const email = `demo-${demoId}@demo.friendchise.app`;
 
-  const demoUser = await prisma.user.create({
-    data: {
-      email,
-      name: "Demo User",
-      image: "https://i.pravatar.cc/150?img=3",
-    },
+  // Wrap user creation and seeding in a transaction to ensure atomicity
+  const result = await prisma.$transaction(async (tx) => {
+    const demoUser = await tx.user.create({
+      data: {
+        email,
+        name: "Demo User",
+        image: "https://i.pravatar.cc/150?img=3",
+      },
+    });
+
+    const orgId = await seedDemoOrg(demoUser.id, tx);
+    return { userId: demoUser.id, orgId };
   });
 
-  const orgId = await seedDemoOrg(demoUser.id);
-  return { userId: demoUser.id, orgId };
+  return result;
 }
 
 // ─── Internal seeding ────────────────────────────────────────────────────────
@@ -529,12 +538,12 @@ function randImg(): string {
   return `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70) + 1}`;
 }
 
-async function seedDemoOrg(ownerId: string): Promise<string> {
+async function seedDemoOrg(ownerId: string, tx: any): Promise<string> {
   const { utcEntry } = makeDateUtils("Australia/Sydney");
   const now = new Date();
 
   // ── Org ────────────────────────────────────────────────────────────────────
-  const org = await prisma.organization.create({
+  const org = await tx.organization.create({
     data: {
       name: "Donut Shop A",
       ownerId,
@@ -617,7 +626,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
   ]);
 
   // ── Permissions ────────────────────────────────────────────────────────────
-  await prisma.permission.createMany({
+  await tx.permission.createMany({
     data: [
       ...ALL_OWNER_PERMISSIONS.map((action) => ({
         roleId: roleOwner.id,
@@ -637,7 +646,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
 
   // ── Memberships ────────────────────────────────────────────────────────────
   // Owner = the demo visitor
-  const mOwner = await prisma.membership.create({
+  const mOwner = await tx.membership.create({
     data: {
       orgId: org.id,
       userId: ownerId,
@@ -647,7 +656,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
 
   // Supporting cast as bots (no real user accounts needed)
   const [mJordan, mCasey, mRiley, mAlex] = await Promise.all([
-    prisma.membership.create({
+    tx.membership.create({
       data: {
         orgId: org.id,
         userId: null,
@@ -655,7 +664,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
         workingDays: ["mon", "tue", "wed", "thu", "fri"],
       },
     }),
-    prisma.membership.create({
+    tx.membership.create({
       data: {
         orgId: org.id,
         userId: null,
@@ -663,7 +672,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
         workingDays: ["tue", "wed", "thu", "fri", "sat"],
       },
     }),
-    prisma.membership.create({
+    tx.membership.create({
       data: {
         orgId: org.id,
         userId: null,
@@ -671,7 +680,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
         workingDays: ["mon", "wed", "fri", "sat"],
       },
     }),
-    prisma.membership.create({
+    tx.membership.create({
       data: {
         orgId: org.id,
         userId: null,
@@ -689,7 +698,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
     mBotCounterFloat,
     mBotWeekendFill,
   ] = await Promise.all([
-    prisma.membership.create({
+    tx.membership.create({
       data: {
         orgId: org.id,
         userId: null,
@@ -697,7 +706,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
         workingDays: ["mon", "wed", "fri"],
       },
     }),
-    prisma.membership.create({
+    tx.membership.create({
       data: {
         orgId: org.id,
         userId: null,
@@ -705,7 +714,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
         workingDays: ["tue", "thu", "sat"],
       },
     }),
-    prisma.membership.create({
+    tx.membership.create({
       data: {
         orgId: org.id,
         userId: null,
@@ -713,7 +722,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
         workingDays: ["mon", "tue", "wed"],
       },
     }),
-    prisma.membership.create({
+    tx.membership.create({
       data: {
         orgId: org.id,
         userId: null,
@@ -721,7 +730,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
         workingDays: ["wed", "fri", "sun"],
       },
     }),
-    prisma.membership.create({
+    tx.membership.create({
       data: {
         orgId: org.id,
         userId: null,
@@ -732,7 +741,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
   ]);
 
   // ── Member Roles ───────────────────────────────────────────────────────────
-  await prisma.memberRole.createMany({
+  await tx.memberRole.createMany({
     data: [
       { membershipId: mOwner.id, roleId: roleOwner.id },
       // Jordan — shift lead + counter
@@ -801,7 +810,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
         }
       }
     }
-    await prisma.rosterEntry.createMany({ data: rosterData, skipDuplicates: true });
+    await tx.rosterEntry.createMany({ data: rosterData, skipDuplicates: true });
   }
 
   // ── Tasks ──────────────────────────────────────────────────────────────────
@@ -851,7 +860,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
 
   // Publish recipe and cleaning tasks as GLOBAL so the franchisee's "Shared Tasks"
   // view is populated and demonstrates the franchise inheritance feature.
-  await prisma.task.updateMany({
+  await tx.task.updateMany({
     where: {
       orgId: org.id,
       name: {
@@ -887,7 +896,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
     }),
   ]);
 
-  await prisma.timetableTemplateEntry.createMany({
+  await tx.timetableTemplateEntry.createMany({
     data: [
       // Weekday Rotation (5-day cycle)
       { templateId: tplWeek1.id, taskId: t("Open Shop Checklist").id, dayIndex: 0, startTimeMin: timeToMin("06:00"), endTimeMin: timeToMin("06:30") },
@@ -1262,7 +1271,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
   await Promise.all(entries);
 
   // ── Franchise Tokens ───────────────────────────────────────────────────────
-  await prisma.franchiseToken.createMany({
+  await tx.franchiseToken.createMany({
     data: [
       {
         orgId: org.id,
@@ -1307,11 +1316,11 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
     prisma.toolItem.create({ data: { orgId: org.id, name: "Cocoa Powder",        unit: "g"    } }),
   ]);
 
-  const convSet = await prisma.conversionSet.create({
+  const convSet = await tx.conversionSet.create({
     data: { orgId: org.id, name: "Donut Production" },
   });
 
-  await prisma.conversionRate.createMany({
+  await tx.conversionRate.createMany({
     data: [
       // ── Dough components (per ring) ────────────────────────────────────────
       { setId: convSet.id, fromItemId: iRing.id,    toItemId: iDough.id,         fromQty: 1,   toQty: 75   }, // 75g dough per ring
@@ -1347,7 +1356,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
   ]);
 
   // pinnedOutput bitmask — 1=from, 2=to, 3=both
-  await prisma.conversionTemplateEntry.createMany({
+  await tx.conversionTemplateEntry.createMany({
     data: [
       // Default — blank canvas with all items visible; ring qty left null so
       // the user enters their own number when they first open the set
@@ -1420,7 +1429,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
     prisma.tag.create({ data: { orgId: org.id, name: "Operations", color: "#F59E0B" } }),
   ]);
 
-  await prisma.taskTag.createMany({
+  await tx.taskTag.createMany({
     data: [
       // Recipe tasks
       { taskId: t("Recipe: White Choc Biscoff Frappe").id, tagId: tagRecipe.id },
@@ -1457,7 +1466,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
   const IMG_OWNER = randImg();
 
   // --- Open Shop Checklist ---
-  const cOpenJordan = await prisma.taskComment.create({
+  const cOpenJordan = await tx.taskComment.create({
     data: {
       taskId: t("Open Shop Checklist").id,
       orgId: org.id,
@@ -1470,7 +1479,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
     },
   });
   // Reply from Casey
-  await prisma.taskComment.create({
+  await tx.taskComment.create({
     data: {
       taskId: t("Open Shop Checklist").id,
       orgId: org.id,
@@ -1482,7 +1491,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
       createdAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000 + 40 * 60 * 1000),
     },
   });
-  const cOpenRiley = await prisma.taskComment.create({
+  const cOpenRiley = await tx.taskComment.create({
     data: {
       taskId: t("Open Shop Checklist").id,
       orgId: org.id,
@@ -1497,7 +1506,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
 
   // --- Fry Morning Batches ---
   // Pinned safety reminder from the owner
-  const cFryOwner = await prisma.taskComment.create({
+  const cFryOwner = await tx.taskComment.create({
     data: {
       taskId: t("Fry Morning Batches").id,
       orgId: org.id,
@@ -1511,7 +1520,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
       createdAt: new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000),
     },
   });
-  const cFryCasey = await prisma.taskComment.create({
+  const cFryCasey = await tx.taskComment.create({
     data: {
       taskId: t("Fry Morning Batches").id,
       orgId: org.id,
@@ -1524,7 +1533,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
     },
   });
   // Reply from Jordan
-  await prisma.taskComment.create({
+  await tx.taskComment.create({
     data: {
       taskId: t("Fry Morning Batches").id,
       orgId: org.id,
@@ -1538,7 +1547,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
   });
 
   // --- Close Shop Checklist ---
-  await prisma.taskComment.create({
+  await tx.taskComment.create({
     data: {
       taskId: t("Close Shop Checklist").id,
       orgId: org.id,
@@ -1552,7 +1561,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
   });
 
   // --- Recipe: White Choc Biscoff Frappe ---
-  await prisma.taskComment.create({
+  await tx.taskComment.create({
     data: {
       taskId: t("Recipe: White Choc Biscoff Frappe").id,
       orgId: org.id,
@@ -1566,7 +1575,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
   });
 
   // Votes from the demo user (the only real user in the session)
-  await prisma.taskCommentVote.createMany({
+  await tx.taskCommentVote.createMany({
     data: [
       { commentId: cOpenJordan.id, userId: ownerId, type: VoteType.UPVOTE },
       { commentId: cOpenRiley.id, userId: ownerId, type: VoteType.UPVOTE },
@@ -1578,7 +1587,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
   // ── Franchisee: Downtown Donuts ────────────────────────────────────────────
   // A child org owned by the same demo user. Its tasks are GLOBAL so they
   // appear in Donut Shop A's "Shared Tasks" view and can be inherited.
-  const franchisee = await prisma.organization.create({
+  const franchisee = await tx.organization.create({
     data: {
       name: "Downtown Donuts",
       ownerId,
@@ -1613,12 +1622,12 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
     }),
   ]);
 
-  await prisma.permission.createMany({
+  await tx.permission.createMany({
     data: ALL_OWNER_PERMISSIONS.map((action) => ({ roleId: fRoleOwner.id, action })),
     skipDuplicates: true,
   });
 
-  const fOwner = await prisma.membership.create({
+  const fOwner = await tx.membership.create({
     data: {
       orgId: franchisee.id,
       userId: ownerId,
@@ -1626,7 +1635,7 @@ async function seedDemoOrg(ownerId: string): Promise<string> {
     },
   });
 
-  await prisma.memberRole.create({
+  await tx.memberRole.create({
     data: { membershipId: fOwner.id, roleId: fRoleOwner.id },
   });
 

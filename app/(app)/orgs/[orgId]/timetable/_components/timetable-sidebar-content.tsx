@@ -123,7 +123,7 @@ export function TimetableSidebarContent({
     if (!isModeExplicit) {
       let savedMode: string | null = cookie?.mode ?? null;
       if (!savedMode) {
-        try { savedMode = localStorage.getItem("timetable:mode"); } catch { /* ignore */ }
+        try { savedMode = localStorage.getItem(`${PREFS_KEY}:mode`); } catch { /* ignore */ }
       }
       if ((savedMode === "simple" || savedMode === "calendar") && savedMode !== mode) {
         overrides.mode = savedMode;
@@ -133,7 +133,7 @@ export function TimetableSidebarContent({
     if (!isSpanExplicit) {
       let savedSpan: string | null = cookie?.span ?? null;
       if (!savedSpan) {
-        try { savedSpan = localStorage.getItem("timetable:span"); } catch { /* ignore */ }
+        try { savedSpan = localStorage.getItem(`${PREFS_KEY}:span`); } catch { /* ignore */ }
       }
       if ((savedSpan === "day" || savedSpan === "week") && savedSpan !== span) {
         overrides.span = savedSpan;
@@ -179,8 +179,8 @@ export function TimetableSidebarContent({
     const value = JSON.stringify({ mode, span, roleId: selectedRoleId, tagId: selectedTagId });
     setPrefsCookie(value);
     try {
-      localStorage.setItem("timetable:mode", mode);
-      localStorage.setItem("timetable:span", span);
+      localStorage.setItem(`${PREFS_KEY}:mode`, mode);
+      localStorage.setItem(`${PREFS_KEY}:span`, span);
     } catch {
       /* ignore */
     }

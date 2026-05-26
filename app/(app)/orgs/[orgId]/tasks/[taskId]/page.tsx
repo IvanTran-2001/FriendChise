@@ -13,6 +13,7 @@
  * Section layout rows are fetched server-side and passed to the sidebar so the
  * drag-to-reorder panel opens immediately without a loading state.
  */
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { PermissionAction } from "@prisma/client";
 import { requireOrgMemberPage } from "@/lib/authz";
@@ -320,7 +321,18 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
         </div>
 
         {/* Comments */}
-        <TaskComments orgId={orgId} taskId={taskId} />
+        <Suspense
+          fallback={
+            <div className="rounded-lg border bg-card p-6">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+                Loading comments...
+              </div>
+            </div>
+          }
+        >
+          <TaskComments orgId={orgId} taskId={taskId} />
+        </Suspense>
       </div>
     </>
   );
