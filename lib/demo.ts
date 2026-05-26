@@ -17,7 +17,7 @@ import { ROLE_KEYS } from "@/lib/rbac";
 import { localToUTC } from "@/lib/date-utils";
 import { PermissionAction, EntryStatus, VoteType, TaskScope } from "@prisma/client";
 
-const DEMO_MAX_CONCURRENT = 20;
+const DEMO_MAX_CONCURRENT = 50;
 const DEMO_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 /**
  * JWT session lifetime for demo accounts.
