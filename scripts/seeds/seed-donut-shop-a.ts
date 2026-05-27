@@ -483,75 +483,23 @@ async function main() {
 
   // ── Roles ──────────────────────────────────────────────────────────────────
   console.log("→ Creating roles...");
-  const [
-    roleOwner,
-    roleWorker,
-    roleFryer,
-    roleCounter,
-    roleShiftLead,
-    roleTrainee,
-  ] = await Promise.all([
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Owner",
-        key: ROLE_KEYS.OWNER,
-        color: "#ef4444",
-        isDeletable: false,
-        isDefault: false,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Default Member",
-        key: ROLE_KEYS.DEFAULT_MEMBER,
-        color: "#6b7280",
-        isDeletable: false,
-        isDefault: true,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Fryer Operator",
-        key: "fryer_op",
-        color: "#F97316",
-        isDeletable: true,
-        isDefault: false,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Counter Staff",
-        key: "counter_staff",
-        color: "#06B6D4",
-        isDeletable: true,
-        isDefault: false,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Shift Lead",
-        key: "shift_lead",
-        color: "#8B5CF6",
-        isDeletable: true,
-        isDefault: false,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Trainee",
-        key: "trainee",
-        color: "#84CC16",
-        isDeletable: true,
-        isDefault: false,
-      },
-    }),
-  ]);
+  const roles = await prisma.role.createManyAndReturn({
+    data: [
+      { orgId: org.id, name: "Owner", key: ROLE_KEYS.OWNER, color: "#ef4444", isDeletable: false, isDefault: false },
+      { orgId: org.id, name: "Default Member", key: ROLE_KEYS.DEFAULT_MEMBER, color: "#6b7280", isDeletable: false, isDefault: true },
+      { orgId: org.id, name: "Fryer Operator", key: "fryer_op", color: "#F97316", isDeletable: true, isDefault: false },
+      { orgId: org.id, name: "Counter Staff", key: "counter_staff", color: "#06B6D4", isDeletable: true, isDefault: false },
+      { orgId: org.id, name: "Shift Lead", key: "shift_lead", color: "#8B5CF6", isDeletable: true, isDefault: false },
+      { orgId: org.id, name: "Trainee", key: "trainee", color: "#84CC16", isDeletable: true, isDefault: false },
+    ],
+  });
+  const roleByKey = Object.fromEntries(roles.map((r) => [r.key, r]));
+  const roleOwner = roleByKey[ROLE_KEYS.OWNER];
+  const roleWorker = roleByKey[ROLE_KEYS.DEFAULT_MEMBER];
+  const roleFryer = roleByKey["fryer_op"];
+  const roleCounter = roleByKey["counter_staff"];
+  const roleShiftLead = roleByKey["shift_lead"];
+  const roleTrainee = roleByKey["trainee"];
   console.log("  ✓ 6 roles created");
 
   // ── Permissions ────────────────────────────────────────────────────────────
@@ -583,93 +531,32 @@ async function main() {
 
   // ── Memberships ────────────────────────────────────────────────────────────
   console.log("→ Creating memberships...");
-  const [mIvan, mJordan, mCasey, mRiley, mAlex] = await Promise.all([
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: ivan.id,
-        workingDays: ["mon", "tue", "wed", "thu", "fri"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: jordan.id,
-        workingDays: ["mon", "tue", "wed", "thu", "fri"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: casey.id,
-        workingDays: ["tue", "wed", "thu", "fri", "sat"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: riley.id,
-        workingDays: ["mon", "wed", "fri", "sat"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: alex.id,
-        workingDays: ["tue", "thu", "sat", "sun"],
-      },
-    }),
-  ]);
-
-  // 5 bots
-  const [
-    mBotOpenSlot,
-    mBotMorningRunner,
-    mBotFryerBackup,
-    mBotCounterFloat,
-    mBotWeekendFill,
-  ] = await Promise.all([
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: null,
-        botName: "Open Slot",
-        workingDays: ["mon", "wed", "fri"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: null,
-        botName: "Morning Runner",
-        workingDays: ["tue", "thu", "sat"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: null,
-        botName: "Fryer Backup",
-        workingDays: ["mon", "tue", "wed"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: null,
-        botName: "Counter Float",
-        workingDays: ["wed", "fri", "sun"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: null,
-        botName: "Weekend Fill",
-        workingDays: ["sat", "sun"],
-      },
-    }),
-  ]);
+  const allMemberships = await prisma.membership.createManyAndReturn({
+    data: [
+      { orgId: org.id, userId: ivan.id,   workingDays: ["mon", "tue", "wed", "thu", "fri"] },
+      { orgId: org.id, userId: jordan.id, workingDays: ["mon", "tue", "wed", "thu", "fri"] },
+      { orgId: org.id, userId: casey.id,  workingDays: ["tue", "wed", "thu", "fri", "sat"] },
+      { orgId: org.id, userId: riley.id,  workingDays: ["mon", "wed", "fri", "sat"] },
+      { orgId: org.id, userId: alex.id,   workingDays: ["tue", "thu", "sat", "sun"] },
+      { orgId: org.id, userId: null, botName: "Open Slot",      workingDays: ["mon", "wed", "fri"] },
+      { orgId: org.id, userId: null, botName: "Morning Runner", workingDays: ["tue", "thu", "sat"] },
+      { orgId: org.id, userId: null, botName: "Fryer Backup",   workingDays: ["mon", "tue", "wed"] },
+      { orgId: org.id, userId: null, botName: "Counter Float",  workingDays: ["wed", "fri", "sun"] },
+      { orgId: org.id, userId: null, botName: "Weekend Fill",   workingDays: ["sat", "sun"] },
+    ],
+  });
+  const mByUser = Object.fromEntries(allMemberships.filter((m) => m.userId).map((m) => [m.userId!, m]));
+  const mByBot  = Object.fromEntries(allMemberships.filter((m) => m.botName).map((m) => [m.botName!, m]));
+  const mIvan            = mByUser[ivan.id];
+  const mJordan          = mByUser[jordan.id];
+  const mCasey           = mByUser[casey.id];
+  const mRiley           = mByUser[riley.id];
+  const mAlex            = mByUser[alex.id];
+  const mBotOpenSlot     = mByBot["Open Slot"];
+  const mBotMorningRunner = mByBot["Morning Runner"];
+  const mBotFryerBackup  = mByBot["Fryer Backup"];
+  const mBotCounterFloat = mByBot["Counter Float"];
+  const mBotWeekendFill  = mByBot["Weekend Fill"];
   console.log("  ✓ 5 members + 5 bots created");
 
   // ── Member Roles ───────────────────────────────────────────────────────────
@@ -703,7 +590,7 @@ async function main() {
 
   // ── Tasks ──────────────────────────────────────────────────────────────────
   console.log(`→ Creating ${TASKS.length} tasks...`);
-  const roleByKey: Record<string, string> = {
+  const taskRoleIdByKey: Record<string, string> = {
     counter_staff: roleCounter.id,
     fryer_op: roleFryer.id,
     shift_lead: roleShiftLead.id,
@@ -711,52 +598,32 @@ async function main() {
     default_member: roleWorker.id,
   };
 
-  const createdTasks = await Promise.all(
-    TASKS.map(
-      ([
-        name,
-        color,
-        durationMin,
-        description,
-        roleKey,
-        preferredStart,
-        minWait,
-        maxWait,
-      ]) =>
-        prisma.task
-          .create({
-            data: {
-              orgId: org.id,
-              name,
-              color,
-              durationMin,
-              description,
-              preferredStartTimeMin: timeToMin(preferredStart),
-              minPeople: 1,
-              minWaitDays: minWait,
-              maxWaitDays: maxWait,
-            },
-          })
-          .then(async (task) => {
-            const roleId = roleByKey[roleKey];
-            if (roleId === undefined) {
-              throw new Error(
-                `Role key "${roleKey}" not found in roleByKey lookup for task "${task.name}". Available keys: ${Object.keys(roleByKey).join(", ")}`,
-              );
-            }
-            await prisma.taskEligibility.create({
-              data: { taskId: task.id, roleId },
-            });
-            return { task, roleKey };
-          }),
-    ),
-  );
+  const createdTasks = await prisma.task.createManyAndReturn({
+    data: TASKS.map(([name, color, durationMin, description, , preferredStart, minWait, maxWait]) => ({
+      orgId: org.id,
+      name,
+      color,
+      durationMin,
+      description,
+      preferredStartTimeMin: timeToMin(preferredStart),
+      minPeople: 1,
+      minWaitDays: minWait,
+      maxWaitDays: maxWait,
+    })),
+  });
+  const tByName = Object.fromEntries(createdTasks.map((task) => [task.name, task]));
+  await prisma.taskEligibility.createMany({
+    data: TASKS.map(([name, , , , roleKey]) => {
+      const task = tByName[name];
+      if (!task) throw new Error(`Task "${name}" not found after creation`);
+      const roleId = taskRoleIdByKey[roleKey];
+      if (!roleId) throw new Error(`Role key "${roleKey}" not found for task "${name}"`);
+      return { taskId: task.id, roleId };
+    }),
+  });
   console.log(`  ✓ ${createdTasks.length} tasks + eligibilities created`);
 
-  // Quick lookup helpers
-  const tByName = Object.fromEntries(
-    createdTasks.map(({ task }) => [task.name, task]),
-  );
+  // Quick lookup helper
   const t = (name: string) => {
     const task = tByName[name];
     if (task === undefined) {
@@ -924,9 +791,20 @@ async function main() {
   // ── Timetable Entries ──────────────────────────────────────────────────────
   console.log("→ Creating timetable entries...");
 
-  const entries: Promise<unknown>[] = [];
+  type EntryInput = {
+    orgId: string;
+    taskId: string;
+    taskName: string;
+    taskDescription: string | null;
+    durationMin: number;
+    date: Date;
+    startTimeMin: number;
+    endTimeMin: number;
+    status: EntryStatus;
+  };
+  const entryData: EntryInput[] = [];
+  const entryAssignees: { entryIdx: number; membershipId: string }[] = [];
 
-  // Helper to push entries
   const add = (
     taskName: string,
     offsetDays: number,
@@ -935,20 +813,16 @@ async function main() {
     membershipId: string,
   ) => {
     const task = t(taskName);
-    entries.push(
-      prisma.timetableEntry.create({
-        data: {
-          orgId: org.id,
-          taskId: task.id,
-          taskName: task.name,
-          taskDescription: task.description,
-          durationMin: task.durationMin,
-          ...utcEntry(offsetDays, hhmm, task.durationMin),
-          status,
-          assignees: { create: [{ membershipId }] },
-        },
-      }),
-    );
+    entryData.push({
+      orgId: org.id,
+      taskId: task.id,
+      taskName: task.name,
+      taskDescription: task.description,
+      durationMin: task.durationMin,
+      ...utcEntry(offsetDays, hhmm, task.durationMin),
+      status,
+    });
+    entryAssignees.push({ entryIdx: entryData.length - 1, membershipId });
   };
 
   // ── 30 days of past history ────────────────────────────────────────────────
@@ -1672,8 +1546,16 @@ async function main() {
   );
   add("Close Shop Checklist", 14, "17:00", EntryStatus.TODO, mRiley.id);
 
-  await Promise.all(entries);
-  console.log(`  ✓ ${entries.length} timetable entries created`);
+  const createdEntries = await prisma.timetableEntry.createManyAndReturn({
+    data: entryData,
+  });
+  await prisma.timetableEntryAssignee.createMany({
+    data: entryAssignees.map(({ entryIdx, membershipId }) => ({
+      timetableEntryId: createdEntries[entryIdx].id,
+      membershipId,
+    })),
+  });
+  console.log(`  ✓ ${createdEntries.length} timetable entries created`);
 
   // ── Franchise Tokens ───────────────────────────────────────────────────────
   console.log("→ Creating franchise tokens...");

@@ -44,36 +44,37 @@ async function setup() {
     },
   });
 
-  const org = await prisma.organization.create({
-    data: { name: `Test Org ${suffix}`, ownerId: inviter.id },
-  });
+  // org and realUser are independent of each other
+  const [org, realUser] = await Promise.all([
+    prisma.organization.create({
+      data: { name: `Test Org ${suffix}`, ownerId: inviter.id },
+    }),
+    prisma.user.create({
+      data: {
+        name: "Real User",
+        email: `real-${suffix}@test.local`,
+      },
+    }),
+  ]);
 
-  // The real user who will fill the bot slot
-  const realUser = await prisma.user.create({
-    data: {
-      name: "Real User",
-      email: `real-${suffix}@test.local`,
-    },
-  });
+  // role and inviter membership don't depend on each other
+  const [role, ] = await Promise.all([
+    prisma.role.create({
+      data: {
+        orgId: org.id,
+        name: "Member",
+        color: "#888",
+        key: `member-${suffix}`,
+        isDeletable: false,
+        isDefault: true,
+      },
+    }),
+    prisma.membership.create({
+      data: { orgId: org.id, userId: inviter.id, workingDays: [] },
+    }),
+  ]);
 
-  // Org needs a default role
-  const role = await prisma.role.create({
-    data: {
-      orgId: org.id,
-      name: "Member",
-      color: "#888",
-      key: `member-${suffix}`,
-      isDeletable: false,
-      isDefault: true,
-    },
-  });
-
-  // Inviter membership
-  await prisma.membership.create({
-    data: { orgId: org.id, userId: inviter.id, workingDays: [] },
-  });
-
-  // Bot membership (userId = null)
+  // Bot membership needs role.id
   const botMembership = await prisma.membership.create({
     data: {
       orgId: org.id,
@@ -108,9 +109,9 @@ async function setup() {
 
 async function cleanup(orgId: string, userIds: string[]) {
   await prisma.organization.delete({ where: { id: orgId } }).catch(() => {});
-  for (const id of userIds) {
-    await prisma.user.delete({ where: { id } }).catch(() => {});
-  }
+  await Promise.all(
+    userIds.map((id) => prisma.user.delete({ where: { id } }).catch(() => {})),
+  );
 }
 
 // ─── test ─────────────────────────────────────────────────────────────────────
