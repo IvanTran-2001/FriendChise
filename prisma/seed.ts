@@ -94,8 +94,9 @@ const toSlug = (s: string) =>
  * Fetches a relevant image from LoremFlickr (Flickr-backed, keyword search)
  * and uploads it to the Supabase private bucket as the task's seed image.
  *
- * Uses slug-based paths (org name + task name) so that re-seeding with --reset
- * upserts the same file rather than orphaning the old one.
+ * Uses slug-based paths (org name + task name) so that the file is uploaded
+ * only once — subsequent seed runs detect the existing object and reuse its
+ * path without hitting LoremFlickr or uploading again.
  *
  * Non-fatal — if the upload fails for any reason the task simply has no image.
  */
@@ -108,7 +109,18 @@ async function uploadSeedTaskImage(
   const supabaseKey = process.env.SUPABASE_SECRET_KEY;
   if (!supabaseUrl || !supabaseKey) return null;
 
+  const storagePath = `seed/${orgSlug}/tasks/${taskSlug}.jpg`;
+  const authHeader = { Authorization: `Bearer ${supabaseKey}` };
+
   try {
+    // Check if the file already exists — if so, reuse it without re-uploading.
+    const infoRes = await fetch(
+      `${supabaseUrl}/storage/v1/object/info/friendchise-private/${storagePath}`,
+      { headers: authHeader },
+    );
+    if (infoRes.ok) return storagePath;
+
+    // First time: fetch from LoremFlickr and upload.
     // /all means any of the comma-separated keywords must match.
     // If the primary keyword returns no results, fall back to a generic food photo.
     const tryFetch = (kw: string) =>
@@ -118,16 +130,11 @@ async function uploadSeedTaskImage(
     if (!imgRes.ok) return null;
     const imgData = await imgRes.arrayBuffer();
 
-    const storagePath = `seed/${orgSlug}/tasks/${taskSlug}.jpg`;
     const uploadRes = await fetch(
       `${supabaseUrl}/storage/v1/object/friendchise-private/${storagePath}`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${supabaseKey}`,
-          "Content-Type": "image/jpeg",
-          "x-upsert": "true",
-        },
+        headers: { ...authHeader, "Content-Type": "image/jpeg" },
         body: imgData,
       },
     );
@@ -149,17 +156,22 @@ async function uploadOrgLogo(
   const supabaseKey = process.env.SUPABASE_SECRET_KEY;
   if (!supabaseUrl || !supabaseKey) return null;
 
+  const storagePath = `seed/${orgSlug}/logo.jpg`;
+  const authHeader = { Authorization: `Bearer ${supabaseKey}` };
+
   try {
-    const storagePath = `seed/${orgSlug}/logo.jpg`;
+    // Reuse existing logo — only upload if not already present.
+    const infoRes = await fetch(
+      `${supabaseUrl}/storage/v1/object/info/friendchise-public/${storagePath}`,
+      { headers: authHeader },
+    );
+    if (infoRes.ok) return storagePath;
+
     const res = await fetch(
       `${supabaseUrl}/storage/v1/object/friendchise-public/${storagePath}`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${supabaseKey}`,
-          "Content-Type": "image/jpeg",
-          "x-upsert": "true",
-        },
+        headers: { ...authHeader, "Content-Type": "image/jpeg" },
         body: imageBuffer as unknown as BodyInit,
       },
     );
