@@ -1,9 +1,10 @@
 import { signOut, auth } from "@/auth";
 import { isDemoEmail } from "@/lib/demo";
+import { DemoTimer } from "./demo-timer";
 
 export async function DemoBanner() {
   const session = await auth();
-  if (!isDemoEmail(session?.user?.email ?? "")) return null;
+  if (!session || !isDemoEmail(session.user?.email ?? "")) return null;
 
   return (
     <div className="shrink-0 flex items-center justify-between gap-4 border-b border-amber-500/20 bg-amber-500/10 px-4 py-1.5 text-sm">
@@ -11,6 +12,9 @@ export async function DemoBanner() {
         <span className="font-medium">Demo mode</span>
         {" — "}
         Your session is isolated and will be deleted automatically.
+        {" Expires in "}
+        <DemoTimer expiresAt={session.expires} />
+        {"."}
       </p>
       <form
         action={async () => {

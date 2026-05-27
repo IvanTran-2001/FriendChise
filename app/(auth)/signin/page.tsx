@@ -106,7 +106,8 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
             let session: { userId: string; orgId: string } | undefined;
             try {
               session = await prepareDemoSession();
-            } catch {
+            } catch (err) {
+              console.error("[demo] prepareDemoSession failed:", err);
               redirect("/signin?hint=demo_unavailable");
             }
             if (!session) return;

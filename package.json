@@ -1,6 +1,6 @@
 {
   "name": "friendchise",
-  "version": "0.1.0",
+  "version": "2.4.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,17 +9,7 @@
     "lint": "eslint",
     "migrate:prod": "SKIP_DOTENV_LOCAL=1 dotenv -e .env -- prisma migrate deploy",
     "db:push:prod": "SKIP_DOTENV_LOCAL=1 dotenv -e .env -- prisma db push",
-    "backfill:inheritance:prod": "SKIP_DOTENV_LOCAL=1 dotenv -e .env -- tsx scripts/backfill-task-inheritance.ts",
-    "backfill:creators:prod": "SKIP_DOTENV_LOCAL=1 dotenv -e .env -- tsx scripts/backfill-task-creators.ts",
-    "backfill:franchise-inheritance": "tsx scripts/backfill-franchise-inheritance.ts",
-    "backfill:franchise-inheritance:prod": "SKIP_DOTENV_LOCAL=1 dotenv -e .env -- tsx scripts/backfill-franchise-inheritance.ts --confirm-production",
-    "backfill:parent-inheritance": "tsx scripts/backfill-parent-task-inheritance.ts",
-    "backfill:parent-inheritance:prod": "SKIP_DOTENV_LOCAL=1 dotenv -e .env -- tsx scripts/backfill-parent-task-inheritance.ts --confirm-production",
     "seed": "prisma db seed",
-    "seed:dev": "tsx prisma/seed.ts development",
-    "seed:prod": "tsx prisma/seed.ts production",
-    "seed:donut-a": "tsx scripts/seed-donut-shop-a.ts",
-    "seed:donut-a:reset": "tsx scripts/seed-donut-shop-a.ts --reset",
     "test": "vitest run",
     "test:unit": "vitest run",
     "test:watch": "vitest",
@@ -32,7 +22,7 @@
     "test:e2e": "playwright test"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts development"
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

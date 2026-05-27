@@ -1,8 +1,11 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { SidebarSubContentSkeleton } from "@/app/(app)/orgs/[orgId]/_components/sidebar-sub-content-skeleton";
 
 export default function TimetableLoading() {
   return (
-    <div
+    <>
+      <SidebarSubContentSkeleton />
+      <div
       className="flex flex-col gap-4"
       style={{ height: "calc(100dvh - 148px)", minHeight: "500px" }}
     >
@@ -73,5 +76,6 @@ export default function TimetableLoading() {
         </div>
       </div>
     </div>
+    </>
   );
 }

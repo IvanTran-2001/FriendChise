@@ -31,7 +31,7 @@ export function FeedbackButton() {
       <button
         onClick={handleOpen}
         aria-label="Give feedback"
-        className={`hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-md border text-xs font-medium transition-colors
+        className={`hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-md border text-xs font-medium transition-colors cursor-pointer
           ${
             isActive
               ? "bg-purple-600 border-purple-600 text-white hover:bg-purple-700 hover:border-purple-700"
@@ -46,7 +46,7 @@ export function FeedbackButton() {
       <button
         onClick={handleOpen}
         aria-label="Give feedback"
-        className={`sm:hidden flex items-center justify-center h-9 w-9 rounded-md border transition-colors
+        className={`sm:hidden flex items-center justify-center h-9 w-9 rounded-md border transition-colors cursor-pointer
           ${
             isActive
               ? "bg-purple-600 border-purple-600 text-white hover:bg-purple-700"

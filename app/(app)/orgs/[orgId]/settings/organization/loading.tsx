@@ -2,7 +2,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function OrgSettingsLoading() {
   return (
-    <div className="space-y-6 p-6 max-w-2xl">
+    <div className="space-y-6 p-6 max-w-2xl mx-auto">
+      {/* Logo card */}
+      <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
+        <Skeleton className="h-3.5 w-36 rounded" />
+        <div className="flex items-center gap-4">
+          <Skeleton className="size-20 rounded-lg shrink-0" />
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-8 w-32 rounded-md" />
+            <Skeleton className="h-3 w-40 rounded" />
+          </div>
+        </div>
+      </div>
+
       {/* Location & Hours card */}
       <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
         <Skeleton className="h-3.5 w-32 rounded" />

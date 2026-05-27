@@ -58,6 +58,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user && token.sub) {
         session.user.id = token.sub;
       }
+      // For demo sessions, sync session.expires to the JWT's fixed 2-hour exp
+      // (Next-Auth otherwise sets session.expires from its own rolling maxAge)
+      const demoIssuedAt = (token as Record<string, unknown>).demoIssuedAt;
+      if (typeof demoIssuedAt === "number" && typeof token.exp === "number") {
+        session.expires = new Date(token.exp * 1000).toISOString();
+      }
       return session;
     },
   },

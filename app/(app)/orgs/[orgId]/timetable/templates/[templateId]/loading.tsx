@@ -1,8 +1,11 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { SidebarSubContentSkeleton } from "@/app/(app)/orgs/[orgId]/_components/sidebar-sub-content-skeleton";
 
 export default function TemplateEditorLoading() {
   return (
-    <div
+    <>
+      <SidebarSubContentSkeleton />
+      <div
       className="flex flex-col gap-4"
       style={{ height: "calc(100dvh - 148px)" }}
     >
@@ -69,5 +72,6 @@ export default function TemplateEditorLoading() {
         </div>
       </div>
     </div>
+    </>
   );
 }

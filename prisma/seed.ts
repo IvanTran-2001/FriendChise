@@ -747,75 +747,26 @@ async function seedOrg1(users: Users) {
 
   // ── Roles ──────────────────────────────────────────────────────────────────
   console.log("→ Creating roles...");
-  const [
-    roleOwner,
-    roleWorker,
-    roleFryer,
-    roleCounter,
-    roleShiftLead,
-    roleTrainee,
-  ] = await Promise.all([
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Owner",
-        key: ROLE_KEYS.OWNER,
-        color: "#ef4444",
-        isDeletable: false,
-        isDefault: false,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Default Member",
-        key: ROLE_KEYS.DEFAULT_MEMBER,
-        color: "#6b7280",
-        isDeletable: false,
-        isDefault: true,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Fryer Operator",
-        key: "fryer_op",
-        color: "#F97316",
-        isDeletable: true,
-        isDefault: false,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Counter Staff",
-        key: "counter_staff",
-        color: "#06B6D4",
-        isDeletable: true,
-        isDefault: false,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Shift Lead",
-        key: "shift_lead",
-        color: "#8B5CF6",
-        isDeletable: true,
-        isDefault: false,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Trainee",
-        key: "trainee",
-        color: "#84CC16",
-        isDeletable: true,
-        isDefault: false,
-      },
-    }),
-  ]);
+  const [roleOwner, roleWorker, roleFryer, roleCounter, roleShiftLead, roleTrainee] =
+    await prisma.role
+      .createManyAndReturn({
+        data: [
+          { orgId: org.id, name: "Owner",          key: ROLE_KEYS.OWNER,         color: "#ef4444", isDeletable: false, isDefault: false },
+          { orgId: org.id, name: "Default Member", key: ROLE_KEYS.DEFAULT_MEMBER, color: "#6b7280", isDeletable: false, isDefault: true  },
+          { orgId: org.id, name: "Fryer Operator", key: "fryer_op",               color: "#F97316", isDeletable: true,  isDefault: false },
+          { orgId: org.id, name: "Counter Staff",  key: "counter_staff",          color: "#06B6D4", isDeletable: true,  isDefault: false },
+          { orgId: org.id, name: "Shift Lead",     key: "shift_lead",             color: "#8B5CF6", isDeletable: true,  isDefault: false },
+          { orgId: org.id, name: "Trainee",        key: "trainee",                color: "#84CC16", isDeletable: true,  isDefault: false },
+        ],
+      })
+      .then((rows) => [
+        rows.find((r) => r.key === ROLE_KEYS.OWNER)!,
+        rows.find((r) => r.key === ROLE_KEYS.DEFAULT_MEMBER)!,
+        rows.find((r) => r.key === "fryer_op")!,
+        rows.find((r) => r.key === "counter_staff")!,
+        rows.find((r) => r.key === "shift_lead")!,
+        rows.find((r) => r.key === "trainee")!,
+      ] as const);
   console.log("  ✓ 6 roles created");
 
   // ── Permissions ────────────────────────────────────────────────────────────
@@ -847,93 +798,30 @@ async function seedOrg1(users: Users) {
 
   // ── Memberships ────────────────────────────────────────────────────────────
   console.log("→ Creating memberships...");
-  const [mIvan, mJordan, mCasey, mRiley, mAlex] = await Promise.all([
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: ivan.id,
-        workingDays: ["mon", "tue", "wed", "thu", "fri"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: jordan.id,
-        workingDays: ["mon", "tue", "wed", "thu", "fri"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: casey.id,
-        workingDays: ["tue", "wed", "thu", "fri", "sat"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: riley.id,
-        workingDays: ["mon", "wed", "fri", "sat"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: alex.id,
-        workingDays: ["tue", "thu", "sat", "sun"],
-      },
-    }),
-  ]);
-
-  // 5 bots
-  const [
-    mBotOpenSlot,
-    mBotMorningRunner,
-    mBotFryerBackup,
-    mBotCounterFloat,
-    mBotWeekendFill,
-  ] = await Promise.all([
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: null,
-        botName: "Open Slot",
-        workingDays: ["mon", "wed", "fri"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: null,
-        botName: "Morning Runner",
-        workingDays: ["tue", "thu", "sat"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: null,
-        botName: "Fryer Backup",
-        workingDays: ["mon", "tue", "wed"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: null,
-        botName: "Counter Float",
-        workingDays: ["wed", "fri", "sun"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: null,
-        botName: "Weekend Fill",
-        workingDays: ["sat", "sun"],
-      },
-    }),
-  ]);
+  const _memberships = await prisma.membership.createManyAndReturn({
+    data: [
+      { orgId: org.id, userId: ivan.id,   workingDays: ["mon", "tue", "wed", "thu", "fri"] },
+      { orgId: org.id, userId: jordan.id, workingDays: ["mon", "tue", "wed", "thu", "fri"] },
+      { orgId: org.id, userId: casey.id,  workingDays: ["tue", "wed", "thu", "fri", "sat"] },
+      { orgId: org.id, userId: riley.id,  workingDays: ["mon", "wed", "fri", "sat"] },
+      { orgId: org.id, userId: alex.id,   workingDays: ["tue", "thu", "sat", "sun"] },
+      { orgId: org.id, userId: null, botName: "Open Slot",       workingDays: ["mon", "wed", "fri"] },
+      { orgId: org.id, userId: null, botName: "Morning Runner",  workingDays: ["tue", "thu", "sat"] },
+      { orgId: org.id, userId: null, botName: "Fryer Backup",    workingDays: ["mon", "tue", "wed"] },
+      { orgId: org.id, userId: null, botName: "Counter Float",   workingDays: ["wed", "fri", "sun"] },
+      { orgId: org.id, userId: null, botName: "Weekend Fill",    workingDays: ["sat", "sun"] },
+    ],
+  });
+  const mIvan             = _memberships.find((m) => m.userId === ivan.id)!;
+  const mJordan           = _memberships.find((m) => m.userId === jordan.id)!;
+  const mCasey            = _memberships.find((m) => m.userId === casey.id)!;
+  const mRiley            = _memberships.find((m) => m.userId === riley.id)!;
+  const mAlex             = _memberships.find((m) => m.userId === alex.id)!;
+  const mBotOpenSlot      = _memberships.find((m) => m.botName === "Open Slot")!;
+  const mBotMorningRunner = _memberships.find((m) => m.botName === "Morning Runner")!;
+  const mBotFryerBackup   = _memberships.find((m) => m.botName === "Fryer Backup")!;
+  const mBotCounterFloat  = _memberships.find((m) => m.botName === "Counter Float")!;
+  const mBotWeekendFill   = _memberships.find((m) => m.botName === "Weekend Fill")!;
   console.log("  ✓ 5 members + 5 bots created");
 
   // ── Member Roles ───────────────────────────────────────────────────────────
@@ -975,51 +863,44 @@ async function seedOrg1(users: Users) {
     default_member: roleWorker.id,
   };
 
-  const createdTasks: {
-    task: {
-      id: string;
-      name: string;
-      description: string | null;
-      durationMin: number;
-    };
-    roleKey: string;
-  }[] = [];
-  for (const [
-    name,
-    color,
-    durationMin,
-    description,
-    roleKey,
-    preferredStart,
-    minWait,
-    maxWait,
-  ] of DONUT_TASKS) {
-    const task = await prisma.task.create({
-      data: {
-        orgId: org.id,
-        name,
-        color,
-        durationMin,
-        description,
-        preferredStartTimeMin: timeToMin(preferredStart),
-        minPeople: 1,
-        minWaitDays: minWait,
-        maxWaitDays: maxWait,
-      },
-    });
-    const roleId = roleByKey[roleKey];
-    if (roleId === undefined) {
+  // Validate all role keys exist before batch inserts
+  for (const [name, , , , roleKey] of DONUT_TASKS) {
+    if (roleByKey[roleKey] === undefined) {
       throw new Error(
-        `Role key "${roleKey}" not found in roleByKey lookup for task "${task.name}". Available keys: ${Object.keys(roleByKey).join(", ")}`,
+        `Role key "${roleKey}" not found in roleByKey lookup for task "${name}". Available keys: ${Object.keys(roleByKey).join(", ")}`,
       );
     }
-    await prisma.taskEligibility.create({ data: { taskId: task.id, roleId } });
-    // Mirror what createTask() does in the service layer
-    await prisma.taskInheritance.create({
-      data: { taskId: task.id, orgId: org.id },
-    });
-    createdTasks.push({ task, roleKey });
   }
+  const _createdTaskRows = await prisma.task.createManyAndReturn({
+    data: DONUT_TASKS.map(([name, color, durationMin, description, , preferredStart, minWait, maxWait]) => ({
+      orgId: org.id,
+      name,
+      color,
+      durationMin,
+      description,
+      preferredStartTimeMin: timeToMin(preferredStart),
+      minPeople: 1,
+      minWaitDays: minWait,
+      maxWaitDays: maxWait,
+    })),
+  });
+  const _tasksByName = Object.fromEntries(_createdTaskRows.map((task) => [task.name, task]));
+  await Promise.all([
+    prisma.taskEligibility.createMany({
+      data: DONUT_TASKS.map(([name, , , , roleKey]) => ({
+        taskId: _tasksByName[name]!.id,
+        roleId: roleByKey[roleKey]!,
+      })),
+    }),
+    prisma.taskInheritance.createMany({
+      data: _createdTaskRows.map((task) => ({ taskId: task.id, orgId: org.id })),
+    }),
+  ]);
+  // Preserve the { task, roleKey }[] shape expected by downstream code
+  const createdTasks = DONUT_TASKS.map(([name, , , , roleKey]) => ({
+    task: _tasksByName[name]!,
+    roleKey,
+  }));
   console.log(
     `  ✓ ${createdTasks.length} tasks + eligibilities + inheritances created`,
   );
@@ -1028,7 +909,7 @@ async function seedOrg1(users: Users) {
   console.log("→ Uploading task images...");
   // Phase 1: fetch + upload to Supabase in parallel (no DB connections)
   const uploadResults = await Promise.all(
-    createdTasks.map(async ({ task }, idx) => {
+    createdTasks.map(async ({ task }) => {
       const keyword = TASK_IMAGE_KEYWORDS[task.name] ?? "bakery,food";
       const storagePath = await uploadSeedTaskImage(org.id, task.id, keyword);
       return { taskId: task.id, storagePath };
@@ -1084,51 +965,22 @@ async function seedOrg1(users: Users) {
 
   // ── Tags ───────────────────────────────────────────────────────────────────
   console.log("→ Creating tags...");
-  const [
-    tagDailyOps,
-    tagFryer,
-    tagPrep,
-    tagRecipe,
-    tagCleaning,
-    tagQuality,
-    tagOpening,
-    tagClosing,
-  ] = await Promise.all([
-    prisma.tag.create({
-      data: { orgId: org.id, name: "Daily Ops", color: "#F59E0B" },
-    }),
-    prisma.tag.create({
-      data: { orgId: org.id, name: "Fryer", color: "#F97316" },
-    }),
-    prisma.tag.create({
-      data: { orgId: org.id, name: "Prep", color: "#EC4899" },
-    }),
-    prisma.tag.create({
-      data: { orgId: org.id, name: "Recipe", color: "#8B5CF6" },
-    }),
-    prisma.tag.create({
-      data: { orgId: org.id, name: "Cleaning", color: "#22C55E" },
-    }),
-    prisma.tag.create({
-      data: { orgId: org.id, name: "Quality", color: "#A855F7" },
-    }),
-    prisma.tag.create({
-      data: { orgId: org.id, name: "Opening", color: "#3B82F6" },
-    }),
-    prisma.tag.create({
-      data: { orgId: org.id, name: "Closing", color: "#EF4444" },
-    }),
-  ]);
-  const tagByName: Record<string, { id: string }> = {
-    "Daily Ops": tagDailyOps,
-    Fryer: tagFryer,
-    Prep: tagPrep,
-    Recipe: tagRecipe,
-    Cleaning: tagCleaning,
-    Quality: tagQuality,
-    Opening: tagOpening,
-    Closing: tagClosing,
-  };
+  const tagByName: Record<string, { id: string }> = Object.fromEntries(
+    (
+      await prisma.tag.createManyAndReturn({
+        data: [
+          { orgId: org.id, name: "Daily Ops", color: "#F59E0B" },
+          { orgId: org.id, name: "Fryer",     color: "#F97316" },
+          { orgId: org.id, name: "Prep",      color: "#EC4899" },
+          { orgId: org.id, name: "Recipe",    color: "#8B5CF6" },
+          { orgId: org.id, name: "Cleaning",  color: "#22C55E" },
+          { orgId: org.id, name: "Quality",   color: "#A855F7" },
+          { orgId: org.id, name: "Opening",   color: "#3B82F6" },
+          { orgId: org.id, name: "Closing",   color: "#EF4444" },
+        ],
+      })
+    ).map((tag) => [tag.name, tag]),
+  );
   console.log("  ✓ 8 tags created");
 
   // ── Task Tags ──────────────────────────────────────────────────────────────
@@ -1323,9 +1175,20 @@ async function seedOrg1(users: Users) {
   // ── Timetable Entries ──────────────────────────────────────────────────────
   console.log("→ Creating timetable entries...");
 
-  const entries: Promise<unknown>[] = [];
+  const entryData: {
+    orgId: string;
+    taskId: string;
+    taskName: string;
+    taskDescription: string | null;
+    durationMin: number;
+    date: Date;
+    startTimeMin: number;
+    endTimeMin: number;
+    status: EntryStatus;
+  }[] = [];
+  const entryMembershipIds: string[] = [];
 
-  // Helper to push entries
+  // Helper to queue entries
   const add = (
     taskName: string,
     offsetDays: number,
@@ -1334,20 +1197,16 @@ async function seedOrg1(users: Users) {
     membershipId: string,
   ) => {
     const task = t(taskName);
-    entries.push(
-      prisma.timetableEntry.create({
-        data: {
-          orgId: org.id,
-          taskId: task.id,
-          taskName: task.name,
-          taskDescription: task.description,
-          durationMin: task.durationMin,
-          ...utcEntry(offsetDays, hhmm, task.durationMin),
-          status,
-          assignees: { create: [{ membershipId }] },
-        },
-      }),
-    );
+    entryData.push({
+      orgId: org.id,
+      taskId: task.id,
+      taskName: task.name,
+      taskDescription: task.description,
+      durationMin: task.durationMin,
+      ...utcEntry(offsetDays, hhmm, task.durationMin),
+      status,
+    });
+    entryMembershipIds.push(membershipId);
   };
 
   // ── 30 days of past history ────────────────────────────────────────────────
@@ -2071,14 +1930,17 @@ async function seedOrg1(users: Users) {
   );
   add("Close Shop Checklist", 14, "17:00", EntryStatus.TODO, mRiley.id);
 
-  // Process in batches of 4 to stay within Supabase session-mode pool limit
-  // Each nested-write create uses an implicit transaction (2 conns), and pnpm dev holds ~3-4.
-  // 4 × 2 = 8 seed conns + 4 dev conns = 12, safely under the pool_size: 15 cap.
-  const BATCH_SIZE = 4;
-  for (let i = 0; i < entries.length; i += BATCH_SIZE) {
-    await Promise.all(entries.slice(i, i + BATCH_SIZE));
-  }
-  console.log(`  ✓ ${entries.length} timetable entries created`);
+  const createdEntries = await prisma.timetableEntry.createManyAndReturn({
+    data: entryData,
+    select: { id: true },
+  });
+  await prisma.timetableEntryAssignee.createMany({
+    data: createdEntries.map((e, i) => ({
+      timetableEntryId: e.id,
+      membershipId: entryMembershipIds[i]!,
+    })),
+  });
+  console.log(`  ✓ ${createdEntries.length} timetable entries created`);
 
   // ── Franchise Tokens ───────────────────────────────────────────────────────
   console.log("→ Creating franchise tokens...");
@@ -3045,80 +2907,39 @@ async function seedOrg1(users: Users) {
 
   // ── Tool Items ─────────────────────────────────────────────────────────────
   console.log("→ Creating tool items...");
-  const [
-    tiDoughRings,
-    tiCustardPowder,
-    tiColdWater,
-    tiWhippingCream,
-    tiBiscoffSpread,
-    tiVegetableOil,
-    tiNutella,
-    tiPeanutButter,
-    tiIcingSugar,
-    tiWhiteFondant,
-    tiButter,
-    tiChocButtons,
-    tiCocoaPowder,
-    tiHotWater,
-    tiChocPowder,
-    tiQuark,
-  ] = await Promise.all([
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Dough Rings", unit: "each" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Custard Powder", unit: "g" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Cold Water", unit: "ml" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Whipping Cream", unit: "ml" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Biscoff Spread", unit: "g" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Vegetable Oil", unit: "ml" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Nutella", unit: "g" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Peanut Butter", unit: "g" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Icing Sugar", unit: "g" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "White Fondant", unit: "g" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Butter", unit: "g" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Chocolate Buttons", unit: "g" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Cocoa Powder", unit: "g" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Hot Water", unit: "ml" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Chocolate Powder", unit: "scoops" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Quark", unit: "g" },
-    }),
-  ]);
+  const _toolItems = await prisma.toolItem.createManyAndReturn({
+    data: [
+      { orgId: org.id, name: "Dough Rings",         unit: "each"   },
+      { orgId: org.id, name: "Custard Powder",       unit: "g"      },
+      { orgId: org.id, name: "Cold Water",           unit: "ml"     },
+      { orgId: org.id, name: "Whipping Cream",       unit: "ml"     },
+      { orgId: org.id, name: "Biscoff Spread",       unit: "g"      },
+      { orgId: org.id, name: "Vegetable Oil",        unit: "ml"     },
+      { orgId: org.id, name: "Nutella",              unit: "g"      },
+      { orgId: org.id, name: "Peanut Butter",        unit: "g"      },
+      { orgId: org.id, name: "Icing Sugar",          unit: "g"      },
+      { orgId: org.id, name: "White Fondant",        unit: "g"      },
+      { orgId: org.id, name: "Butter",               unit: "g"      },
+      { orgId: org.id, name: "Chocolate Buttons",    unit: "g"      },
+      { orgId: org.id, name: "Cocoa Powder",         unit: "g"      },
+      { orgId: org.id, name: "Hot Water",            unit: "ml"     },
+      { orgId: org.id, name: "Chocolate Powder",     unit: "scoops" },
+      { orgId: org.id, name: "Quark",                unit: "g"      },
+    ],
+  });
+  const _tiByName = Object.fromEntries(_toolItems.map((ti) => [ti.name, ti]));
+  const tiDoughRings    = _tiByName["Dough Rings"]!;
+  const tiCustardPowder = _tiByName["Custard Powder"]!;
+  const tiColdWater     = _tiByName["Cold Water"]!;
+  const tiWhippingCream = _tiByName["Whipping Cream"]!;
+  const tiBiscoffSpread = _tiByName["Biscoff Spread"]!;
+  const tiWhiteFondant  = _tiByName["White Fondant"]!;
+  const tiButter        = _tiByName["Butter"]!;
+  const tiChocButtons   = _tiByName["Chocolate Buttons"]!;
+  const tiCocoaPowder   = _tiByName["Cocoa Powder"]!;
+  const tiHotWater      = _tiByName["Hot Water"]!;
+  const tiChocPowder    = _tiByName["Chocolate Powder"]!;
   console.log("  ✓ 16 tool items created");
-  // Silence unused-variable warnings for items not used directly in conversion rates
-  void tiVegetableOil;
-  void tiNutella;
-  void tiPeanutButter;
-  void tiIcingSugar;
-  void tiQuark;
 
   // ── Conversion Sets ────────────────────────────────────────────────────────
   console.log("→ Creating conversion sets...");
@@ -3306,75 +3127,26 @@ async function seedFranchisee(
   }
 
   // ── Roles (mirror parent structure) ───────────────────────────────────────
-  const [
-    roleOwner,
-    roleWorker,
-    roleFryer,
-    roleCounter,
-    roleShiftLead,
-    roleTrainee,
-  ] = await Promise.all([
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Owner",
-        key: ROLE_KEYS.OWNER,
-        color: "#ef4444",
-        isDeletable: false,
-        isDefault: false,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Default Member",
-        key: ROLE_KEYS.DEFAULT_MEMBER,
-        color: "#6b7280",
-        isDeletable: false,
-        isDefault: true,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Fryer Operator",
-        key: "fryer_op",
-        color: "#F97316",
-        isDeletable: true,
-        isDefault: false,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Counter Staff",
-        key: "counter_staff",
-        color: "#06B6D4",
-        isDeletable: true,
-        isDefault: false,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Shift Lead",
-        key: "shift_lead",
-        color: "#8B5CF6",
-        isDeletable: true,
-        isDefault: false,
-      },
-    }),
-    prisma.role.create({
-      data: {
-        orgId: org.id,
-        name: "Trainee",
-        key: "trainee",
-        color: "#84CC16",
-        isDeletable: true,
-        isDefault: false,
-      },
-    }),
-  ]);
+  const [roleOwner, roleWorker, roleFryer, roleCounter, roleShiftLead, roleTrainee] =
+    await prisma.role
+      .createManyAndReturn({
+        data: [
+          { orgId: org.id, name: "Owner",          key: ROLE_KEYS.OWNER,         color: "#ef4444", isDeletable: false, isDefault: false },
+          { orgId: org.id, name: "Default Member", key: ROLE_KEYS.DEFAULT_MEMBER, color: "#6b7280", isDeletable: false, isDefault: true  },
+          { orgId: org.id, name: "Fryer Operator", key: "fryer_op",               color: "#F97316", isDeletable: true,  isDefault: false },
+          { orgId: org.id, name: "Counter Staff",  key: "counter_staff",          color: "#06B6D4", isDeletable: true,  isDefault: false },
+          { orgId: org.id, name: "Shift Lead",     key: "shift_lead",             color: "#8B5CF6", isDeletable: true,  isDefault: false },
+          { orgId: org.id, name: "Trainee",        key: "trainee",                color: "#84CC16", isDeletable: true,  isDefault: false },
+        ],
+      })
+      .then((rows) => [
+        rows.find((r) => r.key === ROLE_KEYS.OWNER)!,
+        rows.find((r) => r.key === ROLE_KEYS.DEFAULT_MEMBER)!,
+        rows.find((r) => r.key === "fryer_op")!,
+        rows.find((r) => r.key === "counter_staff")!,
+        rows.find((r) => r.key === "shift_lead")!,
+        rows.find((r) => r.key === "trainee")!,
+      ] as const);
 
   await prisma.permission.createMany({
     data: [
@@ -3395,29 +3167,16 @@ async function seedFranchisee(
   });
 
   // ── Memberships ────────────────────────────────────────────────────────────
-  const [mQuinn, mMorgan, mTaylor] = await Promise.all([
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: quinn.id,
-        workingDays: ["mon", "tue", "wed", "thu", "fri", "sat"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: morgan.id,
-        workingDays: ["tue", "wed", "thu", "fri", "sat"],
-      },
-    }),
-    prisma.membership.create({
-      data: {
-        orgId: org.id,
-        userId: taylor.id,
-        workingDays: ["mon", "wed", "fri"],
-      },
-    }),
-  ]);
+  const _fMemberships = await prisma.membership.createManyAndReturn({
+    data: [
+      { orgId: org.id, userId: quinn.id,  workingDays: ["mon", "tue", "wed", "thu", "fri", "sat"] },
+      { orgId: org.id, userId: morgan.id, workingDays: ["tue", "wed", "thu", "fri", "sat"] },
+      { orgId: org.id, userId: taylor.id, workingDays: ["mon", "wed", "fri"] },
+    ],
+  });
+  const mQuinn  = _fMemberships.find((m) => m.userId === quinn.id)!;
+  const mMorgan = _fMemberships.find((m) => m.userId === morgan.id)!;
+  const mTaylor = _fMemberships.find((m) => m.userId === taylor.id)!;
 
   await prisma.memberRole.createMany({
     data: [
@@ -3432,99 +3191,53 @@ async function seedFranchisee(
 
   // ── Tool Items ─────────────────────────────────────────────────────────────
   console.log("→ Creating franchisee tool items...");
-  const [
-    qtiDoughRings,
-    qtiCustardPowder,
-    qtiColdWater,
-    qtiWhippingCream,
-    qtiChocButtons,
-    qtiHoneycombFlavour,
-    qtiStrawberryPowder,
-    qtiVanillaChai,
-    qtiWhiteFondant,
-    qtiBiscoffSpread,
-    qtiButter,
-    qtiCocoaPowder,
-    qtiHotWater,
-    qtiCoconutMilk,
-    qtiMatchaPowder,
-    qtiEspressoShot,
-    qtiBananaFlavacol,
-    qtiMilk,
-    qtiIce,
-    qtiDrink,
-    qtiCinnamonPowder,
-    qtiCasterSugar,
-  ] = await Promise.all([
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Dough Rings", unit: "each" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Custard Powder", unit: "g" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Cold Water", unit: "ml" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Whipping Cream", unit: "ml" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Chocolate Buttons", unit: "g" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Honeycomb Flavour", unit: "ml" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Strawberry Frappe Powder", unit: "g" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Vanilla Chai Powder", unit: "g" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "White Fondant", unit: "g" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Biscoff Spread", unit: "g" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Butter", unit: "g" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Cocoa Powder", unit: "g" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Hot Water", unit: "ml" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Coconut Milk", unit: "ml" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Matcha Powder", unit: "g" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Espresso Shot", unit: "ml" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Banana Flavacol", unit: "ml" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Milk", unit: "ml" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Ice", unit: "cups" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Drink", unit: "each" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Cinnamon Powder", unit: "g" },
-    }),
-    prisma.toolItem.create({
-      data: { orgId: org.id, name: "Caster Sugar", unit: "g" },
-    }),
-  ]);
-  void qtiCinnamonPowder;
-  void qtiCasterSugar;
+  const _qToolItems = await prisma.toolItem.createManyAndReturn({
+    data: [
+      { orgId: org.id, name: "Dough Rings",              unit: "each"  },
+      { orgId: org.id, name: "Custard Powder",            unit: "g"     },
+      { orgId: org.id, name: "Cold Water",                unit: "ml"    },
+      { orgId: org.id, name: "Whipping Cream",            unit: "ml"    },
+      { orgId: org.id, name: "Chocolate Buttons",         unit: "g"     },
+      { orgId: org.id, name: "Honeycomb Flavour",         unit: "ml"    },
+      { orgId: org.id, name: "Strawberry Frappe Powder",  unit: "g"     },
+      { orgId: org.id, name: "Vanilla Chai Powder",       unit: "g"     },
+      { orgId: org.id, name: "White Fondant",             unit: "g"     },
+      { orgId: org.id, name: "Biscoff Spread",            unit: "g"     },
+      { orgId: org.id, name: "Butter",                    unit: "g"     },
+      { orgId: org.id, name: "Cocoa Powder",              unit: "g"     },
+      { orgId: org.id, name: "Hot Water",                 unit: "ml"    },
+      { orgId: org.id, name: "Coconut Milk",              unit: "ml"    },
+      { orgId: org.id, name: "Matcha Powder",             unit: "g"     },
+      { orgId: org.id, name: "Espresso Shot",             unit: "ml"    },
+      { orgId: org.id, name: "Banana Flavacol",           unit: "ml"    },
+      { orgId: org.id, name: "Milk",                      unit: "ml"    },
+      { orgId: org.id, name: "Ice",                       unit: "cups"  },
+      { orgId: org.id, name: "Drink",                     unit: "each"  },
+      { orgId: org.id, name: "Cinnamon Powder",           unit: "g"     },
+      { orgId: org.id, name: "Caster Sugar",              unit: "g"     },
+    ],
+  });
+  const _qtiByName = Object.fromEntries(_qToolItems.map((ti) => [ti.name, ti]));
+  const qtiDoughRings        = _qtiByName["Dough Rings"]!;
+  const qtiCustardPowder     = _qtiByName["Custard Powder"]!;
+  const qtiColdWater         = _qtiByName["Cold Water"]!;
+  const qtiWhippingCream     = _qtiByName["Whipping Cream"]!;
+  const qtiChocButtons       = _qtiByName["Chocolate Buttons"]!;
+  const qtiHoneycombFlavour  = _qtiByName["Honeycomb Flavour"]!;
+  const qtiStrawberryPowder  = _qtiByName["Strawberry Frappe Powder"]!;
+  const qtiVanillaChai       = _qtiByName["Vanilla Chai Powder"]!;
+  const qtiWhiteFondant      = _qtiByName["White Fondant"]!;
+  const qtiBiscoffSpread     = _qtiByName["Biscoff Spread"]!;
+  const qtiButter            = _qtiByName["Butter"]!;
+  const qtiCocoaPowder       = _qtiByName["Cocoa Powder"]!;
+  const qtiHotWater          = _qtiByName["Hot Water"]!;
+  const qtiCoconutMilk       = _qtiByName["Coconut Milk"]!;
+  const qtiMatchaPowder      = _qtiByName["Matcha Powder"]!;
+  const qtiEspressoShot      = _qtiByName["Espresso Shot"]!;
+  const qtiBananaFlavacol    = _qtiByName["Banana Flavacol"]!;
+  const qtiMilk              = _qtiByName["Milk"]!;
+  const qtiIce               = _qtiByName["Ice"]!;
+  const qtiDrink             = _qtiByName["Drink"]!;
   console.log("  ✓ 22 tool items created");
 
   // ── Conversion Sets ────────────────────────────────────────────────────────
@@ -3964,40 +3677,49 @@ async function seedFranchisee(
     },
   ];
 
-  let globalTasksCreated = 0;
+  const _createdGlobalTasks = await prisma.task.createManyAndReturn({
+    data: QUINN_GLOBAL_TASKS.map((def) => ({
+      orgId: org.id,
+      name: def.name,
+      color: def.color,
+      durationMin: def.durationMin,
+      description: def.description,
+      preferredStartTimeMin: timeToMin("07:30"),
+      minPeople: 1,
+      minWaitDays: 0,
+      maxWaitDays: 1,
+      scope: TaskScope.GLOBAL,
+    })),
+  });
+  const _qGlobalByName = Object.fromEntries(_createdGlobalTasks.map((t) => [t.name, t]));
+  await Promise.all([
+    prisma.taskEligibility.createMany({
+      data: QUINN_GLOBAL_TASKS.map((def) => ({
+        taskId: _qGlobalByName[def.name]!.id,
+        roleId: (roleByKey[def.roleKey] ?? roleFryer).id,
+      })),
+    }),
+    prisma.taskInheritance.createMany({
+      data: _createdGlobalTasks.map((task) => ({ taskId: task.id, orgId: org.id })),
+    }),
+  ]);
+  // Phase 1: upload images in parallel (no DB connections held)
+  const _qGlobalImgResults = await Promise.all(
+    QUINN_GLOBAL_TASKS.map(async (def) => {
+      const task = _qGlobalByName[def.name]!;
+      const imgUrl = await uploadSeedTaskImage(org.id, task.id, def.keyword);
+      return { taskId: task.id, imgUrl };
+    }),
+  );
+  // Phase 2: write imageUrls sequentially to stay within the connection pool
   let globalTaskImages = 0;
-  for (const def of QUINN_GLOBAL_TASKS) {
-    const task = await prisma.task.create({
-      data: {
-        orgId: org.id,
-        name: def.name,
-        color: def.color,
-        durationMin: def.durationMin,
-        description: def.description,
-        preferredStartTimeMin: timeToMin("07:30"),
-        minPeople: 1,
-        minWaitDays: 0,
-        maxWaitDays: 1,
-        scope: TaskScope.GLOBAL,
-      },
-    });
-    const role = roleByKey[def.roleKey] ?? roleFryer;
-    await prisma.taskEligibility.create({
-      data: { taskId: task.id, roleId: role.id },
-    });
-    await prisma.taskInheritance.create({
-      data: { taskId: task.id, orgId: org.id },
-    });
-    const imgUrl = await uploadSeedTaskImage(org.id, task.id, def.keyword);
+  for (const { taskId, imgUrl } of _qGlobalImgResults) {
     if (imgUrl) {
-      await prisma.task.update({
-        where: { id: task.id },
-        data: { imageUrl: imgUrl },
-      });
+      await prisma.task.update({ where: { id: taskId }, data: { imageUrl: imgUrl } });
       globalTaskImages++;
     }
-    globalTasksCreated++;
   }
+  const globalTasksCreated = _createdGlobalTasks.length;
   console.log(
     `  ✓ ${globalTasksCreated} GLOBAL tasks created (${globalTaskImages} with images)`,
   );
@@ -4058,7 +3780,7 @@ function confirm(): void {
   // Validate DATABASE_URL is present
   if (!dbUrl) {
     console.error("  ❌ ERROR: DATABASE_URL is not set.");
-    console.error("  Aborted — nothing was changed.\n");
+    console.error("  Ensure .env.local is present with DATABASE_URL set to your local database.\n");
     process.exit(1);
   }
 
@@ -4068,56 +3790,34 @@ function confirm(): void {
     parsedUrl = new URL(dbUrl);
   } catch {
     console.error("  ❌ ERROR: DATABASE_URL is not a valid URL.");
-    console.error("  Aborted — nothing was changed.\n");
     process.exit(1);
   }
 
+  // Guard: refuse to seed anything that doesn't look like a local/dev database
   const devIdentifiers = (process.env.SEED_DEV_IDENTIFIERS ?? "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  const isProduction = !(
+  const isLocal =
     parsedUrl.hostname.includes("localhost") ||
     parsedUrl.hostname.includes("dev") ||
     parsedUrl.username.includes("dev") ||
     devIdentifiers.some(
       (id) =>
         parsedUrl.username.includes(id) || parsedUrl.hostname.includes(id),
-    )
-  );
-  const expected = isProduction ? "production" : "development";
-  const arg = process.argv[2];
+    );
 
   console.log("");
   console.log(`  Target database : ${parsedUrl.hostname}`);
-  console.log(`  Environment     : ${expected.toUpperCase()}`);
-  console.log("");
 
-  if (arg !== expected) {
-    if (isProduction) {
-      console.log(
-        "  ⚠️  WARNING: This targets PRODUCTION. Run: pnpm seed:prod",
-      );
-    } else {
-      console.log("  Run: pnpm seed:dev");
-    }
-    console.log("  Aborted — nothing was changed.\n");
+  if (!isLocal) {
+    console.error("  ❌ ERROR: Seeding is only allowed against a local/dev database.");
+    console.error("  If this is a dev database, add its hostname or username to SEED_DEV_IDENTIFIERS in .env.local.");
+    console.error("  Aborted — nothing was changed.\n");
     process.exit(1);
   }
 
-  if (isProduction) {
-    // Require explicit env var confirmation for production
-    if (process.env.CONFIRM_RESEED !== "production") {
-      console.log(
-        "  ❌ ERROR: Production reseed requires explicit confirmation.",
-      );
-      console.log("  Set CONFIRM_RESEED=production to proceed.");
-      console.log("  Aborted — nothing was changed.\n");
-      process.exit(1);
-    }
-    console.log("  ⚠️  WARNING: This will WIPE and reseed PRODUCTION.");
-    console.log("");
-  }
+  console.log("");
 
   // Initialize Prisma client after validation
   const adapter = new PrismaPg({ connectionString: dbUrl });

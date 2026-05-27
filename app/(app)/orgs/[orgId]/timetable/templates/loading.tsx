@@ -1,8 +1,11 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { SidebarSubContentSkeleton } from "@/app/(app)/orgs/[orgId]/_components/sidebar-sub-content-skeleton";
 
 export default function TemplatesLoading() {
   return (
-    <div className="flex flex-col gap-4">
+    <>
+      <SidebarSubContentSkeleton />
+      <div className="flex flex-col gap-4">
       {/* Toolbar */}
       <div className="-mx-4 -mt-4 mb-4 h-12 border-b bg-card px-4 flex items-center justify-between gap-2 sm:-mx-6 sm:-mt-6 sm:mb-6 sm:px-6">
         <Skeleton className="h-5 w-24 rounded" />
@@ -33,5 +36,6 @@ export default function TemplatesLoading() {
         ))}
       </div>
     </div>
+    </>
   );
 }

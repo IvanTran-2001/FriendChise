@@ -52,7 +52,7 @@ export function MembersSidebarContent({
   return (
     <>
       {/* Filters section */}
-      <div className="px-3 pt-3 pb-2 border-t border-border">
+      <div className="px-3 pt-3 pb-2">
         <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
           Filters
         </p>
