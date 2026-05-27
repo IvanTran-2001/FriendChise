@@ -1546,15 +1546,24 @@ async function main() {
   );
   add("Close Shop Checklist", 14, "17:00", EntryStatus.TODO, mRiley.id);
 
-  const createdEntries = await prisma.timetableEntry.createManyAndReturn({
-    data: entryData,
-  });
-  await prisma.timetableEntryAssignee.createMany({
-    data: entryAssignees.map(({ entryIdx, membershipId }) => ({
-      timetableEntryId: createdEntries[entryIdx].id,
-      membershipId,
-    })),
-  });
+  const createdEntries = [];
+  for (let i = 0; i < entryData.length; i++) {
+    const entry = await prisma.timetableEntry.create({
+      data: entryData[i],
+    });
+    createdEntries.push(entry);
+
+    // Find and create assignee for this entry
+    const assignee = entryAssignees.find(({ entryIdx }) => entryIdx === i);
+    if (assignee) {
+      await prisma.timetableEntryAssignee.create({
+        data: {
+          timetableEntryId: entry.id,
+          membershipId: assignee.membershipId,
+        },
+      });
+    }
+  }
   console.log(`  ✓ ${createdEntries.length} timetable entries created`);
 
   // ── Franchise Tokens ───────────────────────────────────────────────────────
