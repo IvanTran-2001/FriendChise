@@ -1212,7 +1212,10 @@ async function seedOrg1(users: Users) {
     endTimeMin: number;
     status: EntryStatus;
   }[] = [];
-  const entryMembershipIds: string[] = [];
+  // Maps composite key "taskId|dateMs|startTimeMin" → membershipId.
+  // Used to look up assignees after createManyAndReturn (whose return order
+  // is not guaranteed to match the input order).
+  const entryMembershipByKey = new Map<string, string>();
 
   // Helper to queue entries
   const add = (
@@ -1223,16 +1226,18 @@ async function seedOrg1(users: Users) {
     membershipId: string,
   ) => {
     const task = t(taskName);
+    const utc = utcEntry(offsetDays, hhmm, task.durationMin);
     entryData.push({
       orgId: org.id,
       taskId: task.id,
       taskName: task.name,
       taskDescription: task.description,
       durationMin: task.durationMin,
-      ...utcEntry(offsetDays, hhmm, task.durationMin),
+      ...utc,
       status,
     });
-    entryMembershipIds.push(membershipId);
+    const key = `${task.id}|${utc.date.getTime()}|${utc.startTimeMin}`;
+    entryMembershipByKey.set(key, membershipId);
   };
 
   // ── 30 days of past history ────────────────────────────────────────────────
@@ -1958,13 +1963,14 @@ async function seedOrg1(users: Users) {
 
   const createdEntries = await prisma.timetableEntry.createManyAndReturn({
     data: entryData,
-    select: { id: true },
+    select: { id: true, taskId: true, date: true, startTimeMin: true },
   });
   await prisma.timetableEntryAssignee.createMany({
-    data: createdEntries.map((e, i) => ({
-      timetableEntryId: e.id,
-      membershipId: entryMembershipIds[i]!,
-    })),
+    data: createdEntries.flatMap((e) => {
+      const key = `${e.taskId}|${e.date.getTime()}|${e.startTimeMin}`;
+      const membershipId = entryMembershipByKey.get(key);
+      return membershipId ? [{ timetableEntryId: e.id, membershipId }] : [];
+    }),
   });
   console.log(`  ✓ ${createdEntries.length} timetable entries created`);
 
@@ -3829,12 +3835,19 @@ function confirm(): void {
     .map((s) => s.trim())
     .filter(Boolean);
   const isLocal =
-    parsedUrl.hostname.includes("localhost") ||
-    parsedUrl.hostname.includes("dev") ||
-    parsedUrl.username.includes("dev") ||
+    // Exact localhost variants only — no substring matching
+    parsedUrl.hostname === "localhost" ||
+    parsedUrl.hostname === "127.0.0.1" ||
+    parsedUrl.hostname === "::1" ||
+    // "dev" must be a complete dot-separated segment (e.g. "dev.db.internal"),
+    // not a substring of another segment (e.g. "prod-dev.db.internal" is rejected)
+    /(?:^|\.)dev(?:\.|$)/i.test(parsedUrl.hostname) ||
+    // "dev" must be a standalone word in the username, delimited by . _ - or boundary
+    // (e.g. "dev", "dev_admin", "admin_dev" — but NOT "devops" or "admin-devops")
+    /(?:^|[._-])dev(?:[._-]|$)/i.test(parsedUrl.username) ||
+    // Explicit opt-in: exact full hostname or username match only
     devIdentifiers.some(
-      (id) =>
-        parsedUrl.username.includes(id) || parsedUrl.hostname.includes(id),
+      (id) => parsedUrl.username === id || parsedUrl.hostname === id,
     );
 
   console.log("");
