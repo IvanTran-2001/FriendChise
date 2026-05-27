@@ -83,15 +83,25 @@ function getMondayUTC(offsetWeeks = 0): Date {
   );
 }
 
+/** Converts a display name to a URL-safe lowercase slug (e.g. "Donut Shop A" → "donut-shop-a"). */
+const toSlug = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
 /**
  * Fetches a relevant image from LoremFlickr (Flickr-backed, keyword search)
  * and uploads it to the Supabase private bucket as the task's seed image.
  *
+ * Uses slug-based paths (org name + task name) so that re-seeding with --reset
+ * upserts the same file rather than orphaning the old one.
+ *
  * Non-fatal — if the upload fails for any reason the task simply has no image.
  */
 async function uploadSeedTaskImage(
-  orgId: string,
-  taskId: string,
+  orgSlug: string,
+  taskSlug: string,
   keyword: string,
 ): Promise<string | null> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -108,7 +118,7 @@ async function uploadSeedTaskImage(
     if (!imgRes.ok) return null;
     const imgData = await imgRes.arrayBuffer();
 
-    const storagePath = `orgs/${orgId}/tasks/${taskId}/seed.jpg`;
+    const storagePath = `seed/${orgSlug}/tasks/${taskSlug}.jpg`;
     const uploadRes = await fetch(
       `${supabaseUrl}/storage/v1/object/friendchise-private/${storagePath}`,
       {
@@ -132,7 +142,7 @@ async function uploadSeedTaskImage(
  * Returns the bare storage path on success, or null on failure.
  */
 async function uploadOrgLogo(
-  orgId: string,
+  orgSlug: string,
   imageBuffer: Buffer,
 ): Promise<string | null> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -140,7 +150,7 @@ async function uploadOrgLogo(
   if (!supabaseUrl || !supabaseKey) return null;
 
   try {
-    const storagePath = `orgs/${orgId}/logo.jpg`;
+    const storagePath = `seed/${orgSlug}/logo.jpg`;
     const res = await fetch(
       `${supabaseUrl}/storage/v1/object/friendchise-public/${storagePath}`,
       {
@@ -735,7 +745,7 @@ async function seedOrg1(users: Users) {
   );
   if (fs.existsSync(org1LogoPath)) {
     const logoBuffer = fs.readFileSync(org1LogoPath);
-    const logoStoragePath = await uploadOrgLogo(org.id, logoBuffer);
+    const logoStoragePath = await uploadOrgLogo(toSlug(org.name), logoBuffer);
     if (logoStoragePath) {
       await prisma.organization.update({
         where: { id: org.id },
@@ -911,7 +921,11 @@ async function seedOrg1(users: Users) {
   const uploadResults = await Promise.all(
     createdTasks.map(async ({ task }) => {
       const keyword = TASK_IMAGE_KEYWORDS[task.name] ?? "bakery,food";
-      const storagePath = await uploadSeedTaskImage(org.id, task.id, keyword);
+      const storagePath = await uploadSeedTaskImage(
+        toSlug(org.name),
+        toSlug(task.name),
+        keyword,
+      );
       return { taskId: task.id, storagePath };
     }),
   );
@@ -3112,7 +3126,7 @@ async function seedFranchisee(
     const logoBuffer = fs.readFileSync(
       path.join(process.cwd(), "public/donut_a_logo.jpg"),
     );
-    const logoPath = await uploadOrgLogo(org.id, logoBuffer);
+    const logoPath = await uploadOrgLogo(toSlug(org.name), logoBuffer);
     if (logoPath) {
       await prisma.organization.update({
         where: { id: org.id },
@@ -3707,7 +3721,11 @@ async function seedFranchisee(
   const _qGlobalImgResults = await Promise.all(
     QUINN_GLOBAL_TASKS.map(async (def) => {
       const task = _qGlobalByName[def.name]!;
-      const imgUrl = await uploadSeedTaskImage(org.id, task.id, def.keyword);
+      const imgUrl = await uploadSeedTaskImage(
+        toSlug(org.name),
+        toSlug(task.name),
+        def.keyword,
+      );
       return { taskId: task.id, imgUrl };
     }),
   );
