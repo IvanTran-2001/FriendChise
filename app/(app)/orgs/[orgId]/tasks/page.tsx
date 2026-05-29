@@ -1,6 +1,4 @@
-import { getInheritedTasks, getSharedTasks } from "@/lib/services/tasks";
 import { getRoles } from "@/lib/services/roles";
-import { createSignedReadUrl } from "@/lib/supabase-storage";
 import { getOrgTags } from "@/lib/services/tags";
 import { requireOrgMemberPage } from "@/lib/authz";
 import {
@@ -98,21 +96,7 @@ const TasksPage = async ({
       )
     : false;
 
-  const [tasks, roles, orgTags] = await Promise.all([
-    mode === "shared"
-      ? Promise.all([getInheritedTasks(orgId), getSharedTasks(orgId)]).then(
-          ([inherited, shared]) => [
-            ...inherited.map((t) => ({ ...t, _available: false as const })),
-            ...shared.map((t) => ({ ...t, _available: true as const })),
-          ],
-        )
-      : mode === "available"
-        ? getSharedTasks(orgId).then((shared) =>
-            shared.map((t) => ({ ...t, _available: true as const })),
-          )
-        : getInheritedTasks(orgId).then((inherited) =>
-            inherited.map((t) => ({ ...t, _available: false as const })),
-          ),
+  const [roles, orgTags] = await Promise.all([
     getRoles(orgId),
     getOrgTags(orgId),
   ]);
@@ -132,19 +116,6 @@ const TasksPage = async ({
     sp.view === "card" ? "card" :
     sp.view === "list" ? "list" :
     savedPrefs?.view === "card" ? "card" : "list";
-
-  // Resolve signed image URLs only when images will be displayed (not in list view)
-  const tasksWithImages =
-    view !== "list"
-      ? await Promise.all(
-          tasks.map(async (t) => ({
-            ...t,
-            imageSignedUrl: t.imageUrl
-              ? await createSignedReadUrl(t.imageUrl)
-              : null,
-          })),
-        )
-      : tasks.map((t) => ({ ...t, imageSignedUrl: null }));
 
   const tags = orgTags.map((t) => ({ id: t.id, name: t.name, color: t.color }));
   const tagId =
@@ -175,7 +146,7 @@ const TasksPage = async ({
       />
       <TaskTable
         orgId={orgId}
-        tasks={tasksWithImages}
+        mode={mode}
         canManageTasks={canManageTasks}
         sort={sort}
         filterRoleId={roleId}

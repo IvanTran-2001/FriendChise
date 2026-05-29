@@ -205,6 +205,159 @@ export async function getTasks(orgId: string) {
   });
 }
 
+export type TaskSortOption =
+  | "name-asc"
+  | "name-desc"
+  | "duration-asc"
+  | "duration-desc"
+  | "people-asc"
+  | "people-desc";
+
+export type TasksPage = {
+  tasks: (Awaited<ReturnType<typeof getInheritedTasks>>[number] & { _available: boolean })[];
+  nextCursor: string | null;
+};
+
+function sortOrderBy(sort: TaskSortOption) {
+  switch (sort) {
+    case "name-asc":    return { name: "asc" as const };
+    case "name-desc":   return { name: "desc" as const };
+    case "duration-asc":  return { durationMin: "asc" as const };
+    case "duration-desc": return { durationMin: "desc" as const };
+    case "people-asc":  return { minPeople: "asc" as const };
+    case "people-desc": return { minPeople: "desc" as const };
+  }
+}
+
+/**
+ * Paginated task fetch for the tasks list page.
+ * mode "list"      → inherited tasks only
+ * mode "available" → GLOBAL franchise tasks not yet inherited
+ * mode "shared"    → both combined (inherited first, then available)
+ *
+ * Uses cursor-based pagination on task.id (stable across sorts).
+ */
+export async function getTasksPaginated(
+  orgId: string,
+  mode: "list" | "available" | "shared",
+  options: {
+    cursor?: string;
+    limit?: number;
+    sort?: TaskSortOption;
+  } = {},
+): Promise<TasksPage> {
+  const limit = Math.min(options.limit ?? 30, 100);
+  const sort = options.sort ?? "name-asc";
+  const cursor = options.cursor;
+
+  if (mode === "shared") {
+    // Show inherited tasks first (phase "list"), then available tasks (phase "available").
+    // Cursor encodes current phase + sub-cursor: JSON.stringify({ phase, cursor })
+    let phase: "list" | "available" = "list";
+    let subCursor: string | undefined;
+    if (cursor) {
+      try {
+        const parsed = JSON.parse(cursor) as { phase?: string; cursor?: string | null };
+        phase = parsed.phase === "available" ? "available" : "list";
+        subCursor = parsed.cursor ?? undefined;
+      } catch {
+        // ignore invalid cursor — restart from beginning
+      }
+    }
+
+    if (phase === "list") {
+      const listPage = await getTasksPaginated(orgId, "list", { cursor: subCursor, limit, sort });
+      if (listPage.nextCursor) {
+        return {
+          tasks: listPage.tasks,
+          nextCursor: JSON.stringify({ phase: "list", cursor: listPage.nextCursor }),
+        };
+      }
+      // Inherited exhausted — fill remainder of this page with available tasks
+      const remaining = limit - listPage.tasks.length;
+      const availablePage = await getTasksPaginated(orgId, "available", {
+        cursor: undefined,
+        limit: remaining > 0 ? remaining : limit,
+        sort,
+      });
+      return {
+        tasks: [...listPage.tasks, ...availablePage.tasks],
+        nextCursor: availablePage.nextCursor
+          ? JSON.stringify({ phase: "available", cursor: availablePage.nextCursor })
+          : null,
+      };
+    }
+
+    // phase === "available"
+    const availablePage = await getTasksPaginated(orgId, "available", { cursor: subCursor, limit, sort });
+    return {
+      tasks: availablePage.tasks,
+      nextCursor: availablePage.nextCursor
+        ? JSON.stringify({ phase: "available", cursor: availablePage.nextCursor })
+        : null,
+    };
+  }
+
+  if (mode === "list") {
+    const orderBy = sortOrderBy(sort);
+    const inheritances = await prisma.taskInheritance.findMany({
+      where: { orgId },
+      include: { task: { include: taskInclude } },
+      orderBy: { task: orderBy },
+      take: limit + 1,
+      ...(cursor && {
+        cursor: { id: cursor },
+        skip: 1,
+      }),
+    });
+    const hasMore = inheritances.length > limit;
+    const slice = hasMore ? inheritances.slice(0, limit) : inheritances;
+    return {
+      tasks: slice.map((i) => ({ ...i.task, _available: false as const })),
+      nextCursor: hasMore ? slice[slice.length - 1].id : null,
+    };
+  }
+
+  // mode === "available"
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { parentId: true },
+  });
+  if (!org) return { tasks: [], nextCursor: null };
+
+  const alreadyInherited = await prisma.taskInheritance
+    .findMany({ where: { orgId }, select: { taskId: true } })
+    .then((rows) => rows.map((r) => r.taskId));
+
+  const franchiseParentId = org.parentId;
+  const orderBy = sortOrderBy(sort);
+
+  const rows = await prisma.task.findMany({
+    where: {
+      scope: TaskScope.GLOBAL,
+      orgId: { not: orgId },
+      ...(alreadyInherited.length > 0 && { id: { notIn: alreadyInherited } }),
+      OR: franchiseParentId
+        ? [
+            { orgId: franchiseParentId },
+            { organization: { parentId: franchiseParentId } },
+          ]
+        : [{ organization: { parentId: orgId } }],
+    },
+    include: taskInclude,
+    orderBy,
+    take: limit + 1,
+    ...(cursor && { cursor: { id: cursor }, skip: 1 }),
+  });
+
+  const hasMore = rows.length > limit;
+  const slice = hasMore ? rows.slice(0, limit) : rows;
+  return {
+    tasks: slice.map((t) => ({ ...t, _available: true as const })),
+    nextCursor: hasMore ? slice[slice.length - 1].id : null,
+  };
+}
+
 /**
  * Returns a single task by ID, scoped to the org.
  * Returns null if not found.

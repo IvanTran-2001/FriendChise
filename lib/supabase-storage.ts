@@ -81,6 +81,43 @@ export async function createSignedUploadUrl(
 }
 
 /**
+ * Batch-generates short-lived signed URLs for multiple private files in a
+ * single HTTP call. Returns a Map from storagePath → signedUrl (or null).
+ */
+export async function createSignedReadUrls(
+  storagePaths: string[],
+  expiresIn = 3600,
+): Promise<Map<string, string | null>> {
+  const result = new Map<string, string | null>(storagePaths.map((p) => [p, null]));
+  if (storagePaths.length === 0) return result;
+  const { url, key } = getConfig();
+  const res = await fetch(`${url}/storage/v1/object/sign/${BUCKET}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ expiresIn, paths: storagePaths }),
+  });
+  if (!res.ok) return result;
+  const data = (await res.json()) as Array<{
+    originalPath?: string;
+    signedURL: string | null;
+    error: string | null;
+  }>;
+  for (const entry of data) {
+    if (!entry?.originalPath || !entry.signedURL) continue;
+    result.set(
+      entry.originalPath,
+      entry.signedURL.startsWith("http")
+        ? entry.signedURL
+        : `${url}/storage/v1${entry.signedURL}`,
+    );
+  }
+  return result;
+}
+
+/**
  * Generates a short-lived signed URL for reading a private file.
  * Returns null if the path is empty or generation fails.
  */
