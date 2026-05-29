@@ -68,6 +68,13 @@ enum VoteType {
   DOWNVOTE
 }
 
+enum ListDisplayType {
+  TABLE
+  GRID
+  CHECKLIST
+  GALLERY
+}
+
 // ─────────────────────────────────────
 // AUTH (NextAuth)
 // ─────────────────────────────────────
@@ -182,6 +189,7 @@ model Organization {
   invites             Invite[]
   auditLogs           AuditLog[]
   toolItems           ToolItem[]
+  toolItemLists       ToolItemList[]
   conversionSets      ConversionSet[]
   feedback            Feedback[]
   taskInheritances    TaskInheritance[]
@@ -736,6 +744,7 @@ model ToolItem {
   id        String   @id @default(cuid())
   name      String
   unit      String   // user-typed label, e.g. "each", "g", "ml"
+  imgUrl    String?
   orgId     String
   org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -745,6 +754,7 @@ model ToolItem {
   ratesFrom            ConversionRate[]          @relation("RateFromItem")
   ratesTo              ConversionRate[]          @relation("RateToItem")
   templateEntries      ConversionTemplateEntry[]
+  listEntries          ToolItemListEntry[]
 
   @@unique([orgId, name])
   @@index([orgId])
@@ -983,4 +993,47 @@ model TaskCommentVote {
 
   @@id([commentId, userId])
   @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TOOL ITEM LISTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ToolItemList {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  orgId       String
+  org         Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  displayType ListDisplayType @default(TABLE)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  entries    ToolItemListEntry[]
+  gridConfig ToolItemGridConfig?
+
+  @@unique([orgId, name])
+  @@index([orgId])
+}
+
+model ToolItemGridConfig {
+  id       String       @id @default(cuid())
+  listId   String       @unique
+  list     ToolItemList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  gridCols Int          @default(4)
+  gridRows Int          @default(4)
+}
+
+model ToolItemListEntry {
+  id       String       @id @default(cuid())
+  listId   String
+  list     ToolItemList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  itemId   String
+  item     ToolItem     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  position Int
+  amount   Float        @default(0)
+
+  @@unique([listId, itemId])
+  @@index([listId])
+  @@index([itemId])
 }
