@@ -27,6 +27,7 @@ import {
   deletePublicFile,
 } from "@/lib/supabase-storage";
 import { updateTaskImageUrl } from "@/lib/services/tasks";
+import { updateToolItemImageUrl } from "@/lib/services/tools";
 import { updateOrgImage } from "@/lib/services/orgs";
 import { prisma } from "@/lib/prisma";
 import { isDemoEmail } from "@/lib/demo";
@@ -147,6 +148,87 @@ export async function removeTaskImage(
 
   const result = await updateTaskImageUrl(orgId, taskId, null);
   if (!result.ok) return { ok: false, error: result.error };
+  return { ok: true };
+}
+
+// ─── ToolItem Image Actions ───────────────────────────────────────────────────
+
+/** Signed upload URL for a ToolItem image. Path: orgs/{orgId}/items/{itemId}/{uuid}.{ext} */
+export async function getSignedToolItemUploadUrl(
+  orgId: string,
+  itemId: string,
+  mimeType: string,
+): Promise<
+  { ok: true; signedUrl: string; path: string } | { ok: false; error: string }
+> {
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  if (isDemoEmail(authz.userEmail))
+    return { ok: false, error: "Image uploads are not available in demo mode." };
+
+  const item = await prisma.toolItem.findFirst({
+    where: { id: itemId, orgId },
+    select: { id: true },
+  });
+  if (!item) return { ok: false, error: "Item not found" };
+
+  if (!ALLOWED_MIME_TYPES.includes(mimeType as AllowedMime))
+    return { ok: false, error: "Unsupported file type. Use JPEG, PNG, or WebP." };
+
+  const ext = EXT[mimeType as AllowedMime];
+  const uuid = crypto.randomUUID();
+  return createSignedUploadUrl(`orgs/${orgId}/items/${itemId}/${uuid}.${ext}`);
+}
+
+/** Persists the storage path after a successful ToolItem image upload. */
+export async function saveToolItemImagePath(
+  orgId: string,
+  itemId: string,
+  storagePath: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+
+  const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
+  if (!normalized.startsWith(`orgs/${orgId}/items/${itemId}/`))
+    return { ok: false, error: "Invalid storage path" };
+
+  const existing = await prisma.toolItem.findFirst({
+    where: { id: itemId, orgId },
+    select: { imgUrl: true },
+  });
+
+  await updateToolItemImageUrl(orgId, itemId, normalized);
+
+  if (existing?.imgUrl && existing.imgUrl !== normalized) {
+    await deleteStorageFile(existing.imgUrl);
+  }
+  return { ok: true };
+}
+
+/** Deletes a ToolItem image from storage and clears the imgUrl field. */
+export async function removeToolItemImage(
+  orgId: string,
+  itemId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+
+  const item = await prisma.toolItem.findFirst({
+    where: { id: itemId, orgId },
+    select: { imgUrl: true },
+  });
+  if (item?.imgUrl) await deleteStorageFile(item.imgUrl);
+  await updateToolItemImageUrl(orgId, itemId, null);
   return { ok: true };
 }
 

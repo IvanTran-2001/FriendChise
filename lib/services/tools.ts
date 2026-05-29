@@ -109,6 +109,24 @@ export async function getToolItems(orgId: string) {
   });
 }
 
+/** Returns all tool items for an org with image paths, sorted by name. */
+export async function getToolItemsFull(orgId: string) {
+  return prisma.toolItem.findMany({
+    where: { orgId },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, unit: true, imgUrl: true },
+  });
+}
+
+/** Updates the imgUrl for a tool item. Pass null to clear it. */
+export async function updateToolItemImageUrl(
+  orgId: string,
+  id: string,
+  imgUrl: string | null,
+) {
+  await prisma.toolItem.updateMany({ where: { id, orgId }, data: { imgUrl } });
+}
+
 /** Creates a new org-scoped tool item. `unit` is a free-text label (e.g. "dozen", "kg"). */
 export async function createToolItem(
   orgId: string,
