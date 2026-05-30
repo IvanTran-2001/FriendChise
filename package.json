@@ -8,7 +8,6 @@
     "start": "next start",
     "lint": "eslint",
     "migrate:prod": "SKIP_DOTENV_LOCAL=1 dotenv -e .env -- prisma migrate deploy",
-    "db:push:prod": "SKIP_DOTENV_LOCAL=1 dotenv -e .env -- prisma db push",
     "seed": "prisma db seed",
     "seed:dev": "prisma db seed",
     "seed:donut-a": "tsx scripts/seeds/seed-donut-shop-a.ts",
