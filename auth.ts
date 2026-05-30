@@ -35,6 +35,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return user;
       },
     }),
+    // Dev-only sign-in: sign in as any seeded user by email, no password.
+    // Stripped out entirely in production.
+    ...(process.env.NODE_ENV === "development"
+      ? [
+          Credentials({
+            id: "dev",
+            name: "Dev",
+            credentials: { email: { label: "Email" } },
+            async authorize(credentials) {
+              const { email } = credentials as { email?: string };
+              if (!email) return null;
+              return prisma.user.findUnique({ where: { email } });
+            },
+          }),
+        ]
+      : []),
   ],
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" }, // ← change this

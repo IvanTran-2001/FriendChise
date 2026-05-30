@@ -134,6 +134,10 @@ Provider: PostgreSQL (Supabase), managed via Prisma ORM.
 | `TaskSectionLayout`              | Per-org, per-task section configuration. Stores `type` (e.g. `"PICTURE"`, `"DETAIL"`, `"COMMENT"`), display `title`, `scope` (`ORG`/`GLOBAL`), `position` (sort order), and `visible` flag. Defaults are seeded on task creation and copied from the parent org on inheritance. Unique on `(taskId, orgId, type)`.                                              |
 | `TaskComment`                    | One comment on a task. Scoped to both a `Task` and an `Organization` (the commenter's org). Supports one level of threading via `parentId`. `authorName`/`authorImage` are snapshotted at post time so display survives account deletion (`authorId` set to `NULL` via `onDelete: SetNull`). Soft-deletable (`isDeleted`). Supports pinning (`isPinned`, `pinnedAt`) and inline editing (`editedAt`). Indexed on `(taskId, orgId)`, `parentId`, and `authorId`. |
 | `TaskCommentVote`                | Up/down vote cast by a `User` on a `TaskComment`. Composite PK on `(commentId, userId)` prevents double-voting. `type` is `VoteType` (`UPVOTE` / `DOWNVOTE`). Cascades on comment and user deletion.                                                                                                                                                             |
+| `ToolItemList`                   | An org-scoped named list of items (grid, checklist, table, or gallery display). Owns an optional `ToolItemGridConfig` and a set of `ToolItemListEntry` rows. Unique on `(orgId, name)`.                                                                                                                                                                         |
+| `ToolItemGridConfig`             | One-to-one optional config for a `ToolItemList` storing `gridCols` and `gridRows` (default 4×4). Cascade-deleted with its list.                                                                                                                                                                                                                                |
+| `ToolItemListEntry`              | One entry in a `ToolItemList`. References a `ToolItem`, stores a `position` (sort order) and `amount`. May have a `ToolItemChecklistEntry` recording whether it has been ticked off.                                                                                                                                                                           |
+| `ToolItemChecklistEntry`         | Records that a `ToolItemListEntry` has been checked. Presence = checked; deletion = unchecked. Stores `checkedAt`.                                                                                                                                                                                                                                              |
 
 ### Enums
 
@@ -149,6 +153,7 @@ Provider: PostgreSQL (Supabase), managed via Prisma ORM.
 | `VoteType`         | `UPVOTE`, `DOWNVOTE` — used by `TaskCommentVote`                                                          |
 | `TaskScope`        | `ORG` (private — visible to owning org only), `GLOBAL` (shared — franchisees can discover and inherit)    |
 | `SectionScope`     | `ORG` (section interaction limited to the viewing org), `GLOBAL` (shared back to the franchisor)          |
+| `ListDisplayType`  | `TABLE`, `GRID`, `CHECKLIST`, `GALLERY` — default display mode for a `ToolItemList`                       |
 
 ### Migrations
 
@@ -214,6 +219,17 @@ Authentication is handled by **Auth.js v5 (NextAuth)** with **Google OAuth** as 
 - The signed-in user's database `id` is mapped from `token.sub` into `session.user.id` so API routes and server actions can look up `Membership` records for authorization
 
 Configure your Google OAuth app at [console.cloud.google.com](https://console.cloud.google.com) and set the redirect URI to `http://localhost:3000/api/auth/callback/google`.
+
+### Dev Credentials Provider
+
+In `NODE_ENV === "development"` a second `"dev"` credentials provider is registered that accepts any seeded user email with no password. The sign-in page renders a `DevUserPicker` component — a searchable, scrollable list of the 9 seeded test accounts — so engineers can switch personas without OAuth.
+
+| File | Purpose |
+| ---- | ------- |
+| `app/(auth)/signin/dev-user-picker.tsx` | Client component; renders the picker UI |
+| `app/(auth)/signin/dev-sign-in-action.ts` | Server action; calls `signIn("dev", { email, redirectTo })` |
+
+The provider is registered in `auth.ts` and is excluded from production builds via a `process.env.NODE_ENV` guard.
 
 ### Auth config split
 
@@ -355,10 +371,32 @@ app/
           tools-client.tsx
           _components/
             tools-sidebar-content.tsx  # Nav links: Item List · Conversion · Roster + search
-          item-list/      # Item List tool (stub)
-            page.tsx
+          item-list/      # Item List tool — catalogue lists for stations/jobs
+            page.tsx      # Hub page: lists all ToolItemLists for the org; registers ItemListSidebarShell
+            loading.tsx   # Hub loading skeleton
+            layout.tsx    # Registers ItemListSidebarShell for all item-list routes
             _components/
-              item-list-sidebar-content.tsx  # Title row + Back link
+              item-list-sidebar-shell.tsx  # Persistent sidebar shell (panel title + Back link)
+              item-list-sidebar-content.tsx # Title row + Back link
+              item-list-client.tsx          # Hub client: grid of item tiles with image + name
+              item-detail-panel.tsx         # ActionSidebar panel: view/edit a ToolItem (name, unit, image)
+            lists/        # List-of-lists index
+              page.tsx    # Server page: fetches ToolItemLists; registers ItemListsSidebarContent
+              loading.tsx # Lists index loading skeleton (toolbar + row placeholders)
+              _components/
+                item-lists-sidebar-content.tsx  # Sidebar: view toggle (list/card) + Create List
+                item-lists-client.tsx           # Client: search, list/card views; inline edit, duplicate, delete via ⋯ dropdown
+            [listId]/     # Individual list detail
+              page.tsx    # Server page: resolves active ConversionSet from ?set= param (or cookie fallback); fetches entries + rates; renders ListDetailClient
+              loading.tsx # List detail loading skeleton (sidebar + 4×4 grid placeholders)
+              _components/
+                list-detail-client.tsx        # Top-level detail client: toolbar, grid/checklist view switch
+                list-detail-sidebar-content.tsx # Sidebar: view toggle, Add Item, grid-size controls, Apply Rates set picker (persisted via cookie `item-list-rates-prefs-{orgId}`)
+                list-grid-view.tsx            # Grid view: item cells with image, name, amount, and live conversion rates
+                list-checklist-view.tsx       # Checklist view: toggleable item rows
+                add-item-to-list-panel.tsx    # ActionSidebar panel: search org items and add to list
+                item-detail-panel.tsx         # ActionSidebar panel: edit entry amount
+                item-rates-panel.tsx          # ActionSidebar panel: show all rates for a cell's item
           conversion/     # Conversion calculator tool
             page.tsx      # Server page: fetches all ConversionSets; registers ConversionSidebarContent
             conversion-client.tsx
@@ -468,7 +506,9 @@ app/
           timetable/      # Timetable display settings (stub)
           notification/   # Notification preferences (stub)
   (auth)/
-    signin/               # Google OAuth sign-in page
+    signin/               # Google OAuth sign-in page; renders DevUserPicker in development
+      dev-sign-in-action.ts  # Server action for dev credentials sign-in
+      dev-user-picker.tsx    # Client component: searchable list of seeded test accounts
   actions/                # Server Actions (web UI mutations)
     orgs.ts
     memberships.ts
@@ -480,7 +520,11 @@ app/
     tags.ts               # Tag CRUD mutations (createTag, updateTag, deleteTag) — all require MANAGE_TASKS
     roster.ts             # Roster entry and day-config mutations (requires MANAGE_MEMBERS)
     feedback.ts           # submitFeedbackAction — creates a Feedback row + optional screenshot upload
-    tools.ts              # Conversion tool mutations — all require MANAGE_TASKS
+    tools.ts              # Conversion + Item List tool mutations — all require MANAGE_TASKS
+                          #   Conversion: createConversionSetAction, deleteConversionSetAction, renameConversionSetAction, createToolItemAction…
+                          #   Item List: createToolItemListAction, updateToolItemListAction, deleteToolItemListAction, duplicateToolItemListAction,
+                          #              addToolItemListEntryAction, moveToolItemListEntryAction, removeToolItemListEntryAction,
+                          #              updateToolItemListEntryAmountAction, toggleChecklistEntryAction, updateToolItemGridConfigAction
     storage.ts            # Image upload actions for task images (private) and org logos (public)
     task-comments.ts      # addCommentAction, editCommentAction, deleteCommentAction, voteCommentAction, pinCommentAction
   api/                    # REST API route handlers (session-authenticated)
@@ -547,6 +591,10 @@ lib/
     feedback.ts         # submitFeedback — creates Feedback row, resolves storage path
     roster.ts           # RosterEntry + RosterDayConfig CRUD, template-apply helper
     tools.ts            # ConversionSet · ToolItem · ConversionRate · ConversionTemplate · ConversionTemplateEntry CRUD
+                        # ToolItemList CRUD: getToolItemLists, getToolItemListDetail, createToolItemList, updateToolItemList, deleteToolItemList, duplicateToolItemList
+                        # ToolItemListEntry CRUD: addToolItemListEntry, addToolItemListEntryAtPosition, moveToolItemListEntry, removeToolItemListEntry, updateToolItemListEntryAmount
+                        # Grid config: updateToolItemGridConfig
+                        # Checklist: toggleChecklistEntry (presence = checked)
     task-comments.ts    # getTaskComments, canUserCommentOnTask, createComment, editComment, softDeleteComment, voteOnComment, setPinComment
   validators/
     org.ts
@@ -559,7 +607,9 @@ lib/
 
 prisma/
   schema.prisma         # Role.color String (non-nullable), Task.color String (non-nullable)
-  seed.ts               # 8 users · 3 orgs · 4 roles each · 6 tasks each · 5 members each
+  seed.ts               # 8 users · 3 orgs · 4 roles each · 6 tasks each · 5 members each; calls seedConversionData for Walker's Doughnuts tool items, conversion sets, and item lists
+  seeds/
+    walkers-doughnuts.ts  # Standalone seed function for the Walker's Doughnuts org: 40+ ToolItems, 3 ConversionSets with rates + templates, and 3 ToolItemLists
 ```
 
 ## Audit Log
@@ -845,6 +895,77 @@ All write actions require `MANAGE_MEMBERS` permission.
 | `timeToMinutes(time)`     | `"HH:MM"` string → integer minutes, or `null` for invalid input    |
 | `hoursWorked(start, end)` | Duration string (e.g. `"7h 30m"`) from two nullable minute offsets |
 
+## Item List Tool
+
+The Item List tool (`/orgs/[orgId]/tools/item-list`) lets org managers build named lists of `ToolItem`s for use at specific stations or jobs (e.g. a prep checklist or a grid of required doughnuts). Each list has a `displayType` — the view used when the list is opened.
+
+### Data model
+
+```
+ToolItemList           — named org-scoped list (displayType: GRID | CHECKLIST | TABLE | GALLERY)
+  └─ ToolItemGridConfig — optional grid dimensions (gridCols × gridRows, default 4×4)
+  └─ ToolItemListEntry  — one item slot (position, amount)
+       └─ ToolItemChecklistEntry — presence = checked; deletion = unchecked
+```
+
+### Display types
+
+| Type        | Description                                                                  |
+| ----------- | ---------------------------------------------------------------------------- |
+| `GRID`      | Cell-based grid (columns × rows). Cells show item image, name, amount, and live conversion rates when a set is applied. |
+| `CHECKLIST` | Vertical list with toggleable check state per entry.                         |
+| `TABLE`     | (Reserved — table view, not yet implemented.)                                |
+| `GALLERY`   | (Reserved — gallery view, not yet implemented.)                              |
+
+### Apply Rates (conversion overlay)
+
+A `ConversionSet` can be overlaid on the grid view. For each cell the sidebar calculates how much of each related item is needed based on the stored `ConversionRate`s (displayed as `ItemName: qty unit` per 1 item). The selected set is encoded as `?set=<setId>` in the URL and persisted client-side in cookie `item-list-rates-prefs-{orgId}` so the selection is automatically restored on the next visit.
+
+### List management
+
+Members with `MANAGE_TASKS` can:
+
+- **Create** a list (from the sidebar on the lists index page)
+- **Rename / edit description** — inline on the list card/row via the `⋯` dropdown
+- **Duplicate** — deep copy: metadata + grid config + all entries; auto-named `"Name (copy)"` or `"Name (copy 2)"` etc.
+- **Delete** — permanently removes the list and all entries (cascade)
+
+### Service layer (`lib/services/tools.ts`)
+
+| Function | Description |
+| -------- | ----------- |
+| `getToolItemLists(orgId)` | List all lists for an org (with entry count) |
+| `getToolItemListDetail(listId, orgId)` | Fetch a single list with all entries and item data |
+| `createToolItemList(orgId, name, displayType, description?)` | Create a list |
+| `updateToolItemList(orgId, listId, data)` | Rename and/or update description |
+| `deleteToolItemList(orgId, listId)` | Delete a list and all entries |
+| `duplicateToolItemList(orgId, listId)` | Deep-copy a list with a unique name |
+| `addToolItemListEntry(listId, itemId, amount?)` | Append an entry |
+| `addToolItemListEntryAtPosition(listId, itemId, position, amount?)` | Insert at a specific grid cell |
+| `moveToolItemListEntry(listId, fromPosition, toPosition)` | Swap two cells |
+| `removeToolItemListEntry(listId, entryId)` | Remove an entry |
+| `updateToolItemListEntryAmount(entryId, amount)` | Update an entry's amount |
+| `updateToolItemGridConfig(listId, gridCols, gridRows)` | Upsert grid dimensions |
+| `toggleChecklistEntry(listEntryId)` | Toggle checked state (insert/delete `ToolItemChecklistEntry`) |
+
+### Server actions (`app/actions/tools.ts`)
+
+All write actions require `MANAGE_TASKS`.
+
+| Action | Description |
+| ------ | ----------- |
+| `createToolItemListAction` | Create a list |
+| `updateToolItemListAction` | Rename and/or update description |
+| `deleteToolItemListAction` | Delete a list permanently |
+| `duplicateToolItemListAction` | Duplicate a list; returns `{ ok, list }` |
+| `addToolItemListEntryAction` | Add an item to a list |
+| `addToolItemListEntryAtPositionAction` | Add an item at a specific grid cell |
+| `moveToolItemListEntryAction` | Swap two cell positions |
+| `removeToolItemListEntryAction` | Remove an item from a list |
+| `updateToolItemListEntryAmountAction` | Update an entry's amount |
+| `updateToolItemGridConfigAction` | Save grid dimensions |
+| `toggleChecklistEntryAction` | Toggle a checklist item's checked state |
+
 ## Task Comments
 
 Task comments are threaded discussions attached to a task definition. Any member whose org is in the same franchise network as the task's owning org can comment.
@@ -920,7 +1041,9 @@ Server Actions call `revalidatePath` to invalidate the Next.js cache so server-r
 | `/orgs/join`                                        | Signed in                                  | Join an existing org as a franchisee using a one-time token                                                                                                                                                             |
 | `/orgs/[orgId]`                                     | `requireOrgMemberPage`                     | Org overview — stat cards (members, tasks, roles, today's schedule completion), today's schedule list, org header (name, address, timezone, settings link for owner)                                                    |
 | `/orgs/[orgId]/tools`                               | `requireOrgMemberPage`                     | Tools hub — sidebar with search + nav links (Item List, Conversion, Roster); content area stub                                                                                                                          |
-| `/orgs/[orgId]/tools/item-list`                     | `requireOrgMemberPage`                     | Item List tool stub — own page sidebar with Back link                                                                                                                                                                   |
+| `/orgs/[orgId]/tools/item-list`                     | `requireOrgMemberPage`                     | Item List hub — grid of org ToolItems; sidebar: Back link + Add/Edit Item                                                                                                                                              |
+| `/orgs/[orgId]/tools/item-list/lists`               | `requireOrgMemberPage`                     | List-of-lists index — search, list/card toggle; managers can create, rename, duplicate, and delete lists via ⋯ dropdown                                                                                                 |
+| `/orgs/[orgId]/tools/item-list/lists/[listId]`      | `requireOrgMemberPage`                     | List detail — grid or checklist view of entries; sidebar: view toggle, Add Item, grid-size controls, Apply Rates set picker (selection persisted in cookie `item-list-rates-prefs-{orgId}`)
 | `/orgs/[orgId]/tools/conversion`                    | `requireOrgMemberPage`                     | Conversion tool — lists all ConversionSets for the org; sidebar: Back + "Add Set" action                                                                                                                                |
 | `/orgs/[orgId]/tools/conversion/[setId]`            | `requireOrgMemberPage`                     | Conversion calculator — two-column From/To grid with live calculations; template switcher dropdown in toolbar; template state persisted in DB via `ConversionTemplateEntry`; sidebar: Items · Rates · Templates actions |
 | `/orgs/[orgId]/tools/roster`                        | `requireOrgMemberPage`                     | Roster tool — scrollable weekly shift grid (Mon–Sun rows × multi-week columns); week navigation; Edit Day Config + Apply Template actions in sidebar                                                                    |

@@ -26,7 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/search-input";
-import { Toolbar } from "@/components/layout/toolbar";
+import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
 import {
   upsertTemplateEntryAction,
   removeTemplateEntryAction,
@@ -358,8 +358,8 @@ export function SetDetailClient({
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <Toolbar>
+    <>
+      <RegisterPageToolbar>
         <h1 className="text-sm font-semibold">{set.name}</h1>
         {templates.length > 0 && (
           <DropdownMenu>
@@ -386,9 +386,9 @@ export function SetDetailClient({
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-      </Toolbar>
+      </RegisterPageToolbar>
 
-      <div className="flex-1 overflow-auto -mx-4 sm:-mx-6 px-4 sm:px-6 py-4">
+      <div className="py-4">
         {templates.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <p className="text-sm text-muted-foreground">
@@ -562,6 +562,6 @@ export function SetDetailClient({
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

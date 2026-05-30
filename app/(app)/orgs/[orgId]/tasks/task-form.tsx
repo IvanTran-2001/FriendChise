@@ -20,7 +20,6 @@ import {
   useEffect,
   useTransition,
   useState,
-  useRef,
 } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -42,11 +41,12 @@ import {
   type ComboboxItem,
 } from "@/components/ui/searchable-combobox";
 import { useImageUpload } from "@/hooks/use-image-upload";
-import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
-import type { ImageCropConfig } from "@/components/ui/image-crop-dialog";
+import { saveTaskImagePath } from "@/app/actions/storage";
+import { OrgImagePicker } from "@/components/ui/org-image-picker";
+import { MarkdownEditor } from "@/components/ui/markdown-editor";
 
-type Role = { id: string; name: string; color: string | null };
-type Tag = { id: string; name: string; color: string };
+export type Role = { id: string; name: string; color: string | null };
+export type Tag = { id: string; name: string; color: string };
 
 type TaskFormProps =
   | {
@@ -79,26 +79,38 @@ type TaskFormProps =
 
 // ─── Image upload panel ───────────────────────────────────────────────────────
 
-function ImageUploadPanel({
+const TASK_CROP_CONFIG = { aspect: 1, outputWidth: 600, outputHeight: 600 };
+
+export function ImageUploadPanel({
   orgId,
   taskId,
   initialSignedUrl,
+  fullWidth = false,
+  layout = "default",
+  fallbackColor,
+  fallbackInitial,
 }: {
   orgId: string;
   taskId: string;
   /** A short-lived signed read URL for the current image, or null. */
   initialSignedUrl: string | null;
+  /** If true, the image preview fills the full container width (default layout only). */
+  fullWidth?: boolean;
+  /**
+   * "detail"  — 2-column grid matching the task detail page:
+   *   left = square image (or coloured initial block), right = upload controls.
+   * "sidebar" — vertical stack for narrow sidebars:
+   *   square image full-width, controls below.
+   * "default" — original single-column layout.
+   */
+  layout?: "default" | "detail" | "sidebar";
+  /** Task colour used for the initial-block fallback in detail layout. */
+  fallbackColor?: string;
+  /** Letter shown in the initial block when there is no image. */
+  fallbackInitial?: string;
 }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialSignedUrl);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const { upload, remove, isPending, error } = useImageUpload(orgId, taskId);
-
-  const TASK_CROP_CONFIG: ImageCropConfig = {
-    aspect: 1,
-    outputWidth: 600,
-    outputHeight: 600,
-  };
+  const { remove, isPending } = useImageUpload(orgId, taskId);
 
   // Cleanup blob URLs on unmount
   useEffect(() => {
@@ -109,37 +121,8 @@ function ImageUploadPanel({
     };
   }, [previewUrl]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
-    setPendingFile(file);
-  };
-
-  const handleCrop = (croppedFile: File) => {
-    setPendingFile(null);
-    const objectUrl = URL.createObjectURL(croppedFile);
-    upload(
-      croppedFile,
-      () => {
-        // Only set preview after successful upload
-        // Revoke previous blob URL if it exists
-        if (previewUrl && previewUrl.startsWith("blob:")) {
-          URL.revokeObjectURL(previewUrl);
-        }
-        setPreviewUrl(objectUrl);
-        toast.success("Image saved.");
-      },
-      () => {
-        // On error, revoke the blob URL we created
-        URL.revokeObjectURL(objectUrl);
-      },
-    );
-  };
-
   const handleRemove = () => {
     remove(() => {
-      // Revoke blob URL before clearing preview
       if (previewUrl && previewUrl.startsWith("blob:")) {
         URL.revokeObjectURL(previewUrl);
       }
@@ -148,36 +131,131 @@ function ImageUploadPanel({
     });
   };
 
-  return (
-    <>
-      <ImageCropDialog
-        file={pendingFile}
-        config={TASK_CROP_CONFIG}
-        onCrop={handleCrop}
-        onCancel={() => setPendingFile(null)}
-      />
+  async function handleSelect(storagePath: string, signedUrl: string) {
+    const result = await saveTaskImagePath(orgId, taskId, storagePath);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    if (previewUrl && previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(signedUrl);
+    toast.success("Image saved.");
+  }
 
+  // ── Sidebar layout ────────────────────────────────────────────────────────
+  // Vertical stack: square image full-width, controls below.
+  if (layout === "sidebar") {
+    return (
       <div className="flex flex-col gap-3">
-        <span className="text-sm font-medium">Photo</span>
-
+        {/* Square image or coloured initial block */}
         {previewUrl ? (
-          <div className="relative w-full max-w-sm">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={previewUrl}
+            alt="Task photo"
+            className="rounded-md aspect-square w-full object-cover"
+          />
+        ) : fallbackColor && fallbackInitial ? (
+          <div
+            className="rounded-md aspect-square w-full flex items-center justify-center text-4xl font-bold select-none"
+            style={{
+              backgroundColor: fallbackColor + "20",
+              color: fallbackColor,
+            }}
+          >
+            {fallbackInitial.toUpperCase()}
+          </div>
+        ) : (
+          <div className="rounded-md aspect-square w-full bg-muted" />
+        )}
+
+        {/* Controls */}
+        {previewUrl ? (
+          <div className="flex flex-wrap gap-2">
+            <OrgImagePicker
+              orgId={orgId}
+              config={TASK_CROP_CONFIG}
+              disabled={isPending}
+              onSelect={handleSelect}
+              trigger={
+                <Button type="button" variant="outline" size="sm" disabled={isPending}>
+                  Replace
+                </Button>
+              }
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              onClick={handleRemove}
+              disabled={isPending}
+            >
+              Remove
+            </Button>
+          </div>
+        ) : (
+          <OrgImagePicker
+            orgId={orgId}
+            config={TASK_CROP_CONFIG}
+            disabled={isPending}
+            onSelect={handleSelect}
+            trigger={
+              <Button type="button" variant="outline" size="sm" className="w-fit" disabled={isPending}>
+                Upload photo
+              </Button>
+            }
+          />
+        )}
+      </div>
+    );
+  }
+
+  // ── Detail layout ─────────────────────────────────────────────────────────
+  // Matches the task-detail page: square image left, controls right.
+  if (layout === "detail") {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-6">
+        {/* Left: square image preview or coloured initial block */}
+        <div>
+          {previewUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={previewUrl}
               alt="Task photo"
-              className="w-full rounded-lg object-cover max-h-48"
+              className="rounded-md aspect-square w-full object-cover"
             />
-            <div className="mt-2 flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
+          ) : fallbackColor && fallbackInitial ? (
+            <div
+              className="rounded-md aspect-square w-full flex items-center justify-center text-4xl font-bold select-none"
+              style={{
+                backgroundColor: fallbackColor + "20",
+                color: fallbackColor,
+              }}
+            >
+              {fallbackInitial.toUpperCase()}
+            </div>
+          ) : (
+            <div className="rounded-md aspect-square w-full bg-muted" />
+          )}
+        </div>
+
+        {/* Right: label + upload controls */}
+        <div className="flex flex-col gap-3">
+          <span className="text-sm font-medium">Photo</span>
+          {previewUrl ? (
+            <div className="flex flex-wrap gap-2">
+              <OrgImagePicker
+                orgId={orgId}
+                config={TASK_CROP_CONFIG}
                 disabled={isPending}
-              >
-                {isPending ? "Uploading…" : "Replace"}
-              </Button>
+                onSelect={handleSelect}
+                trigger={
+                  <Button type="button" variant="outline" size="sm" disabled={isPending}>
+                    Replace
+                  </Button>
+                }
+              />
               <Button
                 type="button"
                 variant="ghost"
@@ -189,32 +267,80 @@ function ImageUploadPanel({
                 Remove
               </Button>
             </div>
-          </div>
-        ) : (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="w-fit"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isPending}
-          >
-            {isPending ? "Uploading…" : "Upload photo"}
-          </Button>
-        )}
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          className="hidden"
-          onChange={handleFileChange}
-          disabled={isPending}
-        />
-
-        {error && <p className="text-xs text-destructive">{error}</p>}
+          ) : (
+            <>
+              <OrgImagePicker
+                orgId={orgId}
+                config={TASK_CROP_CONFIG}
+                disabled={isPending}
+                onSelect={handleSelect}
+                trigger={
+                  <Button type="button" variant="outline" size="sm" className="w-fit" disabled={isPending}>
+                    Upload photo
+                  </Button>
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Add a cover photo to make this task easy to identify.
+              </p>
+            </>
+          )}
+        </div>
       </div>
-    </>
+    );
+  }
+
+  // ── Default layout ────────────────────────────────────────────────────────
+  return (
+    <div className="flex flex-col gap-3">
+      <span className="text-sm font-medium">Photo</span>
+
+      {previewUrl ? (
+        <div className={`relative w-full${fullWidth ? "" : " max-w-sm"}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={previewUrl}
+            alt="Task photo"
+            className="w-full rounded-lg object-cover max-h-48"
+          />
+          <div className="mt-2 flex gap-2">
+            <OrgImagePicker
+              orgId={orgId}
+              config={TASK_CROP_CONFIG}
+              disabled={isPending}
+              onSelect={handleSelect}
+              trigger={
+                <Button type="button" variant="outline" size="sm" disabled={isPending}>
+                  Replace
+                </Button>
+              }
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              onClick={handleRemove}
+              disabled={isPending}
+            >
+              Remove
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <OrgImagePicker
+          orgId={orgId}
+          config={TASK_CROP_CONFIG}
+          disabled={isPending}
+          onSelect={handleSelect}
+          trigger={
+            <Button type="button" variant="outline" size="sm" className="w-fit" disabled={isPending}>
+              Upload photo
+            </Button>
+          }
+        />
+      )}
+    </div>
   );
 }
 
@@ -225,7 +351,7 @@ function ImageUploadPanel({
 // edit mode:   add/remove existing tags fire server actions immediately;
 //              typing a new name shows "Create 'X'" which creates + attaches.
 
-type TagPanelProps =
+export type TagPanelProps =
   | { mode: "create"; allTags: Tag[] }
   | {
       mode: "edit";
@@ -235,7 +361,7 @@ type TagPanelProps =
       taskTags: Tag[];
     };
 
-function TagPanel(props: TagPanelProps) {
+export function TagPanel(props: TagPanelProps) {
   const isEdit = props.mode === "edit";
   const [tags, setTags] = useState<Tag[]>(isEdit ? props.taskTags : []);
   const [isPending, startTransition] = useTransition();
@@ -335,7 +461,7 @@ function TagPanel(props: TagPanelProps) {
 // create mode: pure local state + hidden inputs submitted with the form.
 // edit mode:   same UI but add/remove fire server actions immediately.
 
-type EligibilityPanelProps =
+export type EligibilityPanelProps =
   | { mode: "create"; allRoles: Role[] }
   | {
       mode: "edit";
@@ -356,7 +482,7 @@ type EligibilityPanelProps =
  * (`addEligibilityAction` / `removeEligibilityAction`) so changes persist
  * without a full form submit.
  */
-function EligibilityPanel(props: EligibilityPanelProps) {
+export function EligibilityPanel(props: EligibilityPanelProps) {
   const isEdit = props.mode === "edit";
   const [roles, setRoles] = useState<Role[]>(isEdit ? props.eligibleRoles : []);
   const [isPending, startTransition] = useTransition();
@@ -689,15 +815,13 @@ export function TaskForm(props: TaskFormProps) {
           <label htmlFor="description" className="text-sm font-medium">
             Description
           </label>
-          <textarea
-            id="description"
+          <MarkdownEditor
             name="description"
-            rows={3}
-            placeholder="Optional details..."
-            defaultValue={dv?.description ?? undefined}
-            className="border rounded-md px-3 py-2 text-sm bg-card resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-            aria-invalid={!!err("description")}
-            aria-describedby={
+            defaultValue={dv?.description}
+            placeholder="Optional details… supports **bold**, _italic_, - lists"
+            rows={5}
+            ariaInvalid={!!err("description")}
+            ariaDescribedBy={
               err("description") ? "description-error" : undefined
             }
           />

@@ -54,6 +54,7 @@ export default async function ConversionSetPage({
   return (
     <>
       <RegisterPageSidebar
+        title={set.name}
         content={
           <SetSidebarContent
             orgId={orgId}

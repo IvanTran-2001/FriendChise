@@ -32,13 +32,6 @@ export function ToolsSidebarContent({ orgId }: { orgId: string }) {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Title row */}
-      <div className="h-12 flex items-center px-4 border-b border-border shrink-0">
-        <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
-          Tools
-        </span>
-      </div>
-
       {/* Search */}
       <div className="px-3 py-2 border-b border-border shrink-0">
         <SearchInput

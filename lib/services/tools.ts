@@ -144,6 +144,268 @@ export async function deleteToolItem(orgId: string, id: string) {
   await prisma.toolItem.deleteMany({ where: { id, orgId } });
 }
 
+// ─── ToolItemList ─────────────────────────────────────────────────────────────
+
+/** Returns all item lists for an org with entry count, sorted by name. */
+export async function getToolItemLists(orgId: string) {
+  return prisma.toolItemList.findMany({
+    where: { orgId },
+    orderBy: { name: "asc" },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      displayType: true,
+      updatedAt: true,
+      _count: { select: { entries: true } },
+    },
+  });
+}
+
+/** Returns a single list with its entries, items, grid config, and checklist states. */
+export async function getToolItemListDetail(listId: string, orgId: string) {
+  return prisma.toolItemList.findUnique({
+    where: { id: listId, orgId },
+    include: {
+      gridConfig: true,
+      entries: {
+        include: {
+          item: true,
+          checklistEntry: true,
+        },
+        orderBy: { position: "asc" },
+      },
+    },
+  });
+}
+
+/**
+/**
+ * Appends a ToolItem to the end of a list (max position + 1).
+ * Use addToolItemListEntryAtPosition to insert at a specific grid cell.
+ */
+export async function addToolItemListEntry(
+  listId: string,
+  itemId: string,
+  amount: number = 0,
+) {
+  const last = await prisma.toolItemListEntry.findFirst({
+    where: { listId },
+    select: { position: true },
+    orderBy: { position: "desc" },
+  });
+  const position = last ? last.position + 1 : 0;
+
+  return prisma.toolItemListEntry.create({
+    data: { listId, itemId, position, amount },
+    include: { item: true, checklistEntry: true },
+  });
+}
+
+/** Inserts a ToolItem at an exact grid cell position. */
+export async function addToolItemListEntryAtPosition(
+  listId: string,
+  itemId: string,
+  position: number,
+  amount: number = 0,
+) {
+  return prisma.toolItemListEntry.create({
+    data: { listId, itemId, position, amount },
+    include: { item: true, checklistEntry: true },
+  });
+}
+
+/**
+ * Moves a list entry to a new position.
+ * If the target position is occupied, the two entries swap.
+ */
+export async function moveToolItemListEntry(
+  listId: string,
+  fromPosition: number,
+  toPosition: number,
+) {
+  const [from, to] = await Promise.all([
+    prisma.toolItemListEntry.findFirst({
+      where: { listId, position: fromPosition },
+      select: { id: true },
+    }),
+    prisma.toolItemListEntry.findFirst({
+      where: { listId, position: toPosition },
+      select: { id: true },
+    }),
+  ]);
+
+  if (!from) return;
+
+  if (to) {
+    await prisma.$transaction([
+      prisma.toolItemListEntry.update({
+        where: { id: from.id },
+        data: { position: toPosition },
+      }),
+      prisma.toolItemListEntry.update({
+        where: { id: to.id },
+        data: { position: fromPosition },
+      }),
+    ]);
+  } else {
+    await prisma.toolItemListEntry.update({
+      where: { id: from.id },
+      data: { position: toPosition },
+    });
+  }
+}
+
+/** Updates (or creates) the grid config for a list. */
+export async function updateToolItemGridConfig(
+  listId: string,
+  gridCols: number,
+  gridRows: number,
+) {
+  return prisma.toolItemGridConfig.upsert({
+    where: { listId },
+    update: { gridCols, gridRows },
+    create: { listId, gridCols, gridRows },
+  });
+}
+
+/** Removes a list entry by ID. */
+export async function removeToolItemListEntry(listId: string, entryId: string) {
+  return prisma.toolItemListEntry.delete({
+    where: { id: entryId, listId },
+  });
+}
+
+/** Updates the amount on a list entry. */
+export async function updateToolItemListEntryAmount(
+  entryId: string,
+  amount: number,
+) {
+  return prisma.toolItemListEntry.update({
+    where: { id: entryId },
+    data: { amount },
+  });
+}
+
+/** Toggles the checked state of a list entry (existence = checked). Returns new state. */
+export async function toggleChecklistEntry(listEntryId: string): Promise<{ checked: boolean }> {
+  const existing = await prisma.toolItemChecklistEntry.findUnique({
+    where: { listEntryId },
+  });
+  if (existing) {
+    await prisma.toolItemChecklistEntry.delete({ where: { listEntryId } });
+    return { checked: false };
+  }
+  await prisma.toolItemChecklistEntry.create({ data: { listEntryId } });
+  return { checked: true };
+}
+
+/** Creates a new ToolItemList for an org. */
+export async function createToolItemList(
+  orgId: string,
+  name: string,
+  displayType: import("@prisma/client").ListDisplayType,
+  description?: string,
+) {
+  return prisma.toolItemList.create({
+    data: { orgId, name, displayType, description: description ?? null },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      displayType: true,
+      updatedAt: true,
+      _count: { select: { entries: true } },
+    },
+  });
+}
+
+/** Updates the name and description of a list. */
+export async function updateToolItemList(
+  orgId: string,
+  listId: string,
+  data: { name?: string; description?: string | null },
+) {
+  return prisma.toolItemList.updateMany({
+    where: { id: listId, orgId },
+    data,
+  });
+}
+
+/** Deletes a list and all its entries (cascade handled by DB). */
+export async function deleteToolItemList(orgId: string, listId: string) {
+  await prisma.toolItemList.deleteMany({ where: { id: listId, orgId } });
+}
+
+/**
+ * Duplicates a list — copies metadata, gridConfig (if any), and all entries.
+ * Returns the new list in the same shape as `getToolItemLists`.
+ */
+export async function duplicateToolItemList(orgId: string, listId: string) {
+  const source = await prisma.toolItemList.findFirst({
+    where: { id: listId, orgId },
+    include: {
+      gridConfig: true,
+      entries: { select: { itemId: true, position: true, amount: true } },
+    },
+  });
+  if (!source) throw new Error("List not found.");
+
+  // Find a unique name: "Name (copy)", "Name (copy 2)", etc.
+  const base = `${source.name} (copy)`;
+  const existing = await prisma.toolItemList.findMany({
+    where: { orgId, name: { startsWith: base } },
+    select: { name: true },
+  });
+  const existingNames = new Set(existing.map((l) => l.name));
+  let candidateName = base;
+  let n = 2;
+  while (existingNames.has(candidateName)) {
+    candidateName = `${base} ${n++}`;
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const newList = await tx.toolItemList.create({
+      data: {
+        orgId,
+        name: candidateName,
+        description: source.description,
+        displayType: source.displayType,
+      },
+    });
+    if (source.gridConfig) {
+      await tx.toolItemGridConfig.create({
+        data: {
+          listId: newList.id,
+          gridCols: source.gridConfig.gridCols,
+          gridRows: source.gridConfig.gridRows,
+        },
+      });
+    }
+    if (source.entries.length > 0) {
+      await tx.toolItemListEntry.createMany({
+        data: source.entries.map((e) => ({
+          listId: newList.id,
+          itemId: e.itemId,
+          position: e.position,
+          amount: e.amount,
+        })),
+      });
+    }
+    return tx.toolItemList.findUniqueOrThrow({
+      where: { id: newList.id },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        displayType: true,
+        updatedAt: true,
+        _count: { select: { entries: true } },
+      },
+    });
+  });
+}
+
 /** Updates the name and unit of an existing tool item. */
 export async function updateToolItem(
   orgId: string,

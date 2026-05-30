@@ -9,7 +9,7 @@ export default function MembershipsLayout({
 }) {
   return (
     <>
-      <RegisterPageSidebar content={<MembersSidebarShell />} />
+      <RegisterPageSidebar title="Members" content={<MembersSidebarShell />} />
       {children}
     </>
   );

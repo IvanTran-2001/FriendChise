@@ -2,6 +2,8 @@ import dotenv from "dotenv";
 dotenv.config({ path: ".env", quiet: true });
 dotenv.config({ path: ".env.local", override: true, quiet: true });
 
+import { seedConversionData } from "./seeds/walkers-doughnuts";
+
 import fs from "fs";
 import path from "path";
 
@@ -227,28 +229,28 @@ async function seedUsers() {
   const [ivan, jordan, casey, riley, morgan, alex, taylor, sam, quinn] =
     await Promise.all([
       prisma.user.upsert({
-        where: { email: "mystoganx2001@gmail.com" },
-        update: { name: "Ivan", image: "https://i.pravatar.cc/150?img=3" },
+        where: { email: "owner@example.test" },
+        update: { name: "MainDev", image: "https://i.pravatar.cc/150?img=3" },
         create: {
-          email: "mystoganx2001@gmail.com",
-          name: "Ivan",
+          email: "owner@example.test",
+          name: "MainDev",
           image: "https://i.pravatar.cc/150?img=3",
         },
       }),
       prisma.user.upsert({
-        where: { email: "alt28918@gmail.com" },
+        where: { email: "jordan@example.test" },
         update: { name: "Jordan", image: "https://i.pravatar.cc/150?img=8" },
         create: {
-          email: "alt28918@gmail.com",
+          email: "jordan@example.test",
           name: "Jordan",
           image: "https://i.pravatar.cc/150?img=8",
         },
       }),
       prisma.user.upsert({
-        where: { email: "alt28919@gmail.com" },
+        where: { email: "casey@example.test" },
         update: { name: "Casey", image: "https://i.pravatar.cc/150?img=12" },
         create: {
-          email: "alt28919@gmail.com",
+          email: "casey@example.test",
           name: "Casey",
           image: "https://i.pravatar.cc/150?img=12",
         },
@@ -265,46 +267,46 @@ async function seedUsers() {
         },
       }),
       prisma.user.upsert({
-        where: { email: "alt28921@gmail.com" },
+        where: { email: "morgan@example.test" },
         update: { name: "Morgan", image: "https://i.pravatar.cc/150?img=22" },
         create: {
-          email: "alt28921@gmail.com",
+          email: "morgan@example.test",
           name: "Morgan",
           image: "https://i.pravatar.cc/150?img=22",
         },
       }),
       prisma.user.upsert({
-        where: { email: "alt28922@gmail.com" },
+        where: { email: "alex@example.test" },
         update: { name: "Alex", image: "https://i.pravatar.cc/150?img=15" },
         create: {
-          email: "alt28922@gmail.com",
+          email: "alex@example.test",
           name: "Alex",
           image: "https://i.pravatar.cc/150?img=15",
         },
       }),
       prisma.user.upsert({
-        where: { email: "alt28923@gmail.com" },
+        where: { email: "taylor@example.test" },
         update: { name: "Taylor", image: "https://i.pravatar.cc/150?img=29" },
         create: {
-          email: "alt28923@gmail.com",
+          email: "taylor@example.test",
           name: "Taylor",
           image: "https://i.pravatar.cc/150?img=29",
         },
       }),
       prisma.user.upsert({
-        where: { email: "alt28924@gmail.com" },
+        where: { email: "sam@example.test" },
         update: { name: "Sam", image: "https://i.pravatar.cc/150?img=35" },
         create: {
-          email: "alt28924@gmail.com",
+          email: "sam@example.test",
           name: "Sam",
           image: "https://i.pravatar.cc/150?img=35",
         },
       }),
       prisma.user.upsert({
-        where: { email: "alt28920@gmail.com" },
+        where: { email: "quinn@example.test" },
         update: { name: "Quinn", image: "https://i.pravatar.cc/150?img=44" },
         create: {
-          email: "alt28920@gmail.com",
+          email: "quinn@example.test",
           name: "Quinn",
           image: "https://i.pravatar.cc/150?img=44",
         },
@@ -1038,7 +1040,7 @@ async function seedOrg1(users: Users) {
       },
       {
         taskId: biscoffTask.id, orgId: org.id,
-        authorId: ivan.id, authorName: "Ivan", authorImage: "https://i.pravatar.cc/150?img=3",
+        authorId: ivan.id, authorName: "MainDev", authorImage: "https://i.pravatar.cc/150?img=3",
         content: "The 4% vegetable oil ratio in the recipe is the minimum — if the spread feels too thick after mixing, bump it up slightly. Don't go over 6% or it'll be too runny.",
       },
       {
@@ -1075,12 +1077,12 @@ async function seedOrg1(users: Users) {
       {
         taskId: biscoffTask.id, orgId: org.id,
         authorId: alex.id, authorName: "Alex", authorImage: "https://i.pravatar.cc/150?img=15",
-        content: "Thanks Ivan, didn't know there was a range. The batch I made yesterday felt a bit thick so I'll try 5% next time.",
+        content: "Thanks MainDev, didn't know there was a range. The batch I made yesterday felt a bit thick so I'll try 5% next time.",
         parentId: c3.id,
       },
       {
         taskId: biscoffTask.id, orgId: org.id,
-        authorId: ivan.id, authorName: "Ivan", authorImage: "https://i.pravatar.cc/150?img=3",
+        authorId: ivan.id, authorName: "MainDev", authorImage: "https://i.pravatar.cc/150?img=3",
         content: "Yep, same trick works for the Nutella filling too.",
         parentId: c4.id,
       },
@@ -3187,7 +3189,7 @@ async function seedOrg1(users: Users) {
 //    Inherits all GLOBAL tasks from org1
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function seedFranchisee(
+async function _seedFranchisee(
   users: Users,
   org1: Awaited<ReturnType<typeof seedOrg1>>,
 ) {
@@ -3932,7 +3934,7 @@ async function seedInvites(
         recipientId: users.sam.id,
         type: InviteType.MEMBER,
         orgName: "Donut Shop A",
-        inviterName: "Ivan",
+        inviterName: "MainDev",
         metadata: {
           roleIds: [org1.roles.roleWorker.id],
           workingDays: ["mon", "wed", "fri"],
@@ -4009,7 +4011,7 @@ async function main() {
   await cleanDatabase();
   const users = await seedUsers();
   const org1 = await seedOrg1(users);
-  const franchisee = await seedFranchisee(users, org1);
+  await seedConversionData(prisma, org1.org.id);
   await seedEmptyOrgs(users);
   await seedInvites(users, org1);
 
@@ -4017,7 +4019,6 @@ async function main() {
     users: Object.fromEntries(Object.entries(users).map(([k, v]) => [k, v.id])),
     orgs: {
       "Donut Shop A": org1.org.id,
-      "Donut Shop A: Quinn": franchisee.org.id,
     },
   });
 }

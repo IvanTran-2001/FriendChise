@@ -13,7 +13,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { Clock, FolderOpen, Layers, Pencil } from "lucide-react";
-import { Toolbar } from "@/components/layout/toolbar";
+import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
 import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
@@ -80,17 +80,17 @@ export function ConversionClient({
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <Toolbar>
+    <>
+      <RegisterPageToolbar>
         <SearchInput
           placeholder="Search sets…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-xs"
         />
-      </Toolbar>
+      </RegisterPageToolbar>
 
-      <div className="flex-1 overflow-auto -mx-4 sm:-mx-6 px-4 sm:px-6 py-5 flex flex-col gap-8">
+      <div className="flex flex-col gap-8 py-5">
         {/* Recently used templates */}
         {recentTemplates.length > 0 && !search && (
           <section>
@@ -181,6 +181,6 @@ export function ConversionClient({
           )}
         </section>
       </div>
-    </div>
+    </>
   );
 }

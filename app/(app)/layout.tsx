@@ -8,6 +8,10 @@ import {
   ActionSidebarProvider,
   ActionSidebarSlot,
 } from "@/components/layout/action-sidebar-context";
+import {
+  ToolbarProvider,
+  ToolbarSlot,
+} from "@/components/layout/toolbar-context";
 import { DemoBanner } from "@/components/layout/demo-banner";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -15,23 +19,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <PageSidebarProvider>
       <ActionSidebarProvider>
         <GlobalSidebarProvider>
-          <div className="app-root">
-            {/* Full-height flex column: navbar on top, sidebar+content row below */}
-            <div className="h-dvh flex flex-col">
-              <DemoBanner />
-              <NavBar />
-              <div className="flex flex-1 min-h-0 overflow-hidden">
-                <AppSidebar />
-                <PageSidebarSlot />
-                <ActionSidebarSlot />
-                <div className="flex flex-col flex-1 overflow-hidden">
-                  <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col p-4 sm:p-6">
-                    {children}
-                  </main>
+          <ToolbarProvider>
+            <div className="app-root">
+              {/* Full-height flex column: navbar on top, sidebar+content row below */}
+              <div className="h-dvh flex flex-col">
+                <DemoBanner />
+                <NavBar />
+                <div className="flex flex-1 min-h-0 overflow-hidden">
+                  <AppSidebar />
+                  <PageSidebarSlot />
+                  <ActionSidebarSlot />
+                  <div className="flex flex-col flex-1 overflow-hidden">
+                    <ToolbarSlot />
+                    <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col p-4 sm:p-6">
+                      {children}
+                    </main>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </ToolbarProvider>
         </GlobalSidebarProvider>
       </ActionSidebarProvider>
     </PageSidebarProvider>

@@ -32,6 +32,7 @@ export default async function RolesPage({
   return (
     <>
       <RegisterPageSidebar
+        title="Roles"
         content={
           <RolesSidebarContent
             orgId={orgId}

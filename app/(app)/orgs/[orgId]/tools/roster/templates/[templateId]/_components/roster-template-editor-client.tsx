@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Toolbar } from "@/components/layout/toolbar";
+import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
 import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
 import { SidebarNavItem } from "@/components/layout/sidebar-nav-item";
 import {
@@ -109,12 +109,6 @@ function RosterTemplateEditorSidebar({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="h-12 flex items-center px-4 border-b border-border shrink-0">
-        <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider truncate">
-          {templateName}
-        </span>
-      </div>
-
       <SidebarNavItem
         title="Back to Templates"
         url={`/orgs/${orgId}/tools/roster/templates`}
@@ -254,6 +248,7 @@ export function RosterTemplateEditorClient({
   return (
     <>
       <RegisterPageSidebar
+        title={templateName}
         content={
           <RosterTemplateEditorSidebar
             orgId={orgId}
@@ -267,7 +262,7 @@ export function RosterTemplateEditorClient({
         }
       />
 
-      <Toolbar>
+      <RegisterPageToolbar>
         {maxOffset > 0 && (
           <>
             <Button
@@ -297,7 +292,7 @@ export function RosterTemplateEditorClient({
         <span className="text-xs text-muted-foreground">
           {cycleWeeks === 1 ? "1-week cycle" : `${cycleWeeks}-week cycle`}
         </span>
-      </Toolbar>
+      </RegisterPageToolbar>
 
       <div ref={containerRef} className="flex-1 overflow-auto p-4">
         <div className="rounded-lg border border-border overflow-hidden">

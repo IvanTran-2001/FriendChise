@@ -4,6 +4,7 @@ import { Logo } from "@/components/layout/logo";
 import { SignInToast } from "./sign-in-toast";
 import { prepareDemoSession } from "@/lib/demo";
 import { TryDemoButton } from "./try-demo-button";
+import { DevUserPicker } from "./dev-user-picker";
 
 type SignInPageProps = {
   searchParams?: Promise<{ callbackUrl?: string; hint?: string }>;
@@ -133,6 +134,10 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         </a>
         .
       </p>
+
+      {process.env.NODE_ENV === "development" && (
+        <DevUserPicker callbackUrl={callbackUrl} />
+      )}
     </main>
   );
 }

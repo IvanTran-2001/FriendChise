@@ -23,6 +23,7 @@ export default async function ConversionPage({
   return (
     <>
       <RegisterPageSidebar
+        title="Conversion"
         content={<ConversionSidebarContent orgId={orgId} />}
       />
       <ConversionClient

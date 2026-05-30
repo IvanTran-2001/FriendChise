@@ -211,3 +211,45 @@ a:active,
 [data-sidebar="menu-button"]:not([data-active="true"]):hover {
   background-color: oklch(0.75 0.12 263 / 0.07);
 }
+
+/* ── TipTap RichTextEditor ─────────────────────────────────────────────────── */
+
+/* Placeholder text via Placeholder extension */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--muted-foreground);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Remove default ProseMirror focus outline (we handle it on the wrapper) */
+.tiptap:focus {
+  outline: none;
+}
+
+/*
+ * Editor content font-weight reset.
+ * globals.css remaps every --font-weight-* variable to 700, so Tailwind utilities
+ * like font-bold are indistinguishable from normal text inside the editor.
+ * We use raw values here to break out of that scale and make formatting visible.
+ */
+.tiptap {
+  font-weight: 400;
+}
+.tiptap strong {
+  font-weight: 800;
+}
+.tiptap em {
+  font-style: italic;
+}
+.tiptap s {
+  text-decoration: line-through;
+}
+.tiptap h3 {
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+}

@@ -25,7 +25,7 @@ import {
 } from "@/lib/services/task-sections";
 import { createSignedReadUrl } from "@/lib/supabase-storage";
 import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
-import { Toolbar } from "@/components/layout/toolbar";
+import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
 import { BackButton } from "@/components/layout/back-button";
 import { Clock, Users, AlarmClock, RefreshCw, Globe, Lock } from "lucide-react";
 import { TaskDescription } from "./task-description";
@@ -114,14 +114,14 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
           />
         }
       />
-      <Toolbar>
+      <RegisterPageToolbar>
         <BackButton
           fallbackHref={backHref}
           className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
         >
           {backLabel}
         </BackButton>
-      </Toolbar>
+      </RegisterPageToolbar>
 
       <div className="w-full max-w-3xl mx-auto flex flex-col gap-6">
         {/* Page header */}

@@ -6,10 +6,6 @@ import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
 function SidebarSkeleton() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Title row */}
-      <div className="h-12 flex items-center px-4 border-b border-border shrink-0">
-        <Skeleton className="h-3 w-16" />
-      </div>
       {/* Nav items */}
       {Array.from({ length: 5 }).map((_, i) => (
         <div

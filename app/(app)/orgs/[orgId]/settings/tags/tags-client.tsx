@@ -2,7 +2,7 @@
 
 import { useTransition, useRef, useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
-import { Toolbar } from "@/components/layout/toolbar";
+import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
 import { SearchInput } from "@/components/ui/search-input";
 import { toast } from "sonner";
 import { deleteTagAction } from "@/app/actions/tags";
@@ -175,7 +175,7 @@ export function TagsClient({ orgId, tags, allTasks }: Props) {
 
   return (
     <>
-      <Toolbar>
+      <RegisterPageToolbar>
         <SearchInput
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -184,7 +184,7 @@ export function TagsClient({ orgId, tags, allTasks }: Props) {
           containerClassName="flex-1 max-w-xs"
           aria-label="Search tags"
         />
-      </Toolbar>
+      </RegisterPageToolbar>
 
       <div className="max-w-3xl mx-auto w-full">
         {filtered.length === 0 ? (

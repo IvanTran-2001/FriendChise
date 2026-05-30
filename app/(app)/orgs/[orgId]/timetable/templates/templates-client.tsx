@@ -29,7 +29,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { useState, useTransition, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Toolbar } from "@/components/layout/toolbar";
+import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -307,7 +307,7 @@ export function TemplatesClient({
 
   return (
     <>
-      <Toolbar>
+      <RegisterPageToolbar>
         <SearchInput
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -315,7 +315,7 @@ export function TemplatesClient({
           className="h-8 text-sm"
           containerClassName="flex-1 max-w-xs"
         />
-      </Toolbar>
+      </RegisterPageToolbar>
       {/* Card view */}
       {view === "card" ? (
         filtered.length === 0 ? (

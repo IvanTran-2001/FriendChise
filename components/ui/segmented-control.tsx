@@ -94,7 +94,7 @@ export function SegmentedControl<T extends string>({
   return (
     <div
       className={cn(
-        "flex overflow-hidden border text-sm font-medium",
+        "flex overflow-hidden border text-sm font-medium w-fit",
         className,
       )}
     >

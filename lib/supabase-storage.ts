@@ -101,14 +101,21 @@ export async function createSignedReadUrls(
   });
   if (!res.ok) return result;
   const data = (await res.json()) as Array<{
+    // Supabase returns 'path' in newer versions, 'originalPath' in older ones
+    path?: string;
     originalPath?: string;
     signedURL: string | null;
     error: string | null;
   }>;
   for (const entry of data) {
-    if (!entry?.originalPath || !entry.signedURL) continue;
+    const entryPath = entry?.path ?? entry?.originalPath;
+    if (!entryPath || !entry.signedURL) continue;
+    // entryPath may include the bucket name prefix — strip it if present
+    const key = entryPath.startsWith(`${BUCKET}/`)
+      ? entryPath.slice(BUCKET.length + 1)
+      : entryPath;
     result.set(
-      entry.originalPath,
+      key,
       entry.signedURL.startsWith("http")
         ? entry.signedURL
         : `${url}/storage/v1${entry.signedURL}`,

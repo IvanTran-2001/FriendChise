@@ -32,6 +32,8 @@ import { usePersistedState } from "@/hooks/use-persisted-state";
 type PageSidebarCtxValue = {
   sidebar: ReactNode | null;
   setSidebar: (node: ReactNode | null) => void;
+  sidebarTitle: string | null;
+  setSidebarTitle: (title: string | null) => void;
   subContent: ReactNode | null;
   setSubContent: (node: ReactNode | null) => void;
   collapsed: boolean;
@@ -41,6 +43,8 @@ type PageSidebarCtxValue = {
 const PageSidebarCtx = createContext<PageSidebarCtxValue>({
   sidebar: null,
   setSidebar: () => {},
+  sidebarTitle: null,
+  setSidebarTitle: () => {},
   subContent: null,
   setSubContent: () => {},
   collapsed: false,
@@ -49,6 +53,7 @@ const PageSidebarCtx = createContext<PageSidebarCtxValue>({
 
 export function PageSidebarProvider({ children }: { children: ReactNode }) {
   const [sidebar, setSidebar] = useState<ReactNode | null>(null);
+  const [sidebarTitle, setSidebarTitle] = useState<string | null>(null);
   const [subContent, setSubContent] = useState<ReactNode | null>(null);
   const [collapsed, setCollapsed] = usePersistedState(
     "page-sidebar-collapsed",
@@ -59,6 +64,8 @@ export function PageSidebarProvider({ children }: { children: ReactNode }) {
       value={{
         sidebar,
         setSidebar,
+        sidebarTitle,
+        setSidebarTitle,
         subContent,
         setSubContent,
         collapsed,
@@ -87,10 +94,16 @@ export function usePageSidebarCollapsed() {
  * - Mobile: fixed overlay at left-12 (right next to AppSidebar) when hamburger is open
  */
 export function PageSidebarSlot() {
-  const { sidebar, collapsed, setCollapsed } = useContext(PageSidebarCtx);
+  const { sidebar, sidebarTitle, collapsed, setCollapsed } = useContext(PageSidebarCtx);
   const { open, setOpen } = useMobileSidebar();
 
   if (!sidebar) return null;
+
+  const titleEl = sidebarTitle ? (
+    <span className="flex-1 pl-4 text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider truncate">
+      {sidebarTitle}
+    </span>
+  ) : <span className="flex-1" />;
 
   return (
     <>
@@ -107,32 +120,42 @@ export function PageSidebarSlot() {
           </button>
         </div>
       ) : (
-        /* Expanded: in-flow panel, button floats absolute over content */
-        <div className="hidden md:flex flex-col relative w-65 shrink-0 border-r border-border bg-sidebar overflow-hidden">
+        /* Expanded: in-flow panel, header row holds the collapse button */
+        <div className="hidden md:flex flex-col w-65 shrink-0 border-r border-border bg-sidebar overflow-hidden">
+          {/* Sticky header */}
+          <div className="h-12 flex items-center shrink-0 border-b border-border">
+            {titleEl}
+            <button
+              onClick={() => setCollapsed(true)}
+              className="w-12 h-12 shrink-0 flex items-center justify-center rounded-none border-l border-border text-primary hover:bg-primary/8 transition-colors cursor-pointer"
+              aria-label="Collapse sidebar"
+            >
+              <PanelLeftClose className="h-5 w-5" />
+            </button>
+          </div>
+          {/* Scrollable content */}
           <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
             {sidebar}
           </div>
-          <button
-            onClick={() => setCollapsed(true)}
-            className="absolute top-0 right-0 z-10 flex items-center justify-center w-12 h-12 rounded-none border-b border-l border-border text-primary hover:bg-primary/8 transition-colors cursor-pointer"
-            aria-label="Collapse sidebar"
-          >
-            <PanelLeftClose className="h-5 w-5" />
-          </button>
         </div>
       )}
 
       {/* Mobile: overlay anchored right of the AppSidebar icon strip */}
       {open && (
         <div className="md:hidden fixed inset-y-0 left-12 z-50 flex flex-col w-65 bg-sidebar border-r border-border">
-          <button
-            onClick={() => setOpen(false)}
-            className="absolute top-2 right-2 z-10 flex items-center justify-center w-8 h-8 rounded-md text-muted-foreground hover:bg-muted transition-colors"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          <div className="flex-1 overflow-y-auto flex flex-col">
+          {/* Sticky header */}
+          <div className="h-12 flex items-center shrink-0 border-b border-border">
+            {titleEl}
+            <button
+              onClick={() => setOpen(false)}
+              className="w-12 h-12 shrink-0 flex items-center justify-center rounded-none border-l border-border text-muted-foreground hover:bg-muted transition-colors"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
             {sidebar}
           </div>
         </div>
@@ -145,12 +168,37 @@ export function PageSidebarSlot() {
  * Register a page-level sidebar from any layout.
  * Clears automatically when the layout unmounts (route group change).
  */
-export function RegisterPageSidebar({ content }: { content: ReactNode }) {
-  const { setSidebar } = useContext(PageSidebarCtx);
+export function RegisterPageSidebar({
+  content,
+  title,
+}: {
+  content: ReactNode;
+  title?: string;
+}) {
+  const { setSidebar, setSidebarTitle } = useContext(PageSidebarCtx);
   useEffect(() => {
     setSidebar(content);
-    return () => setSidebar(null);
-  }, [content, setSidebar]);
+    if (title !== undefined) setSidebarTitle(title);
+    return () => {
+      setSidebar(null);
+      if (title !== undefined) setSidebarTitle(null);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content, title]);
+  return null;
+}
+
+/**
+ * Set (or update) only the sidebar title without replacing the sidebar content.
+ * Useful when a page only calls RegisterPageSidebarSubContent but still needs
+ * a title in the header.
+ */
+export function RegisterPageSidebarTitle({ title }: { title: string }) {
+  const { setSidebarTitle } = useContext(PageSidebarCtx);
+  useEffect(() => {
+    setSidebarTitle(title);
+    return () => setSidebarTitle(null);
+  }, [title, setSidebarTitle]);
   return null;
 }
 

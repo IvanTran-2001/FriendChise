@@ -36,7 +36,7 @@ import { useState, useTransition, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, LayoutList, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Toolbar } from "@/components/layout/toolbar";
+import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
 import {
   Sheet,
   SheetContent,
@@ -196,7 +196,7 @@ export function TimetableClient({
   return (
     <div className={`flex flex-col${fillHeight ? " flex-1 min-h-0" : ""}`}>
       {/* Combined toolbar */}
-      <Toolbar>
+      <RegisterPageToolbar>
         {/* Row 1 (always): prev / date label / next + Today */}
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <div className="flex items-center gap-0.5">
@@ -242,7 +242,7 @@ export function TimetableClient({
             {children}
           </div>
         )}
-      </Toolbar>
+      </RegisterPageToolbar>
 
       <div
         className={`bg-background rounded-xl transition-opacity duration-150${isNavPending ? " opacity-40 pointer-events-none" : ""}${fillHeight ? " flex-1 min-h-0 flex flex-col" : ""}`}

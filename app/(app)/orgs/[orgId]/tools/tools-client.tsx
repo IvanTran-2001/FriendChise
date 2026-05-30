@@ -14,7 +14,6 @@
 
 import Link from "next/link";
 import { ArrowLeftRight, ArrowRight, List, Users } from "lucide-react";
-import { Toolbar } from "@/components/layout/toolbar";
 
 const TOOLS = [
   {
@@ -59,8 +58,6 @@ export function ToolsClient({
 
   return (
     <>
-      <Toolbar />
-
       <div className="max-w-2xl mx-auto w-full px-1 py-6 flex flex-col gap-8">
         {/* Recent */}
         {showRecent && (

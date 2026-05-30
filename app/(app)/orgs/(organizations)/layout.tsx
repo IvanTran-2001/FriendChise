@@ -14,7 +14,7 @@ export default function OrganizationsLayout({
 }) {
   return (
     <>
-      <RegisterPageSidebar content={<OrgManagementNav />} />
+      <RegisterPageSidebar title="Organizations" content={<OrgManagementNav />} />
       {children}
     </>
   );

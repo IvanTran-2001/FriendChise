@@ -16,7 +16,7 @@ import { MoreHorizontal, ListTodo, Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Toolbar } from "@/components/layout/toolbar";
+import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -273,8 +273,8 @@ export function TaskTable({
   const hasMore = !!nextCursor;
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
-      <Toolbar>
+    <>
+      <RegisterPageToolbar>
         <Input
           aria-label="Search tasks by title"
           placeholder="Search by title..."
@@ -282,9 +282,9 @@ export function TaskTable({
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 h-7 min-w-50"
         />
-      </Toolbar>
+      </RegisterPageToolbar>
 
-      <div className="flex-1 min-h-0 overflow-auto overscroll-contain -mx-4 sm:-mx-6 px-4 sm:px-6 pb-4 sm:pb-6">
+      <div>
         {initialLoad ? (
           view === "card" ? (
             <TaskCardSkeleton count={6} />
@@ -701,7 +701,7 @@ export function TaskTable({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }
 

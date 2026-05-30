@@ -14,7 +14,7 @@ import { TimetableSidebarShell } from "./_components/timetable-sidebar-shell";
 export default function TimetableLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <RegisterPageSidebar content={<TimetableSidebarShell />} />
+      <RegisterPageSidebar title="Timetable" content={<TimetableSidebarShell />} />
       {children}
     </>
   );

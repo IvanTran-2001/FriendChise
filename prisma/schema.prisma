@@ -195,6 +195,7 @@ model Organization {
   taskInheritances    TaskInheritance[]
   sectionLayouts      TaskSectionLayout[]
   taskComments        TaskComment[]
+  orgImages           OrgImage[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -1005,12 +1006,12 @@ model ToolItemList {
   description String?
   orgId       String
   org         Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  displayType ListDisplayType @default(TABLE)
+  displayType ListDisplayType @default(GRID)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  entries    ToolItemListEntry[]
-  gridConfig ToolItemGridConfig?
+  entries          ToolItemListEntry[]
+  gridConfig        ToolItemGridConfig?
 
   @@unique([orgId, name])
   @@index([orgId])
@@ -1033,7 +1034,30 @@ model ToolItemListEntry {
   position Int
   amount   Float        @default(0)
 
-  @@unique([listId, itemId])
+  checklistEntry ToolItemChecklistEntry?
+
   @@index([listId])
   @@index([itemId])
+}
+
+model ToolItemChecklistEntry {
+  id          String            @id @default(cuid())
+  listEntryId String            @unique
+  listEntry   ToolItemListEntry @relation(fields: [listEntryId], references: [id], onDelete: Cascade)
+  checkedAt   DateTime          @default(now())
+}
+
+// ─────────────────────────────────────
+// ORG IMAGE LIBRARY
+// ─────────────────────────────────────
+
+model OrgImage {
+  id          String       @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  storagePath String       // Path in friendchise-private bucket: orgs/{orgId}/images/{uuid}.{ext}
+  name        String?      // Optional display name
+  createdAt   DateTime     @default(now())
+
+  @@index([orgId])
 }

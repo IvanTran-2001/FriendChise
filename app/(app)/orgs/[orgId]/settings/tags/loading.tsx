@@ -6,9 +6,6 @@ import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
 function TagsSidebarSkeleton() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="h-12 flex items-center px-4 border-b border-border shrink-0">
-        <Skeleton className="h-3 w-10" />
-      </div>
       <div className="p-3">
         <Skeleton className="h-8 w-full rounded-md" />
       </div>

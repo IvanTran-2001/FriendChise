@@ -23,6 +23,17 @@ import {
   createToolItem,
   updateToolItem,
   deleteToolItem,
+  createToolItemList,
+  updateToolItemList,
+  deleteToolItemList,
+  duplicateToolItemList,
+  toggleChecklistEntry,
+  addToolItemListEntry,
+  addToolItemListEntryAtPosition,
+  moveToolItemListEntry,
+  removeToolItemListEntry,
+  updateToolItemGridConfig,
+  updateToolItemListEntryAmount,
   createConversionRate,
   deleteConversionRate,
   updateConversionRate,
@@ -594,5 +605,259 @@ export async function removeTemplateEntryAction(
       ok: false as const,
       error: mappedError ?? "Failed to delete entry.",
     };
+  }
+}
+
+// ─── ToolItemList ─────────────────────────────────────────────────────────────
+
+export async function createToolItemListAction(
+  orgId: string,
+  name: string,
+  displayType: import("@prisma/client").ListDisplayType,
+  gridCols?: number,
+  gridRows?: number,
+) {
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!auth.ok) return { ok: false as const };
+
+  const trimmed = name.trim();
+  if (!trimmed) return { ok: false as const, error: "Name is required." };
+
+  try {
+    const list = await createToolItemList(orgId, trimmed, displayType);
+    // Always create grid config for GRID lists
+    if (displayType === "GRID") {
+      await import("@/lib/prisma").then(({ prisma }) =>
+        prisma.toolItemGridConfig.create({
+          data: {
+            listId: list.id,
+            gridCols: gridCols ?? 4,
+            gridRows: gridRows ?? 4,
+          },
+        }),
+      );
+    }
+    revalidatePath(`/orgs/${orgId}/tools/item-list/lists`);
+    return { ok: true as const, list };
+  } catch (err: unknown) {
+    const mappedError = mapPrismaError(err, {
+      P2002: "A list with that name already exists.",
+    });
+    return {
+      ok: false as const,
+      error: mappedError ?? "Failed to create list.",
+    };
+  }
+}
+
+/** Renames a list and/or updates its description. Requires `MANAGE_TASKS`. */
+export async function updateToolItemListAction(
+  orgId: string,
+  listId: string,
+  name: string,
+  description?: string | null,
+) {
+  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!auth.ok) return { ok: false as const };
+  const trimmed = name.trim();
+  if (!trimmed) return { ok: false as const, error: "Name is required." };
+  try {
+    await updateToolItemList(orgId, listId, { name: trimmed, description: description ?? null });
+    revalidatePath(`/orgs/${orgId}/tools/item-list/lists`);
+    return { ok: true as const };
+  } catch (err: unknown) {
+    const mappedError = mapPrismaError(err, { P2002: "A list with that name already exists." });
+    return { ok: false as const, error: mappedError ?? "Failed to update list." };
+  }
+}
+
+/** Permanently deletes a list and all its entries. Requires `MANAGE_TASKS`. */
+export async function deleteToolItemListAction(orgId: string, listId: string) {
+  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!auth.ok) return { ok: false as const };
+  try {
+    await deleteToolItemList(orgId, listId);
+    revalidatePath(`/orgs/${orgId}/tools/item-list/lists`);
+    return { ok: true as const };
+  } catch {
+    return { ok: false as const, error: "Failed to delete list." };
+  }
+}
+
+/**
+ * Duplicates a list (metadata + grid config + all entries).
+ * The copy is named `"<original> (copy)"` — or `"(copy 2)"` etc. if taken.
+ * Returns `{ ok: true, list }` on success with the new list in the same shape
+ * as `getToolItemLists`. Requires `MANAGE_TASKS`.
+ */
+export async function duplicateToolItemListAction(orgId: string, listId: string) {
+  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!auth.ok) return { ok: false as const };
+  try {
+    const list = await duplicateToolItemList(orgId, listId);
+    revalidatePath(`/orgs/${orgId}/tools/item-list/lists`);
+    return { ok: true as const, list };
+  } catch {
+    return { ok: false as const, error: "Failed to duplicate list." };
+  }
+}
+
+export async function toggleChecklistEntryAction(
+  listEntryId: string,
+  listId: string,
+  orgId: string,
+) {
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!auth.ok) return { ok: false as const };
+
+  try {
+    const result = await toggleChecklistEntry(listEntryId);
+    revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
+    return { ok: true as const, checked: result.checked };
+  } catch {
+    return { ok: false as const };
+  }
+}
+
+export async function addToolItemListEntryAction(
+  orgId: string,
+  listId: string,
+  itemId: string,
+  amount?: number,
+) {
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!auth.ok) return { ok: false as const };
+
+  try {
+    const entry = await addToolItemListEntry(listId, itemId, amount ?? 0);
+    revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
+    return { ok: true as const, entry };
+  } catch (err: unknown) {
+    const mappedError = mapPrismaError(err, {
+      P2002: "This item is already in the list.",
+    });
+    return { ok: false as const, error: mappedError ?? "Failed to add item." };
+  }
+}
+
+export async function addToolItemListEntryAtPositionAction(
+  orgId: string,
+  listId: string,
+  itemId: string,
+  position: number,
+  amount?: number,
+) {
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!auth.ok) return { ok: false as const };
+
+  try {
+    const entry = await addToolItemListEntryAtPosition(
+      listId,
+      itemId,
+      position,
+      amount ?? 0,
+    );
+    revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
+    return { ok: true as const, entry };
+  } catch (err: unknown) {
+    const mappedError = mapPrismaError(err, {
+      P2002: "This item is already in the list.",
+    });
+    return { ok: false as const, error: mappedError ?? "Failed to add item." };
+  }
+}
+
+export async function moveToolItemListEntryAction(
+  orgId: string,
+  listId: string,
+  fromPosition: number,
+  toPosition: number,
+) {
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!auth.ok) return { ok: false as const };
+
+  try {
+    await moveToolItemListEntry(listId, fromPosition, toPosition);
+    revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
+    return { ok: true as const };
+  } catch {
+    return { ok: false as const };
+  }
+}
+
+export async function updateToolItemGridConfigAction(
+  orgId: string,
+  listId: string,
+  gridCols: number,
+  gridRows: number,
+) {
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!auth.ok) return { ok: false as const };
+
+  try {
+    await updateToolItemGridConfig(listId, gridCols, gridRows);
+    revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
+    return { ok: true as const };
+  } catch {
+    return { ok: false as const };
+  }
+}
+
+export async function removeToolItemListEntryAction(
+  orgId: string,
+  listId: string,
+  entryId: string,
+) {
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!auth.ok) return { ok: false as const };
+
+  try {
+    await removeToolItemListEntry(listId, entryId);
+    revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
+    return { ok: true as const };
+  } catch {
+    return { ok: false as const };
+  }
+}
+
+export async function updateToolItemListEntryAmountAction(
+  orgId: string,
+  listId: string,
+  entryId: string,
+  amount: number,
+) {
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!auth.ok) return { ok: false as const };
+
+  try {
+    await updateToolItemListEntryAmount(entryId, amount);
+    revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
+    return { ok: true as const };
+  } catch {
+    return { ok: false as const };
   }
 }

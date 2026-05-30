@@ -289,9 +289,52 @@ export async function updateTaskAction(
   );
   if (!result.ok) return { ok: false, errors: { _: [result.error] } };
 
+  // When the edit form includes deferred tag/role lists, apply them atomically.
+  if (formData.get("tagsSubmitted") === "1") {
+    const tagIds = formData
+      .getAll("tagIds")
+      .filter((v): v is string => typeof v === "string");
+    await setTaskTags(taskOrgId, taskId, tagIds);
+  }
+  if (formData.get("rolesSubmitted") === "1") {
+    const roleIds = formData
+      .getAll("roleIds")
+      .filter((v): v is string => typeof v === "string");
+    await setTaskEligibilities(taskOrgId, taskId, roleIds);
+  }
+
   revalidatePath(`/orgs/${orgId}/tasks`);
   revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);
   return { ok: true };
+}
+
+/**
+ * Creates a new org-scoped tag without attaching it to any task.
+ * Used by the deferred edit form so tag creation happens immediately but
+ * the attachment is committed only on Save.
+ * Requires `MANAGE_TASKS`.
+ */
+export async function createTagOnlyAction(
+  orgId: string,
+  name: string,
+): Promise<
+  | { ok: true; tag: { id: string; name: string; color: string } }
+  | { ok: false; error: string }
+> {
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  const result = await createTag(
+    orgId,
+    { name: name.trim() },
+    authz.userId,
+    authz.userEmail,
+  );
+  if (!result.ok) return { ok: false, error: result.error };
+  revalidatePath(`/orgs/${orgId}/tasks`);
+  return { ok: true, tag: result.data };
 }
 
 /**

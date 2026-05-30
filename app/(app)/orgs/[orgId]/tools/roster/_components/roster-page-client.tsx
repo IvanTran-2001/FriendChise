@@ -8,7 +8,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Toolbar } from "@/components/layout/toolbar";
+import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
 import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
 import { RosterSidebarContent } from "./roster-sidebar-content";
 import { RosterClient } from "./roster-client";
@@ -159,6 +159,7 @@ export function RosterPageClient({
   return (
     <>
       <RegisterPageSidebar
+        title="Roster"
         content={
           <RosterSidebarContent
             orgId={orgId}
@@ -172,7 +173,7 @@ export function RosterPageClient({
         }
       />
 
-      <Toolbar>
+      <RegisterPageToolbar>
         <Button
           variant="outline"
           size="sm"
@@ -195,7 +196,7 @@ export function RosterPageClient({
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
-      </Toolbar>
+      </RegisterPageToolbar>
 
       <RosterClient
         orgId={orgId}

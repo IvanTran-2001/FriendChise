@@ -40,7 +40,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Toolbar } from "@/components/layout/toolbar";
+import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Sheet,
@@ -482,7 +482,7 @@ export function TemplateEditorClient({
       }
     >
       {/* ── Navigation toolbar ── */}
-      <Toolbar>
+      <RegisterPageToolbar>
         <div className="flex items-center gap-0.5">
           <Button
             variant="outline"
@@ -518,7 +518,7 @@ export function TemplateEditorClient({
           Start
         </Button>
         {title && <div className="ml-auto">{title}</div>}
-      </Toolbar>
+      </RegisterPageToolbar>
 
       {/* ── Simple list view ── */}
       {mode === "simple" &&

@@ -5,7 +5,7 @@ import { TasksSidebarShell } from "./_components/tasks-sidebar-shell";
 export default function TasksLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <RegisterPageSidebar content={<TasksSidebarShell />} />
+      <RegisterPageSidebar title="Tasks" content={<TasksSidebarShell />} />
       {children}
     </>
   );

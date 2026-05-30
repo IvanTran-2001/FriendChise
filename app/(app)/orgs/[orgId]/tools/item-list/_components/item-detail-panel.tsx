@@ -3,8 +3,8 @@
 /**
  * ItemDetailPanel — ActionSidebar panel for creating or editing a ToolItem.
  *
- * Mode "create": name + unit fields → create item, call onCreated.
- * Mode "edit":   shows current image (upload / remove), name, unit → save or delete.
+ * Mode "create": name field → create item, call onCreated.
+ * Mode "edit":   shows current image (upload / remove), name → save or delete.
  *
  * Image upload flow (edit only):
  *   1. User picks a file → compressed client-side.
@@ -15,7 +15,6 @@
  */
 
 import { useRef, useState, useTransition } from "react";
-import imageCompression from "browser-image-compression";
 import { ImagePlus, Loader2, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -25,11 +24,8 @@ import {
   updateToolItemAction,
   deleteToolItemAction,
 } from "@/app/actions/tools";
-import {
-  getSignedToolItemUploadUrl,
-  saveToolItemImagePath,
-  removeToolItemImage,
-} from "@/app/actions/storage";
+import { removeToolItemImage, saveToolItemImagePath } from "@/app/actions/storage";
+import { OrgImagePicker } from "@/components/ui/org-image-picker";
 import type { ToolItem } from "./item-list-client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -65,7 +61,7 @@ export function ItemDetailPanel(props: Props) {
 
 function CreateForm({ orgId, onCreated }: CreateProps) {
   const [name, setName] = useState("");
-  const [unit, setUnit] = useState("");
+  const [unit, setUnit] = useState("each");
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent) {
@@ -79,6 +75,7 @@ function CreateForm({ orgId, onCreated }: CreateProps) {
       toast.success(`"${name.trim()}" created.`);
       onCreated({
         ...result.item,
+        unit,
         imgUrl: null,
         imageSignedUrl: null,
       });
@@ -114,9 +111,6 @@ function CreateForm({ orgId, onCreated }: CreateProps) {
           required
           disabled={isPending}
         />
-        <p className="text-xs text-muted-foreground">
-          The measurement unit shown in conversion rates.
-        </p>
       </div>
 
       <Button
@@ -136,88 +130,21 @@ function CreateForm({ orgId, onCreated }: CreateProps) {
 
 // ─── Edit form ────────────────────────────────────────────────────────────────
 
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_RAW_MB = 5;
+const ITEM_CROP = { aspect: 1, outputWidth: 512, outputHeight: 512 };
 
 function EditForm({ orgId, item, canManage, onUpdated, onDeleted, onClose: _onClose }: EditProps) {
   const [name, setName] = useState(item.name);
-  const [unit, setUnit] = useState(item.unit);
+  const [unit, setUnit] = useState(item.unit || "each");
   // Tracks the display URL — either the server-resolved signed URL or a local preview.
   const [previewUrl, setPreviewUrl] = useState<string | null>(item.imageSignedUrl);
   // The current stored path (kept in sync after upload/remove so deletes work).
   const imgPathRef = useRef<string | null>(item.imgUrl);
 
   const [isSaving, startSavingTransition] = useTransition();
-  const [isUploading, setIsUploading] = useState(false);
   const [isRemoving, startRemovingTransition] = useTransition();
   const [isDeleting, startDeletingTransition] = useTransition();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const isBusy = isSaving || isUploading || isRemoving || isDeleting;
-
-  // ── Image upload ───────────────────────────────────────────────────────────
-
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      toast.error("Only JPEG, PNG, and WebP images are supported.");
-      return;
-    }
-    if (file.size > MAX_RAW_MB * 1024 * 1024) {
-      toast.error(`Image must be smaller than ${MAX_RAW_MB} MB.`);
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      const compressed = await imageCompression(file, {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1280,
-        useWebWorker: true,
-        fileType: file.type as "image/jpeg" | "image/png" | "image/webp",
-      });
-
-      const urlResult = await getSignedToolItemUploadUrl(
-        orgId,
-        item.id,
-        compressed.type,
-      );
-      if (!urlResult.ok) {
-        toast.error(urlResult.error);
-        return;
-      }
-
-      const uploadRes = await fetch(urlResult.signedUrl, {
-        method: "PUT",
-        body: compressed,
-        headers: { "Content-Type": compressed.type },
-      });
-      if (!uploadRes.ok) {
-        toast.error("Upload failed. Please try again.");
-        return;
-      }
-
-      const saveResult = await saveToolItemImagePath(orgId, item.id, urlResult.path);
-      if (!saveResult.ok) {
-        toast.error(saveResult.error);
-        return;
-      }
-
-      // Show the new image immediately via a local blob URL.
-      const blobUrl = URL.createObjectURL(compressed);
-      setPreviewUrl(blobUrl);
-      imgPathRef.current = urlResult.path;
-      onUpdated({ ...item, name, unit, imgUrl: urlResult.path, imageSignedUrl: blobUrl });
-      toast.success("Image updated.");
-    } catch {
-      toast.error("Upload failed. Please try again.");
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  }
+  const isBusy = isSaving || isRemoving || isDeleting;
 
   function handleRemoveImage() {
     startRemovingTransition(async () => {
@@ -228,7 +155,7 @@ function EditForm({ orgId, item, canManage, onUpdated, onDeleted, onClose: _onCl
       }
       setPreviewUrl(null);
       imgPathRef.current = null;
-      onUpdated({ ...item, name, unit, imgUrl: null, imageSignedUrl: null });
+      onUpdated({ ...item, name, imgUrl: null, imageSignedUrl: null });
       toast.success("Image removed.");
     });
   }
@@ -293,11 +220,6 @@ function EditForm({ orgId, item, canManage, onUpdated, onDeleted, onClose: _onCl
               {item.name.charAt(0).toUpperCase()}
             </div>
           )}
-          {isUploading && (
-            <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-            </div>
-          )}
         </div>
 
         {/* Image action buttons */}
@@ -314,22 +236,31 @@ function EditForm({ orgId, item, canManage, onUpdated, onDeleted, onClose: _onCl
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
-            <button
-              type="button"
+            <OrgImagePicker
+              orgId={orgId}
+              config={ITEM_CROP}
               disabled={isBusy}
-              onClick={() => fileInputRef.current?.click()}
-              className="h-7 w-7 rounded-full bg-background/80 backdrop-blur-sm border flex items-center justify-center hover:bg-accent transition-colors disabled:opacity-50"
-              title={previewUrl ? "Change image" : "Upload image"}
-            >
-              <ImagePlus className="h-3.5 w-3.5" />
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="sr-only"
-              onChange={handleFileChange}
-              aria-label="Upload item image"
+              onSelect={async (storagePath, signedUrl) => {
+                const saveResult = await saveToolItemImagePath(orgId, item.id, storagePath);
+                if (!saveResult.ok) {
+                  toast.error(saveResult.error);
+                  return;
+                }
+                setPreviewUrl(signedUrl);
+                imgPathRef.current = storagePath;
+                onUpdated({ ...item, name, imgUrl: storagePath, imageSignedUrl: signedUrl });
+                toast.success("Image updated.");
+              }}
+              trigger={
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  className="h-7 w-7 rounded-full bg-background/80 backdrop-blur-sm border flex items-center justify-center hover:bg-accent transition-colors disabled:opacity-50"
+                  title={previewUrl ? "Change image" : "Add image"}
+                >
+                  <ImagePlus className="h-3.5 w-3.5" />
+                </button>
+              }
             />
           </div>
         )}
@@ -358,9 +289,9 @@ function EditForm({ orgId, item, canManage, onUpdated, onDeleted, onClose: _onCl
             id="edit-item-unit"
             value={unit}
             onChange={(e) => setUnit(e.target.value)}
+            placeholder="e.g. each, g, ml"
             required
             disabled={!canManage || isBusy}
-            placeholder="e.g. each, g, ml"
           />
         </div>
 

@@ -29,7 +29,7 @@ import { Users } from "lucide-react";
 import { SearchInput } from "@/components/ui/search-input";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Toolbar } from "@/components/layout/toolbar";
+import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { MemberActions } from "./member-actions";
 import { MemberViewPanel } from "./action-sidebar/member-view-panel";
@@ -208,9 +208,9 @@ export function MembersView({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <>
       {/* Toolbar */}
-      <Toolbar>
+      <RegisterPageToolbar>
         <SearchInput
           placeholder="Search members…"
           value={search}
@@ -224,9 +224,9 @@ export function MembersView({
             ? `${members.length} member${members.length !== 1 ? "s" : ""}`
             : `${filtered.length} of ${members.length}`}
         </span>
-      </Toolbar>
+      </RegisterPageToolbar>
 
-      <div className="flex-1 min-h-0 overflow-auto -mx-4 sm:-mx-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-4 sm:pb-6">
+      <div className="flex flex-col">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
             <div className="rounded-full bg-muted p-4">
@@ -261,7 +261,7 @@ export function MembersView({
           />
         )}
       </div>
-    </div>
+    </>
   );
 }
 

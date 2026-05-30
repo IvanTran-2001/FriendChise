@@ -296,8 +296,6 @@ export function TasksSidebarContent({
           View
         </p>
         <SegmentedControl
-          size="sm"
-          className="w-fit"
           value={view}
           onChange={(v) => {
             const newView = v as "list" | "card";
@@ -307,8 +305,8 @@ export function TasksSidebarContent({
             router.push(buildHref({ view: newView }));
           }}
           options={[
-            { value: "list", label: <List className="h-4 w-4" /> },
-            { value: "card", label: <LayoutGrid className="h-4 w-4" /> },
+            { value: "list", label: <span className="flex items-center gap-1.5"><List className="h-3.5 w-3.5" />List</span> },
+            { value: "card", label: <span className="flex items-center gap-1.5"><LayoutGrid className="h-3.5 w-3.5" />Card</span> },
           ]}
         />
       </div>

@@ -23,12 +23,15 @@ import { requireOrgPermissionAction } from "@/lib/authz";
 import {
   createSignedUploadUrl,
   createSignedUploadUrlPublic,
+  createSignedReadUrl,
+  createSignedReadUrls,
   deleteStorageFile,
   deletePublicFile,
 } from "@/lib/supabase-storage";
 import { updateTaskImageUrl } from "@/lib/services/tasks";
 import { updateToolItemImageUrl } from "@/lib/services/tools";
 import { updateOrgImage } from "@/lib/services/orgs";
+import { getOrgImages, addOrgImage, deleteOrgImage } from "@/lib/services/images";
 import { prisma } from "@/lib/prisma";
 import { isDemoEmail } from "@/lib/demo";
 
@@ -102,8 +105,9 @@ export async function saveTaskImagePath(
 
   // Normalize and validate storagePath
   const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
-  const expectedPrefix = `orgs/${orgId}/tasks/${taskId}/`;
-  if (!normalized.startsWith(expectedPrefix)) {
+  const isTaskPath = normalized.startsWith(`orgs/${orgId}/tasks/${taskId}/`);
+  const isLibraryPath = normalized.startsWith(`orgs/${orgId}/images/`);
+  if (!isTaskPath && !isLibraryPath) {
     return { ok: false, error: "Invalid storage path" };
   }
 
@@ -117,8 +121,12 @@ export async function saveTaskImagePath(
   const result = await updateTaskImageUrl(orgId, taskId, normalized);
   if (!result.ok) return { ok: false, error: result.error };
 
-  // Only delete old file after successful DB update
-  if (existing?.imageUrl && existing.imageUrl !== normalized) {
+  // Only delete the old file if it was task-specific (not a shared library image)
+  if (
+    existing?.imageUrl &&
+    existing.imageUrl !== normalized &&
+    !existing.imageUrl.startsWith(`orgs/${orgId}/images/`)
+  ) {
     await deleteStorageFile(existing.imageUrl);
   }
 
@@ -196,7 +204,9 @@ export async function saveToolItemImagePath(
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
-  if (!normalized.startsWith(`orgs/${orgId}/items/${itemId}/`))
+  const isItemPath = normalized.startsWith(`orgs/${orgId}/items/${itemId}/`);
+  const isLibraryPath = normalized.startsWith(`orgs/${orgId}/images/`);
+  if (!isItemPath && !isLibraryPath)
     return { ok: false, error: "Invalid storage path" };
 
   const existing = await prisma.toolItem.findFirst({
@@ -206,8 +216,16 @@ export async function saveToolItemImagePath(
 
   await updateToolItemImageUrl(orgId, itemId, normalized);
 
-  if (existing?.imgUrl && existing.imgUrl !== normalized) {
-    await deleteStorageFile(existing.imgUrl);
+  // Only delete the old file if it was item-specific (not a shared library image)
+  if (
+    existing?.imgUrl &&
+    existing.imgUrl !== normalized &&
+    !existing.imgUrl.startsWith(`orgs/${orgId}/images/`)
+  ) {
+    const refCount = await prisma.toolItem.count({
+      where: { orgId, imgUrl: existing.imgUrl },
+    });
+    if (refCount === 0) await deleteStorageFile(existing.imgUrl);
   }
   return { ok: true };
 }
@@ -227,8 +245,138 @@ export async function removeToolItemImage(
     where: { id: itemId, orgId },
     select: { imgUrl: true },
   });
-  if (item?.imgUrl) await deleteStorageFile(item.imgUrl);
+  if (item?.imgUrl) {
+    // Only delete the actual file if no other item in the org shares this path.
+    const refCount = await prisma.toolItem.count({
+      where: { orgId, imgUrl: item.imgUrl, NOT: { id: itemId } },
+    });
+    if (refCount === 0) await deleteStorageFile(item.imgUrl);
+  }
   await updateToolItemImageUrl(orgId, itemId, null);
+  return { ok: true };
+}
+
+/**
+ * Points a ToolItem's imgUrl at an existing image from another item in the
+ * same org — no new file is created in storage.
+ */
+export async function reuseToolItemImageAction(
+  orgId: string,
+  itemId: string,
+  srcPath: string,
+): Promise<
+  | { ok: true; imgUrl: string; imageSignedUrl: string }
+  | { ok: false; error: string }
+> {
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+
+  const normalized = srcPath.replace(/^\/+/, "").replace(/\.\./g, "");
+  // Validate the path belongs to a ToolItem in this org (must be a different item)
+  const srcItem = await prisma.toolItem.findFirst({
+    where: { orgId, imgUrl: normalized, NOT: { id: itemId } },
+    select: { id: true },
+  });
+  if (!srcItem) return { ok: false, error: "Image not found" };
+
+  // Possibly free the old path if nothing else references it
+  const current = await prisma.toolItem.findFirst({
+    where: { id: itemId, orgId },
+    select: { imgUrl: true },
+  });
+  await updateToolItemImageUrl(orgId, itemId, normalized);
+  if (current?.imgUrl && current.imgUrl !== normalized) {
+    const refCount = await prisma.toolItem.count({
+      where: { orgId, imgUrl: current.imgUrl },
+    });
+    if (refCount === 0) await deleteStorageFile(current.imgUrl);
+  }
+
+  const signedResult = await createSignedReadUrl(normalized);
+  return { ok: true, imgUrl: normalized, imageSignedUrl: signedResult ?? "" };
+}
+
+// ─── Org Image Library Actions ───────────────────────────────────────────────
+
+/** Signed upload URL for a library image. Path: orgs/{orgId}/images/{uuid}.{ext} */
+export async function getSignedOrgImageUploadUrl(
+  orgId: string,
+  mimeType: string,
+): Promise<
+  { ok: true; signedUrl: string; path: string } | { ok: false; error: string }
+> {
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  if (isDemoEmail(authz.userEmail))
+    return { ok: false, error: "Image uploads are not available in demo mode." };
+  if (!ALLOWED_MIME_TYPES.includes(mimeType as AllowedMime))
+    return { ok: false, error: "Unsupported file type. Use JPEG, PNG, or WebP." };
+  const ext = EXT[mimeType as AllowedMime];
+  const uuid = crypto.randomUUID();
+  return createSignedUploadUrl(`orgs/${orgId}/images/${uuid}.${ext}`);
+}
+
+/** Saves an uploaded image to the org library after a successful upload. */
+export async function saveOrgImageToLibrary(
+  orgId: string,
+  storagePath: string,
+  name?: string,
+): Promise<
+  | { ok: true; image: { id: string; storagePath: string; name: string | null; signedUrl: string } }
+  | { ok: false; error: string }
+> {
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
+  if (!normalized.startsWith(`orgs/${orgId}/images/`))
+    return { ok: false, error: "Invalid storage path" };
+  const img = await addOrgImage(orgId, normalized, name);
+  const signedUrl = (await createSignedReadUrl(normalized)) ?? null;
+  if (!signedUrl) return { ok: false, error: "Failed to generate image URL" };
+  return { ok: true, image: { ...img, signedUrl } };
+}
+
+/** Returns all org library images with fresh signed URLs. */
+export async function getOrgImagesWithSignedUrls(
+  orgId: string,
+): Promise<
+  | { ok: true; images: { id: string; storagePath: string; name: string | null; signedUrl: string }[] }
+  | { ok: false; error: string }
+> {
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  const rows = await getOrgImages(orgId);
+  if (rows.length === 0) return { ok: true, images: [] };
+  const signedMap = await createSignedReadUrls(rows.map((r) => r.storagePath));
+  const images = rows
+    .map((r) => ({
+      id: r.id,
+      storagePath: r.storagePath,
+      name: r.name,
+      signedUrl: signedMap.get(r.storagePath) ?? null,
+    }))
+    .filter((r): r is typeof r & { signedUrl: string } => !!r.signedUrl);
+  return { ok: true, images };
+}
+
+/** Deletes a library image. Only removes from storage if nothing else references it. */
+export async function deleteOrgImageAction(
+  orgId: string,
+  imageId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  const storagePath = await deleteOrgImage(orgId, imageId);
+  if (!storagePath) return { ok: false, error: "Image not found" };
+  // Delete the file only if no task or tool item still points at this path
+  const [taskRef, itemRef] = await Promise.all([
+    prisma.task.count({ where: { orgId, imageUrl: storagePath } }),
+    prisma.toolItem.count({ where: { orgId, imgUrl: storagePath } }),
+  ]);
+  if (taskRef === 0 && itemRef === 0) await deleteStorageFile(storagePath);
   return { ok: true };
 }
 

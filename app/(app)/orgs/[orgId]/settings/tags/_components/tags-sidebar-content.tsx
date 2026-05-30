@@ -26,11 +26,6 @@ export function TagsSidebarContent({
 
   return (
     <div className="flex flex-col overflow-y-auto">
-      <div className="h-12 flex items-center px-4 border-b border-border shrink-0">
-        <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
-          Tags
-        </span>
-      </div>
       <div className="px-3 pt-3 pb-3">
         <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
           Actions

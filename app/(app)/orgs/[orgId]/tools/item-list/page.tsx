@@ -5,18 +5,22 @@ import {
   getAuthUserId,
 } from "@/lib/authz/_shared";
 import { PermissionAction } from "@prisma/client";
-import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
 import { getToolItemsFull } from "@/lib/services/tools";
 import { createSignedReadUrls } from "@/lib/supabase-storage";
-import { ItemListSidebarContent } from "./_components/item-list-sidebar-content";
-import { ItemListClient } from "./_components/item-list-client";
+import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
+import { ItemListSidebarShell } from "./_components/item-list-sidebar-shell";
+import { ItemListPageClient } from "./_components/item-list-page-client";
 
 export default async function ItemListPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ orgId: string }>;
+  searchParams: Promise<{ view?: string }>;
 }) {
   const { orgId } = await params;
+  const sp = await searchParams;
+  const view: "grid" | "list" = sp.view === "list" ? "list" : "grid";
   await requireOrgMemberPage(orgId);
 
   const userId = await getAuthUserId();
@@ -38,8 +42,8 @@ export default async function ItemListPage({
 
   return (
     <>
-      <RegisterPageSidebar content={<ItemListSidebarContent orgId={orgId} />} />
-      <ItemListClient orgId={orgId} items={items} canManage={canManage} />
+      <RegisterPageSidebar title="Item List" content={<ItemListSidebarShell />} />
+      <ItemListPageClient orgId={orgId} items={items} canManage={canManage} view={view} />
     </>
   );
 }
