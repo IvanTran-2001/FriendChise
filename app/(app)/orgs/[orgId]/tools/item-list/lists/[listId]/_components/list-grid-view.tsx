@@ -102,10 +102,11 @@ export function ListGridView({
             variant="ghost"
             size="icon"
             className="h-7 w-7"
+            disabled={page > lastOccupiedPage}
             onClick={() => setPage((p) => p + 1)}
           >
             <ChevronRight className="h-4 w-4" />
-          </Button>
+
         </div>
       </RegisterPageToolbar>
 

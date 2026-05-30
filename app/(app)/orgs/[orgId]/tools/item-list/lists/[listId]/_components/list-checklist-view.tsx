@@ -31,6 +31,8 @@ export function ListChecklistView({
 
   function handleToggle(entryId: string) {
     if (!canManage || pending) return;
+    // Capture the original entry for revert if server action fails
+    const original = entries.find((e) => e.id === entryId);
     // Optimistic update
     setEntries((prev) =>
       prev.map((e) =>
@@ -47,18 +49,9 @@ export function ListChecklistView({
     startTransition(async () => {
       const result = await toggleChecklistEntryAction(entryId, list.id, orgId);
       if (!result.ok) {
-        // Revert on failure
+        // Revert to original state
         setEntries((prev) =>
-          prev.map((e) =>
-            e.id === entryId
-              ? {
-                  ...e,
-                  checklistEntry: e.checklistEntry
-                    ? null
-                    : { id: "optimistic", listEntryId: entryId, checkedAt: new Date() },
-                }
-              : e,
-          ),
+          prev.map((e) => (e.id === entryId && original ? { ...original } : e)),
         );
       }
     });

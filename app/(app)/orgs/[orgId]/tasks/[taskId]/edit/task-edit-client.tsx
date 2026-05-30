@@ -771,7 +771,7 @@ export function TaskEditClient({
           )}
         </div>
 
-        {/* ── 4. Eligible roles ────────────────────────────────────────────── */}
+        {/* ── 3. Eligible roles ────────────────────────────────────────────── */}
         <div className="rounded-xl border bg-card p-5">
           <DeferredRolesPanel
             allRoles={allRoles}
@@ -780,7 +780,7 @@ export function TaskEditClient({
           />
         </div>
 
-        {/* ── 5. Tags ──────────────────────────────────────────────────────── */}
+        {/* ── 4. Tags ──────────────────────────────────────────────────────── */}
         <div className="rounded-xl border bg-card p-5">
           <DeferredTagPanel
             orgId={orgId}

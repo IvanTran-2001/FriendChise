@@ -149,7 +149,7 @@ export function ListDetailSidebarContent({
                 items={conversionSets}
                 onSelect={(item) => {
                   saveRatesPref(item.id);
-                  navigate({ set: item.id, showRates: null });
+                  navigate({ set: item.id });
                 }}
                 triggerLabel={
                   conversionSets.find((s) => s.id === activeSetId)?.name ?? "Choose set…"
@@ -162,7 +162,7 @@ export function ListDetailSidebarContent({
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 shrink-0"
-                onClick={() => { saveRatesPref(null); navigate({ set: null, showRates: "0" }); }}
+                onClick={() => { saveRatesPref(null); navigate({ set: null }); }}
                 aria-label="Clear set"
               >
                 <X className="h-3.5 w-3.5" />
