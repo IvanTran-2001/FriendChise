@@ -11,7 +11,7 @@ import { PermissionAction } from "@prisma/client";
 import { ROLE_KEYS } from "@/lib/rbac";
 
 const SEED_USER_EMAIL =
-  process.env.INTEGRATION_TEST_USER_EMAIL ?? "alt28919@gmail.com";
+  process.env.INTEGRATION_TEST_USER_EMAIL ?? "casey@example.test";
 
 async function getSeedOrg() {
   const user = await prisma.user.findFirstOrThrow({
