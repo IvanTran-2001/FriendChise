@@ -32,6 +32,7 @@ vi.mock("@/lib/prisma", () => ({
     taskSectionLayout: {
       createMany: vi.fn(),
     },
+    $transaction: vi.fn((ops: unknown[]) => Promise.all(ops)),
     taskInheritance: {
       create: vi.fn(),
     },
@@ -346,22 +347,34 @@ describe("removeTaskEligibility", () => {
 // ─── setTaskEligibilities ─────────────────────────────────────────────────────
 
 describe("setTaskEligibilities", () => {
-  it("returns early without querying when roleIds is empty", async () => {
+  it("skips findMany but still deletes+inserts when roleIds is empty", async () => {
     await setTaskEligibilities("org-1", "task-1", []);
 
     expect(prisma.role.findMany).not.toHaveBeenCalled();
-    expect(prisma.taskEligibility.createMany).not.toHaveBeenCalled();
+    expect(prisma.taskEligibility.deleteMany).toHaveBeenCalledWith({
+      where: { taskId: "task-1" },
+    });
+    expect(prisma.taskEligibility.createMany).toHaveBeenCalledWith({
+      data: [],
+      skipDuplicates: true,
+    });
   });
 
-  it("returns early when no roleIds belong to the org", async () => {
+  it("deletes all and inserts nothing when no roleIds belong to the org", async () => {
     vi.mocked(prisma.role.findMany).mockResolvedValue([]);
 
     await setTaskEligibilities("org-1", "task-1", ["role-x", "role-y"]);
 
-    expect(prisma.taskEligibility.createMany).not.toHaveBeenCalled();
+    expect(prisma.taskEligibility.deleteMany).toHaveBeenCalledWith({
+      where: { taskId: "task-1" },
+    });
+    expect(prisma.taskEligibility.createMany).toHaveBeenCalledWith({
+      data: [],
+      skipDuplicates: true,
+    });
   });
 
-  it("bulk-inserts only valid roles, skipping duplicates", async () => {
+  it("deletes all then bulk-inserts only valid roles, skipping duplicates", async () => {
     vi.mocked(prisma.role.findMany).mockResolvedValue([
       { id: "role-1" },
       { id: "role-2" },
@@ -376,6 +389,9 @@ describe("setTaskEligibilities", () => {
       "role-invalid",
     ]);
 
+    expect(prisma.taskEligibility.deleteMany).toHaveBeenCalledWith({
+      where: { taskId: "task-1" },
+    });
     expect(prisma.taskEligibility.createMany).toHaveBeenCalledWith({
       data: [
         { taskId: "task-1", roleId: "role-1" },
