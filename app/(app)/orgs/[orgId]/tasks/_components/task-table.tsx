@@ -138,7 +138,8 @@ export function TaskTable({
     | { type: "load_error" }
     | { type: "load_more" }
     | { type: "more_loaded"; tasks: Task[]; nextCursor: string | null }
-    | { type: "more_done" };
+    | { type: "more_done" }
+    | { type: "set_tasks"; tasks: Task[] };
 
   function pageReducer(state: PageState, action: PageAction): PageState {
     switch (action.type) {
@@ -154,6 +155,8 @@ export function TaskTable({
         return { ...state, tasks: [...state.tasks, ...action.tasks], nextCursor: action.nextCursor };
       case "more_done":
         return { ...state, isFetching: false };
+      case "set_tasks":
+        return { ...state, tasks: action.tasks };
       default:
         return state;
     }
@@ -251,7 +254,7 @@ export function TaskTable({
       if (result.ok) {
         toast.success("Removed from list.");
         // Remove from local state immediately
-        setTasks((prev) => prev.filter((t) => t.id !== taskId));
+        dispatch({ type: "set_tasks", tasks: tasks.filter((t) => t.id !== taskId) });
       } else {
         toast.error(result.error);
       }
@@ -266,7 +269,7 @@ export function TaskTable({
       const result = await deleteTaskAction(orgId, taskId);
       if (result.ok) {
         toast.success("Task deleted.");
-        setTasks((prev) => prev.filter((t) => t.id !== taskId));
+        dispatch({ type: "set_tasks", tasks: tasks.filter((t) => t.id !== taskId) });
       } else {
         toast.error(result.error);
       }
@@ -279,11 +282,7 @@ export function TaskTable({
       if (result.ok) {
         toast.success(`"${task.name}" added to your list.`);
         // Move from available → inherited in local state
-        setTasks((prev) =>
-          prev.map((t) =>
-            t.id === task.id ? { ...t, _available: false } : t,
-          ),
-        );
+        dispatch({ type: "set_tasks", tasks: tasks.map((t) => t.id === task.id ? { ...t, _available: false } : t) });
       } else {
         toast.error(result.error);
       }
