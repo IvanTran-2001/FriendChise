@@ -9,7 +9,7 @@
  * All filtering params (sort, roleId, tagId, mode) come from URL-driven props.
  * Local search is debounced and triggers a fresh fetch from the start.
  */
-import { useState, useTransition, useEffect, useRef, useCallback } from "react";
+import { useState, useReducer, useTransition, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import { MoreHorizontal, ListTodo, Plus, Loader2 } from "lucide-react";
@@ -126,10 +126,43 @@ export function TaskTable({
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
 
   // ── Pagination state ──────────────────────────────────────────────────────
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [isFetching, setIsFetching] = useState(false);
-  const [initialLoad, setInitialLoad] = useState(true);
+  type PageState = {
+    tasks: Task[];
+    nextCursor: string | null;
+    isFetching: boolean;
+    initialLoad: boolean;
+  };
+  type PageAction =
+    | { type: "reset" }
+    | { type: "loaded"; tasks: Task[]; nextCursor: string | null }
+    | { type: "load_error" }
+    | { type: "load_more" }
+    | { type: "more_loaded"; tasks: Task[]; nextCursor: string | null }
+    | { type: "more_done" };
+
+  function pageReducer(state: PageState, action: PageAction): PageState {
+    switch (action.type) {
+      case "reset":
+        return { tasks: [], nextCursor: null, isFetching: true, initialLoad: true };
+      case "loaded":
+        return { ...state, tasks: action.tasks, nextCursor: action.nextCursor, isFetching: false, initialLoad: false };
+      case "load_error":
+        return { ...state, isFetching: false, initialLoad: false };
+      case "load_more":
+        return { ...state, isFetching: true };
+      case "more_loaded":
+        return { ...state, tasks: [...state.tasks, ...action.tasks], nextCursor: action.nextCursor };
+      case "more_done":
+        return { ...state, isFetching: false };
+      default:
+        return state;
+    }
+  }
+
+  const [{ tasks, nextCursor, isFetching, initialLoad }, dispatch] = useReducer(
+    pageReducer,
+    { tasks: [], nextCursor: null, isFetching: false, initialLoad: true },
+  );
   const sentinelRef = useRef<HTMLDivElement>(null);
   // Track the "reset key" — whenever filters change, reset and refetch from scratch.
   const resetKeyRef = useRef(0);
@@ -154,25 +187,17 @@ export function TaskTable({
   // Reset and fetch first page whenever filters / mode change.
   useEffect(() => {
     const key = ++resetKeyRef.current;
-    setTasks([]);
-    setNextCursor(null);
-    setInitialLoad(true);
-    setIsFetching(true);
+    dispatch({ type: "reset" });
 
     let cancelled = false;
     fetch(buildUrl(null))
       .then((r) => r.json() as Promise<{ tasks: Task[]; nextCursor: string | null }>)
       .then((data) => {
         if (cancelled || resetKeyRef.current !== key) return;
-        setTasks(data.tasks);
-        setNextCursor(data.nextCursor);
-        setInitialLoad(false);
+        dispatch({ type: "loaded", tasks: data.tasks, nextCursor: data.nextCursor });
       })
       .catch(() => {
-        if (!cancelled && resetKeyRef.current === key) setInitialLoad(false);
-      })
-      .finally(() => {
-        if (!cancelled && resetKeyRef.current === key) setIsFetching(false);
+        if (!cancelled && resetKeyRef.current === key) dispatch({ type: "load_error" });
       });
 
     return () => {
@@ -184,17 +209,16 @@ export function TaskTable({
   const loadMore = useCallback(() => {
     if (isFetching || !nextCursor) return;
     const key = resetKeyRef.current;
-    setIsFetching(true);
+    dispatch({ type: "load_more" });
     fetch(buildUrl(nextCursor))
       .then((r) => r.json() as Promise<{ tasks: Task[]; nextCursor: string | null }>)
       .then((data) => {
         if (resetKeyRef.current !== key) return;
-        setTasks((prev) => [...prev, ...data.tasks]);
-        setNextCursor(data.nextCursor);
+        dispatch({ type: "more_loaded", tasks: data.tasks, nextCursor: data.nextCursor });
       })
       .catch(() => {/* swallow, next intersection will retry */})
       .finally(() => {
-        if (resetKeyRef.current === key) setIsFetching(false);
+        if (resetKeyRef.current === key) dispatch({ type: "more_done" });
       });
   }, [isFetching, nextCursor, buildUrl]);
 
