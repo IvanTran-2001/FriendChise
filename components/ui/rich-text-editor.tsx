@@ -109,6 +109,7 @@ export function RichTextEditor({
     immediatelyRender: false,
     editorProps: {
       attributes: {
+        id: name,
         class: cn(
           "outline-none px-3 py-2.5 text-sm leading-relaxed cursor-text",
           minHeightClass,

@@ -752,7 +752,7 @@ export function TaskEditClient({
 
         {/* ── 2. Description ──────────────────────────────────────────────── */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium">Description</label>
+          <label htmlFor="description" className="text-sm font-medium">Description</label>
           <RichTextEditor
             name="description"
             defaultValue={defaultValues.description}
