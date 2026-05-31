@@ -365,7 +365,13 @@ test("edit task to remove role → role badge no longer visible in task list", a
   });
 
   await page.goto(`/orgs/${orgId}/tasks`);
+  // Wait for any client-side redirects (e.g. localStorage mode/filter restore) to settle
+  await page.waitForLoadState("networkidle");
   await searchTasks(page, taskTitle);
+  // Wait for the task row to appear before asserting the badge is absent
+  await expect(
+    page.getByRole("button").filter({ hasText: taskTitle }),
+  ).toBeVisible();
   await expect(
     page.getByRole("button").filter({ hasText: taskTitle }).getByText(roleName),
   ).not.toBeVisible();

@@ -544,16 +544,22 @@ export async function setTaskEligibilities(
   taskId: string,
   roleIds: string[],
 ): Promise<void> {
-  if (roleIds.length === 0) return;
-  const validRoles = await prisma.role.findMany({
-    where: { id: { in: roleIds }, orgId },
-    select: { id: true },
-  });
-  if (validRoles.length === 0) return;
-  await prisma.taskEligibility.createMany({
-    data: validRoles.map(({ id: roleId }) => ({ taskId, roleId })),
-    skipDuplicates: true,
-  });
+  const validRoles =
+    roleIds.length > 0
+      ? await prisma.role.findMany({
+          where: { id: { in: roleIds }, orgId },
+          select: { id: true },
+        })
+      : [];
+  const validIds = validRoles.map((r) => r.id);
+
+  await prisma.$transaction([
+    prisma.taskEligibility.deleteMany({ where: { taskId } }),
+    prisma.taskEligibility.createMany({
+      data: validIds.map((roleId) => ({ taskId, roleId })),
+      skipDuplicates: true,
+    }),
+  ]);
 }
 
 /**
