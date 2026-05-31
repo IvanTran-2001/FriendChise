@@ -759,6 +759,7 @@ export function TaskEditClient({
             placeholder="Add details, steps, or notes…"
             minHeightClass="min-h-80"
             onChange={markDirty}
+            ariaLabel="Description"
             ariaInvalid={!!err("description")}
             ariaDescribedBy={
               err("description") ? "description-error" : undefined

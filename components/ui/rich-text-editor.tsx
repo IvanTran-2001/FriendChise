@@ -76,6 +76,7 @@ interface RichTextEditorProps {
   minHeightClass?: string;
   ariaInvalid?: boolean;
   ariaDescribedBy?: string;
+  ariaLabel?: string;
   /** Called on any content change — use to mark the form dirty. */
   onChange?: () => void;
 }
@@ -88,6 +89,7 @@ export function RichTextEditor({
   minHeightClass = "min-h-64",
   ariaInvalid,
   ariaDescribedBy,
+  ariaLabel,
   onChange,
 }: RichTextEditorProps) {
   const hiddenRef = useRef<HTMLInputElement>(null);
@@ -126,6 +128,7 @@ export function RichTextEditor({
         ...(ariaDescribedBy != null && {
           "aria-describedby": ariaDescribedBy,
         }),
+        ...(ariaLabel != null && { "aria-label": ariaLabel }),
       },
     },
     onUpdate({ editor }) {
