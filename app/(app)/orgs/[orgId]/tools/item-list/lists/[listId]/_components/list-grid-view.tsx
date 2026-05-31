@@ -106,6 +106,7 @@ export function ListGridView({
             onClick={() => setPage((p) => p + 1)}
           >
             <ChevronRight className="h-4 w-4" />
+          </Button>
 
         </div>
       </RegisterPageToolbar>
