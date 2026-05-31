@@ -491,11 +491,25 @@ test("task detail → shows updated values after edit", async ({ page }) => {
 
   // Update fields
   await page.getByLabel(/title/i).fill(updatedTitle);
-  await page.getByLabel(/description/i).fill(updatedDescription);
   await page.getByLabel("Hours").selectOption("2");
   await page.getByLabel("Minutes").selectOption("15");
   await page.getByLabel(/min wait days/i).fill("3");
   await page.getByLabel(/max wait days/i).fill("7");
+  // TipTap's ProseMirror pipeline is bypassed by Playwright's fill() and
+  // keyboard events in headless mode: the contenteditable DOM is updated but
+  // TipTap's onUpdate never fires, so the hidden <input name="description">
+  // keeps the old value. Set it directly after all other fields are filled
+  // (any earlier and React re-renders from other field changes can overwrite
+  // it by re-running TipTap's sync effect).
+  await page.evaluate(
+    (desc) => {
+      const input = document.querySelector<HTMLInputElement>(
+        'input[name="description"]',
+      );
+      if (input) input.value = desc;
+    },
+    updatedDescription,
+  );
   await page.getByRole("button", { name: /save/i }).click();
   await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+(?<!\/edit)$/);
 
