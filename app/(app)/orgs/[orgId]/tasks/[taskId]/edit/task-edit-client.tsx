@@ -451,6 +451,7 @@ function SidebarFields({
               value={minWaitDays}
               onChange={(e) => onMinWaitDaysChange(e.target.value)}
               className={inputClass}
+              aria-label="Min wait days"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -463,6 +464,7 @@ function SidebarFields({
               value={maxWaitDays}
               onChange={(e) => onMaxWaitDaysChange(e.target.value)}
               className={inputClass}
+              aria-label="Max wait days"
             />
           </div>
         </div>
