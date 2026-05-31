@@ -68,11 +68,17 @@ export function ListDetailSidebarContent({
   }
 
   function changeGrid(newCols: number, newRows: number) {
+    const prevCols = cols;
+    const prevRows = rows;
     setCols(newCols);
     setRows(newRows);
     startGridTransition(async () => {
       const result = await updateToolItemGridConfigAction(orgId, listId, newCols, newRows);
-      if (!result.ok) toast.error("Failed to update grid size.");
+      if (!result.ok) {
+        setCols(prevCols);
+        setRows(prevRows);
+        toast.error("Failed to update grid size.");
+      }
     });
   }
 
