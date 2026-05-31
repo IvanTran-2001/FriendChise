@@ -154,12 +154,10 @@ export function TaskTable({
   // Reset and fetch first page whenever filters / mode change.
   useEffect(() => {
     const key = ++resetKeyRef.current;
-    startTransition(() => {
-      setTasks([]);
-      setNextCursor(null);
-      setInitialLoad(true);
-      setIsFetching(true);
-    });
+    setTasks([]);
+    setNextCursor(null);
+    setInitialLoad(true);
+    setIsFetching(true);
 
     let cancelled = false;
     fetch(buildUrl(null))
