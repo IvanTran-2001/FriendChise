@@ -152,6 +152,7 @@ export function MarkdownEditor({
         {/* Formatting toolbar (write tab only) */}
         {tab === "write" && (
           <div className="flex items-center gap-0.5">
+            {/* eslint-disable-next-line react-hooks/refs -- callbacks only access ref in event handlers, not during render */}
             {tools.map((tool, i) =>
               tool === null ? (
                 <div key={i} className="w-px h-3.5 bg-border mx-1" />
