@@ -41,7 +41,10 @@ type ToolItemList = {
 
 interface ItemListsClientProps {
   orgId: string;
+  /** Current list of item lists — owned by ItemListsPageClient so create/edit/delete stay in sync across sidebar and main content. */
   lists: ToolItemList[];
+  /** State setter passed down from ItemListsPageClient; allows in-place mutations without router.refresh(). */
+  onListsChange: React.Dispatch<React.SetStateAction<ToolItemList[]>>;
   canManage: boolean;
   view: "list" | "card";
 }
@@ -60,9 +63,8 @@ const DISPLAY_TYPE_ICON: Record<ListDisplayType, React.ElementType> = {
   GALLERY: LayoutGrid,
 };
 
-export function ItemListsClient({ orgId, lists: initial, canManage, view }: ItemListsClientProps) {
+export function ItemListsClient({ orgId, lists, onListsChange: setLists, canManage, view }: ItemListsClientProps) {
   const router = useRouter();
-  const [lists, setLists] = useState<ToolItemList[]>(initial);
   const [search, setSearch] = useState("");
   // Inline editing state: { id, name, description }
   const [editing, setEditing] = useState<{ id: string; name: string; description: string } | null>(null);

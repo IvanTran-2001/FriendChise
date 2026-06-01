@@ -13,18 +13,24 @@
 "use client";
 
 import { useRef } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ArrowLeftRight,
+  ClipboardList,
+  LayoutGrid,
   LayoutTemplate,
+  List,
   Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { SidebarNavItem } from "@/components/layout/sidebar-nav-item";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { AddItemForm } from "./add-item-form";
 import { AddRateForm } from "./add-rate-form";
 import { AddTemplateForm } from "./add-template-form";
+import { ApplyListPanel } from "./apply-list-panel";
 
 type ToolItem = { id: string; name: string; unit: string };
 type Rate = {
@@ -43,6 +49,9 @@ interface SetSidebarContentProps {
   toolItems: ToolItem[];
   rates: Rate[];
   templates: Template[];
+  lists: { id: string; name: string }[];
+  activeTemplateId: string | null;
+  view: "card" | "list";
 }
 
 export function SetSidebarContent({
@@ -52,9 +61,15 @@ export function SetSidebarContent({
   toolItems,
   rates,
   templates,
+  lists,
+  activeTemplateId,
+  view,
 }: SetSidebarContentProps) {
   const { open, close, activeTitle } = useActionSidebar();
   const keyRef = useRef(0);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   function openPanel(title: string, content: React.ReactNode) {
     const k = ++keyRef.current;
@@ -114,8 +129,43 @@ export function SetSidebarContent({
         variant="page"
       />
 
+      {/* View */}
+      <div className="px-3 pt-2.5 pb-3 flex flex-col gap-2 border-t border-border">
+        <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1">
+          View
+        </span>
+        <SegmentedControl
+          value={view}
+          onChange={(v) => {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set("view", v);
+            router.push(`${pathname}?${params.toString()}`);
+          }}
+          options={[
+            {
+              value: "card",
+              label: (
+                <span className="flex items-center gap-1.5">
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                  Card
+                </span>
+              ),
+            },
+            {
+              value: "list",
+              label: (
+                <span className="flex items-center gap-1.5">
+                  <List className="h-3.5 w-3.5" />
+                  List
+                </span>
+              ),
+            },
+          ]}
+        />
+      </div>
+
       {/* Actions */}
-      <div className="px-3 py-3 flex flex-col gap-2">
+      <div className="px-3 py-3 flex flex-col gap-2 border-t">
         <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1">
           Actions
         </span>
@@ -146,6 +196,36 @@ export function SetSidebarContent({
           <LayoutTemplate className="h-3.5 w-3.5 shrink-0" />
           Templates
         </Button>
+        {activeTemplateId && lists.length > 0 && (
+          <Button
+            size="sm"
+            variant={activeTitle === "Apply List" ? "default" : "outline"}
+            className="w-full justify-start gap-2"
+            onClick={() => {
+              const k = ++keyRef.current;
+              open(
+                "Apply List",
+                <ApplyListPanel
+                  key={k}
+                  orgId={orgId}
+                  setId={setId}
+                  templateId={activeTemplateId}
+                  lists={lists}
+                  onApplied={() => {
+                    close();
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.set("t", Date.now().toString());
+                    router.push(`${pathname}?${params.toString()}`);
+                  }}
+                  onClose={close}
+                />,
+              );
+            }}
+          >
+            <ClipboardList className="h-3.5 w-3.5 shrink-0" />
+            Apply List
+          </Button>
+        )}
       </div>
     </div>
   );

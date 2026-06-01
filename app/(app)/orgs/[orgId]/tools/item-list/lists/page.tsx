@@ -6,10 +6,9 @@ import {
 } from "@/lib/authz/_shared";
 import { PermissionAction } from "@prisma/client";
 import { getToolItemLists } from "@/lib/services/tools";
-import { RegisterPageSidebar, RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
+import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
 import { ItemListSidebarShell } from "../_components/item-list-sidebar-shell";
-import { ItemListsSidebarContent } from "./_components/item-lists-sidebar-content";
-import { ItemListsClient } from "./_components/item-lists-client";
+import { ItemListsPageClient } from "./_components/item-lists-page-client";
 
 export default async function ItemListsPage({
   params,
@@ -34,10 +33,10 @@ export default async function ItemListsPage({
   return (
     <>
       <RegisterPageSidebar title="Item List" content={<ItemListSidebarShell />} />
-      <RegisterPageSidebarSubContent
-        content={<ItemListsSidebarContent orgId={orgId} canManage={canManage} view={view} />}
-      />
-      <ItemListsClient orgId={orgId} lists={lists} canManage={canManage} view={view} />
+      {/* ItemListsPageClient owns the lists state so create/edit/delete update immediately.
+          Previously this page rendered ItemListsSidebarContent + ItemListsClient separately
+          with no shared state between them. */}
+      <ItemListsPageClient orgId={orgId} lists={lists} canManage={canManage} view={view} />
     </>
   );
 }

@@ -1,40 +1,26 @@
 "use client";
 
-import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { LayoutGrid, List, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
-import { CreateListPanel } from "./create-list-panel";
 
 interface ItemListsSidebarContentProps {
   orgId: string;
   canManage: boolean;
   view: "list" | "card";
+  /** Callback to open the Create List panel — lifted to ItemListsPageClient so the new list updates shared state immediately. */
+  onCreateList: () => void;
 }
 
-export function ItemListsSidebarContent({ orgId, canManage, view }: ItemListsSidebarContentProps) {
+export function ItemListsSidebarContent({ orgId, canManage, view, onCreateList }: ItemListsSidebarContentProps) {
   const router = useRouter();
-  const { open, close, activeTitle } = useActionSidebar();
-  const keyRef = useRef(0);
+  const { activeTitle } = useActionSidebar();
   const base = `/orgs/${orgId}/tools/item-list/lists`;
 
   function buildHref(v: "list" | "card") {
     return v === "list" ? base : `${base}?view=card`;
-  }
-
-  function openCreateList() {
-    const k = ++keyRef.current;
-    open(
-      "New List",
-      <CreateListPanel
-        key={k}
-        orgId={orgId}
-        onCreated={close}
-        onClose={close}
-      />,
-    );
   }
 
   return (
@@ -80,7 +66,7 @@ export function ItemListsSidebarContent({ orgId, canManage, view }: ItemListsSid
             size="sm"
             variant={activeTitle === "New List" ? "default" : "outline"}
             className="w-full justify-start gap-2"
-            onClick={openCreateList}
+            onClick={onCreateList}
           >
             <Plus className="h-4 w-4" />
             New List

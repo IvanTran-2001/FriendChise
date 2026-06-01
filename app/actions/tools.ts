@@ -31,6 +31,7 @@ import {
   addToolItemListEntry,
   addToolItemListEntryAtPosition,
   moveToolItemListEntry,
+  moveToolItemListEntryById,
   removeToolItemListEntry,
   updateToolItemGridConfig,
   updateToolItemListEntryAmount,
@@ -608,6 +609,155 @@ export async function removeTemplateEntryAction(
   }
 }
 
+// ─── Apply List to Template ───────────────────────────────────────────────────
+
+/**
+ * Returns the items in a list with their amounts summed by itemId.
+ * Used to preview what will be applied before the user commits.
+ */
+export async function getListPreviewAction(orgId: string, listId: string) {
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!auth.ok) return { ok: false as const };
+
+  const entries = await prisma.toolItemListEntry.findMany({
+    where: { listId, list: { orgId } },
+    select: {
+      itemId: true,
+      amount: true,
+      item: { select: { id: true, name: true, unit: true } },
+    },
+  });
+
+  // Sum amounts per item
+  const sumByItem = new Map<
+    string,
+    { name: string; unit: string; quantity: number }
+  >();
+  for (const e of entries) {
+    const existing = sumByItem.get(e.itemId);
+    if (existing) {
+      existing.quantity += e.amount;
+    } else {
+      sumByItem.set(e.itemId, {
+        name: e.item.name,
+        unit: e.item.unit,
+        quantity: e.amount,
+      });
+    }
+  }
+
+  const items = Array.from(sumByItem.entries()).map(([id, v]) => ({
+    id,
+    ...v,
+  }));
+  return { ok: true as const, items };
+}
+
+/**
+ * Applies a ToolItemList to a ConversionTemplate's From side.
+ *
+ * mode "replace": clears all existing From items first, then inserts list items.
+ *   - From-only entries (pinnedOutput=1) are deleted.
+ *   - Both-side entries (pinnedOutput=3) are downgraded to To-only (pinnedOutput=2).
+ *   - List items are upserted — if already a To item, they become pinnedOutput=3.
+ *
+ * mode "add": merges list items into existing From items.
+ *   - If item already has a From quantity, the amounts are added together.
+ *   - If item is To-only, it is upgraded to Both (pinnedOutput=3).
+ *   - New items are inserted as From-only (pinnedOutput=1).
+ */
+export async function applyListToTemplateAction(
+  orgId: string,
+  setId: string,
+  templateId: string,
+  listId: string,
+  mode: "replace" | "add",
+) {
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!auth.ok) return { ok: false as const };
+
+  try {
+    // Verify template belongs to this org's set
+    const template = await prisma.conversionTemplate.findFirst({
+      where: { id: templateId, set: { orgId, id: setId } },
+      select: { id: true },
+    });
+    if (!template)
+      return { ok: false as const, error: "Template not found." };
+
+    // Fetch list entries scoped to org
+    const listEntries = await prisma.toolItemListEntry.findMany({
+      where: { listId, list: { orgId } },
+      select: { itemId: true, amount: true },
+    });
+    if (listEntries.length === 0)
+      return { ok: false as const, error: "List has no items." };
+
+    // Sum amounts by itemId
+    const sumByItem = new Map<string, number>();
+    for (const e of listEntries) {
+      sumByItem.set(e.itemId, (sumByItem.get(e.itemId) ?? 0) + e.amount);
+    }
+
+    await prisma.$transaction(async (tx) => {
+      if (mode === "replace") {
+        // Remove from-only entries
+        await tx.conversionTemplateEntry.deleteMany({
+          where: { templateId, pinnedOutput: 1 },
+        });
+        // Downgrade both-side entries to to-only, clear quantity
+        await tx.conversionTemplateEntry.updateMany({
+          where: { templateId, pinnedOutput: 3 },
+          data: { pinnedOutput: 2, quantity: null },
+        });
+        // Upsert list items as from entries
+        for (const [itemId, quantity] of sumByItem) {
+          await tx.conversionTemplateEntry.upsert({
+            where: { templateId_itemId: { templateId, itemId } },
+            // Was to-only → upgrade to both; new → from-only
+            create: { templateId, itemId, quantity, pinnedOutput: 1 },
+            update: { quantity, pinnedOutput: 3 },
+          });
+        }
+      } else {
+        // Add on: merge with existing from entries
+        for (const [itemId, quantity] of sumByItem) {
+          const existing = await tx.conversionTemplateEntry.findUnique({
+            where: { templateId_itemId: { templateId, itemId } },
+          });
+          if (existing) {
+            const prevQty =
+              existing.pinnedOutput & 1 ? (existing.quantity ?? 0) : 0;
+            await tx.conversionTemplateEntry.update({
+              where: { templateId_itemId: { templateId, itemId } },
+              data: {
+                quantity: prevQty + quantity,
+                // Ensure from-side bit is set (1=from, 3=both)
+                pinnedOutput: existing.pinnedOutput | 1,
+              },
+            });
+          } else {
+            await tx.conversionTemplateEntry.create({
+              data: { templateId, itemId, quantity, pinnedOutput: 1 },
+            });
+          }
+        }
+      }
+    });
+
+    revalidatePath(`/orgs/${orgId}/tools/conversion/${setId}`);
+    return { ok: true as const };
+  } catch {
+    return { ok: false as const, error: "Failed to apply list." };
+  }
+}
+
 // ─── ToolItemList ─────────────────────────────────────────────────────────────
 
 export async function createToolItemListAction(
@@ -749,6 +899,7 @@ export async function addToolItemListEntryAction(
   }
 }
 
+/** Adds a ToolItem to a list at a specific grid cell position (0-indexed). Returns the new entry. */
 export async function addToolItemListEntryAtPositionAction(
   orgId: string,
   listId: string,
@@ -793,6 +944,32 @@ export async function moveToolItemListEntryAction(
 
   try {
     await moveToolItemListEntry(listId, fromPosition, toPosition);
+    revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
+    return { ok: true as const };
+  } catch {
+    return { ok: false as const };
+  }
+}
+
+/**
+ * Moves a specific list entry (by its ID) to a new grid cell position.
+ * Unlike moveToolItemListEntryAction, this does not swap — it just sets the position,
+ * enabling multiple items to stack on the same cell.
+ */
+export async function moveToolItemListEntryByIdAction(
+  orgId: string,
+  listId: string,
+  entryId: string,
+  toPosition: number,
+) {
+  const auth = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!auth.ok) return { ok: false as const };
+
+  try {
+    await moveToolItemListEntryById(entryId, toPosition);
     revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
     return { ok: true as const };
   } catch {

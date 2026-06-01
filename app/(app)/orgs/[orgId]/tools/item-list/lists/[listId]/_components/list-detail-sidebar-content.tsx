@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckSquare, LayoutGrid, Minus, Plus, X } from "lucide-react";
 import { toast } from "sonner";
@@ -9,7 +9,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { updateToolItemGridConfigAction } from "@/app/actions/tools";
-import { AddItemToListPanel, type PickableItem } from "./add-item-to-list-panel";
+import type { PickableItem } from "./add-item-to-list-panel";
 
 const MIN_COLS = 1, MAX_COLS = 8, MIN_ROWS = 1, MAX_ROWS = 8;
 
@@ -23,6 +23,8 @@ interface ListDetailSidebarContentProps {
   gridRows?: number;
   conversionSets: { id: string; name: string }[];
   activeSetId: string | null;
+  /** Called when the user clicks "Add Item" — handled by the parent which has highlight state. */
+  onOpenAddItem?: () => void;
 }
 
 export function ListDetailSidebarContent({
@@ -30,16 +32,16 @@ export function ListDetailSidebarContent({
   listId,
   view,
   canManage,
-  availableItems,
+  availableItems: _availableItems,
   gridCols: initialCols = 4,
   gridRows: initialRows = 4,
   conversionSets,
   activeSetId,
+  onOpenAddItem,
 }: ListDetailSidebarContentProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { open, close, activeTitle } = useActionSidebar();
-  const keyRef = useRef(0);
+  const { activeTitle } = useActionSidebar();
   const base = `/orgs/${orgId}/tools/item-list/lists/${listId}`;
   const RATES_PREF_KEY = `item-list-rates-prefs-${orgId}`;
   const [cols, setCols] = useState(initialCols);
@@ -80,26 +82,6 @@ export function ListDetailSidebarContent({
         toast.error("Failed to update grid size.");
       }
     });
-  }
-
-  function openAddItem() {
-    const k = ++keyRef.current;
-    open(
-      "Add Item",
-      <AddItemToListPanel
-        key={k}
-        orgId={orgId}
-        listId={listId}
-        availableItems={availableItems}
-        defaultPage={1}
-        defaultCol={1}
-        defaultRow={1}
-        gridCols={cols}
-        gridRows={rows}
-        onAdded={() => {}}
-        onClose={close}
-      />,
-    );
   }
 
   return (
@@ -218,7 +200,7 @@ export function ListDetailSidebarContent({
             size="sm"
             variant={activeTitle === "Add Item" ? "default" : "outline"}
             className="w-full justify-start gap-2"
-            onClick={openAddItem}
+            onClick={() => onOpenAddItem?.()}
           >
             <Plus className="h-4 w-4" />
             Add Item
@@ -236,7 +218,7 @@ export function ListDetailSidebarContent({
             size="sm"
             variant={activeTitle === "Add Item" ? "default" : "outline"}
             className="w-full justify-start gap-2"
-            onClick={openAddItem}
+            onClick={() => onOpenAddItem?.()}
           >
             <Plus className="h-4 w-4" />
             Add Item

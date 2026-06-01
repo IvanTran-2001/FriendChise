@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Eye, EyeOff, Search, Trash2 } from "lucide-react";
+import Image from "next/image";
+import { ChevronLeft, ChevronRight, Eye, EyeOff, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,8 +25,10 @@ interface ItemDetailPanelProps {
   orgId: string;
   listId: string;
   entryId: string;
-  item: { id: string; name: string; unit: string };
+  item: { id: string; name: string; unit: string; imageSignedUrl: string | null };
   position: number;
+  subIndex: number;
+  totalInCell: number;
   gridCols: number;
   gridRows: number;
   canManage: boolean;
@@ -33,6 +36,7 @@ interface ItemDetailPanelProps {
   setName: string | null;
   hiddenRateIds: Set<string>;
   onToggleRate: (rateId: string) => void;
+  onNavigate?: (direction: "prev" | "next") => void;
   onClose: () => void;
 }
 
@@ -42,6 +46,8 @@ export function ItemDetailPanel({
   entryId,
   item,
   position,
+  subIndex,
+  totalInCell,
   gridCols,
   gridRows,
   canManage,
@@ -49,6 +55,7 @@ export function ItemDetailPanel({
   setName,
   hiddenRateIds: initialHidden,
   onToggleRate,
+  onNavigate,
   onClose,
 }: ItemDetailPanelProps) {
   const pageSize = gridCols * gridRows;
@@ -105,9 +112,65 @@ export function ItemDetailPanel({
 
   return (
     <div className="flex flex-col h-full">
+      {/* Hero: image + name + unit + stack position */}
+      <div className="flex flex-col border-b border-border">
+        {/* Image */}
+        <div className="relative w-full aspect-video bg-muted flex items-center justify-center overflow-hidden">
+          {item.imageSignedUrl ? (
+            <Image
+              src={item.imageSignedUrl}
+              alt={item.name}
+              fill
+              className="object-cover"
+              sizes="300px"
+            />
+          ) : (
+            <span className="text-5xl font-semibold text-muted-foreground/20 uppercase select-none">
+              {item.name.charAt(0)}
+            </span>
+          )}
+          {/* Stack nav overlay — only shown when cell has multiple items */}
+          {totalInCell > 1 && (
+            <div className="absolute inset-x-0 bottom-0 flex items-center justify-between px-2 py-1.5 bg-linear-to-t from-black/60 to-transparent">
+              <button
+                className={cn(
+                  "rounded p-1 text-white transition-opacity",
+                  subIndex === 0 ? "opacity-20 pointer-events-none" : "hover:bg-white/20",
+                )}
+                aria-label="Previous item in cell"
+                disabled={subIndex === 0}
+                onClick={() => onNavigate?.("prev")}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="text-white/80 text-xs tabular-nums font-medium">
+                {subIndex + 1} / {totalInCell}
+              </span>
+              <button
+                className={cn(
+                  "rounded p-1 text-white transition-opacity",
+                  subIndex >= totalInCell - 1 ? "opacity-20 pointer-events-none" : "hover:bg-white/20",
+                )}
+                aria-label="Next item in cell"
+                disabled={subIndex >= totalInCell - 1}
+                onClick={() => onNavigate?.("next")}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+        </div>
+        {/* Name + unit */}
+        <div className="px-4 py-3">
+          <p className="text-base font-semibold leading-tight">{item.name}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{item.unit}</p>
+        </div>
+      </div>
+
       {/* Position + actions */}
       {canManage && (
-        <div className="px-4 pt-4 pb-3 border-b border-border flex flex-col gap-3">
+        <div className="px-4 pt-3 pb-3 border-b border-border flex flex-col gap-3">
+          <p className="text-xs font-medium text-muted-foreground/60 uppercase tracking-wider">Position</p>
           <div className="grid grid-cols-3 gap-2">
             <div className="flex flex-col gap-1">
               <label className="text-xs text-muted-foreground">Page</label>

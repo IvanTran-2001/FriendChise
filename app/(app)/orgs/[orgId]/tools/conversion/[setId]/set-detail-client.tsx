@@ -14,17 +14,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Image from "next/image";
 import { ChevronDown, ChevronRight, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/search-input";
 import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
 import {
@@ -49,6 +44,8 @@ interface SetDetailClientProps {
   templates: { id: string; name: string }[];
   activeTemplateId: string | null;
   initialEntries: Entry[];
+  view: "card" | "list";
+  itemImages: Record<string, string | null>;
 }
 
 /**
@@ -145,6 +142,8 @@ export function SetDetailClient({
   templates,
   activeTemplateId,
   initialEntries,
+  view,
+  itemImages,
 }: SetDetailClientProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -360,35 +359,27 @@ export function SetDetailClient({
   return (
     <>
       <RegisterPageToolbar>
-        <h1 className="text-sm font-semibold">{set.name}</h1>
+        <h1 className="text-sm font-semibold shrink-0">{set.name}</h1>
         {templates.length > 0 && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-1 text-xs text-muted-foreground border rounded px-2 py-0.5 hover:border-primary/50 transition-colors">
-                {activeTemplate?.name ?? "No template"}
-                <ChevronDown className="h-3 w-3" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {templates.map((t) => (
-                <DropdownMenuItem
-                  key={t.id}
-                  onSelect={() =>
-                    router.replace(`?template=${t.id}`, { scroll: false })
-                  }
-                  className={
-                    t.id === activeTemplateId ? "font-medium text-primary" : ""
-                  }
-                >
-                  {t.name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="w-40 shrink-0">
+            <SearchableCombobox
+              items={[...templates].sort((a, b) =>
+                a.name === "Default" ? -1 : b.name === "Default" ? 1 : 0,
+              )}
+              onSelect={(t) =>
+                router.replace(`?template=${t.id}`, { scroll: false })
+              }
+              triggerLabel={activeTemplate?.name ?? "No template"}
+              placeholder="Search templates…"
+              emptyText="No templates found"
+            />
+          </div>
         )}
+        <div className="flex items-center gap-2 ml-auto">
+        </div>
       </RegisterPageToolbar>
 
-      <div className="py-4">
+      <div>
         {templates.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <p className="text-sm text-muted-foreground">
@@ -413,145 +404,293 @@ export function SetDetailClient({
                 className="w-full"
               />
             )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {/* ── From ── */}
-              <div className="flex flex-col gap-3">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  From
-                </p>
-                <SearchableCombobox
-                  items={fromOptions}
-                  onSelect={addFrom}
-                  triggerLabel="Add item…"
-                  placeholder="Search items…"
-                  disabled={fromOptions.length === 0}
-                />
-                {fromItems.length > 0 && (
-                  <div className="flex flex-col gap-2">
-                    {visibleFromItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2"
-                      >
-                        <button
-                          onClick={() => removeFrom(item.id)}
-                          className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                          aria-label={`Remove ${item.name}`}
+            {view === "list" ? (
+              /* ── List view ── */
+              <div className="flex flex-col gap-6">
+                {/* From section */}
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    From
+                  </p>
+                  <SearchableCombobox
+                    items={fromOptions}
+                    onSelect={addFrom}
+                    triggerLabel="Add item…"
+                    placeholder="Search items…"
+                    disabled={fromOptions.length === 0}
+                  />
+                  {visibleFromItems.length > 0 && (
+                    <div className="rounded-lg border divide-y overflow-hidden">
+                      {visibleFromItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center gap-2 px-3 py-2 bg-card"
                         >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                        <span className="flex-1 text-sm font-medium truncate">
-                          {item.name}
-                        </span>
-                        <span className="text-xs text-muted-foreground shrink-0">
-                          {item.unit}
-                        </span>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="any"
-                          value={quantities[item.id] ?? ""}
-                          onChange={(e) =>
-                            setQuantities((prev) => ({
-                              ...prev,
-                              [item.id]: e.target.value,
-                            }))
-                          }
-                          onFocus={(e) => e.target.select()}
-                          onBlur={() => handleQtyBlur(item.id)}
-                          placeholder="0"
-                          className="w-20 h-7 text-sm shrink-0"
-                        />
-                      </div>
-                    ))}
+                          <button
+                            onClick={() => removeFrom(item.id)}
+                            className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                            aria-label={`Remove ${item.name}`}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                          <span className="flex-1 text-sm font-medium truncate">
+                            {item.name}
+                          </span>
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            {item.unit}
+                          </span>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="any"
+                            value={quantities[item.id] ?? ""}
+                            onChange={(e) =>
+                              setQuantities((prev) => ({
+                                ...prev,
+                                [item.id]: e.target.value,
+                              }))
+                            }
+                            onFocus={(e) => e.target.select()}
+                            onBlur={() => handleQtyBlur(item.id)}
+                            placeholder="0"
+                            className="w-20 h-7 text-sm shrink-0"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {/* To section */}
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    To
+                  </p>
+                  <SearchableCombobox
+                    items={toOptions}
+                    onSelect={addTo}
+                    triggerLabel="Add item…"
+                    placeholder="Search items…"
+                    disabled={toOptions.length === 0}
+                  />
+                  {toItems.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      Add a To item to see calculations.
+                    </p>
+                  ) : visibleToItems.length > 0 && (
+                    <div className="rounded-lg border divide-y overflow-hidden">
+                      {visibleToItems.map((item) => {
+                        const total = calcTotal(item) ?? 0;
+                        const subItems = getDirectSubItems(item.id, toIds, rates, itemMap);
+                        const hasSubItems = subItems.length > 0;
+                        const isExpanded = expandedToIds.has(item.id);
+                        return (
+                          <div key={item.id}>
+                            <div className="flex items-center gap-2 px-3 py-2 bg-card">
+                              <button
+                                onClick={() => removeTo(item.id)}
+                                className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                                aria-label={`Remove ${item.name}`}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                              <span className="flex-1 text-sm font-medium truncate">
+                                {item.name}
+                              </span>
+                              <span className="text-sm font-semibold tabular-nums shrink-0">
+                                {fmt(total)}{" "}
+                                <span className="text-xs font-normal text-muted-foreground">
+                                  {item.unit}
+                                </span>
+                              </span>
+                              {hasSubItems && (
+                                <button
+                                  onClick={() => toggleExpanded(item.id)}
+                                  className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                                  aria-label={isExpanded ? "Collapse" : "Expand"}
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <ChevronRight className="h-3.5 w-3.5" />
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                            {hasSubItems && isExpanded && (
+                              <div className="ml-4 border-l-2 border-border pl-2 divide-y max-h-24 overflow-y-auto">
+                                {subItems.map(({ item: sub, directRate }) => {
+                                  const subTotal = total * directRate;
+                                  return (
+                                    <div
+                                      key={sub.id}
+                                      className="flex items-center gap-2 px-2 py-1.5 text-xs bg-muted/40"
+                                    >
+                                      <span className="flex-1 truncate text-muted-foreground">
+                                        {sub.name}
+                                      </span>
+                                      <span className="font-medium tabular-nums shrink-0">
+                                        {fmt(subTotal)}{" "}
+                                        <span className="font-normal text-muted-foreground">
+                                          {sub.unit}
+                                        </span>
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+            /* ── Card view ── */
+            <div className="flex flex-col gap-8">
+              {/* From section */}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    From
+                  </p>
+                  <div className="flex-1">
+                    <SearchableCombobox
+                      items={fromOptions}
+                      onSelect={addFrom}
+                      triggerLabel="Add item…"
+                      placeholder="Search items…"
+                      disabled={fromOptions.length === 0}
+                    />
+                  </div>
+                </div>
+                {visibleFromItems.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                    {visibleFromItems.map((item) => {
+                      const imgUrl = itemImages[item.id] ?? null;
+                      return (
+                        <div
+                          key={item.id}
+                          className="relative rounded-xl border bg-card overflow-hidden flex flex-col shadow-sm"
+                        >
+                          {/* Remove button */}
+                          <button
+                            onClick={() => removeFrom(item.id)}
+                            className="absolute top-1.5 right-1.5 z-10 rounded-full bg-background/80 backdrop-blur-sm p-0.5 text-muted-foreground hover:text-destructive transition-colors"
+                            aria-label={`Remove ${item.name}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                          {/* Image */}
+                          <div className="relative aspect-square bg-muted">
+                            {imgUrl ? (
+                              <Image
+                                src={imgUrl}
+                                alt={item.name}
+                                fill
+                                className="object-cover"
+                                sizes="(max-width: 640px) 50vw, 20vw"
+                              />
+                            ) : (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-lg font-semibold text-muted-foreground/30 uppercase select-none">
+                                  {item.name.charAt(0)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          {/* Info */}
+                          <div className="px-1.5 py-1.5 flex flex-col gap-1">
+                            <p className="text-[11px] font-medium truncate leading-tight">{item.name}</p>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="any"
+                              value={quantities[item.id] ?? ""}
+                              onChange={(e) =>
+                                setQuantities((prev) => ({ ...prev, [item.id]: e.target.value }))
+                              }
+                              onFocus={(e) => e.target.select()}
+                              onBlur={() => handleQtyBlur(item.id)}
+                              placeholder="0"
+                              className="h-6 text-xs w-full"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
 
-              {/* ── To ── */}
+              {/* To section */}
               <div className="flex flex-col gap-3">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  To
-                </p>
-                <SearchableCombobox
-                  items={toOptions}
-                  onSelect={addTo}
-                  triggerLabel="Add item…"
-                  placeholder="Search items…"
-                  disabled={toOptions.length === 0}
-                />
+                <div className="flex items-center gap-3">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    To
+                  </p>
+                  <div className="flex-1">
+                    <SearchableCombobox
+                      items={toOptions}
+                      onSelect={addTo}
+                      triggerLabel="Add item…"
+                      placeholder="Search items…"
+                      disabled={toOptions.length === 0}
+                    />
+                  </div>
+                </div>
                 {toItems.length === 0 ? (
                   <p className="text-xs text-muted-foreground">
                     Add a To item to see calculations.
                   </p>
-                ) : visibleToItems.length === 0 ? null : (
-                  <div className="flex flex-col gap-2">
+                ) : visibleToItems.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
                     {visibleToItems.map((item) => {
                       const total = calcTotal(item) ?? 0;
-                      const subItems = getDirectSubItems(
-                        item.id,
-                        toIds,
-                        rates,
-                        itemMap,
-                      );
-                      const hasSubItems = subItems.length > 0;
-                      const isExpanded = expandedToIds.has(item.id);
+                      const imgUrl = itemImages[item.id] ?? null;
                       return (
-                        <div key={item.id} className="flex flex-col">
-                          <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
-                            <button
-                              onClick={() => removeTo(item.id)}
-                              className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                              aria-label={`Remove ${item.name}`}
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                            <span className="flex-1 text-sm font-medium truncate">
-                              {item.name}
-                            </span>
-                            <span className="text-sm font-semibold tabular-nums shrink-0">
-                              {fmt(total)}{" "}
-                              <span className="text-xs font-normal text-muted-foreground">
-                                {item.unit}
-                              </span>
-                            </span>
-                            {hasSubItems && (
-                              <button
-                                onClick={() => toggleExpanded(item.id)}
-                                className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                                aria-label={isExpanded ? "Collapse" : "Expand"}
-                              >
-                                {isExpanded ? (
-                                  <ChevronDown className="h-3.5 w-3.5" />
-                                ) : (
-                                  <ChevronRight className="h-3.5 w-3.5" />
-                                )}
-                              </button>
+                        <div
+                          key={item.id}
+                          className="relative rounded-xl border bg-card overflow-hidden flex flex-col shadow-sm"
+                        >
+                          {/* Remove button */}
+                          <button
+                            onClick={() => removeTo(item.id)}
+                            className="absolute top-1.5 right-1.5 z-10 rounded-full bg-background/80 backdrop-blur-sm p-0.5 text-muted-foreground hover:text-destructive transition-colors"
+                            aria-label={`Remove ${item.name}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                          {/* Image */}
+                          <div className="relative aspect-square bg-muted">
+                            {imgUrl ? (
+                              <Image
+                                src={imgUrl}
+                                alt={item.name}
+                                fill
+                                className="object-cover"
+                                sizes="(max-width: 640px) 50vw, 20vw"
+                              />
+                            ) : (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-lg font-semibold text-muted-foreground/30 uppercase select-none">
+                                  {item.name.charAt(0)}
+                                </span>
+                              </div>
                             )}
-                          </div>
-                          {hasSubItems && isExpanded && (
-                            <div className="ml-4 mt-1 border-l-2 border-border pl-2 flex flex-col gap-1 max-h-24 overflow-y-auto">
-                              {subItems.map(({ item: sub, directRate }) => {
-                                const subTotal = total * directRate;
-                                return (
-                                  <div
-                                    key={sub.id}
-                                    className="flex items-center gap-2 rounded-md bg-muted/40 px-2 py-1.5 text-xs"
-                                  >
-                                    <span className="flex-1 truncate text-muted-foreground">
-                                      {sub.name}
-                                    </span>
-                                    <span className="font-medium tabular-nums shrink-0">
-                                      {fmt(subTotal)}{" "}
-                                      <span className="font-normal text-muted-foreground">
-                                        {sub.unit}
-                                      </span>
-                                    </span>
-                                  </div>
-                                );
-                              })}
+                            {/* Result badge overlay */}
+                            <div className="absolute bottom-0 inset-x-0 bg-linear-to-t from-black/60 to-transparent px-1.5 pt-3 pb-1">
+                              <p className="text-white text-xs font-bold tabular-nums leading-tight">
+                                {fmt(total)}
+                                <span className="text-[10px] font-normal ml-0.5 opacity-80">{item.unit}</span>
+                              </p>
                             </div>
-                          )}
+                          </div>
+                          {/* Name */}
+                          <div className="px-1.5 py-1">
+                            <p className="text-[11px] font-medium truncate leading-tight">{item.name}</p>
+                          </div>
                         </div>
                       );
                     })}
@@ -559,6 +698,7 @@ export function SetDetailClient({
                 )}
               </div>
             </div>
+            )}
           </div>
         )}
       </div>

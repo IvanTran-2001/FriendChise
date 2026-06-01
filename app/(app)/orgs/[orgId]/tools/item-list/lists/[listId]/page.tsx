@@ -11,10 +11,8 @@ import { getToolItemListDetail, getToolItemsFull, getConversionSets, getConversi
 import { createSignedReadUrls } from "@/lib/supabase-storage";
 import {
   RegisterPageSidebar,
-  RegisterPageSidebarSubContent,
 } from "@/components/layout/page-sidebar-context";
 import { ItemListSidebarShell } from "../../_components/item-list-sidebar-shell";
-import { ListDetailSidebarContent } from "./_components/list-detail-sidebar-content";
 import { ListDetailClient, type ListDetail } from "./_components/list-detail-client";
 
 export default async function ListDetailPage({
@@ -99,21 +97,6 @@ export default async function ListDetailPage({
   return (
     <>
       <RegisterPageSidebar title="Item List" content={<ItemListSidebarShell />} />
-      <RegisterPageSidebarSubContent
-        content={
-          <ListDetailSidebarContent
-            orgId={orgId}
-            listId={listId}
-            view={view}
-            canManage={canManage}
-            availableItems={allItems}
-            gridCols={list.gridConfig?.gridCols}
-            gridRows={list.gridConfig?.gridRows}
-            conversionSets={conversionSets.map((s) => ({ id: s.id, name: s.name }))}
-            activeSetId={activeSetId}
-          />
-        }
-      />
       <ListDetailClient
         orgId={orgId}
         list={listWithSignedUrls}
@@ -123,6 +106,7 @@ export default async function ListDetailPage({
         activeSetId={activeSetId}
         activeSetName={activeSetName}
         activeSetRates={activeSetRates}
+        conversionSets={conversionSets.map((s) => ({ id: s.id, name: s.name }))}
       />
     </>
   );
