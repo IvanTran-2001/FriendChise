@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import { ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -35,13 +35,16 @@ export function ApplyListPanel({
   const [isFetchingPreview, startFetchPreview] = useTransition();
   const [isApplying, startApply] = useTransition();
   const [confirmStep, setConfirmStep] = useState(false);
+  const previewRequestIdRef = useRef(0);
 
   function handleSelectList(item: { id: string; name: string }) {
     setSelectedList(item);
     setPreviewItems(null);
     setConfirmStep(false);
+    const requestId = ++previewRequestIdRef.current;
     startFetchPreview(async () => {
       const result = await getListPreviewAction(orgId, item.id);
+      if (requestId !== previewRequestIdRef.current) return;
       if (result.ok) {
         setPreviewItems(result.items);
       } else {

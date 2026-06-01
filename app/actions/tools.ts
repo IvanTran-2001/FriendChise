@@ -622,38 +622,48 @@ export async function getListPreviewAction(orgId: string, listId: string) {
   );
   if (!auth.ok) return { ok: false as const };
 
-  const entries = await prisma.toolItemListEntry.findMany({
-    where: { listId, list: { orgId } },
-    select: {
-      itemId: true,
-      amount: true,
-      item: { select: { id: true, name: true, unit: true } },
-    },
-  });
+  try {
+    const entries = await prisma.toolItemListEntry.findMany({
+      where: { listId, list: { orgId } },
+      select: {
+        itemId: true,
+        amount: true,
+        item: { select: { id: true, name: true, unit: true } },
+      },
+    });
 
-  // Sum amounts per item
-  const sumByItem = new Map<
-    string,
-    { name: string; unit: string; quantity: number }
-  >();
-  for (const e of entries) {
-    const existing = sumByItem.get(e.itemId);
-    if (existing) {
-      existing.quantity += e.amount;
-    } else {
-      sumByItem.set(e.itemId, {
-        name: e.item.name,
-        unit: e.item.unit,
-        quantity: e.amount,
-      });
+    // Sum amounts per item
+    const sumByItem = new Map<
+      string,
+      { name: string; unit: string; quantity: number }
+    >();
+    for (const e of entries) {
+      const existing = sumByItem.get(e.itemId);
+      if (existing) {
+        existing.quantity += e.amount;
+      } else {
+        sumByItem.set(e.itemId, {
+          name: e.item.name,
+          unit: e.item.unit,
+          quantity: e.amount,
+        });
+      }
     }
-  }
 
-  const items = Array.from(sumByItem.entries()).map(([id, v]) => ({
-    id,
-    ...v,
-  }));
-  return { ok: true as const, items };
+    const items = Array.from(sumByItem.entries()).map(([id, v]) => ({
+      id,
+      ...v,
+    }));
+    return { ok: true as const, items };
+  } catch (err: unknown) {
+    const mappedError = mapPrismaError(err, {
+      P2025: "List not found.",
+    });
+    return {
+      ok: false as const,
+      error: mappedError ?? "Failed to load list preview.",
+    };
+  }
 }
 
 /**
@@ -969,7 +979,7 @@ export async function moveToolItemListEntryByIdAction(
   if (!auth.ok) return { ok: false as const };
 
   try {
-    await moveToolItemListEntryById(entryId, toPosition);
+    await moveToolItemListEntryById(orgId, listId, entryId, toPosition);
     revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
     return { ok: true as const };
   } catch {

@@ -85,7 +85,7 @@ export function ListDetailClient({
           ...e,
           position: e.id === update.entryId ? update.toPosition : e.position,
         }))
-        .sort((a, b) => a.position - b.position),
+        .sort((a, b) => a.position - b.position || a.id.localeCompare(b.id)),
   );
 
   function openAddItemPanel(targetPosition?: number) {

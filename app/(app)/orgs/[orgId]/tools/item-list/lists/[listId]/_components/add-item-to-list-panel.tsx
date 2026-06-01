@@ -61,9 +61,16 @@ export function AddItemToListPanel({
   const parsedPage = parseInt(page);
   const parsedCol = parseInt(col);
   const parsedRow = parseInt(row);
+  const maxRows = Math.ceil(pageSize / gridCols);
   // Derived 0-indexed absolute position from the Page/Col/Row inputs
   const position =
-    !isNaN(parsedPage) && !isNaN(parsedCol) && !isNaN(parsedRow)
+    !isNaN(parsedPage) &&
+    !isNaN(parsedCol) &&
+    !isNaN(parsedRow) &&
+    parsedCol >= 1 &&
+    parsedCol <= gridCols &&
+    parsedRow >= 1 &&
+    parsedRow <= maxRows
       ? (parsedPage - 1) * pageSize + (parsedRow - 1) * gridCols + (parsedCol - 1)
       : -1;
   // Notify parent whenever the target position changes so the grid can highlight it

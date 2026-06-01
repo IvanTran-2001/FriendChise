@@ -220,13 +220,26 @@ export async function addToolItemListEntryAtPosition(
  * Used when stacking multiple items at the same grid cell position.
  */
 export async function moveToolItemListEntryById(
+  orgId: string,
+  listId: string,
   entryId: string,
   toPosition: number,
 ) {
-  return prisma.toolItemListEntry.update({
-    where: { id: entryId },
-    data: { position: toPosition },
-    include: { item: true, checklistEntry: true },
+  return prisma.$transaction(async (tx) => {
+    // Verify entry belongs to the specified list and org
+    const entry = await tx.toolItemListEntry.findFirst({
+      where: { id: entryId, listId, list: { orgId } },
+      select: { id: true },
+    });
+    if (!entry) {
+      throw new Error("Entry not found or access denied");
+    }
+
+    return tx.toolItemListEntry.update({
+      where: { id: entryId },
+      data: { position: toPosition },
+      include: { item: true, checklistEntry: true },
+    });
   });
 }
 

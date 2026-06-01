@@ -366,9 +366,13 @@ export function SetDetailClient({
               items={[...templates].sort((a, b) =>
                 a.name === "Default" ? -1 : b.name === "Default" ? 1 : 0,
               )}
-              onSelect={(t) =>
-                router.replace(`?template=${t.id}`, { scroll: false })
-              }
+              onSelect={(t) => {
+                const params = new URLSearchParams(
+                  typeof window !== "undefined" ? window.location.search : ""
+                );
+                params.set("template", t.id);
+                router.replace(`?${params.toString()}`, { scroll: false });
+              }}
               triggerLabel={activeTemplate?.name ?? "No template"}
               placeholder="Search templates…"
               emptyText="No templates found"
