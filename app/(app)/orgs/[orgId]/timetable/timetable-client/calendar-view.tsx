@@ -341,7 +341,7 @@ export function CalendarView({
               return (
                 <>
                   <div className="text-[10px] text-muted-foreground font-mono leading-none mb-0.5">
-                    {minToHHMM(inst.startTimeMin)}
+                    {minToHHMM(inst.startTimeMin)}–{minToHHMM(inst.startTimeMin + inst.task.durationMin)}
                   </div>
                   <Link
                     href={`/orgs/${orgId}/tasks/${inst.taskId}?ref=timetable`}
@@ -350,17 +350,15 @@ export function CalendarView({
                   >
                     {inst.task.title}
                   </Link>
-                  {heightPx >= 44 && (
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDotClass(effStatus(inst))}`}
-                      />
-                      <span className="truncate text-[10px] text-muted-foreground">
-                        {STATUS_LABELS[effStatus(inst)]}
-                      </span>
-                    </div>
-                  )}
-                  {heightPx >= 60 && assigneeNames && (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDotClass(effStatus(inst))}`}
+                    />
+                    <span className="truncate text-[10px] text-muted-foreground">
+                      {STATUS_LABELS[effStatus(inst)]}
+                    </span>
+                  </div>
+                  {assigneeNames && (
                     <div className="truncate text-[10px] text-muted-foreground mt-0.5">
                       {assigneeNames}
                     </div>

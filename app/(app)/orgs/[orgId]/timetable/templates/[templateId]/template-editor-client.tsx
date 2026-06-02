@@ -691,12 +691,12 @@ export function TemplateEditorClient({
                 return (
                   <>
                     <div className="text-[10px] text-muted-foreground font-mono leading-none mb-0.5">
-                      {minToHHMM(inst.startTimeMin)}
+                      {minToHHMM(inst.startTimeMin)}–{minToHHMM(inst.startTimeMin + inst.task.durationMin)}
                     </div>
                     <div className="font-semibold truncate">
                       {inst.task.name}
                     </div>
-                    {heightPx >= 60 && assigneeNames && (
+                    {assigneeNames && (
                       <div className="truncate text-[10px] text-muted-foreground mt-0.5">
                         {assigneeNames}
                       </div>

@@ -371,7 +371,7 @@ export function TimeGrid<
 
                   {/* Task blocks */}
                   {positioned.map(
-                    ({ instance: inst, col: colSlot, totalCols }) => {
+                    ({ instance: inst, col: colSlot }) => {
                       const topPx = (inst.startTimeMin / 60) * HOUR_HEIGHT;
                       const visibleDurationMin = Math.min(
                         inst.task.durationMin,
@@ -379,10 +379,13 @@ export function TimeGrid<
                       );
                       const heightPx = Math.max(
                         (visibleDurationMin / 60) * HOUR_HEIGHT,
-                        20,
+                        40,
                       );
-                      const widthPct = 100 / totalCols;
-                      const leftPct = colSlot * widthPct;
+                      // Cascade: each overlap level indents right by 8px.
+                      // All events are near-full-width so no half-half split.
+                      const INDENT = 8;
+                      const leftPx = colSlot * INDENT + 2;
+                      const rightPx = 2;
 
                       return (
                         <div
@@ -443,12 +446,13 @@ export function TimeGrid<
                           }
                           role={onBlockClick ? "button" : undefined}
                           tabIndex={onBlockClick ? 0 : undefined}
-                          className={`absolute rounded-md overflow-hidden p-1.5 text-[11px] leading-snug bg-white border-2 border-primary/50 text-foreground shadow-sm hover:border-primary/80 hover:shadow transition-all select-none ${draggable ? "cursor-grab active:cursor-grabbing" : onBlockClick ? "cursor-pointer" : "cursor-default"}`}
+                          className={`absolute rounded-md p-1.5 text-[11px] leading-snug bg-white border-2 border-primary/50 text-foreground shadow-sm hover:border-primary/80 hover:shadow transition-all select-none ${draggable ? "cursor-grab active:cursor-grabbing" : onBlockClick ? "cursor-pointer" : "cursor-default"}`}
                           style={{
                             top: topPx + 1,
-                            height: Math.max(heightPx - 2, 18),
-                            left: `${leftPct + 0.5}%`,
-                            width: `${widthPct - 1}%`,
+                            minHeight: Math.max(heightPx - 2, 38),
+                            left: leftPx,
+                            right: rightPx,
+                            zIndex: colSlot + 1,
                             ...(blockColor?.(inst)
                               ? {
                                   borderColor: blockColor(inst)!,
@@ -463,7 +467,7 @@ export function TimeGrid<
                                 }),
                           }}
                         >
-                          {renderBlock(inst, heightPx)}
+                          {renderBlock(inst, Infinity)}
                           {onBlockMenuClick && (
                             <button
                               onMouseDown={(e) => e.stopPropagation()}
