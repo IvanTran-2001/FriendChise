@@ -22,6 +22,8 @@ import {
   statusDotClass,
   getMondayOf,
 } from "./helpers";
+import { CalendarEditSidebarContent } from "./calendar-edit-sidebar-content";
+import type { ClientTimetableInstance, ClientMembership } from "./types";
 
 function formatDuration(min: number): string {
   if (min < 60) return `${min}m`;
@@ -29,8 +31,6 @@ function formatDuration(min: number): string {
   const m = min % 60;
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
-import { CalendarEditSidebarContent } from "./calendar-edit-sidebar-content";
-import type { ClientTimetableInstance, ClientMembership } from "./types";
 
 // ---------------------------------------------------------------------------
 // SimpleView
