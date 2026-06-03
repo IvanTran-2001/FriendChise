@@ -496,7 +496,7 @@ export function TimeGrid<
                                   }),
                             }}
                           >
-                            {renderBlock(inst, Infinity)}
+                            {renderBlock(inst, heightPx)}
                             {onBlockMenuClick && (
                               <button
                                 onMouseDown={(e) => e.stopPropagation()}

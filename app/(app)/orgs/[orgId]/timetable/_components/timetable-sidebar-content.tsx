@@ -57,10 +57,11 @@ function ZoomSlider() {
   return (
     <div className="px-1 mt-3">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-muted-foreground">Hour height</span>
+        <label htmlFor="hour-height-slider" className="text-xs text-muted-foreground">Hour height</label>
         <span className="text-xs tabular-nums text-muted-foreground">{hourHeight}px</span>
       </div>
       <input
+        id="hour-height-slider"
         type="range"
         min={MIN_HOUR_HEIGHT}
         max={MAX_HOUR_HEIGHT}

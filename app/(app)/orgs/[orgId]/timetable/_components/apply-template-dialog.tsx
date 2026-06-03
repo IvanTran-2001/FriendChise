@@ -266,6 +266,7 @@ export function ApplyTemplateForm({
               className="h-7 w-7 shrink-0"
               disabled={cycleRepeats <= 1}
               onClick={() => setCycleRepeats((r) => Math.max(1, r - 1))}
+              aria-label="Decrease repeat count"
             >
               <Minus className="h-3 w-3" />
             </Button>
@@ -278,6 +279,7 @@ export function ApplyTemplateForm({
               className="h-7 w-7 shrink-0"
               disabled={cycleRepeats >= 52}
               onClick={() => setCycleRepeats((r) => Math.min(52, r + 1))}
+              aria-label="Increase repeat count"
             >
               <Plus className="h-3 w-3" />
             </Button>

@@ -196,26 +196,34 @@ export function CalendarView({
       useEffect(() => {
         let mounted = true;
         (async () => {
-          const res = await fetchTimetableInstancesAction(orgId, ids);
-          if (!mounted) return;
-          if (!res.ok) {
-            toast.error(res.error ?? "Failed to load group");
+          try {
+            const res = await fetchTimetableInstancesAction(orgId, ids);
+            if (!mounted) return;
+            if (!res.ok) {
+              toast.error(res.error ?? "Failed to load group");
+              setCurrentGroup([]);
+              return;
+            }
+            // cast the returned shape to the client instance shape
+            const fetched = (res.data ?? []) as unknown as ClientTimetableInstance[];
+            // Reorder fetched instances to match the requested `ids` order so the
+            // ActionSidebar displays rows in the same order as the calendar's
+            // group block. The server may return instances in arbitrary order,
+            // so map them by id and then rebuild the array using `ids`.
+            const byId = new Map<string, ClientTimetableInstance>(
+              fetched.map((i) => [i.id, i]),
+            );
+            const ordered = ids.map((id) => byId.get(id)).filter(Boolean) as ClientTimetableInstance[];
+            setCurrentGroup(ordered);
+          } catch (error) {
+            if (!mounted) return;
+            toast.error(error instanceof Error ? error.message : "Failed to load group");
             setCurrentGroup([]);
-            setLoading(false);
-            return;
+          } finally {
+            if (mounted) {
+              setLoading(false);
+            }
           }
-          // cast the returned shape to the client instance shape
-          const fetched = (res.data ?? []) as unknown as ClientTimetableInstance[];
-          // Reorder fetched instances to match the requested `ids` order so the
-          // ActionSidebar displays rows in the same order as the calendar's
-          // group block. The server may return instances in arbitrary order,
-          // so map them by id and then rebuild the array using `ids`.
-          const byId = new Map<string, ClientTimetableInstance>(
-            fetched.map((i) => [i.id, i]),
-          );
-          const ordered = ids.map((id) => byId.get(id)).filter(Boolean) as ClientTimetableInstance[];
-          setCurrentGroup(ordered);
-          setLoading(false);
         })();
         return () => {
           mounted = false;
@@ -385,9 +393,16 @@ export function CalendarView({
         );
         if (!result.ok) { toast.error(result.error ?? "Something went wrong"); return; }
       } else if (data.type === "group") {
-        const delta = timeMin - data.groupStartMin;
+        let delta = timeMin - data.groupStartMin;
         const insts = data.instances ?? data.instanceIds.map((id) => instances.find((i) => i.id === id)).filter(Boolean) as ClientTimetableInstance[];
-        const updates = insts.map((inst) => ({ entryId: inst.id, startTimeMin: Math.max(0, inst.startTimeMin + delta), dateStr: col }));
+        // Compute the maximum allowed delta to prevent any member from exceeding 1439
+        const maxDelta = 1439 - Math.max(...insts.map(i => i.startTimeMin));
+        const originalDelta = delta;
+        delta = Math.max(0, Math.min(delta, maxDelta));
+        if (originalDelta !== delta && originalDelta > maxDelta) {
+          toast("Drop was adjusted to prevent tasks from moving past midnight", { duration: 3000 });
+        }
+        const updates = insts.map((inst) => ({ entryId: inst.id, startTimeMin: inst.startTimeMin + delta, dateStr: col }));
         const result = await updateTimetableEntriesBatchAction(orgId, updates);
         if (!result.ok) { toast.error(result.error ?? "Something went wrong"); return; }
       } else {
@@ -592,7 +607,8 @@ export function CalendarView({
             renderGroupBlock={(instances, groupStart, groupEnd, heightPx) => {
               const counts = instances.reduce(
                 (acc, inst) => {
-                  acc[inst.status] = (acc[inst.status] ?? 0) + 1;
+                  const effectiveStatus = effStatus(inst);
+                  acc[effectiveStatus] = (acc[effectiveStatus] ?? 0) + 1;
                   return acc;
                 },
                 { TODO: 0, IN_PROGRESS: 0, SKIPPED: 0, DONE: 0 } as Record<
