@@ -33,6 +33,9 @@ import { useRouter } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
+  ExternalLink,
+  GripVertical,
+  LayersIcon,
   LayoutList,
   MoreHorizontal,
   Plus,
@@ -59,7 +62,10 @@ import { TimeGrid } from "../../_shared/time-grid";
 import type { DragDataRef } from "../../_shared/time-grid";
 import { TaskPanel } from "../../_shared/task-panel";
 import { minToHHMM, hhmmToMin, minTo12h } from "../../_shared/grid-utils";
+import { useTimetableZoom } from "../../_shared/timetable-zoom-context";
 import type { SharedTask, SharedMembership } from "../../_shared/types";
+import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import Link from "next/link";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -273,6 +279,177 @@ function EditPopup({
 }
 
 // ---------------------------------------------------------------------------
+// EditSidebarContent — same form as EditPopup but renders inline in ActionSidebar
+// ---------------------------------------------------------------------------
+
+interface EditSidebarContentProps {
+  instance: ClientTemplateInstance;
+  memberships: ClientMembership[];
+  orgId: string;
+  onClose: () => void;
+  onBack?: () => void;
+}
+
+function EditSidebarContent({
+  instance,
+  memberships,
+  orgId,
+  onClose,
+  onBack,
+}: EditSidebarContentProps) {
+  const router = useRouter();
+  const [startTime, setStartTime] = useState(minToHHMM(instance.startTimeMin));
+  const [localAssignees, setLocalAssignees] = useState(instance.assignees);
+  const [addMembershipId, setAddMembershipId] = useState("");
+  const [, startT] = useTransition();
+
+  const assignedIds = new Set(localAssignees.map((a) => a.membership.id));
+  const available = memberships.filter((m) => !assignedIds.has(m.id));
+  const effectiveAddId = available.find((m) => m.id === addMembershipId)
+    ? addMembershipId
+    : (available[0]?.id ?? "");
+
+  const parsedStartTime = hhmmToMin(startTime);
+  const endMin =
+    parsedStartTime == null ? null : parsedStartTime + instance.task.durationMin;
+
+  function handleAddAssignee() {
+    const membership = memberships.find((m) => m.id === effectiveAddId);
+    if (!membership) return;
+    startT(async () => {
+      const r = await addInstanceAssigneeAction(orgId, instance.id, effectiveAddId);
+      if (r.ok) {
+        setLocalAssignees((p) => [
+          ...p,
+          { id: `opt-${effectiveAddId}`, membership: { ...membership, botName: membership.botName ?? null } },
+        ]);
+        router.refresh();
+      }
+    });
+  }
+
+  function handleRemoveAssignee(membershipId: string) {
+    startT(async () => {
+      const r = await removeInstanceAssigneeAction(orgId, instance.id, membershipId);
+      if (r.ok) {
+        setLocalAssignees((p) => p.filter((a) => a.membership.id !== membershipId));
+        router.refresh();
+      }
+    });
+  }
+
+  function handleSave() {
+    if (parsedStartTime == null) return;
+    startT(async () => {
+      const result = await updateTemplateInstanceAction(orgId, instance.id, {
+        startTimeMin: parsedStartTime,
+      });
+      if (!result.ok) return;
+      router.refresh();
+      (onBack ?? onClose)();
+    });
+  }
+
+  function handleRemove() {
+    startT(async () => {
+      const result = await removeTemplateInstanceAction(orgId, instance.id);
+      if (!result.ok) return;
+      router.refresh();
+      onClose();
+    });
+  }
+
+  return (
+    <div className="flex flex-col h-full overflow-y-auto">
+      <div className="flex flex-col gap-5 p-4">
+
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors -mb-2 self-start"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+            Back
+          </button>
+        )}
+
+        {/* Task meta */}
+        <div
+          className="rounded-lg border bg-card px-3 py-2.5 flex items-center gap-2.5"
+          style={{ borderLeftWidth: 3, borderLeftColor: instance.taskColor ?? "#9ca3af" }}
+        >
+          <span className="font-semibold text-sm truncate">{instance.task.name}</span>
+        </div>
+
+        {/* Start time */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Start time</label>
+          <input
+            type="time"
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
+            className="h-8 w-32 rounded border border-input bg-background px-2 text-sm"
+          />
+          <p className="text-xs text-muted-foreground">
+            {startTime} → {endMin == null ? "--:--" : minToHHMM(endMin)} · {instance.task.durationMin} min
+          </p>
+        </div>
+
+        {/* Assignees */}
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Assignees</label>
+          {localAssignees.length === 0 && (
+            <span className="text-xs text-muted-foreground italic">No one assigned</span>
+          )}
+          <div className="flex flex-col gap-1">
+            {localAssignees.map((a) => (
+              <div key={a.membership.id} className="flex items-center justify-between bg-muted/40 rounded px-2.5 py-1.5 text-sm">
+                <span>{a.membership.user?.name ?? a.membership.botName ?? "Unknown"}</span>
+                <button
+                  onClick={() => handleRemoveAssignee(a.membership.id)}
+                  className="text-muted-foreground hover:text-destructive transition-colors ml-2"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+          {available.length > 0 && (
+            <div className="flex gap-1.5 items-center">
+              <select
+                value={effectiveAddId}
+                onChange={(e) => setAddMembershipId(e.target.value)}
+                className="flex-1 rounded border border-input bg-background px-2 py-1 text-sm"
+              >
+                {available.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.user?.name ?? m.botName ?? "Unknown"}
+                  </option>
+                ))}
+              </select>
+              <Button size="sm" variant="outline" onClick={handleAddAssignee} className="h-8 w-8 p-0 shrink-0">
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 pt-1 border-t">
+          <Button size="sm" onClick={handleSave} disabled={parsedStartTime == null} className="flex-1 h-8">
+            Save
+          </Button>
+          <Button size="sm" variant="destructive" onClick={handleRemove} className="h-8">
+            Remove
+          </Button>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main export
 // ---------------------------------------------------------------------------
 
@@ -308,6 +485,7 @@ export function TemplateEditorClient({
 }: TemplateEditorClientProps) {
   const router = useRouter();
   const [, startT] = useTransition();
+  const { open: openSidebar, close: closeSidebar } = useActionSidebar();
   const isMobile = useIsMobile();
 
   // ── Span & adaptive column count ──────────────────────────────────────
@@ -362,12 +540,14 @@ export function TemplateEditorClient({
   // ── Drag / tap / landscape state ─────────────────────────────────────
   type DragData =
     | { type: "task"; taskId: string }
-    | { type: "move"; instanceId: string; offsetMin: number };
-  const dragDataRef = useRef<DragData | null>(null);
+    | { type: "move"; instanceId: string; offsetMin: number }
+    | { type: "group"; instanceIds: string[]; groupStartMin: number; offsetMin: number };
+  const dragDataRef = useRef<DragData | null>(null) as DragDataRef<ClientTemplateInstance>;
   const [dragOver, setDragOver] = useState<{
     column: string;
     timeMin: number;
   } | null>(null);
+  const { hourHeight } = useTimetableZoom();
   const [editingInstance, setEditingInstance] =
     useState<ClientTemplateInstance | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -417,7 +597,87 @@ export function TemplateEditorClient({
 
   // ── Handlers ──────────────────────────────────────────────────────────
 
+  function openEditInSidebar(
+    inst: ClientTemplateInstance,
+    onBack?: () => void,
+  ) {
+    openSidebar(
+      inst.task.name,
+      <EditSidebarContent
+        key={inst.id}
+        instance={inst}
+        memberships={memberships}
+        orgId={orgId}
+        onClose={closeSidebar}
+        onBack={onBack}
+      />,
+    );
+  }
+
+  function openGroupSidebar(groupInstances: ClientTemplateInstance[]) {
+    const groupStart = Math.min(...groupInstances.map((i) => i.startTimeMin));
+    const groupEnd = Math.max(
+      ...groupInstances.map((i) => i.startTimeMin + i.task.durationMin),
+    );
+    openSidebar(
+      `${groupInstances.length} overlapping · ${minToHHMM(groupStart)}–${minToHHMM(groupEnd)}`,
+      <div className="flex flex-col gap-2 p-3">
+        {groupInstances.map((inst) => {
+          const assigneeNames = inst.assignees
+            .map((a) => a.membership.user?.name ?? a.membership.botName ?? "Bot")
+            .join(", ");
+          return (
+            <div
+              key={inst.id}
+              draggable
+              onDragStart={(e) => {
+                dragDataRef.current = {
+                  type: "move",
+                  instanceId: inst.id,
+                  offsetMin: 0,
+                };
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              onDragEnd={closeSidebar}
+              onClick={() => openEditInSidebar(inst, () => openGroupSidebar(groupInstances))}
+              className="flex items-start gap-2.5 rounded-lg border bg-card px-3 py-2.5 hover:bg-accent/40 transition-colors cursor-grab active:cursor-grabbing"
+            >
+              <GripVertical className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground/40" />
+              <span
+                className="w-1 self-stretch rounded-full shrink-0 mt-0.5"
+                style={{ backgroundColor: inst.taskColor ?? "#9ca3af" }}
+              />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold truncate">{inst.task.name}</div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[10px] font-mono text-muted-foreground">
+                    {minToHHMM(inst.startTimeMin)}&ndash;
+                    {minToHHMM(inst.startTimeMin + inst.task.durationMin)}
+                  </span>
+                </div>
+                {assigneeNames && (
+                  <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                    {assigneeNames}
+                  </div>
+                )}
+              </div>
+              <Link
+                href={`/orgs/${orgId}/tasks/${inst.task.id}`}
+                onClick={(e) => { e.stopPropagation(); closeSidebar(); }}
+                className="shrink-0 text-muted-foreground/50 hover:text-foreground transition-colors"
+                aria-label="Open task detail"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          );
+        })}
+      </div>,
+    );
+  }
+
   function handleDrop(col: string, timeMin: number, data: DragData) {
+    if (data.type === "group") return; // multi-instance group drag not supported in template editor
     const day = parseInt(col, 10);
     startT(async () => {
       const result =
@@ -677,7 +937,7 @@ export function TemplateEditorClient({
                   </div>
                 </>
               )}
-              renderBlock={(inst, heightPx) => {
+              renderBlock={(inst, _heightPx) => {
                 const assigneeNames = inst.assignees
                   .map(
                     (a) =>
@@ -690,12 +950,12 @@ export function TemplateEditorClient({
                   .join(", ");
                 return (
                   <>
-                    <div className="text-[10px] text-muted-foreground font-mono leading-none mb-0.5">
+                    <div className="text-[9px] font-mono text-muted-foreground/80 leading-none mb-0.5 tabular-nums">
                       {minToHHMM(inst.startTimeMin)}–{minToHHMM(inst.startTimeMin + inst.task.durationMin)}
                     </div>
-                    <div className="font-semibold truncate">
+                    <span className="font-semibold truncate block leading-tight">
                       {inst.task.name}
-                    </div>
+                    </span>
                     {assigneeNames && (
                       <div className="truncate text-[10px] text-muted-foreground mt-0.5">
                         {assigneeNames}
@@ -704,22 +964,72 @@ export function TemplateEditorClient({
                   </>
                 );
               }}
-              dragDataRef={dragDataRef as DragDataRef}
+              dragDataRef={dragDataRef as DragDataRef<ClientTemplateInstance>}
               onDragOver={(col, timeMin) =>
                 setDragOver({ column: col, timeMin })
               }
               onDrop={handleDrop}
               onDragLeave={() => setDragOver(null)}
               dragOver={dragOver}
-              onBlockMenuClick={setEditingInstance}
+              onBlockMenuClick={(inst) =>
+                router.push(`/orgs/${orgId}/tasks/${inst.task.id}`)
+              }
+              onBlockClick={openEditInSidebar}
               draggable
               initialScrollMin={initialScrollMin}
               openTimeMin={openTimeMin}
               closeTimeMin={closeTimeMin}
               fillHeight={fillHeight}
+              hourHeight={hourHeight}
               blockColor={(inst) => inst.taskColor ?? undefined}
               selectedTaskId={isMobile ? selectedTaskId : null}
               onTapPlace={isMobile ? handleTapPlace : undefined}
+              onGroupClick={(groupInstances) => openGroupSidebar(groupInstances)}
+              renderGroupBlock={(instances, groupStart, groupEnd, _heightPx) => (
+                <>
+                  <div className="flex items-center justify-between gap-1 mb-1 shrink-0">
+                    <span className="text-[9px] font-mono text-muted-foreground/70 leading-none tabular-nums">
+                      {minToHHMM(groupStart)}–{minToHHMM(groupEnd)}
+                    </span>
+                    <span className="shrink-0 inline-flex items-center gap-0.5 text-[9px] font-bold text-violet-600 dark:text-violet-300 leading-none">
+                      <LayersIcon className="h-2.5 w-2.5" />
+                      {instances.length}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1 overflow-hidden">
+                    {instances.map((inst) => {
+                      const assigneeNames = inst.assignees
+                        .map((a) =>
+                          (
+                            a.membership.user?.name ??
+                            a.membership.botName ??
+                            "Bot"
+                          ).split(" ")[0],
+                        )
+                        .join(", ");
+                      return (
+                        <div key={inst.id} className="flex items-start gap-1 min-w-0">
+                          <span
+                            className="w-0.5 self-stretch rounded-full shrink-0 mt-0.5"
+                            style={{ backgroundColor: inst.taskColor ?? "#9ca3af" }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[10px] font-semibold truncate leading-tight block">
+                              {inst.task.name}
+                            </span>
+                            {assigneeNames && (
+                              <span className="text-[9px] text-muted-foreground/70 truncate leading-tight block pl-0">
+                                {assigneeNames}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <ChevronRight className="absolute bottom-1 right-1 h-3 w-3 text-muted-foreground/40" />
+                </>
+              )}
             />
           </div>
         </div>

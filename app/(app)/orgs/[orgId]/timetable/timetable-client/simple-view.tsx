@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { CalendarDays, MoreHorizontal } from "lucide-react";
+// Title no longer links to task detail here; use the icon button instead.
+import { CalendarDays, ExternalLink } from "lucide-react";
+import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { toast } from "sonner";
+import {
+  updateTimetableEntryAction,
+  createTimetableEntryAction,
+} from "@/app/actions/timetable-entries";
 import { cn } from "@/lib/utils";
 import {
   addDays,
@@ -23,7 +29,7 @@ function formatDuration(min: number): string {
   const m = min % 60;
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
-import { CalendarEditPopup } from "./calendar-edit-popup";
+import { CalendarEditSidebarContent } from "./calendar-edit-sidebar-content";
 import type { ClientTimetableInstance, ClientMembership } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -52,8 +58,9 @@ export function SimpleView({
   orgId,
 }: SimpleViewProps) {
   const router = useRouter();
-  const [editingInstance, setEditingInstance] =
-    useState<ClientTimetableInstance | null>(null);
+  const actionSidebar = useActionSidebar();
+  const [dragOverDay, setDragOverDay] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
 
   function effStatus(inst: ClientTimetableInstance) {
     return inst.status === "TODO" && inst.date < todayStr
@@ -93,16 +100,69 @@ export function SimpleView({
           const d = new Date(dayStr + "T00:00:00Z");
           const today = dayStr === todayStr;
           const dayInstances = byDate.get(dayStr) ?? [];
+          const sortedDayInstances = [...dayInstances].sort((a, b) => {
+            if (a.startTimeMin !== b.startTimeMin) return a.startTimeMin - b.startTimeMin;
+            return (a.task?.durationMin ?? 0) - (b.task?.durationMin ?? 0);
+          });
           const dayLabel = `${getDayName(dayStr)}, ${getMonthName(d.getUTCMonth())} ${d.getUTCDate()}`;
 
           return (
             <div
               key={dayStr}
               className={`rounded-xl border shadow-sm overflow-hidden ${today ? "border-primary/40 bg-card ring-1 ring-primary/20" : "bg-card"}`}
+              onDragOver={(e) => {
+                if (!canManage) return;
+                e.preventDefault();
+                setDragOverDay(dayStr);
+              }}
+              onDragLeave={() => setDragOverDay((d) => (d === dayStr ? null : d))}
+              onDrop={(e) => {
+                if (!canManage) return;
+                e.preventDefault();
+                setDragOverDay(null);
+
+                // Priority: task drags use a dedicated key so TimeGrid/AddTaskPanel can
+                // drop tasks into this list. Fallback to JSON payloads for instance moves.
+                const taskId = e.dataTransfer.getData("timetable/taskId");
+                if (taskId) {
+                  // Simple view has no precise time Y coordinate — use 09:00 as a sensible default.
+                  const defaultStartMin = 9 * 60;
+                  startTransition(async () => {
+                    const res = await createTimetableEntryAction(orgId, taskId, dayStr, defaultStartMin);
+                    if (!res.ok) {
+                      toast.error(res.error ?? "Failed to add task to timetable");
+                      return;
+                    }
+                    router.refresh();
+                  });
+                  return;
+                }
+
+                // Fallback: parse JSON payloads for move/group semantics.
+                const raw = e.dataTransfer.getData("application/json") || e.dataTransfer.getData("text/plain");
+                if (!raw) return;
+                try {
+                  const parsed = JSON.parse(raw);
+                  if (parsed?.type === "move" && parsed?.instanceId) {
+                    const instanceId = parsed.instanceId as string;
+                    startTransition(async () => {
+                      const res = await updateTimetableEntryAction(orgId, instanceId, { dateStr: dayStr });
+                      if (!res.ok) {
+                        toast.error(res.error ?? "Failed to move entry");
+                        return;
+                      }
+                      router.refresh();
+                    });
+                  }
+                  // Note: group drag support (parsed.type === 'group') can be added later.
+                } catch {
+                  // ignore parse errors
+                }
+              }}
             >
               <div
                 className={cn(
-                "px-4 py-2.5 flex items-center gap-2 font-semibold text-sm border-b",
+                          // Note: group drag support (parsed.type === 'group') can be added later.
                 today
                   ? "bg-primary/10 text-primary border-primary/20"
                   : "bg-muted/20",
@@ -116,26 +176,56 @@ export function SimpleView({
                 )}
               </div>
 
-              {dayInstances.length === 0 ? (
+              {sortedDayInstances.length === 0 ? (
                 <div className="px-4 py-3 text-sm text-muted-foreground">
                   No tasks scheduled
                 </div>
               ) : (
                 <div className="divide-y">
-                  {dayInstances.map((inst) => {
+                  {sortedDayInstances.map((inst) => {
                     const effectiveStatus = effStatus(inst);
                     const isSkipped = effectiveStatus === "SKIPPED";
                     const isDone = effectiveStatus === "DONE";
                     return (
                       <div
                         key={inst.id}
+                        draggable={canManage}
+                        // Drag start: encode a simple JSON payload describing the
+                        // instance move. `TimeGrid` uses a richer DragData shape, but
+                        // for SimpleView we only need `type: 'move'` + `instanceId`.
+                        onDragStart={(e) => {
+                          if (!canManage) return;
+                          e.stopPropagation();
+                          e.dataTransfer.setData("application/json", JSON.stringify({ type: "move", instanceId: inst.id }));
+                          e.dataTransfer.effectAllowed = "move";
+                        }}
                         className={cn(
                           "group flex items-center gap-3 px-4 py-3 transition-colors",
                           memberships
                             ? "cursor-pointer hover:bg-primary/5 active:bg-primary/10"
                             : "",
+                          dragOverDay === dayStr ? "ring-2 ring-primary/20" : ""
                         )}
-                        onClick={() => memberships && setEditingInstance(inst)}
+                        // Single-click opens the edit UI in the ActionSidebar (not
+                        // a full page). The little icon button is used to open the
+                        // task detail page instead.
+                        onClick={() => {
+                          if (!memberships) return;
+                          actionSidebar.open(
+                            inst.task.title,
+                            <CalendarEditSidebarContent
+                              key={inst.id}
+                              instance={inst}
+                              memberships={memberships}
+                              orgId={orgId}
+                              canManage={canManage}
+                              onClose={() => actionSidebar.close()}
+                              onRefresh={() => router.refresh()}
+                              router={router}
+                              todayStr={todayStr}
+                            />,
+                          );
+                        }}
                       >
                         {/* Task color accent */}
                         <div
@@ -152,19 +242,15 @@ export function SimpleView({
 
                         {/* Task name */}
                         <div className="flex-1 min-w-0">
-                          <Link
-                            href={`/orgs/${orgId}/tasks/${inst.taskId}?ref=timetable`}
-                            onClick={(e) => e.stopPropagation()}
+                          <div
                             className={cn(
-                              "text-sm font-medium hover:underline block truncate",
-                              isSkipped || isDone
-                                ? "text-muted-foreground"
-                                : "",
+                              "text-sm font-medium block truncate",
+                              isSkipped || isDone ? "text-muted-foreground" : "",
                               isSkipped ? "line-through" : "",
                             )}
                           >
                             {inst.task.title}
-                          </Link>
+                          </div>
                         </div>
 
                         {/* Assignee initials */}
@@ -256,12 +342,12 @@ export function SimpleView({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setEditingInstance(inst);
+                              router.push(`/orgs/${orgId}/tasks/${inst.taskId}?ref=timetable`);
                             }}
                             className="flex items-center justify-center w-6 h-6 rounded hover:bg-muted transition-colors shrink-0 text-muted-foreground sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100"
-                            aria-label="Edit"
+                            aria-label="Open task"
                           >
-                            <MoreHorizontal className="h-3.5 w-3.5" />
+                            <ExternalLink className="h-3.5 w-3.5" />
                           </button>
                         )}
                       </div>
@@ -274,19 +360,7 @@ export function SimpleView({
         })}
       </div>
 
-      {editingInstance && memberships && (
-        <CalendarEditPopup
-          instance={editingInstance}
-          memberships={memberships}
-          orgId={orgId}
-          canManage={canManage}
-          open={true}
-          onClose={() => setEditingInstance(null)}
-          onRefresh={() => router.refresh()}
-          router={router}
-          todayStr={todayStr}
-        />
-      )}
+      {/* Edit panel is opened in the ActionSidebar via row click */}
     </>
   );
 }

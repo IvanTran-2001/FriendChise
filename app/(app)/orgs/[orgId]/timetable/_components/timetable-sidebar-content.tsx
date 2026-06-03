@@ -20,6 +20,7 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { RoleFilterButton } from "./role-filter-button";
 import { TimetableViewPicker } from "./timetable-view-picker";
+import { useTimetableZoom, MIN_HOUR_HEIGHT, MAX_HOUR_HEIGHT } from "../_shared/timetable-zoom-context";
 import { TimetableActions } from "./timetable-actions";
 import { TagFilterButton } from "@/components/ui/tag-filter-button";
 import { type TemplateOption } from "./apply-template-dialog";
@@ -49,6 +50,26 @@ interface TimetableSidebarContentProps {
   isSpanExplicit: boolean;
   /** True when the URL has at least one of roleId / tagId. */
   isFiltersExplicit: boolean;
+}
+
+function ZoomSlider() {
+  const { hourHeight, setHourHeight } = useTimetableZoom();
+  return (
+    <div className="px-1 mt-3">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs text-muted-foreground">Hour height</span>
+        <span className="text-xs tabular-nums text-muted-foreground">{hourHeight}px</span>
+      </div>
+      <input
+        type="range"
+        min={MIN_HOUR_HEIGHT}
+        max={MAX_HOUR_HEIGHT}
+        value={hourHeight}
+        onChange={(e) => setHourHeight(Number(e.target.value))}
+        className="w-full accent-primary"
+      />
+    </div>
+  );
 }
 
 export function TimetableSidebarContent({
@@ -257,6 +278,7 @@ export function TimetableSidebarContent({
           weekHref={weekHref}
           className="flex-col items-start"
         />
+        <ZoomSlider />
       </div>
 
       {/* Actions section — managers only */}

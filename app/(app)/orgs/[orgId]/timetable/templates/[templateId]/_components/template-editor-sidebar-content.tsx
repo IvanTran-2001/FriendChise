@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ListPlus, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TimetableViewPicker } from "../../../_components/timetable-view-picker";
+import { useTimetableZoom, MIN_HOUR_HEIGHT, MAX_HOUR_HEIGHT } from "../../../_shared/timetable-zoom-context";
 import { AddTemplateTaskPanel } from "./add-template-task-panel";
 import { updateTemplateDaysAction } from "@/app/actions/templates";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
@@ -21,6 +22,26 @@ interface TemplateEditorSidebarContentProps {
   dayHref: string;
   weekHref: string;
   availableTasks: SharedTask[];
+}
+
+function ZoomSlider() {
+  const { hourHeight, setHourHeight } = useTimetableZoom();
+  return (
+    <div className="px-1 mt-3">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs text-muted-foreground">Hour height</span>
+        <span className="text-xs tabular-nums text-muted-foreground">{hourHeight}px</span>
+      </div>
+      <input
+        type="range"
+        min={MIN_HOUR_HEIGHT}
+        max={MAX_HOUR_HEIGHT}
+        value={hourHeight}
+        onChange={(e) => setHourHeight(Number(e.target.value))}
+        className="w-full accent-primary"
+      />
+    </div>
+  );
 }
 
 export function TemplateEditorSidebarContent({
@@ -85,6 +106,7 @@ export function TemplateEditorSidebarContent({
           weekHref={weekHref}
           className="flex-col items-start"
         />
+        <ZoomSlider />
       </div>
 
       {/* Actions section */}

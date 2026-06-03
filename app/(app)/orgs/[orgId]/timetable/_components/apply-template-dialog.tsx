@@ -14,8 +14,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { InfoIcon, TriangleAlertIcon } from "lucide-react";
-import { DialogFooter } from "@/components/ui/dialog";
+import { InfoIcon, Loader2, Minus, Plus, TriangleAlertIcon } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -24,6 +23,10 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  SearchableCombobox,
+  type ComboboxItem,
+} from "@/components/ui/searchable-combobox";
 import {
   applyTemplateAction,
   countTimetableEntriesInRangeAction,
@@ -197,10 +200,11 @@ export function ApplyTemplateForm({
           </label>
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
-        <DialogFooter>
+        <div className="flex gap-2">
           <Button
             variant="outline"
             size="sm"
+            className="flex-1"
             onClick={() => setShowPastWarning(false)}
             disabled={isPending}
           >
@@ -209,12 +213,13 @@ export function ApplyTemplateForm({
           <Button
             variant="destructive"
             size="sm"
+            className="flex-1"
             onClick={handleConfirmPast}
             disabled={isPending}
           >
-            {isPending ? "Applying…" : "Apply Anyway"}
+            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply Anyway"}
           </Button>
-        </DialogFooter>
+        </div>
       </div>
     );
   }
@@ -223,93 +228,80 @@ export function ApplyTemplateForm({
     <div className="flex flex-col gap-3 p-4">
       <div className="flex flex-col gap-3">
         {/* Template select */}
-        <div className="flex flex-col gap-1">
-          <label
-            htmlFor="apply-template-template"
-            className="text-xs font-medium text-muted-foreground"
-          >
-            Template
-          </label>
-          <select
-            id="apply-template-template"
-            className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-            value={selectedId}
-            onChange={(e) => setSelectedId(e.target.value)}
-          >
-            {templates.length === 0 && (
-              <option value="" disabled>
-                No templates available
-              </option>
-            )}
-            {templates.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name} ({t.cycleLengthDays} day
-                {t.cycleLengthDays !== 1 ? "s" : ""})
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs text-muted-foreground">Template</span>
+          <SearchableCombobox
+            items={templates.map((t) => ({ id: t.id, name: t.name }))}
+            onSelect={(item: ComboboxItem) => setSelectedId(item.id)}
+            triggerLabel={selected?.name ?? "Choose template…"}
+            placeholder="Search templates…"
+            emptyText="No templates found."
+            disabled={templates.length === 0}
+          />
         </div>
 
         {/* Start date */}
-        <div className="flex flex-col gap-1">
-          <label
-            htmlFor="apply-template-start-date"
-            className="text-xs font-medium text-muted-foreground"
-          >
-            Start Date
-          </label>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs text-muted-foreground">Start Date</span>
           <Input
-            id="apply-template-start-date"
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
+            className="h-8 text-sm px-2"
           />
         </div>
 
-        {/* Cycle repeat */}
-        <div className="flex flex-col gap-1">
-          <label
-            htmlFor="apply-template-cycle-repeat"
-            className="text-xs font-medium text-muted-foreground"
-          >
-            Cycle Repeat
-          </label>
-          <Input
-            id="apply-template-cycle-repeat"
-            type="number"
-            min={1}
-            max={52}
-            step={1}
-            value={cycleRepeats}
-            onChange={(e) => {
-              const next = e.currentTarget.valueAsNumber;
-              setCycleRepeats(
-                Number.isFinite(next)
-                  ? Math.max(1, Math.min(52, Math.trunc(next)))
-                  : 1,
-              );
-            }}
-          />
+        {/* Cycle repeats */}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs text-muted-foreground">
+            Repeat
+            {selected
+              ? ` — ${totalDays} day${totalDays !== 1 ? "s" : ""} total`
+              : ""}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-7 w-7 shrink-0"
+              disabled={cycleRepeats <= 1}
+              onClick={() => setCycleRepeats((r) => Math.max(1, r - 1))}
+            >
+              <Minus className="h-3 w-3" />
+            </Button>
+            <span className="flex-1 text-center text-sm font-medium tabular-nums">
+              {cycleRepeats}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-7 w-7 shrink-0"
+              disabled={cycleRepeats >= 52}
+              onClick={() => setCycleRepeats((r) => Math.min(52, r + 1))}
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
+          </div>
         </div>
 
         {/* Preview */}
         {selected && dateRangeLabel && (
-          <div className="rounded-lg border bg-amber-50 border-amber-200 p-3 text-sm text-amber-900 flex flex-col gap-2">
-            <div className="flex gap-2">
-              <InfoIcon className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 flex flex-col gap-2">
+            <div className="flex gap-2 items-start">
+              <InfoIcon className="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
               <div>
-                <span className="font-medium">
+                <span className="text-sm font-medium">
                   {selected.name} × {cycleRepeats}
                 </span>
-                <div className="text-xs mt-0.5 text-amber-700">
+                <div className="text-xs mt-0.5 text-muted-foreground">
                   {dateRangeLabel}
                 </div>
               </div>
             </div>
             {existingCount > 0 && (
-              <div className="flex gap-2">
-                <TriangleAlertIcon className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
-                <span className="text-xs text-amber-700">
+              <div className="flex gap-2 items-start">
+                <TriangleAlertIcon className="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                <span className="text-xs text-amber-800 dark:text-amber-300">
                   {existingCount} existing entr
                   {existingCount === 1 ? "y" : "ies"} in this range will be
                   replaced.
@@ -322,10 +314,11 @@ export function ApplyTemplateForm({
         {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
 
-      <DialogFooter>
+      <div className="flex gap-2">
         <Button
           variant="outline"
           size="sm"
+          className="flex-1"
           onClick={() => onOpenChange(false)}
           disabled={isPending}
         >
@@ -333,12 +326,13 @@ export function ApplyTemplateForm({
         </Button>
         <Button
           size="sm"
+          className="flex-1"
           onClick={handleApply}
           disabled={isPending || !selectedId || templates.length === 0}
         >
-          {isPending ? "Applying…" : "Apply"}
+          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
         </Button>
-      </DialogFooter>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { HOUR_HEIGHT, calcDropTimeMin, assignColumns } from "./grid-utils";
+import { ExternalLink } from "lucide-react";
+import { HOUR_HEIGHT, MIN_BLOCK_HEIGHT, calcDropTimeMin, groupOverlapping, type OverlapGroup } from "./grid-utils";
 
 /**
  * Converts any CSS color to an rgba() string with the given alpha.
@@ -34,12 +35,20 @@ export type GridInstance = {
   task: { durationMin: number };
 };
 
-type DragData<TInstanceId extends string = string> =
+type DragData<TInstance extends GridInstance = GridInstance> =
   | { type: "task"; taskId: string }
-  | { type: "move"; instanceId: TInstanceId; offsetMin: number };
+  | { type: "move"; instanceId: string; offsetMin: number }
+  | {
+      type: "group";
+      instanceIds: string[];
+      /** Optional: pass full instance objects for faster client-side mapping */
+      instances?: TInstance[];
+      groupStartMin: number;
+      offsetMin: number;
+    };
 
-export type DragDataRef<TInstanceId extends string = string> =
-  React.MutableRefObject<DragData<TInstanceId> | null>;
+export type DragDataRef<TInstance extends GridInstance = GridInstance> =
+  React.MutableRefObject<DragData<TInstance> | null>;
 
 interface TimeGridProps<
   TInstance extends GridInstance,
@@ -65,13 +74,13 @@ interface TimeGridProps<
   renderBlock: (instance: TInstance, heightPx: number) => React.ReactNode;
 
   /** Shared drag-data ref. Owned by the parent so it can be read during drop. */
-  dragDataRef: DragDataRef;
+  dragDataRef: DragDataRef<TInstance>;
 
   /** Called when the user drags over a column. */
   onDragOver: (column: TColumnKey, timeMin: number) => void;
 
   /** Called when the user drops onto a column. */
-  onDrop: (column: TColumnKey, timeMin: number, data: DragData) => void;
+  onDrop: (column: TColumnKey, timeMin: number, data: DragData<TInstance>) => void;
 
   /** Called when the drag leaves all columns. */
   onDragLeave: () => void;
@@ -106,6 +115,23 @@ interface TimeGridProps<
   /** Tap-to-place mode: when set, clicking a column places this task. */
   selectedTaskId?: string | null;
   onTapPlace?: (column: TColumnKey, timeMin: number, taskId: string) => void;
+
+  /**
+   * Renders the combined card for an overlap group (2+ instances).
+   * If omitted a simple fallback showing the count is rendered.
+   */
+  renderGroupBlock?: (
+    instances: TInstance[],
+    groupStart: number,
+    groupEnd: number,
+    heightPx: number,
+  ) => React.ReactNode;
+
+  /** Called when the user clicks a group card. */
+  onGroupClick?: (instances: TInstance[]) => void;
+
+  /** Pixel height per hour. Defaults to HOUR_HEIGHT (150). */
+  hourHeight?: number;
 }
 
 /**
@@ -140,9 +166,12 @@ export function TimeGrid<
   closeTimeMin,
   selectedTaskId,
   onTapPlace,
+  renderGroupBlock,
+  onGroupClick,
+  hourHeight = HOUR_HEIGHT,
 }: TimeGridProps<TInstance, TColumnKey>) {
   const hours = Array.from({ length: 24 }, (_, i) => i);
-  const totalHeight = hours.length * HOUR_HEIGHT;
+  const totalHeight = hours.length * hourHeight;
 
   // Group instances by column key
   const byColumn = new Map<TColumnKey, TInstance[]>();
@@ -162,7 +191,7 @@ export function TimeGrid<
     if (!scrollRef.current) return;
     const scrollTo = Math.max(
       0,
-      Math.floor(initialScrollMin / 60) * HOUR_HEIGHT - HOUR_HEIGHT / 2,
+      Math.floor(initialScrollMin / 60) * hourHeight - hourHeight / 2,
     );
     const el = scrollRef.current;
     let rafId1: number | null = null;
@@ -191,10 +220,14 @@ export function TimeGrid<
   ) {
     e.preventDefault();
     e.dataTransfer.dropEffect =
-      dragDataRef.current?.type === "move" ? "move" : "copy";
+      dragDataRef.current?.type === "move" || dragDataRef.current?.type === "group"
+        ? "move"
+        : "copy";
     const offsetMin =
-      dragDataRef.current?.type === "move" ? dragDataRef.current.offsetMin : 0;
-    onDragOver(col, calcDropTimeMin(e.clientY, e.currentTarget, 0, offsetMin));
+      dragDataRef.current?.type === "move" || dragDataRef.current?.type === "group"
+        ? dragDataRef.current.offsetMin
+        : 0;
+    onDragOver(col, calcDropTimeMin(e.clientY, e.currentTarget, 0, offsetMin, hourHeight));
   }
 
   function handleColumnDrop(
@@ -211,10 +244,10 @@ export function TimeGrid<
       if (taskId) data = { type: "task", taskId };
     }
     if (!data) return;
-    const offsetMin = data.type === "move" ? data.offsetMin : 0;
+    const offsetMin = data.type === "move" || data.type === "group" ? data.offsetMin : 0;
     onDrop(
       col,
-      calcDropTimeMin(e.clientY, e.currentTarget, 0, offsetMin),
+      calcDropTimeMin(e.clientY, e.currentTarget, 0, offsetMin, hourHeight),
       data,
     );
   }
@@ -224,7 +257,7 @@ export function TimeGrid<
     col: TColumnKey,
   ) {
     if (!selectedTaskId || !onTapPlace) return;
-    const timeMin = calcDropTimeMin(e.clientY, e.currentTarget, 0, 0);
+    const timeMin = calcDropTimeMin(e.clientY, e.currentTarget, 0, 0, hourHeight);
     onTapPlace(col, timeMin, selectedTaskId);
   }
 
@@ -291,7 +324,7 @@ export function TimeGrid<
               {hours.map((h) => (
                 <div
                   key={h}
-                  style={{ height: HOUR_HEIGHT }}
+                  style={{ height: hourHeight }}
                   className="flex items-start justify-end pr-2 pt-1 text-xs text-muted-foreground border-b border-border/50 select-none"
                 >
                   {`${h}:00`}
@@ -302,7 +335,6 @@ export function TimeGrid<
             {/* Columns */}
             {columns.map((col) => {
               const colInstances = byColumn.get(col) ?? [];
-              const positioned = assignColumns(colInstances);
               const isDragTarget = dragOver?.column === col;
               const highlightClass = columnHighlightClass?.(col);
 
@@ -325,7 +357,7 @@ export function TimeGrid<
                       className={`absolute inset-x-0 pointer-events-none z-0 ${highlightClass ? "bg-muted/70" : "bg-muted/40"}`}
                       style={{
                         top: 0,
-                        height: (openTimeMin / 60) * HOUR_HEIGHT,
+                        height: (openTimeMin / 60) * hourHeight,
                       }}
                     />
                   )}
@@ -333,8 +365,8 @@ export function TimeGrid<
                     <div
                       className={`absolute inset-x-0 pointer-events-none z-0 ${highlightClass ? "bg-muted/70" : "bg-muted/40"}`}
                       style={{
-                        top: (closeTimeMin / 60) * HOUR_HEIGHT,
-                        height: totalHeight - (closeTimeMin / 60) * HOUR_HEIGHT,
+                        top: (closeTimeMin / 60) * hourHeight,
+                        height: totalHeight - (closeTimeMin / 60) * hourHeight,
                       }}
                     />
                   )}
@@ -342,13 +374,13 @@ export function TimeGrid<
                   {openTimeMin !== undefined && openTimeMin > 0 && (
                     <div
                       className="absolute inset-x-0 border-t-2 border-primary/40 pointer-events-none z-10"
-                      style={{ top: (openTimeMin / 60) * HOUR_HEIGHT }}
+                      style={{ top: (openTimeMin / 60) * hourHeight }}
                     />
                   )}
                   {closeTimeMin !== undefined && closeTimeMin < 1440 && (
                     <div
                       className="absolute inset-x-0 border-t-2 border-primary/40 pointer-events-none z-10"
-                      style={{ top: (closeTimeMin / 60) * HOUR_HEIGHT }}
+                      style={{ top: (closeTimeMin / 60) * hourHeight }}
                     />
                   )}
 
@@ -357,7 +389,7 @@ export function TimeGrid<
                     <div
                       key={h}
                       className="absolute inset-x-0 border-b border-border/40 pointer-events-none"
-                      style={{ top: h * HOUR_HEIGHT, height: HOUR_HEIGHT }}
+                      style={{ top: h * hourHeight, height: hourHeight }}
                     />
                   ))}
 
@@ -365,50 +397,147 @@ export function TimeGrid<
                   {isDragTarget && dragOver && (
                     <div
                       className="absolute inset-x-1 h-0.5 bg-primary z-10 pointer-events-none rounded"
-                      style={{ top: (dragOver.timeMin / 60) * HOUR_HEIGHT }}
+                      style={{ top: (dragOver.timeMin / 60) * hourHeight }}
                     />
                   )}
 
                   {/* Task blocks */}
-                  {positioned.map(
-                    ({ instance: inst, col: colSlot }) => {
-                      const topPx = (inst.startTimeMin / 60) * HOUR_HEIGHT;
-                      const visibleDurationMin = Math.min(
-                        inst.task.durationMin,
-                        Math.max(0, 1440 - inst.startTimeMin),
-                      );
+                  {groupOverlapping(colInstances, hourHeight).map((group: OverlapGroup<TInstance>) => {
+                      const groupKey = group.instances.map((i) => i.id).join("+");
+                      const topPx = (group.startTimeMin / 60) * hourHeight;
+                      const durationMin = group.endTimeMin - group.startTimeMin;
+                      // groupOverlapping already clamps endTimeMin to MIN_BLOCK_HEIGHT
+                      // so heightPx will always be >= MIN_BLOCK_HEIGHT here.
                       const heightPx = Math.max(
-                        (visibleDurationMin / 60) * HOUR_HEIGHT,
-                        40,
+                        (durationMin / 60) * hourHeight,
+                        MIN_BLOCK_HEIGHT,
                       );
-                      // Cascade: each overlap level indents right by 8px.
-                      // All events are near-full-width so no half-half split.
-                      const INDENT = 8;
-                      const leftPx = colSlot * INDENT + 2;
-                      const rightPx = 2;
 
+                      // ── Single instance — existing behaviour ──────────────────
+                      if (group.instances.length === 1) {
+                        const inst = group.instances[0];
+                        return (
+                          <div
+                            key={inst.id}
+                            draggable={draggable}
+                            onDragStart={
+                              draggable
+                                ? (e) => {
+                                    const rect =
+                                      e.currentTarget.getBoundingClientRect();
+                                    dragDataRef.current = {
+                                      type: "move",
+                                      instanceId: inst.id,
+                                      offsetMin:
+                                        ((e.clientY - rect.top) / hourHeight) *
+                                        60,
+                                    };
+                                    e.dataTransfer.effectAllowed = "move";
+                                  }
+                                : undefined
+                            }
+                            onDragEnd={
+                              draggable
+                                ? () => {
+                                    dragDataRef.current = null;
+                                    onDragLeave();
+                                  }
+                                : undefined
+                            }
+                            onPointerDown={(e) => {
+                              pointerDownPos.current = {
+                                x: e.clientX,
+                                y: e.clientY,
+                                id: inst.id,
+                              };
+                            }}
+                            onClick={(e) => {
+                              if (!onBlockClick) return;
+                              const down = pointerDownPos.current;
+                              if (down && down.id === inst.id) {
+                                const dx = e.clientX - down.x;
+                                const dy = e.clientY - down.y;
+                                if (Math.sqrt(dx * dx + dy * dy) > 6) return;
+                              }
+                              e.stopPropagation();
+                              onBlockClick(inst);
+                            }}
+                            onKeyDown={
+                              onBlockClick
+                                ? (e) => {
+                                    if (e.key !== "Enter" && e.key !== " ")
+                                      return;
+                                    if (e.key === " ") e.preventDefault();
+                                    e.stopPropagation();
+                                    onBlockClick(inst);
+                                  }
+                                : undefined
+                            }
+                            role={onBlockClick ? "button" : undefined}
+                            tabIndex={onBlockClick ? 0 : undefined}
+                            className={`absolute rounded-md p-1.5 text-[11px] leading-snug bg-white border-2 border-primary/50 text-foreground shadow-sm hover:border-primary/80 hover:shadow transition-all select-none ${draggable ? "cursor-grab active:cursor-grabbing" : onBlockClick ? "cursor-pointer" : "cursor-default"}`}
+                            style={{
+                              top: topPx + 1,
+                              minHeight: Math.max(heightPx - 2, MIN_BLOCK_HEIGHT - 2),
+                              left: 2,
+                              right: 2,
+                              zIndex: 1,
+                              ...(blockColor?.(inst)
+                                ? {
+                                    borderColor: blockColor(inst)!,
+                                    backgroundColor: withAlpha(
+                                      blockColor(inst)!,
+                                      0.094,
+                                    ),
+                                  }
+                                : {
+                                    borderColor: "#9ca3af",
+                                    backgroundColor: withAlpha("#9ca3af", 0.094),
+                                  }),
+                            }}
+                          >
+                            {renderBlock(inst, Infinity)}
+                            {onBlockMenuClick && (
+                              <button
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onBlockMenuClick(inst);
+                                }}
+                                className="absolute top-0.5 right-0.5 flex items-center justify-center w-5 h-5 rounded text-muted-foreground/60 hover:text-foreground hover:bg-black/10 transition-colors cursor-pointer"
+                                aria-label="Open task"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      // ── Overlap group card ────────────────────────────────────
                       return (
                         <div
-                          key={inst.id}
-                          draggable={draggable}
+                          key={groupKey}
+                          role="button"
+                          tabIndex={0}
+                          draggable={draggable && !!onGroupClick}
                           onDragStart={
-                            draggable
+                            draggable && onGroupClick
                               ? (e) => {
-                                  const rect =
-                                    e.currentTarget.getBoundingClientRect();
+                                  const rect = e.currentTarget.getBoundingClientRect();
                                   dragDataRef.current = {
-                                    type: "move",
-                                    instanceId: inst.id,
-                                    offsetMin:
-                                      ((e.clientY - rect.top) / HOUR_HEIGHT) *
-                                      60,
+                                    type: "group",
+                                    instanceIds: group.instances.map((i) => i.id),
+                                    instances: group.instances,
+                                    groupStartMin: group.startTimeMin,
+                                    offsetMin: ((e.clientY - rect.top) / hourHeight) * 60,
                                   };
                                   e.dataTransfer.effectAllowed = "move";
                                 }
                               : undefined
                           }
                           onDragEnd={
-                            draggable
+                            draggable && onGroupClick
                               ? () => {
                                   dragDataRef.current = null;
                                   onDragLeave();
@@ -419,68 +548,48 @@ export function TimeGrid<
                             pointerDownPos.current = {
                               x: e.clientX,
                               y: e.clientY,
-                              id: inst.id,
+                              id: groupKey,
                             };
                           }}
                           onClick={(e) => {
-                            if (!onBlockClick) return;
                             const down = pointerDownPos.current;
-                            if (down && down.id === inst.id) {
+                            if (down && down.id === groupKey) {
                               const dx = e.clientX - down.x;
                               const dy = e.clientY - down.y;
                               if (Math.sqrt(dx * dx + dy * dy) > 6) return;
                             }
                             e.stopPropagation();
-                            onBlockClick(inst);
+                            onGroupClick?.(group.instances);
                           }}
-                          onKeyDown={
-                            onBlockClick
-                              ? (e) => {
-                                  if (e.key !== "Enter" && e.key !== " ")
-                                    return;
-                                  if (e.key === " ") e.preventDefault();
-                                  e.stopPropagation();
-                                  onBlockClick(inst);
-                                }
-                              : undefined
-                          }
-                          role={onBlockClick ? "button" : undefined}
-                          tabIndex={onBlockClick ? 0 : undefined}
-                          className={`absolute rounded-md p-1.5 text-[11px] leading-snug bg-white border-2 border-primary/50 text-foreground shadow-sm hover:border-primary/80 hover:shadow transition-all select-none ${draggable ? "cursor-grab active:cursor-grabbing" : onBlockClick ? "cursor-pointer" : "cursor-default"}`}
+                          onKeyDown={(e) => {
+                            if (e.key !== "Enter" && e.key !== " ") return;
+                            if (e.key === " ") e.preventDefault();
+                            e.stopPropagation();
+                            onGroupClick?.(group.instances);
+                          }}
+                          className={`absolute rounded-md p-1.5 text-[11px] leading-snug border-2 text-foreground shadow-sm hover:shadow-md transition-all select-none ${draggable && onGroupClick ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
                           style={{
                             top: topPx + 1,
-                            minHeight: Math.max(heightPx - 2, 38),
-                            left: leftPx,
-                            right: rightPx,
-                            zIndex: colSlot + 1,
-                            ...(blockColor?.(inst)
-                              ? {
-                                  borderColor: blockColor(inst)!,
-                                  backgroundColor: withAlpha(
-                                    blockColor(inst)!,
-                                    0.094,
-                                  ),
-                                }
-                              : {
-                                  borderColor: "#9ca3af",
-                                  backgroundColor: withAlpha("#9ca3af", 0.094),
-                                }),
+                            minHeight: Math.max(heightPx - 2, MIN_BLOCK_HEIGHT - 2),
+                            left: 2,
+                            right: 2,
+                            zIndex: 2,
+                            borderColor: "#818cf8",
+                            backgroundColor: withAlpha("#818cf8", 0.08),
                           }}
                         >
-                          {renderBlock(inst, Infinity)}
-                          {onBlockMenuClick && (
-                            <button
-                              onMouseDown={(e) => e.stopPropagation()}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onBlockMenuClick(inst);
-                              }}
-                              className="absolute top-0.5 right-0.5 flex items-center justify-center w-5 h-5 rounded bg-black/10 text-xs font-bold leading-none text-foreground hover:bg-black/25 transition-colors cursor-pointer"
-                              aria-label="Edit"
-                            >
-                              ···
-                            </button>
-                          )}
+                          {renderGroupBlock
+                            ? renderGroupBlock(
+                                group.instances,
+                                group.startTimeMin,
+                                group.endTimeMin,
+                                heightPx,
+                              )
+                            : (
+                              <span className="font-semibold">
+                                {group.instances.length} tasks
+                              </span>
+                            )}
                         </div>
                       );
                     },

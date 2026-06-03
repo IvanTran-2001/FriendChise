@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
 import { TimetableSidebarShell } from "./_components/timetable-sidebar-shell";
+import { TimetableZoomProviderWrapper } from "./_components/timetable-zoom-provider-wrapper";
 
 /**
  * Timetable section layout — registers the shared TimetableSidebarShell once
@@ -13,9 +14,9 @@ import { TimetableSidebarShell } from "./_components/timetable-sidebar-shell";
  */
 export default function TimetableLayout({ children }: { children: ReactNode }) {
   return (
-    <>
+    <TimetableZoomProviderWrapper>
       <RegisterPageSidebar title="Timetable" content={<TimetableSidebarShell />} />
       {children}
-    </>
+    </TimetableZoomProviderWrapper>
   );
 }

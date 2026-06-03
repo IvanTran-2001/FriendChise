@@ -17,10 +17,13 @@ import { revalidatePath } from "next/cache";
 import {
   createTimetableEntry,
   updateTimetableEntry,
+  updateTimetableEntriesBatch,
   deleteTimetableEntry,
   addTimetableEntryAssignee,
   removeTimetableEntryAssignee,
+  getTimetableInstancesByIds,
 } from "@/lib/services/timetable-entries";
+import type { WeekTimetableInstance } from "@/lib/services/timetable-entries";
 
 /**
  * Creates a new live timetable entry from a task.
@@ -76,6 +79,27 @@ export async function updateTimetableEntryAction(
 }
 
 /**
+ * Moves multiple live timetable entries atomically — single auth check,
+ * single DB transaction. Used for group-card drag-and-drop.
+ */
+export async function updateTimetableEntriesBatchAction(
+  orgId: string,
+  updates: { entryId: string; startTimeMin: number; dateStr: string }[],
+): Promise<{ ok: boolean; error?: string }> {
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TIMETABLE,
+  );
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+
+  const result = await updateTimetableEntriesBatch(orgId, updates);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  revalidatePath(`/orgs/${orgId}/timetable`);
+  return { ok: true };
+}
+
+/**
  * Updates only the status of a timetable entry.
  * Any org member may call this — no MANAGE_TIMETABLE permission required.
  */
@@ -92,6 +116,24 @@ export async function updateTimetableEntryStatusAction(
 
   revalidatePath(`/orgs/${orgId}/timetable`);
   return { ok: true };
+}
+
+/**
+ * Fetch timetable instances by IDs for a panel. Any org member may call.
+ */
+export async function fetchTimetableInstancesAction(
+  orgId: string,
+  ids: string[],
+): Promise<{ ok: boolean; data?: WeekTimetableInstance[]; error?: string }> {
+  const authz = await requireOrgMemberAction(orgId);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+
+  try {
+    const data = await getTimetableInstancesByIds(orgId, ids);
+    return { ok: true, data };
+  } catch {
+    return { ok: false, error: "Failed to fetch instances" };
+  }
 }
 
 /**

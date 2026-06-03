@@ -5,6 +5,14 @@
 export const HOUR_HEIGHT = 150; // px per hour
 export const SNAP_MIN = 15;
 
+/**
+ * Minimum rendered pixel height for a task block.
+ * A card shorter than this (e.g. 5-min duration = 12.5 px) is clamped to
+ * this value so that overlap detection matches what the user actually sees.
+ * Equivalent to Math.ceil((MIN_BLOCK_HEIGHT / HOUR_HEIGHT) * 60) minutes.
+ */
+export const MIN_BLOCK_HEIGHT = 40; // px
+
 const MONTH_NAMES = [
   "Jan",
   "Feb",
@@ -50,10 +58,11 @@ export function calcDropTimeMin(
   colEl: Element,
   startHour = 0,
   offsetMin = 0,
+  hourHeight = HOUR_HEIGHT,
 ): number {
   const rect = colEl.getBoundingClientRect();
   return snapMin(
-    ((clientY - rect.top) / HOUR_HEIGHT) * 60 + startHour * 60 - offsetMin,
+    ((clientY - rect.top) / hourHeight) * 60 + startHour * 60 - offsetMin,
   );
 }
 
@@ -123,4 +132,51 @@ export function assignColumns<
 
   const totalCols = Math.max(colEnds.length, 1);
   return positioned.map((p) => ({ ...p, totalCols }));
+}
+
+/**
+ * An overlap cluster: one or more instances whose time ranges overlap
+ * transitively. startTimeMin is the earliest start; endTimeMin is the
+ * latest end across all instances in the group.
+ */
+export type OverlapGroup<T> = {
+  instances: T[];
+  startTimeMin: number;
+  endTimeMin: number;
+};
+
+/**
+ * Groups instances into overlap clusters. An instance joins an existing
+ * group if its startTimeMin falls before that group's current endTimeMin.
+ * Crucially, the effective end time is based on the rendered card height
+ * (clamped to MIN_BLOCK_HEIGHT), not the raw durationMin — so a 5-minute
+ * task that renders as a 40px card is treated as ~16 minutes tall for the
+ * purpose of overlap detection.
+ */
+export function groupOverlapping<
+  T extends { startTimeMin: number; task: { durationMin: number } },
+>(items: T[], hourHeight = HOUR_HEIGHT): OverlapGroup<T>[] {
+  const minEffectiveDurationMin = (MIN_BLOCK_HEIGHT / hourHeight) * 60;
+  const sorted = [...items].sort((a, b) => a.startTimeMin - b.startTimeMin);
+  const groups: OverlapGroup<T>[] = [];
+
+  for (const inst of sorted) {
+    // Use the visual (rendered) end time, not the raw duration end
+    const effectiveEndMin =
+      inst.startTimeMin +
+      Math.max(inst.task.durationMin, minEffectiveDurationMin);
+    const group = groups.find((g) => inst.startTimeMin < g.endTimeMin);
+    if (group) {
+      group.instances.push(inst);
+      group.endTimeMin = Math.max(group.endTimeMin, effectiveEndMin);
+    } else {
+      groups.push({
+        instances: [inst],
+        startTimeMin: inst.startTimeMin,
+        endTimeMin: effectiveEndMin,
+      });
+    }
+  }
+
+  return groups;
 }

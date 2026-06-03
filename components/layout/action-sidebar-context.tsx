@@ -26,6 +26,8 @@ import {
   useContext,
   useState,
   useEffect,
+  useRef,
+  useCallback,
   type ReactNode,
 } from "react";
 import { usePathname } from "next/navigation";
@@ -103,11 +105,47 @@ export function ActionSidebarSlot() {
   const sidebarCollapsed = usePageSidebarCollapsed();
   const isMobile = useIsMobile();
 
+  // ── All hooks must be called unconditionally ──────────────────────────────
+  const [mounted, setMounted] = useState(false);
+  const [width, setWidth] = useState(260);
+  const dragging = useRef(false);
+  const startX = useRef(0);
+  const startW = useRef(0);
+
   // Auto-close when the user navigates to a different page.
   useEffect(() => {
     close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault();
+      dragging.current = true;
+      startX.current = e.clientX;
+      startW.current = width;
+      (e.target as Element).setPointerCapture(e.pointerId);
+    },
+    [width],
+  );
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragging.current) return;
+    // Handle is on the LEFT edge — dragging left widens, right narrows
+    const delta = startX.current - e.clientX;
+    setWidth(Math.min(600, Math.max(200, startW.current + delta)));
+  }, []);
+
+  const onPointerUp = useCallback(() => {
+    dragging.current = false;
+  }, []);
+
+  // Don't render anything until after hydration so isMobile is accurate
+  if (!mounted) return null;
 
   // ── Mobile: bottom sheet ──────────────────────────────────────────────────
   if (isMobile) {
@@ -142,12 +180,25 @@ export function ActionSidebarSlot() {
   if (!panel) return null;
 
   return (
-    <div className="hidden md:flex flex-col w-65 shrink-0 border-r border-border bg-sidebar overflow-hidden">
+    <div
+      className="hidden md:flex flex-col shrink-0 border-r border-border bg-sidebar overflow-hidden relative"
+      style={{ width }}
+    >
+      {/* Drag-to-resize handle on the left edge */}
+      <div
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        className="absolute left-0 inset-y-0 w-1 z-20 cursor-col-resize group hover:bg-primary/30 active:bg-primary/50 transition-colors"
+        aria-hidden
+      />
+
       {/* Header */}
       <div
         className={`h-12 flex items-center justify-between border-b border-border shrink-0 ${sidebarCollapsed ? "pl-14" : "pl-4"}`}
       >
-        <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
+        <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider truncate">
           {panel.title}
         </span>
         <button

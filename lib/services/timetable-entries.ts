@@ -428,6 +428,54 @@ export async function updateTimetableEntry(
 }
 
 /**
+ * Moves multiple live timetable entries by the same time delta and/or to a
+ * new date in a single transaction. Designed for group-card drag-and-drop.
+ *
+ * Fetches the org timezone once, verifies all entries belong to `orgId`, then
+ * runs all updates atomically.
+ */
+export async function updateTimetableEntriesBatch(
+  orgId: string,
+  updates: { entryId: string; startTimeMin: number; dateStr: string }[],
+): Promise<ServiceResult<null>> {
+  if (updates.length === 0) return { ok: true, data: null };
+
+  const [entries, org] = await Promise.all([
+    prisma.timetableEntry.findMany({
+      where: { id: { in: updates.map((u) => u.entryId) }, orgId },
+      select: { id: true, durationMin: true },
+    }),
+    prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { timezone: true },
+    }),
+  ]);
+
+  if (entries.length !== updates.length)
+    return { ok: false, error: "One or more entries not found", code: "NOT_FOUND" };
+
+  const tz = org?.timezone ?? "UTC";
+
+  await prisma.$transaction(
+    updates.map((u) => {
+      const entry = entries.find((e) => e.id === u.entryId)!;
+      const { utcDate, utcStartTimeMin } = localToUTC(u.dateStr, u.startTimeMin, tz);
+      return prisma.timetableEntry.update({
+        where: { id: u.entryId },
+        data: {
+          date: utcDate,
+          startTimeMin: utcStartTimeMin,
+          endTimeMin: Math.min(utcStartTimeMin + entry.durationMin, 1440),
+        },
+      });
+    }),
+  );
+
+  log.info("Timetable entries batch updated", { orgId, count: updates.length });
+  return { ok: true, data: null };
+}
+
+/**
  * Permanently deletes a live timetable entry, scoped to `orgId`.
  * @param actorId - Optional caller ID forwarded from the action layer for audit log.
  */
@@ -612,6 +660,45 @@ export async function getRangeTimetableInstances(
       return utcMs >= startUtcMs && utcMs < endUtcMs;
     })
     .map((inst) => mapInstance(inst, orgTz));
+}
+
+/**
+ * Fetches timetable instances by their IDs and maps them to the client week
+ * instance shape. Scoped to `orgId` and uses the org timezone for local
+ * conversions.
+ */
+export async function getTimetableInstancesByIds(
+  orgId: string,
+  ids: string[],
+): Promise<WeekTimetableInstance[]> {
+  if (!ids || ids.length === 0) return [];
+
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { timezone: true },
+  });
+  const orgTz = org?.timezone ?? "UTC";
+
+  const rows = await prisma.timetableEntry.findMany({
+    where: { id: { in: ids }, orgId },
+    include: {
+      task: true,
+      assignees: {
+        include: {
+          membership: {
+            select: {
+              id: true,
+              botName: true,
+              user: { select: { id: true, name: true } },
+            },
+          },
+        },
+      },
+    },
+    orderBy: { startTimeMin: "asc" },
+  });
+
+  return rows.map((r) => mapInstance(r, orgTz));
 }
 
 function mapInstance(
