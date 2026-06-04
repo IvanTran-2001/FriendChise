@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Plus, ChevronRight, GripVertical, Layers } from "lucide-react";
+import { CalendarDays, Plus, ChevronRight, GripVertical, Layers, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -66,6 +66,149 @@ export interface CalendarViewProps {
   onSelectedTaskIdChange?: (id: string | null) => void;
   /** Called when the empty-state "Add task" button is tapped (opens task panel Sheet). */
   onOpenTaskPanel?: () => void;
+}
+
+function GroupSidebarComponent({
+  ids,
+  orgId,
+  memberships,
+  canManage,
+  dragDataRef,
+  getTaskColor,
+  openEditForInst,
+  todayStr,
+}: {
+  ids: string[];
+  orgId: string;
+  memberships?: ClientMembership[] | undefined;
+  canManage: boolean;
+  dragDataRef: React.RefObject<
+    | { type: "task"; taskId: string }
+    | { type: "move"; instanceId: string; offsetMin: number }
+    | {
+        type: "group";
+        instanceIds: string[];
+        instances?: ClientTimetableInstance[];
+        groupStartMin: number;
+        offsetMin: number;
+      }
+    | null
+  >;
+  getTaskColor: (inst: ClientTimetableInstance) => string;
+  openEditForInst: (inst: ClientTimetableInstance) => void;
+  todayStr: string;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [currentGroup, setCurrentGroup] = useState<ClientTimetableInstance[]>([]);
+  const router = useRouter();
+
+  const idsKey = ids.join(",");
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetchTimetableInstancesAction(orgId, ids);
+        if (!mounted) return;
+        if (!res.ok) {
+          toast.error(res.error ?? "Failed to load group");
+          setCurrentGroup([]);
+          return;
+        }
+        const fetched = (res.data ?? []) as unknown as ClientTimetableInstance[];
+        const byId = new Map<string, ClientTimetableInstance>(
+          fetched.map((i) => [i.id, i]),
+        );
+        const ordered = ids.map((id) => byId.get(id)).filter(Boolean) as ClientTimetableInstance[];
+        setCurrentGroup(ordered);
+      } catch (error) {
+        if (!mounted) return;
+        toast.error(error instanceof Error ? error.message : "Failed to load group");
+        setCurrentGroup([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [idsKey, ids, orgId]);
+
+  if (loading)
+    return (
+      <div className="p-3">
+        <div className="flex items-center justify-between mb-3">
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-4 w-16" />
+        </div>
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="rounded-lg border bg-card px-3 py-2.5 shadow-sm">
+              <div className="flex items-center gap-2.5">
+                <Skeleton className="w-3 h-3 rounded-full" />
+                <div className="flex-1">
+                  <Skeleton className="h-4 w-2/3 mb-1" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+
+  return (
+    <div className="flex flex-col gap-2 p-3">
+      {currentGroup.map((inst) => {
+        const assigneeNames = inst.assignees
+          .map((a) => a.membership.user?.name ?? a.membership.botName ?? "Bot")
+          .join(", ");
+        const dotClass = statusDotClass(inst.status === "TODO" && inst.date < todayStr ? "SKIPPED" : inst.status);
+        return (
+          <div
+            key={inst.id}
+            draggable={canManage}
+            onDragStart={(e) => {
+              dragDataRef.current = { type: "move", instanceId: inst.id, offsetMin: 0 };
+              e.dataTransfer.effectAllowed = "move";
+            }}
+            onDragEnd={() => {}}
+            className={`flex items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5 hover:bg-accent/40 transition-colors ${
+              canManage ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
+            }`}
+            onClick={() => openEditForInst(inst)}
+          >
+            {canManage && <GripVertical className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground/40" />}
+            <span className="w-1 self-stretch rounded-full shrink-0 mt-0.5" style={{ backgroundColor: getTaskColor(inst) }} />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold truncate block">{inst.task.title}</div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  {minToHHMM(inst.startTimeMin)}&ndash;{minToHHMM(inst.startTimeMin + inst.task.durationMin)}
+                </span>
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`} />
+                <span className="text-[10px] text-muted-foreground">
+                  {STATUS_LABELS[inst.status === "TODO" && inst.date < todayStr ? "SKIPPED" : inst.status]}
+                </span>
+              </div>
+              {assigneeNames && <div className="text-[10px] text-muted-foreground mt-0.5 truncate">{assigneeNames}</div>}
+            </div>
+            {memberships && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/orgs/${orgId}/tasks/${inst.taskId}?ref=timetable`);
+                }}
+                aria-label="Open task"
+                className="h-6 w-6 flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground/90"
+              >
+                <ExternalLink className="h-4 w-4 hover:cursor-pointer" />
+              </button>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export function CalendarView({
@@ -188,146 +331,6 @@ export function CalendarView({
     );
   }
 
-    function GroupSidebar({ ids }: { ids: string[] }) {
-      const [loading, setLoading] = useState(true);
-      const [currentGroup, setCurrentGroup] = useState<ClientTimetableInstance[]>([]);
-
-      const idsKey = ids.join(",");
-      useEffect(() => {
-        let mounted = true;
-        (async () => {
-          try {
-            const res = await fetchTimetableInstancesAction(orgId, ids);
-            if (!mounted) return;
-            if (!res.ok) {
-              toast.error(res.error ?? "Failed to load group");
-              setCurrentGroup([]);
-              return;
-            }
-            // cast the returned shape to the client instance shape
-            const fetched = (res.data ?? []) as unknown as ClientTimetableInstance[];
-            // Reorder fetched instances to match the requested `ids` order so the
-            // ActionSidebar displays rows in the same order as the calendar's
-            // group block. The server may return instances in arbitrary order,
-            // so map them by id and then rebuild the array using `ids`.
-            const byId = new Map<string, ClientTimetableInstance>(
-              fetched.map((i) => [i.id, i]),
-            );
-            const ordered = ids.map((id) => byId.get(id)).filter(Boolean) as ClientTimetableInstance[];
-            setCurrentGroup(ordered);
-          } catch (error) {
-            if (!mounted) return;
-            toast.error(error instanceof Error ? error.message : "Failed to load group");
-            setCurrentGroup([]);
-          } finally {
-            if (mounted) {
-              setLoading(false);
-            }
-          }
-        })();
-        return () => {
-          mounted = false;
-        };
-      }, [idsKey, ids]);
-
-      if (loading)
-        return (
-          <div className="p-3">
-            <div className="flex items-center justify-between mb-3">
-              <Skeleton className="h-4 w-2/3" />
-              <Skeleton className="h-4 w-16" />
-            </div>
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="rounded-lg border bg-card px-3 py-2.5 shadow-sm">
-                  <div className="flex items-start gap-2.5">
-                    <Skeleton className="w-3 h-3 rounded-full" />
-                    <div className="flex-1">
-                      <Skeleton className="h-4 w-2/3 mb-1" />
-                      <Skeleton className="h-3 w-1/3" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
-      return (
-        <div className="flex flex-col gap-2 p-3">
-            {currentGroup.map((inst) => {
-            const assigneeNames = inst.assignees
-              .map(
-                (a) =>
-                  a.membership.user?.name ??
-                  a.membership.botName ??
-                  "Bot",
-              )
-              .join(", ");
-            const dotClass = statusDotClass(
-              inst.status === "TODO" && inst.date < todayStr
-                ? "SKIPPED"
-                : inst.status,
-            );
-            // Determine a display color for the instance stripe. Prefer the
-            // first assignee's first role color (if available from the
-            // `memberships` prop), otherwise fall back to the instance's
-            // `taskColor` (which may itself be role-derived) and finally
-            // to a sensible default.
-            return (
-              <div
-                key={inst.id}
-                draggable={canManage}
-                onDragStart={(e) => {
-                  dragDataRef.current = {
-                    type: "move",
-                    instanceId: inst.id,
-                    offsetMin: 0,
-                  };
-                  e.dataTransfer.effectAllowed = "move";
-                }}
-                onDragEnd={closeSidebar}
-                className={`flex items-start gap-2.5 rounded-lg border bg-card px-3 py-2.5 hover:bg-accent/40 transition-colors ${canManage ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
-                onClick={() => openEditSidebar(inst, () => openGroupSidebar(ids))}
-              >
-                {canManage && (
-                  <GripVertical className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground/40" />
-                )}
-                <span
-                  className="w-1 self-stretch rounded-full shrink-0 mt-0.5"
-                  style={{ backgroundColor: getTaskColor(inst) }}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold truncate block">
-                    {inst.task.title}
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] font-mono text-muted-foreground">
-                      {minToHHMM(inst.startTimeMin)}&ndash;
-                      {minToHHMM(inst.startTimeMin + inst.task.durationMin)}
-                    </span>
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`} />
-                    <span className="text-[10px] text-muted-foreground">
-                      {STATUS_LABELS[
-                        inst.status === "TODO" && inst.date < todayStr
-                          ? "SKIPPED"
-                          : inst.status
-                      ]}
-                    </span>
-                  </div>
-                  {assigneeNames && (
-                    <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                      {assigneeNames}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      );
-    }
-
   function openGroupSidebar(groupInstancesOrIds: ClientTimetableInstance[] | string[]) {
     const ids =
       typeof groupInstancesOrIds[0] === "string"
@@ -343,7 +346,18 @@ export function CalendarView({
 
     openSidebar(
       `${ids.length} overlapping${currentGroup.length ? ` · ${minToHHMM(groupStart)}–${minToHHMM(groupEnd)}` : ""}`,
-      <GroupSidebar ids={ids} />,
+      <GroupSidebarComponent
+        ids={ids}
+        orgId={orgId}
+        memberships={memberships}
+        canManage={canManage}
+        dragDataRef={dragDataRef}
+        getTaskColor={getTaskColor}
+        openEditForInst={(inst: ClientTimetableInstance) =>
+          openEditSidebar(inst, () => openGroupSidebar(ids))
+        }
+        todayStr={todayStr}
+      />,
     );
   }
 
@@ -395,12 +409,13 @@ export function CalendarView({
       } else if (data.type === "group") {
         let delta = timeMin - data.groupStartMin;
         const insts = data.instances ?? data.instanceIds.map((id) => instances.find((i) => i.id === id)).filter(Boolean) as ClientTimetableInstance[];
-        // Compute the maximum allowed delta to prevent any member from exceeding 1439
+        // Compute allowed delta range to prevent any member from exceeding 1439 or going below 0
         const maxDelta = 1439 - Math.max(...insts.map(i => i.startTimeMin));
+        const minDelta = -Math.min(...insts.map(i => i.startTimeMin));
         const originalDelta = delta;
-        delta = Math.max(0, Math.min(delta, maxDelta));
-        if (originalDelta !== delta && originalDelta > maxDelta) {
-          toast("Drop was adjusted to prevent tasks from moving past midnight", { duration: 3000 });
+        delta = Math.max(minDelta, Math.min(delta, maxDelta));
+        if (originalDelta !== delta) {
+          toast("Drop was adjusted to prevent tasks moving outside allowed day range", { duration: 3000 });
         }
         const updates = insts.map((inst) => ({ entryId: inst.id, startTimeMin: inst.startTimeMin + delta, dateStr: col }));
         const result = await updateTimetableEntriesBatchAction(orgId, updates);
@@ -658,56 +673,53 @@ export function CalendarView({
                     )}
                   </div>
 
-                  {/* Per-task rows */}
+                  {/* Per-task rows (shared rendering, wrapper differs for scrolling) */}
                   {(() => {
                     const MAX_VISIBLE = 5;
                     const ROW_PX = 36; // estimated per-row height
                     const HEADER_PAD = 36; // estimated header + padding
-                    if (instances.length <= MAX_VISIBLE) {
+
+                    const rows = instances.map((inst) => {
+                      const effectiveStatus =
+                        inst.status === "TODO" && inst.date < todayStr
+                          ? "SKIPPED"
+                          : inst.status;
+                      const assigneeNames = inst.assignees
+                        .map((a) =>
+                          (
+                            a.membership.user?.name ??
+                            a.membership.botName ??
+                            "Bot"
+                          ).split(" ")[0],
+                        )
+                        .join(", ");
                       return (
-                        <div className="flex flex-col gap-1 overflow-hidden">
-                          {instances.map((inst) => {
-                            const effectiveStatus =
-                              inst.status === "TODO" && inst.date < todayStr
-                                ? "SKIPPED"
-                                : inst.status;
-                            const assigneeNames = inst.assignees
-                              .map((a) =>
-                                (
-                                  a.membership.user?.name ??
-                                  a.membership.botName ??
-                                  "Bot"
-                                ).split(" ")[0],
-                              )
-                              .join(", ");
-                            return (
-                              <div key={inst.id} className="flex items-start gap-1 min-w-0">
-                                {/* Task color identity stripe */}
-                                <span
-                                  className="w-0.5 self-stretch rounded-full shrink-0 mt-0.5"
-                                  style={{ backgroundColor: getTaskColor(inst) }}
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1 min-w-0">
-                                    {/* Status dot */}
-                                    <span
-                                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDotClass(effectiveStatus)}`}
-                                    />
-                                    <span className="text-[10px] font-semibold truncate leading-tight">
-                                      {inst.task.title}
-                                    </span>
-                                  </div>
-                                  {assigneeNames && (
-                                    <span className="text-[9px] text-muted-foreground/70 truncate leading-tight block pl-2.5">
-                                      {assigneeNames}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
+                        <div key={inst.id} className="flex items-start gap-1 min-w-0">
+                          <span
+                            className="w-0.5 self-stretch rounded-full shrink-0 mt-0.5"
+                            style={{ backgroundColor: getTaskColor(inst) }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1 min-w-0">
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDotClass(effectiveStatus)}`}
+                              />
+                              <span className="text-[10px] font-semibold truncate leading-tight">
+                                {inst.task.title}
+                              </span>
+                            </div>
+                            {assigneeNames && (
+                              <span className="text-[9px] text-muted-foreground/70 truncate leading-tight block pl-2.5">
+                                {assigneeNames}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       );
+                    });
+
+                    if (instances.length <= MAX_VISIBLE) {
+                      return <div className="flex flex-col gap-1 overflow-hidden">{rows}</div>;
                     }
 
                     // instances.length > MAX_VISIBLE -> compute a maxHeight
@@ -719,44 +731,7 @@ export function CalendarView({
 
                     return (
                       <div style={{ maxHeight: `${maxContentHeight}px`, overflowY: "auto" }} className="flex flex-col gap-1">
-                        {instances.map((inst) => {
-                          const effectiveStatus =
-                            inst.status === "TODO" && inst.date < todayStr
-                              ? "SKIPPED"
-                              : inst.status;
-                          const assigneeNames = inst.assignees
-                            .map((a) =>
-                              (
-                                a.membership.user?.name ??
-                                a.membership.botName ??
-                                "Bot"
-                              ).split(" ")[0],
-                            )
-                            .join(", ");
-                          return (
-                            <div key={inst.id} className="flex items-start gap-1 min-w-0">
-                              <span
-                                className="w-0.5 self-stretch rounded-full shrink-0 mt-0.5"
-                                style={{ backgroundColor: getTaskColor(inst) }}
-                              />
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1 min-w-0">
-                                  <span
-                                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDotClass(effectiveStatus)}`}
-                                  />
-                                  <span className="text-[10px] font-semibold truncate leading-tight">
-                                    {inst.task.title}
-                                  </span>
-                                </div>
-                                {assigneeNames && (
-                                  <span className="text-[9px] text-muted-foreground/70 truncate leading-tight block pl-2.5">
-                                    {assigneeNames}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
+                        {rows}
                       </div>
                     );
                   })()}
