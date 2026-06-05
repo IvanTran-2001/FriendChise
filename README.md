@@ -7,6 +7,11 @@
 
 A role-based task and schedule management platform for franchise organizations. Parent orgs can spawn and manage franchisee orgs, each with their own members, roles, tasks, and timetables.
 
+## Timetable Editing
+
+- In timetable and template simple views, dragging an existing task card onto another day opens the action sidebar prefilled for that target day.
+- The move is only committed when the user clicks Save in the sidebar, which keeps drag-and-drop reversible until confirmation.
+
 Production deployment: **[friendchise.app](https://friendchise.app)**
 
 ## Screenshots

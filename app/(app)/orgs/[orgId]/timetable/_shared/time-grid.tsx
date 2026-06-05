@@ -250,6 +250,9 @@ export function TimeGrid<
       calcDropTimeMin(e.clientY, e.currentTarget, 0, offsetMin, hourHeight),
       data,
     );
+    // Clear drag-over highlight after handling the drop so the drop indicator
+    // doesn't persist on screen.
+    onDragLeave();
   }
 
   function handleColumnClick(

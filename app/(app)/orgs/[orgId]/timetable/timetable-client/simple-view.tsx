@@ -1,15 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useCallback } from "react";
 import { useRouter } from "next/navigation";
 // Title no longer links to task detail here; use the icon button instead.
 import { CalendarDays, ExternalLink } from "lucide-react";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { toast } from "sonner";
-import {
-  updateTimetableEntryAction,
-  createTimetableEntryAction,
-} from "@/app/actions/timetable-entries";
+import { createTimetableEntryAction } from "@/app/actions/timetable-entries";
 import { cn } from "@/lib/utils";
 import {
   addDays,
@@ -23,7 +20,8 @@ import {
   getMondayOf,
 } from "./helpers";
 import { CalendarEditSidebarContent } from "./calendar-edit-sidebar-content";
-import type { ClientTimetableInstance, ClientMembership } from "./types";
+import type { ClientTimetableInstance, ClientMembership, ClientTask } from "./types";
+import { AddTaskPanel } from "../_components/add-task-panel";
 
 function formatDuration(min: number): string {
   if (min < 60) return `${min}m`;
@@ -46,6 +44,7 @@ interface SimpleViewProps {
   canManage: boolean;
   memberships?: ClientMembership[];
   orgId: string;
+  tasks?: ClientTask[];
 }
 
 export function SimpleView({
@@ -56,11 +55,17 @@ export function SimpleView({
   canManage,
   memberships,
   orgId,
+  tasks,
 }: SimpleViewProps) {
   const router = useRouter();
   const actionSidebar = useActionSidebar();
-  const [dragOverDay, setDragOverDay] = useState<string | null>(null);
+  const [highlightedDay, setHighlightedDay] = useState<string | null>(null);
+  const clearHighlight = useCallback(() => setHighlightedDay(null), []);
   const [, startTransition] = useTransition();
+
+  // Highlight is driven by `highlightedDay` but only shown while the
+  // ActionSidebar is open. This avoids needing to synchronously clear
+  // local state when the sidebar is dismissed.
 
   function effStatus(inst: ClientTimetableInstance) {
     return inst.status === "TODO" && inst.date < todayStr
@@ -109,32 +114,60 @@ export function SimpleView({
           return (
             <div
               key={dayStr}
-              className={`rounded-xl border shadow-sm overflow-hidden ${today ? "border-primary/40 bg-card ring-1 ring-primary/20" : "bg-card"}`}
+              className={`rounded-xl border shadow-sm overflow-hidden ${
+                highlightedDay === dayStr && actionSidebar.activeTitle != null
+                  ? "border-primary/40 bg-primary/8 ring-2 ring-primary/40"
+                  : today
+                  ? "border-primary/40 bg-card ring-1 ring-primary/20"
+                  : "bg-card"
+              }`}
               onDragOver={(e) => {
                 if (!canManage) return;
                 e.preventDefault();
-                setDragOverDay(dayStr);
+                setHighlightedDay(dayStr);
               }}
-              onDragLeave={() => setDragOverDay((d) => (d === dayStr ? null : d))}
+              onDragLeave={() => setHighlightedDay((d) => (d === dayStr ? null : d))}
               onDrop={(e) => {
                 if (!canManage) return;
                 e.preventDefault();
-                setDragOverDay(null);
 
                 // Priority: task drags use a dedicated key so TimeGrid/AddTaskPanel can
                 // drop tasks into this list. Fallback to JSON payloads for instance moves.
                 const taskId = e.dataTransfer.getData("timetable/taskId");
                 if (taskId) {
-                  // Simple view has no precise time Y coordinate — use 09:00 as a sensible default.
-                  const defaultStartMin = 9 * 60;
-                  startTransition(async () => {
-                    const res = await createTimetableEntryAction(orgId, taskId, dayStr, defaultStartMin);
-                    if (!res.ok) {
-                      toast.error(res.error ?? "Failed to add task to timetable");
-                      return;
+                    // Persist highlight for the chosen day while the Add panel is open.
+                    setHighlightedDay(dayStr);
+                    if (tasks && tasks.length) {
+                      const key = Date.now();
+                      actionSidebar.open(
+                        "Add Task",
+                        <AddTaskPanel
+                          key={key}
+                          tasks={tasks}
+                          orgId={orgId}
+                          anchor={dayStr}
+                          todayStr={todayStr}
+                          initialMode="schedule"
+                          initialTaskId={taskId}
+                          initialDate={dayStr}
+                          initialTimeStr={"09:00"}
+                          onClose={clearHighlight}
+                        />,
+                      );
+                    } else {
+                      // Fallback: create directly when we don't have tasks.
+                      const defaultStartMin = 9 * 60;
+                      // clear highlight immediately for direct create
+                      setHighlightedDay(null);
+                      startTransition(async () => {
+                        const res = await createTimetableEntryAction(orgId, taskId, dayStr, defaultStartMin);
+                        if (!res.ok) {
+                          toast.error(res.error ?? "Failed to add task to timetable");
+                          return;
+                        }
+                        router.refresh();
+                      });
                     }
-                    router.refresh();
-                  });
                   return;
                 }
 
@@ -144,15 +177,27 @@ export function SimpleView({
                 try {
                   const parsed = JSON.parse(raw);
                   if (parsed?.type === "move" && parsed?.instanceId) {
-                    const instanceId = parsed.instanceId as string;
-                    startTransition(async () => {
-                      const res = await updateTimetableEntryAction(orgId, instanceId, { dateStr: dayStr });
-                      if (!res.ok) {
-                        toast.error(res.error ?? "Failed to move entry");
-                        return;
-                      }
-                      router.refresh();
-                    });
+                    const inst = instances.find((i) => i.id === parsed.instanceId);
+                    if (!inst || !memberships) return;
+                    setHighlightedDay(dayStr);
+                    actionSidebar.open(
+                      inst.task.title,
+                      <CalendarEditSidebarContent
+                        key={`${inst.id}:${dayStr}`}
+                        instance={inst}
+                        initialDate={dayStr}
+                        memberships={memberships}
+                        orgId={orgId}
+                        canManage={canManage}
+                        onClose={() => {
+                          actionSidebar.close();
+                          clearHighlight();
+                        }}
+                        onRefresh={() => router.refresh()}
+                        router={router}
+                        todayStr={todayStr}
+                      />,
+                    );
                   }
                   // Note: group drag support (parsed.type === 'group') can be added later.
                 } catch {
@@ -160,14 +205,7 @@ export function SimpleView({
                 }
               }}
             >
-              <div
-                className={cn(
-                          // Note: group drag support (parsed.type === 'group') can be added later.
-                today
-                  ? "bg-primary/10 text-primary border-primary/20"
-                  : "bg-muted/20",
-              )}
-              >
+              <div className={`px-4 py-2.5 flex items-center gap-2 font-semibold text-sm border-b ${today ? "bg-primary/4 text-foreground" : "bg-muted/20"}`}>
                 {dayLabel}
                 {today && (
                   <span className="text-xs font-normal text-primary/70 ml-1">
@@ -177,11 +215,11 @@ export function SimpleView({
               </div>
 
               {sortedDayInstances.length === 0 ? (
-                <div className="px-4 py-3 text-sm text-muted-foreground">
+                <div className={`px-4 py-3 text-sm ${highlightedDay === dayStr ? "text-foreground" : "text-muted-foreground"}`}>
                   No tasks scheduled
                 </div>
               ) : (
-                <div className="divide-y">
+                <div className={`divide-y`}>
                   {sortedDayInstances.map((inst) => {
                     const effectiveStatus = effStatus(inst);
                     const isSkipped = effectiveStatus === "SKIPPED";
@@ -196,6 +234,8 @@ export function SimpleView({
                         onDragStart={(e) => {
                           if (!canManage) return;
                           e.stopPropagation();
+                          // Encode a lightweight move payload so dropping the card
+                          // elsewhere can open the edit sidebar instead of saving immediately.
                           e.dataTransfer.setData("application/json", JSON.stringify({ type: "move", instanceId: inst.id }));
                           e.dataTransfer.effectAllowed = "move";
                         }}
@@ -204,7 +244,7 @@ export function SimpleView({
                           memberships
                             ? "cursor-pointer hover:bg-primary/5 active:bg-primary/10"
                             : "",
-                          dragOverDay === dayStr ? "ring-2 ring-primary/20" : ""
+                          ""
                         )}
                         // Single-click opens the edit UI in the ActionSidebar (not
                         // a full page). The little icon button is used to open the

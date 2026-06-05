@@ -18,6 +18,7 @@ import {
   addTemplateInstance,
   removeTemplateInstance,
   updateTemplateInstance,
+  updateTemplateInstancesBatch,
   updateTemplateDays,
   addTemplateInstanceAssignee,
   removeTemplateInstanceAssignee,
@@ -144,6 +145,33 @@ export async function updateTemplateInstanceAction(
   if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/orgs/${orgId}/timetable/templates`);
+  return { ok: true };
+}
+
+/**
+ * Updates multiple template entries in a single server action.
+ * Requires MANAGE_TASKS permission.
+ */
+export async function updateTemplateInstancesBatchAction(
+  orgId: string,
+  updates: Array<{ id: string; dayIndex?: number; startTimeMin?: number }>,
+): Promise<{ ok: boolean; error?: string }> {
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+
+  const result = await updateTemplateInstancesBatch(orgId, updates);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  const templateIds = result.data?.templateIds ?? [];
+  // Revalidate affected template pages
+  for (const tId of templateIds) {
+    revalidatePath(`/orgs/${orgId}/timetable/templates/${tId}`);
+  }
+  revalidatePath(`/orgs/${orgId}/timetable/templates`);
+
   return { ok: true };
 }
 

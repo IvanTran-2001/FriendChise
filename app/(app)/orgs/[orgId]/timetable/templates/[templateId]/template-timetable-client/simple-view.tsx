@@ -1,0 +1,192 @@
+"use client";
+
+import React, { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { CalendarDays, ExternalLink } from "lucide-react";
+import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { cn } from "@/lib/utils";
+import { groupBy, minTo12h } from "../../../_shared/grid-utils";
+import { AddTemplateTaskPanel } from "../_components/add-template-task-panel";
+import { CalendarEditSidebarContent } from "./calendar-edit-sidebar-content";
+import type { ClientTemplateInstance, ClientMembership, ClientTask } from "../template-editor-client";
+
+interface SimpleViewProps {
+  instances: ClientTemplateInstance[];
+  visibleDays: number[];
+  templateDays: number;
+  memberships?: ClientMembership[];
+  orgId: string;
+  templateId: string;
+  availableTasks?: ClientTask[];
+}
+
+export function TemplateSimpleView({
+  instances,
+  visibleDays,
+  templateDays,
+  memberships,
+  orgId,
+  templateId,
+  availableTasks,
+}: SimpleViewProps) {
+  const router = useRouter();
+  const actionSidebar = useActionSidebar();
+  const [highlightedDay, setHighlightedDay] = useState<string | null>(null);
+  const clearHighlight = useCallback(() => setHighlightedDay(null), []);
+
+  const byDate = groupBy(instances, (inst) => String(inst.dayIndex));
+
+  if (instances.length === 0) {
+    return (
+      <div className="flex items-center justify-center rounded-xl border border-dashed bg-muted/20 py-16">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <CalendarDays className="h-10 w-10 text-muted-foreground/40" />
+          <p className="text-xl font-semibold text-foreground">No tasks</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {visibleDays.map((dayIdx) => {
+        const dayStr = String(dayIdx);
+        const focalDay = visibleDays[Math.floor(visibleDays.length / 2)];
+        const isFocal = dayIdx === focalDay;
+        const dayInstances = byDate.get(dayStr) ?? [];
+        const sortedDayInstances = [...dayInstances].sort((a, b) => {
+          if (a.startTimeMin !== b.startTimeMin) return a.startTimeMin - b.startTimeMin;
+          return (a.task?.durationMin ?? 0) - (b.task?.durationMin ?? 0);
+        });
+        const dayLabel = `Day ${dayIdx + 1}`;
+
+        return (
+          <div
+            key={dayStr}
+            className={`rounded-xl border shadow-sm overflow-hidden ${
+              highlightedDay === dayStr
+                ? "border-primary/40 bg-primary/8 ring-2 ring-primary/40"
+                : isFocal
+                ? "border-primary/40 bg-card ring-1 ring-primary/20"
+                : "bg-card"
+            }`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setHighlightedDay(dayStr);
+            }}
+            onDragLeave={() => setHighlightedDay((d) => (d === dayStr ? null : d))}
+            onDrop={(e) => {
+              e.preventDefault();
+              const taskId = e.dataTransfer.getData("timetable/taskId");
+              if (taskId) {
+                const key = Date.now();
+                const title = "Add Task";
+                setHighlightedDay(String(dayIdx));
+                actionSidebar.open(
+                  title,
+                  <AddTemplateTaskPanel
+                    key={key}
+                    tasks={availableTasks ?? []}
+                    orgId={orgId}
+                    templateId={templateId}
+                    templateDays={templateDays}
+                    initialMode="schedule"
+                    initialTaskId={taskId}
+                    initialDayIndex={Number(dayIdx)}
+                    initialTimeStr={"09:00"}
+                    onClose={clearHighlight}
+                  />,
+                );
+                return;
+              }
+
+              const raw = e.dataTransfer.getData("application/json") || e.dataTransfer.getData("text/plain");
+              if (!raw) return;
+              try {
+                const parsed = JSON.parse(raw);
+                if (parsed?.type === "move" && parsed?.instanceId) {
+                  const instance = instances.find((i) => i.id === parsed.instanceId);
+                  if (!instance || !memberships) return;
+                  setHighlightedDay(String(dayIdx));
+                  actionSidebar.open(
+                    instance.task.name,
+                    <CalendarEditSidebarContent
+                      key={`${instance.id}:${dayIdx}`}
+                      instance={instance}
+                      initialDayIndex={Number(dayIdx)}
+                      memberships={memberships}
+                      orgId={orgId}
+                      onClose={() => { actionSidebar.close(); clearHighlight(); }}
+                    />,
+                  );
+                }
+              } catch {
+                // ignore
+              }
+            }}
+          >
+            <div className={`px-4 py-2.5 flex items-center gap-2 font-semibold text-sm border-b ${isFocal ? "bg-primary/4 text-foreground" : "bg-muted/20"}`}>
+              {dayLabel}
+              {isFocal && <span className="text-xs font-normal text-primary/70 ml-1">Current</span>}
+            </div>
+
+            {sortedDayInstances.length === 0 ? (
+              <div className={`px-4 py-3 text-sm ${highlightedDay === dayStr ? "text-foreground bg-primary/4" : "text-muted-foreground"}`}>No tasks scheduled</div>
+            ) : (
+              <div className={`divide-y ${highlightedDay === dayStr ? "bg-primary/4" : ""}`}>
+                {sortedDayInstances.map((inst) => (
+                  <div
+                    key={inst.id}
+                    draggable={!!memberships}
+                    onDragStart={(e) => {
+                      if (!memberships) return;
+                      e.stopPropagation();
+                      // Template simple view uses the same move payload so day-to-day
+                      // drags open the edit sidebar and wait for explicit Save.
+                      e.dataTransfer.setData(
+                        "application/json",
+                        JSON.stringify({ type: "move", instanceId: inst.id }),
+                      );
+                      e.dataTransfer.effectAllowed = "move";
+                    }}
+                    className={cn(
+                      "group flex items-center gap-3 px-4 py-3 transition-colors",
+                      memberships ? "cursor-pointer hover:bg-primary/5 active:bg-primary/10" : "",
+                    )}
+                    onClick={() => {
+                      if (!memberships) return;
+                      actionSidebar.open(
+                        inst.task.name,
+                        <CalendarEditSidebarContent
+                          key={inst.id}
+                          instance={inst}
+                          memberships={memberships}
+                          orgId={orgId}
+                          onClose={() => actionSidebar.close()}
+                        />,
+                      );
+                    }}
+                  >
+                    <div className="w-1 self-stretch rounded-full shrink-0" style={{ backgroundColor: inst.taskColor ?? "#94a3b8" }} />
+                    <span className="text-xs text-muted-foreground font-mono w-14 shrink-0 tabular-nums">{minTo12h(inst.startTimeMin)}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium block truncate">{inst.task.name}</div>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-0.5 shrink-0">
+                      {inst.assignees.slice(0, 3).map((a) => (
+                        <span key={a.id} title={a.membership.user?.name ?? a.membership.botName ?? "?"} className="w-6 h-6 rounded-full bg-muted text-muted-foreground text-[10px] font-semibold flex items-center justify-center">{(a.membership.user?.name ?? a.membership.botName ?? "?").split(" ").map((w) => w[0]).slice(0,2).join("")}</span>
+                      ))}
+                      {inst.assignees.length > 3 && <span className="w-6 h-6 rounded-full bg-muted text-muted-foreground text-[10px] font-semibold flex items-center justify-center">+{inst.assignees.length - 3}</span>}
+                    </div>
+                    <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">{inst.task.durationMin}m</span>
+                    <button onClick={(e) => { e.stopPropagation(); router.push(`/orgs/${orgId}/tasks/${inst.task.id}?ref=timetable`); }} className="flex items-center justify-center w-6 h-6 rounded hover:bg-muted transition-colors shrink-0 text-muted-foreground sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100" aria-label="Open task"><ExternalLink className="h-3.5 w-3.5" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}

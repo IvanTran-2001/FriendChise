@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { TaskPanel } from "../../../_shared/task-panel";
+import { getDragHandlers } from "../../../_shared/drag-registry";
 import { addTemplateInstanceAction } from "@/app/actions/templates";
 import type { SharedTask } from "../../../_shared/types";
 
@@ -15,33 +16,34 @@ interface AddTemplateTaskPanelProps {
   orgId: string;
   templateId: string;
   templateDays: number;
+  /** Optional initial state when opened from a drop */
+  initialMode?: "list" | "schedule";
+  initialTaskId?: string;
+  initialDayIndex?: number;
+  initialTimeStr?: string;
+  onClose?: () => void;
 }
 
-/**
- * Two-mode panel for adding tasks to a template.
- *
- * - "list" mode  — searchable task list; clicking a task opens the form;
- *                  dragging still works for drag-to-grid.
- * - "schedule" mode — day index + time pickers; submits via addTemplateInstanceAction.
- *
- * Dispatches custom window events so TemplateEditorClient can suppress the
- * empty-state overlay while the schedule form is active.
- */
 export function AddTemplateTaskPanel({
   tasks,
   orgId,
   templateId,
   templateDays,
+  initialMode,
+  initialTaskId,
+  initialDayIndex,
+  initialTimeStr,
+  onClose,
 }: AddTemplateTaskPanelProps) {
   const router = useRouter();
-  const [mode, setMode] = useState<"list" | "schedule">("list");
-  const [selectedTask, setSelectedTask] = useState<SharedTask | null>(null);
-  const [dayIndex, setDayIndex] = useState(0); // 0-based
-  const [timeStr, setTimeStr] = useState("09:00");
+  const [mode, setMode] = useState<"list" | "schedule">(initialMode ?? "list");
+  const [selectedTask, setSelectedTask] = useState<SharedTask | null>(
+    initialTaskId ? tasks.find((t) => t.id === initialTaskId) ?? null : null,
+  );
+  const [dayIndex, setDayIndex] = useState(initialDayIndex ?? 0); // 0-based
+  const [timeStr, setTimeStr] = useState(initialTimeStr ?? "09:00");
   const [isPending, startTransition] = useTransition();
 
-  // Notify TemplateEditorClient when entering/leaving schedule mode so it can
-  // suppress the empty-state overlay.
   useEffect(() => {
     const evt =
       mode === "schedule"
@@ -50,12 +52,12 @@ export function AddTemplateTaskPanel({
     window.dispatchEvent(new CustomEvent(evt));
   }, [mode]);
 
-  // Always fire exit when the panel is removed from the DOM (sidebar closed / key change).
   useEffect(() => {
     return () => {
       window.dispatchEvent(new CustomEvent("template:schedule-mode-exit"));
+      onClose?.();
     };
-  }, []);
+  }, [onClose]);
 
   function handleTaskClick(task: SharedTask) {
     setSelectedTask(task);
@@ -105,7 +107,6 @@ export function AddTemplateTaskPanel({
     });
   }
 
-  // ── Schedule form ────────────────────────────────────────────────────────
   if (mode === "schedule" && selectedTask) {
     return (
       <div className="flex flex-col gap-4 p-4">
@@ -113,11 +114,10 @@ export function AddTemplateTaskPanel({
           onClick={handleBack}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors -mx-1 px-1 py-0.5 rounded w-fit"
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
+          <ArrowLeft className="h-3.5 w-3.5 cursor-pointer" />
           Back to tasks
         </button>
 
-        {/* Selected task card */}
         <div className="rounded-lg border bg-card px-3 py-2.5">
           <div className="flex items-start gap-2.5">
             <span
@@ -139,7 +139,6 @@ export function AddTemplateTaskPanel({
           </div>
         </div>
 
-        {/* Day + time inputs */}
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
             <label
@@ -186,15 +185,19 @@ export function AddTemplateTaskPanel({
     );
   }
 
-  // ── Task list ────────────────────────────────────────────────────────────
   return (
     <TaskPanel
       tasks={tasks}
       onDragStart={(taskId, e) => {
+        const h = getDragHandlers();
+        h.setIsDragging?.(true);
         e.dataTransfer.setData("timetable/taskId", taskId);
         e.dataTransfer.effectAllowed = "copy";
       }}
-      onDragEnd={() => {}}
+      onDragEnd={() => {
+        const h = getDragHandlers();
+        h.setIsDragging?.(false);
+      }}
       onTaskClick={handleTaskClick}
     />
   );

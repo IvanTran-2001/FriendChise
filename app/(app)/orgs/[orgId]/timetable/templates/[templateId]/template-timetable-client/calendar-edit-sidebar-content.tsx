@@ -1,0 +1,183 @@
+"use client";
+
+import { useTransition, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ChevronLeft, Plus, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { addInstanceAssigneeAction, removeInstanceAssigneeAction, updateTemplateInstanceAction, removeTemplateInstanceAction } from "@/app/actions/templates";
+import { minToHHMM, hhmmToMin } from "../../../_shared/grid-utils";
+import type { ClientTemplateInstance, ClientMembership } from "../template-editor-client";
+
+interface CalendarEditSidebarContentProps {
+  instance: ClientTemplateInstance;
+  memberships: ClientMembership[];
+  orgId: string;
+  onClose: () => void;
+  onBack?: () => void;
+  /** Optional initial values when opening the editor for a proposed move. */
+  initialDayIndex?: number;
+  initialStartTimeMin?: number;
+}
+
+export function CalendarEditSidebarContent({
+  instance,
+  memberships,
+  orgId,
+  onClose,
+  onBack,
+  initialDayIndex,
+  initialStartTimeMin,
+}: CalendarEditSidebarContentProps) {
+  const router = useRouter();
+  // Prefill from the proposed target day/time so the user sees the drag result
+  // before saving, while `instance` remains the source of truth for diffs.
+  const [startTime, setStartTime] = useState(minToHHMM(initialStartTimeMin ?? instance.startTimeMin));
+  const [dayIndex] = useState<number | null>(initialDayIndex ?? instance.dayIndex);
+  const [localAssignees, setLocalAssignees] = useState(instance.assignees);
+  const [addMembershipId, setAddMembershipId] = useState("");
+  const [, startT] = useTransition();
+
+  const assignedIds = new Set(localAssignees.map((a) => a.membership.id));
+  const available = memberships.filter((m) => !assignedIds.has(m.id));
+  const effectiveAddId = available.find((m) => m.id === addMembershipId)
+    ? addMembershipId
+    : (available[0]?.id ?? "");
+
+  const parsedStartTime = hhmmToMin(startTime);
+  const endMin = parsedStartTime == null ? null : parsedStartTime + instance.task.durationMin;
+
+  function handleAddAssignee() {
+    const membership = memberships.find((m) => m.id === effectiveAddId);
+    if (!membership) return;
+    startT(async () => {
+      const r = await addInstanceAssigneeAction(orgId, instance.id, effectiveAddId);
+      if (r.ok) {
+        setLocalAssignees((p) => [
+          ...p,
+          { id: `opt-${effectiveAddId}`, membership: { ...membership, botName: membership.botName ?? null } },
+        ]);
+        router.refresh();
+      }
+    });
+  }
+
+  function handleRemoveAssignee(membershipId: string) {
+    startT(async () => {
+      const r = await removeInstanceAssigneeAction(orgId, instance.id, membershipId);
+      if (r.ok) {
+        setLocalAssignees((p) => p.filter((a) => a.membership.id !== membershipId));
+        router.refresh();
+      }
+    });
+  }
+
+  function handleSave() {
+    if (parsedStartTime == null) return;
+    startT(async () => {
+      const update: { startTimeMin?: number; dayIndex?: number } = { startTimeMin: parsedStartTime };
+      if (dayIndex != null && dayIndex !== instance.dayIndex) update.dayIndex = dayIndex;
+      const result = await updateTemplateInstanceAction(orgId, instance.id, update);
+      if (!result.ok) return;
+      router.refresh();
+      (onBack ?? onClose)();
+    });
+  }
+
+  function handleRemove() {
+    startT(async () => {
+      const result = await removeTemplateInstanceAction(orgId, instance.id);
+      if (!result.ok) return;
+      router.refresh();
+      onClose();
+    });
+  }
+
+  return (
+    <div className="flex flex-col h-full overflow-y-auto">
+      <div className="flex flex-col gap-5 p-4">
+
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors -mb-2 self-start"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+            Back
+          </button>
+        )}
+
+        {/* Task meta */}
+        <div
+          className="rounded-lg border bg-card px-3 py-2.5 flex items-center gap-2.5"
+          style={{ borderLeftWidth: 3, borderLeftColor: instance.taskColor ?? "#9ca3af" }}
+        >
+          <span className="font-semibold text-sm truncate">{instance.task.name}</span>
+        </div>
+
+        {/* Start time */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Start time</label>
+          <input
+            type="time"
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
+            className="h-8 w-32 rounded border border-input bg-background px-2 text-sm"
+          />
+          <p className="text-xs text-muted-foreground">
+            {startTime} → {endMin == null ? "--:--" : minToHHMM(endMin)} · {instance.task.durationMin} min
+          </p>
+        </div>
+
+        {/* Assignees */}
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Assignees</label>
+          {localAssignees.length === 0 && (
+            <span className="text-xs text-muted-foreground italic">No one assigned</span>
+          )}
+          <div className="flex flex-col gap-1">
+            {localAssignees.map((a) => (
+              <div key={a.membership.id} className="flex items-center justify-between bg-muted/40 rounded px-2.5 py-1.5 text-sm">
+                <span>{a.membership.user?.name ?? a.membership.botName ?? "Unknown"}</span>
+                <button
+                  onClick={() => handleRemoveAssignee(a.membership.id)}
+                  className="text-muted-foreground hover:text-destructive transition-colors ml-2"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+          {available.length > 0 && (
+            <div className="flex gap-1.5 items-center">
+              <select
+                value={effectiveAddId}
+                onChange={(e) => setAddMembershipId(e.target.value)}
+                className="flex-1 rounded border border-input bg-background px-2 py-1 text-sm"
+              >
+                {available.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.user?.name ?? m.botName ?? "Unknown"}
+                  </option>
+                ))}
+              </select>
+              <Button size="sm" variant="outline" onClick={handleAddAssignee} className="h-8 w-8 p-0 shrink-0">
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 pt-1 border-t">
+          <Button size="sm" onClick={handleSave} disabled={parsedStartTime == null} className="flex-1 h-8">
+            Save
+          </Button>
+          <Button size="sm" variant="destructive" onClick={handleRemove} className="h-8">
+            Remove
+          </Button>
+        </div>
+
+      </div>
+    </div>
+  );
+}

@@ -56,6 +56,9 @@ type Props = {
   router: ReturnType<typeof import("next/navigation").useRouter>;
   todayStr: string;
   onBack?: () => void;
+  /** Optional initial values when opening the editor for a proposed move. */
+  initialDate?: string;
+  initialStartTimeMin?: number;
 };
 
 const STATUS_CONFIG: Record<
@@ -78,9 +81,13 @@ export function CalendarEditSidebarContent({
   router,
   todayStr,
   onBack,
+  initialDate,
+  initialStartTimeMin,
 }: Props) {
-  const [startTime, setStartTime] = useState(minToHHMM(instance.startTimeMin));
-  const [date, setDate] = useState(instance.date);
+  // Use the proposed move target as the initial form state, but keep the
+  // original instance for change detection inside `doSave()`.
+  const [startTime, setStartTime] = useState(minToHHMM(initialStartTimeMin ?? instance.startTimeMin));
+  const [date, setDate] = useState(initialDate ?? instance.date);
   const [status, setStatus] = useState<ClientTimetableInstance["status"]>(
     instance.status,
   );

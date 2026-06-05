@@ -92,7 +92,6 @@ export function TemplateEditorSidebarContent({
 
   return (
     <div className="flex flex-col flex-1 overflow-y-auto">
-      {/* View section */}
       <div className="px-3 pt-3 pb-3">
         <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
           View
@@ -106,10 +105,9 @@ export function TemplateEditorSidebarContent({
           weekHref={weekHref}
           className="flex-col items-start"
         />
-        <ZoomSlider />
+        {mode === "calendar" && <ZoomSlider />}
       </div>
 
-      {/* Actions section */}
       <div className="px-3 pt-2 pb-3 border-t border-border">
         <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
           Actions
@@ -125,7 +123,6 @@ export function TemplateEditorSidebarContent({
           Add Task
         </Button>
 
-        {/* Cycle length stepper */}
         <div className="flex items-center gap-2 mt-2 px-1">
           <span className="text-sm text-muted-foreground flex-1">
             Cycle length

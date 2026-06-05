@@ -3,6 +3,7 @@ import { requireOrgPermissionPage } from "@/lib/authz";
 import { getTimetableTemplate } from "@/lib/services/templates";
 import { getTasks } from "@/lib/services/tasks";
 import { prisma } from "@/lib/prisma";
+import { toLocalDateStr } from "@/lib/date-utils";
 import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
 import { TemplateEditorSidebarContent } from "./_components/template-editor-sidebar-content";
 import {
@@ -10,7 +11,7 @@ import {
   type ClientTemplateInstance,
   type ClientTask,
   type ClientMembership,
-} from "./template-editor-client";
+} from "./index";
 import { PermissionAction } from "@prisma/client";
 
 export default async function TemplateEditorPage({
@@ -43,7 +44,7 @@ export default async function TemplateEditorPage({
     getTimetableTemplate(orgId, templateId),
     prisma.organization.findUnique({
       where: { id: orgId },
-      select: { openTimeMin: true, closeTimeMin: true },
+      select: { openTimeMin: true, closeTimeMin: true, timezone: true },
     }),
     getTasks(orgId),
     prisma.membership.findMany({
@@ -95,6 +96,7 @@ export default async function TemplateEditorPage({
     roleName: t.eligibility[0]?.role?.name ?? null,
   }));
   const memberships: ClientMembership[] = rawMemberships;
+  const todayStr = toLocalDateStr(new Date(), org?.timezone ?? "UTC");
 
   return (
     <div
@@ -119,23 +121,14 @@ export default async function TemplateEditorPage({
       />
 
       <TemplateEditorClient
-        title={
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-sm">{template.name}</span>
-            <span className="text-xs text-muted-foreground">
-              · {template.cycleLengthDays} day cycle
-            </span>
-            <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-slate-100 text-slate-500">
-              Draft
-            </span>
-          </div>
-        }
+        title={<></>}
         orgId={orgId}
         templateId={templateId}
         templateDays={template.cycleLengthDays}
         instances={instances}
         availableTasks={availableTasks}
         memberships={memberships}
+        todayStr={todayStr}
         openTimeMin={org?.openTimeMin ?? 360}
         closeTimeMin={org?.closeTimeMin ?? 1320}
         mode={mode}

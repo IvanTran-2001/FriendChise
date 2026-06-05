@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { TaskPanel } from "../_shared/task-panel";
+import { getDragHandlers } from "../_shared/drag-registry";
 import { createTimetableEntryAction } from "@/app/actions/timetable-entries";
 import type { SharedTask } from "../_shared/types";
 
@@ -16,6 +17,12 @@ interface AddTaskPanelProps {
   /** Default date shown in the schedule form (current view anchor). */
   anchor: string;
   todayStr: string;
+  /** Optional initial state when opened from a drop */
+  initialMode?: "list" | "schedule";
+  initialTaskId?: string;
+  initialDate?: string;
+  initialTimeStr?: string;
+  onClose?: () => void;
 }
 
 /**
@@ -32,13 +39,26 @@ export function AddTaskPanel({
   orgId,
   anchor,
   todayStr,
+  initialMode,
+  initialTaskId,
+  initialDate,
+  initialTimeStr,
+  onClose,
 }: AddTaskPanelProps) {
   const router = useRouter();
-  const [mode, setMode] = useState<"list" | "schedule">("list");
-  const [selectedTask, setSelectedTask] = useState<SharedTask | null>(null);
-  const [date, setDate] = useState(anchor >= todayStr ? anchor : todayStr);
-  const [timeStr, setTimeStr] = useState("09:00");
+  const [mode, setMode] = useState<"list" | "schedule">(initialMode ?? "list");
+  const [selectedTask, setSelectedTask] = useState<SharedTask | null>(
+    initialTaskId ? tasks.find((t) => t.id === initialTaskId) ?? null : null,
+  );
+  const [date, setDate] = useState(initialDate ?? (anchor >= todayStr ? anchor : todayStr));
+  const [timeStr, setTimeStr] = useState(initialTimeStr ?? "09:00");
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    return () => {
+      onClose?.();
+    };
+  }, [onClose]);
 
   function handleTaskClick(task: SharedTask) {
     setSelectedTask(task);
@@ -175,10 +195,15 @@ export function AddTaskPanel({
     <TaskPanel
       tasks={tasks}
       onDragStart={(taskId, e) => {
+        const h = getDragHandlers();
+        h.setIsDragging?.(true);
         e.dataTransfer.setData("timetable/taskId", taskId);
         e.dataTransfer.effectAllowed = "copy";
       }}
-      onDragEnd={() => {}}
+      onDragEnd={() => {
+        const h = getDragHandlers();
+        h.setIsDragging?.(false);
+      }}
       onTaskClick={handleTaskClick}
     />
   );

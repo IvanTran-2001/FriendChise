@@ -9,7 +9,7 @@
  *   the `TaskPanel` sidebar (desktop) or a bottom Sheet (mobile). Entries can be
  *   repositioned by dragging. Column count adapts to container width via ResizeObserver.
  * - **Simple** — day-by-day table sorted by start time. Clicking a row opens
- *   the `EditPopup` to adjust start time and assignees.
+ *   the ActionSidebar to adjust start time and assignees.
  *
  * Navigation controls:
  * - Day / Week span selector — switches between viewing one day or multiple days at once.
@@ -27,6 +27,8 @@ import {
   useRef,
   useState,
   useTransition,
+  useCallback,
+  useMemo,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
@@ -37,12 +39,12 @@ import {
   GripVertical,
   LayersIcon,
   LayoutList,
-  MoreHorizontal,
   Plus,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+
 import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -51,21 +53,18 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  addTemplateInstanceAction,
-  removeTemplateInstanceAction,
-  updateTemplateInstanceAction,
-  addInstanceAssigneeAction,
-  removeInstanceAssigneeAction,
-} from "@/app/actions/templates";
+import { addTemplateInstanceAction, updateTemplateInstanceAction, updateTemplateInstancesBatchAction } from "@/app/actions/templates";
 import { TimeGrid } from "../../_shared/time-grid";
 import type { DragDataRef } from "../../_shared/time-grid";
 import { TaskPanel } from "../../_shared/task-panel";
-import { minToHHMM, hhmmToMin, minTo12h } from "../../_shared/grid-utils";
+import { minToHHMM } from "../../_shared/grid-utils";
 import { useTimetableZoom } from "../../_shared/timetable-zoom-context";
 import type { SharedTask, SharedMembership } from "../../_shared/types";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { registerDragHandlers, unregisterDragHandlers } from "../../_shared/drag-registry";
 import Link from "next/link";
+import { CalendarEditSidebarContent } from "./template-timetable-client/calendar-edit-sidebar-content";
+import { TemplateSimpleView } from "./template-timetable-client/simple-view";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -94,360 +93,13 @@ export type ClientMembership = SharedMembership;
 // EditPopup (template-specific: no status field)
 // ---------------------------------------------------------------------------
 
-interface EditPopupProps {
-  instance: ClientTemplateInstance;
-  memberships: ClientMembership[];
-  orgId: string;
-  onSave: (startTimeMin: number) => void;
-  onRemove: () => void;
-  onClose: () => void;
-}
-
-function EditPopup({
-  instance,
-  memberships,
-  orgId,
-  onSave,
-  onRemove,
-  onClose,
-}: EditPopupProps) {
-  const router = useRouter();
-  const [startTime, setStartTime] = useState(minToHHMM(instance.startTimeMin));
-  const [localAssignees, setLocalAssignees] = useState(instance.assignees);
-  const [addMembershipId, setAddMembershipId] = useState("");
-  const [, startT] = useTransition();
-
-  const assignedIds = new Set(localAssignees.map((a) => a.membership.id));
-  const available = memberships.filter((m) => !assignedIds.has(m.id));
-  const effectiveAddId = available.find((m) => m.id === addMembershipId)
-    ? addMembershipId
-    : (available[0]?.id ?? "");
-
-  const parsedStartTime = hhmmToMin(startTime);
-  const endMin =
-    parsedStartTime == null
-      ? null
-      : parsedStartTime + instance.task.durationMin;
-
-  function handleAddAssignee() {
-    const membership = memberships.find((m) => m.id === effectiveAddId);
-    if (!membership) return;
-    startT(async () => {
-      const r = await addInstanceAssigneeAction(
-        orgId,
-        instance.id,
-        effectiveAddId,
-      );
-      if (r.ok) {
-        setLocalAssignees((p) => [
-          ...p,
-          {
-            id: `opt-${effectiveAddId}`,
-            membership: { ...membership, botName: membership.botName ?? null },
-          },
-        ]);
-        router.refresh();
-      }
-    });
-  }
-
-  function handleRemoveAssignee(membershipId: string) {
-    startT(async () => {
-      const r = await removeInstanceAssigneeAction(
-        orgId,
-        instance.id,
-        membershipId,
-      );
-      if (r.ok) {
-        setLocalAssignees((p) =>
-          p.filter((a) => a.membership.id !== membershipId),
-        );
-        router.refresh();
-      }
-    });
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onMouseDown={onClose}
-    >
-      <div
-        className="bg-background border shadow-2xl w-72 p-4 flex flex-col gap-3"
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between">
-          <span className="font-semibold">{instance.task.name}</span>
-          <button
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground font-medium">
-            Start time
-          </label>
-          <Input
-            type="time"
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
-            className="h-8 w-32 text-sm"
-          />
-          <p className="text-xs text-muted-foreground">
-            {startTime} → {endMin == null ? "--:--" : minToHHMM(endMin)} ·{" "}
-            {instance.task.durationMin} min
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-muted-foreground font-medium">
-            Assign
-          </label>
-          {localAssignees.length === 0 && (
-            <span className="text-xs text-muted-foreground italic">
-              No one assigned
-            </span>
-          )}
-          <div className="flex flex-col gap-1">
-            {localAssignees.map((a) => (
-              <div
-                key={a.membership.id}
-                className="flex items-center justify-between bg-muted/50 px-2 py-1 text-xs"
-              >
-                <span>{a.membership.user?.name ?? "Unknown"}</span>
-                <button
-                  onClick={() => handleRemoveAssignee(a.membership.id)}
-                  className="text-muted-foreground hover:text-destructive ml-2"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-          {available.length > 0 && (
-            <div className="flex gap-1 items-center mt-0.5">
-              <select
-                value={effectiveAddId}
-                onChange={(e) => setAddMembershipId(e.target.value)}
-                className="flex-1 border px-2 py-1 text-xs bg-background"
-              >
-                {available.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.user?.name ?? "Unknown"}
-                  </option>
-                ))}
-              </select>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleAddAssignee}
-                className="h-7 w-7 p-0"
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          )}
-        </div>
-
-        <div className="flex gap-2 pt-1 border-t">
-          <Button
-            size="sm"
-            onClick={() => parsedStartTime != null && onSave(parsedStartTime)}
-            disabled={parsedStartTime == null}
-            className="flex-1 h-7"
-          >
-            Save
-          </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={onRemove}
-            className="h-7"
-          >
-            Remove
-          </Button>
-          <Button size="sm" variant="ghost" onClick={onClose} className="h-7">
-            Cancel
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
+// EditPopup removed: edits now use the ActionSidebar via `openEditInSidebar`.
 
 // ---------------------------------------------------------------------------
 // EditSidebarContent — same form as EditPopup but renders inline in ActionSidebar
 // ---------------------------------------------------------------------------
 
-interface EditSidebarContentProps {
-  instance: ClientTemplateInstance;
-  memberships: ClientMembership[];
-  orgId: string;
-  onClose: () => void;
-  onBack?: () => void;
-}
-
-function EditSidebarContent({
-  instance,
-  memberships,
-  orgId,
-  onClose,
-  onBack,
-}: EditSidebarContentProps) {
-  const router = useRouter();
-  const [startTime, setStartTime] = useState(minToHHMM(instance.startTimeMin));
-  const [localAssignees, setLocalAssignees] = useState(instance.assignees);
-  const [addMembershipId, setAddMembershipId] = useState("");
-  const [, startT] = useTransition();
-
-  const assignedIds = new Set(localAssignees.map((a) => a.membership.id));
-  const available = memberships.filter((m) => !assignedIds.has(m.id));
-  const effectiveAddId = available.find((m) => m.id === addMembershipId)
-    ? addMembershipId
-    : (available[0]?.id ?? "");
-
-  const parsedStartTime = hhmmToMin(startTime);
-  const endMin =
-    parsedStartTime == null ? null : parsedStartTime + instance.task.durationMin;
-
-  function handleAddAssignee() {
-    const membership = memberships.find((m) => m.id === effectiveAddId);
-    if (!membership) return;
-    startT(async () => {
-      const r = await addInstanceAssigneeAction(orgId, instance.id, effectiveAddId);
-      if (r.ok) {
-        setLocalAssignees((p) => [
-          ...p,
-          { id: `opt-${effectiveAddId}`, membership: { ...membership, botName: membership.botName ?? null } },
-        ]);
-        router.refresh();
-      }
-    });
-  }
-
-  function handleRemoveAssignee(membershipId: string) {
-    startT(async () => {
-      const r = await removeInstanceAssigneeAction(orgId, instance.id, membershipId);
-      if (r.ok) {
-        setLocalAssignees((p) => p.filter((a) => a.membership.id !== membershipId));
-        router.refresh();
-      }
-    });
-  }
-
-  function handleSave() {
-    if (parsedStartTime == null) return;
-    startT(async () => {
-      const result = await updateTemplateInstanceAction(orgId, instance.id, {
-        startTimeMin: parsedStartTime,
-      });
-      if (!result.ok) return;
-      router.refresh();
-      (onBack ?? onClose)();
-    });
-  }
-
-  function handleRemove() {
-    startT(async () => {
-      const result = await removeTemplateInstanceAction(orgId, instance.id);
-      if (!result.ok) return;
-      router.refresh();
-      onClose();
-    });
-  }
-
-  return (
-    <div className="flex flex-col h-full overflow-y-auto">
-      <div className="flex flex-col gap-5 p-4">
-
-        {onBack && (
-          <button
-            onClick={onBack}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors -mb-2 self-start"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-            Back
-          </button>
-        )}
-
-        {/* Task meta */}
-        <div
-          className="rounded-lg border bg-card px-3 py-2.5 flex items-center gap-2.5"
-          style={{ borderLeftWidth: 3, borderLeftColor: instance.taskColor ?? "#9ca3af" }}
-        >
-          <span className="font-semibold text-sm truncate">{instance.task.name}</span>
-        </div>
-
-        {/* Start time */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Start time</label>
-          <input
-            type="time"
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
-            className="h-8 w-32 rounded border border-input bg-background px-2 text-sm"
-          />
-          <p className="text-xs text-muted-foreground">
-            {startTime} → {endMin == null ? "--:--" : minToHHMM(endMin)} · {instance.task.durationMin} min
-          </p>
-        </div>
-
-        {/* Assignees */}
-        <div className="flex flex-col gap-2">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Assignees</label>
-          {localAssignees.length === 0 && (
-            <span className="text-xs text-muted-foreground italic">No one assigned</span>
-          )}
-          <div className="flex flex-col gap-1">
-            {localAssignees.map((a) => (
-              <div key={a.membership.id} className="flex items-center justify-between bg-muted/40 rounded px-2.5 py-1.5 text-sm">
-                <span>{a.membership.user?.name ?? a.membership.botName ?? "Unknown"}</span>
-                <button
-                  onClick={() => handleRemoveAssignee(a.membership.id)}
-                  className="text-muted-foreground hover:text-destructive transition-colors ml-2"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-          {available.length > 0 && (
-            <div className="flex gap-1.5 items-center">
-              <select
-                value={effectiveAddId}
-                onChange={(e) => setAddMembershipId(e.target.value)}
-                className="flex-1 rounded border border-input bg-background px-2 py-1 text-sm"
-              >
-                {available.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.user?.name ?? m.botName ?? "Unknown"}
-                  </option>
-                ))}
-              </select>
-              <Button size="sm" variant="outline" onClick={handleAddAssignee} className="h-8 w-8 p-0 shrink-0">
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2 pt-1 border-t">
-          <Button size="sm" onClick={handleSave} disabled={parsedStartTime == null} className="flex-1 h-8">
-            Save
-          </Button>
-          <Button size="sm" variant="destructive" onClick={handleRemove} className="h-8">
-            Remove
-          </Button>
-        </div>
-
-      </div>
-    </div>
-  );
-}
+// EditSidebarContent has been extracted to ./calendar-edit-sidebar-content
 
 // ---------------------------------------------------------------------------
 // Main export
@@ -460,6 +112,7 @@ interface TemplateEditorClientProps {
   instances: ClientTemplateInstance[];
   availableTasks: ClientTask[];
   memberships: ClientMembership[];
+  todayStr: string;
   openTimeMin: number;
   closeTimeMin: number;
   fillHeight?: boolean;
@@ -467,6 +120,10 @@ interface TemplateEditorClientProps {
   span: "day" | "week";
   /** Rendered at the end of the toolbar (template name / metadata). */
   title?: ReactNode;
+  /** Optional external dragging state controlled by a parent bridge. */
+  isDraggingExternal?: boolean;
+  /** Optional setter to update external dragging state. */
+  onExternalDragChange?: (v: boolean) => void;
 }
 
 export function TemplateEditorClient({
@@ -476,16 +133,19 @@ export function TemplateEditorClient({
   instances,
   availableTasks,
   memberships,
+  todayStr: _todayStr,
   openTimeMin,
   closeTimeMin,
   fillHeight,
   mode,
   span,
   title,
+  isDraggingExternal,
+  onExternalDragChange,
 }: TemplateEditorClientProps) {
   const router = useRouter();
-  const [, startT] = useTransition();
-  const { open: openSidebar, close: closeSidebar } = useActionSidebar();
+  const [isPending, startT] = useTransition();
+  const { open: openSidebar, close: closeSidebar, activeTitle } = useActionSidebar();
   const isMobile = useIsMobile();
 
   // ── Span & adaptive column count ──────────────────────────────────────
@@ -529,6 +189,7 @@ export function TemplateEditorClient({
     (_, i) => clampedStartDay + i,
   );
   const columns = visibleDays.map(String);
+  const focalDay = visibleDays[Math.floor(visibleDays.length / 2)];
 
   const canPrev = clampedStartDay > 0;
   const canNext = visibleEnd < templateDays;
@@ -541,16 +202,56 @@ export function TemplateEditorClient({
   type DragData =
     | { type: "task"; taskId: string }
     | { type: "move"; instanceId: string; offsetMin: number }
-    | { type: "group"; instanceIds: string[]; groupStartMin: number; offsetMin: number };
+    | { type: "group"; instanceIds: string[]; instances?: ClientTemplateInstance[]; groupStartMin: number; offsetMin: number };
   const dragDataRef = useRef<DragData | null>(null) as DragDataRef<ClientTemplateInstance>;
   const [dragOver, setDragOver] = useState<{
     column: string;
     timeMin: number;
   } | null>(null);
   const { hourHeight } = useTimetableZoom();
-  const [editingInstance, setEditingInstance] =
-    useState<ClientTemplateInstance | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  // Precompute a map for fast lookups of the server-provided roleColor.
+  const taskRoleColorMap = useMemo(
+    () =>
+      new Map<string, string | null>(
+        (availableTasks ?? []).map((t: ClientTask) => [t.id, t.roleColor ?? null] as [string, string | null]),
+      ),
+    [availableTasks],
+  );
+
+  const getTaskColor = useCallback((inst: ClientTemplateInstance) => {
+    const fromTasks = taskRoleColorMap.get(inst.task.id);
+    return fromTasks ?? inst.taskColor ?? "#9ca3af";
+  }, [taskRoleColorMap]);
+
+  const getTaskColorMaybe = useCallback((inst: ClientTemplateInstance) => {
+    const fromTasks = taskRoleColorMap.get(inst.task.id);
+    return fromTasks ?? inst.taskColor ?? undefined;
+  }, [taskRoleColorMap]);
+
+  const noop = useCallback(() => {}, []);
+
+  // Track the slot (dayIndex + time range) of the currently open group sidebar.
+  const openGroupSlotRef = useRef<{ dayIndex: number; startMin: number; endMin: number } | null>(null);
+  const lastGroupTitleRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!activeTitle) {
+      openGroupSlotRef.current = null;
+      lastGroupTitleRef.current = null;
+      return;
+    }
+    if (lastGroupTitleRef.current && activeTitle !== lastGroupTitleRef.current) {
+      openGroupSlotRef.current = null;
+      lastGroupTitleRef.current = null;
+    }
+  }, [activeTitle]);
+  const [isDraggingInternal, setIsDraggingInternal] = useState(false);
+  const isDragging = typeof isDraggingExternal === "boolean" ? isDraggingExternal : isDraggingInternal;
+  const setIsDragging = onExternalDragChange ?? setIsDraggingInternal;
+
+  useEffect(() => {
+    registerDragHandlers({ setIsDragging });
+    return () => unregisterDragHandlers();
+  }, [setIsDragging]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskPanelOpen, setTaskPanelOpen] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
@@ -597,30 +298,34 @@ export function TemplateEditorClient({
 
   // ── Handlers ──────────────────────────────────────────────────────────
 
-  function openEditInSidebar(
-    inst: ClientTemplateInstance,
-    onBack?: () => void,
-  ) {
-    openSidebar(
-      inst.task.name,
-      <EditSidebarContent
-        key={inst.id}
-        instance={inst}
-        memberships={memberships}
-        orgId={orgId}
-        onClose={closeSidebar}
-        onBack={onBack}
-      />,
-    );
-  }
+  const openEditInSidebar = useCallback(
+    (inst: ClientTemplateInstance, onBack?: () => void) => {
+      openSidebar(
+        inst.task.name,
+        <CalendarEditSidebarContent
+          key={inst.id}
+          instance={inst}
+          memberships={memberships}
+          orgId={orgId}
+          onClose={closeSidebar}
+          onBack={onBack}
+        />,
+      );
+    },
+    [openSidebar, closeSidebar, memberships, orgId],
+  );
 
   function openGroupSidebar(groupInstances: ClientTemplateInstance[]) {
     const groupStart = Math.min(...groupInstances.map((i) => i.startTimeMin));
     const groupEnd = Math.max(
       ...groupInstances.map((i) => i.startTimeMin + i.task.durationMin),
     );
+    // store canonical slot so effect can re-derive membership on instance updates
+    openGroupSlotRef.current = { dayIndex: groupInstances[0].dayIndex, startMin: groupStart, endMin: groupEnd };
+    const title = `${groupInstances.length} overlapping · ${minToHHMM(groupStart)}–${minToHHMM(groupEnd)}`;
+    lastGroupTitleRef.current = title;
     openSidebar(
-      `${groupInstances.length} overlapping · ${minToHHMM(groupStart)}–${minToHHMM(groupEnd)}`,
+      title,
       <div className="flex flex-col gap-2 p-3">
         {groupInstances.map((inst) => {
           const assigneeNames = inst.assignees
@@ -637,16 +342,14 @@ export function TemplateEditorClient({
                   offsetMin: 0,
                 };
                 e.dataTransfer.effectAllowed = "move";
+                setIsDragging(true);
               }}
-              onDragEnd={closeSidebar}
-              onClick={() => openEditInSidebar(inst, () => openGroupSidebar(groupInstances))}
-              className="flex items-start gap-2.5 rounded-lg border bg-card px-3 py-2.5 hover:bg-accent/40 transition-colors cursor-grab active:cursor-grabbing"
+              onDragEnd={noop}
+              onClick={() => openEditInSidebar(inst)}
+              className="flex items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5 hover:bg-accent/40 transition-colors cursor-grab active:cursor-grabbing"
             >
-              <GripVertical className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground/40" />
-              <span
-                className="w-1 self-stretch rounded-full shrink-0 mt-0.5"
-                style={{ backgroundColor: inst.taskColor ?? "#9ca3af" }}
-              />
+              <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground/40" />
+              <span className="w-1 self-stretch rounded-full shrink-0" style={{ backgroundColor: getTaskColor(inst) }} />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold truncate">{inst.task.name}</div>
                 <div className="flex items-center gap-2 mt-0.5">
@@ -664,7 +367,7 @@ export function TemplateEditorClient({
               <Link
                 href={`/orgs/${orgId}/tasks/${inst.task.id}`}
                 onClick={(e) => { e.stopPropagation(); closeSidebar(); }}
-                className="shrink-0 text-muted-foreground/50 hover:text-foreground transition-colors"
+                className="shrink-0 h-6 w-6 flex items-center justify-center text-muted-foreground/50 hover:text-foreground transition-colors"
                 aria-label="Open task detail"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -676,9 +379,102 @@ export function TemplateEditorClient({
     );
   }
 
+  // Re-open the group sidebar with fresh data whenever `instances` changes
+  // (triggered by `router.refresh()` after mutations). The effect below
+  // re-derives the current members of that slot by checking overlap against
+  // the fresh `instances` prop and re-opens the sidebar with a new `key`
+  // so the content remounts.
+  useEffect(() => {
+    const slot = openGroupSlotRef.current;
+    if (!slot) return;
+
+    const freshGroup = instances.filter(
+      (i) =>
+        i.dayIndex === slot.dayIndex &&
+        i.startTimeMin < slot.endMin &&
+        i.startTimeMin + i.task.durationMin > slot.startMin,
+    );
+
+    if (freshGroup.length === 0) {
+      openGroupSlotRef.current = null;
+      closeSidebar();
+      return;
+    }
+
+    const freshIds = freshGroup.map((i) => i.id);
+    const freshStart = Math.min(...freshGroup.map((i) => i.startTimeMin));
+    const freshEnd = Math.max(...freshGroup.map((i) => i.startTimeMin + i.task.durationMin));
+
+    const title = `${freshIds.length} overlapping · ${minToHHMM(freshStart)}–${minToHHMM(freshEnd)}`;
+    lastGroupTitleRef.current = title;
+    openSidebar(
+      title,
+      <div key={freshGroup.map((i) => `${i.id}:${i.startTimeMin}:${i.dayIndex}`).join(",")} className="flex flex-col gap-2 p-3">
+        {freshGroup.map((inst) => {
+          const assigneeNames = inst.assignees
+            .map((a) => a.membership.user?.name ?? a.membership.botName ?? "Bot")
+            .join(", ");
+          return (
+            <div
+              key={inst.id}
+              draggable
+              onDragStart={(e) => {
+                dragDataRef.current = { type: "move", instanceId: inst.id, offsetMin: 0 };
+                e.dataTransfer.effectAllowed = "move";
+                setIsDragging(true);
+              }}
+              onDragEnd={noop}
+              onClick={() => openEditInSidebar(inst)}
+              className="flex items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5 hover:bg-accent/40 transition-colors cursor-grab active:cursor-grabbing"
+            >
+              <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground/40" />
+              <span className="w-1 self-stretch rounded-full shrink-0" style={{ backgroundColor: getTaskColor(inst) }} />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold truncate">{inst.task.name}</div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[10px] font-mono text-muted-foreground">
+                    {minToHHMM(inst.startTimeMin)}&ndash;{minToHHMM(inst.startTimeMin + inst.task.durationMin)}
+                  </span>
+                </div>
+                {assigneeNames && <div className="text-[10px] text-muted-foreground mt-0.5 truncate">{assigneeNames}</div>}
+              </div>
+              <Link href={`/orgs/${orgId}/tasks/${inst.task.id}`} onClick={(e) => { e.stopPropagation(); closeSidebar(); }} className="shrink-0 h-6 w-6 flex items-center justify-center text-muted-foreground/50 hover:text-foreground transition-colors" aria-label="Open task detail">
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          );
+        })}
+      </div>,
+    );
+  }, [instances]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function handleDrop(col: string, timeMin: number, data: DragData) {
-    if (data.type === "group") return; // multi-instance group drag not supported in template editor
     const day = parseInt(col, 10);
+
+    if (data.type === "group") {
+      const insts = (data.instances ?? data.instanceIds.map((id) => instances.find((i) => i.id === id)).filter(Boolean)) as ClientTemplateInstance[];
+      if (insts.length === 0) return;
+      const delta = timeMin - data.groupStartMin;
+      startT(async () => {
+        try {
+          const updates = insts.map((inst) => ({
+            id: inst.id,
+            dayIndex: day,
+            startTimeMin: Math.max(0, Math.min(1439, inst.startTimeMin + delta)),
+          }));
+          const res = await updateTemplateInstancesBatchAction(orgId, updates);
+          if (!res.ok) {
+            toast.error(res.error ?? "Something went wrong");
+            return;
+          }
+          router.refresh();
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Something went wrong");
+        }
+      });
+      return;
+    }
+
     startT(async () => {
       const result =
         data.type === "task"
@@ -708,38 +504,11 @@ export function TemplateEditorClient({
     });
   }
 
-  function handleEditSave(startTimeMin: number) {
-    if (!editingInstance) return;
-    startT(async () => {
-      const result = await updateTemplateInstanceAction(
-        orgId,
-        editingInstance.id,
-        { startTimeMin },
-      );
-      if (!result.ok) return;
-      setEditingInstance(null);
-      router.refresh();
-    });
-  }
-
-  function handleEditRemove() {
-    if (!editingInstance) return;
-    startT(async () => {
-      const result = await removeTemplateInstanceAction(
-        orgId,
-        editingInstance.id,
-      );
-      if (!result.ok) return;
-      setEditingInstance(null);
-      router.refresh();
-    });
-  }
+  // Edits now open in the ActionSidebar; inline popup handlers removed.
 
   return (
     <div
-      className={
-        fillHeight ? "flex flex-col flex-1 min-h-0" : "flex flex-col gap-4"
-      }
+      className={`${fillHeight ? "flex flex-col flex-1 min-h-0" : "flex flex-col gap-4"}${isPending ? " opacity-40 pointer-events-none" : ""}`}
     >
       {/* ── Navigation toolbar ── */}
       <RegisterPageToolbar>
@@ -781,111 +550,17 @@ export function TemplateEditorClient({
       </RegisterPageToolbar>
 
       {/* ── Simple list view ── */}
-      {mode === "simple" &&
-        (() => {
-          // visibleDays already accounts for span + clamped navigation
-          return (
-            <div
-              className={`flex flex-col gap-4${fillHeight ? " flex-1 overflow-y-auto min-h-0" : ""}`}
-            >
-              {visibleDays.map((dayIdx) => {
-                const dayInstances = [...instances]
-                  .filter((inst) => inst.dayIndex === dayIdx)
-                  .sort((a, b) => a.startTimeMin - b.startTimeMin);
-                return (
-                  <div
-                    key={dayIdx}
-                    className="rounded-xl border shadow-sm overflow-hidden bg-card shrink-0"
-                  >
-                    <div className="px-4 py-2.5 flex items-center gap-2 font-semibold text-sm border-b bg-muted/20">
-                      Day {dayIdx + 1}
-                    </div>
-                    {dayInstances.length === 0 ? (
-                      <div className="px-4 py-8 text-sm text-muted-foreground">
-                        No tasks scheduled
-                      </div>
-                    ) : (
-                      <table className="w-full text-sm">
-                        <thead className="border-b bg-muted/20">
-                          <tr className="text-xs text-muted-foreground uppercase tracking-wide">
-                            <th className="px-3 py-1.5 text-left font-medium w-8">
-                              #
-                            </th>
-                            <th className="px-3 py-1.5 text-left font-medium">
-                              Time
-                            </th>
-                            <th className="px-3 py-1.5 text-left font-medium">
-                              Task
-                            </th>
-                            <th className="px-3 py-1.5 text-left font-medium">
-                              Duration
-                            </th>
-                            <th className="px-3 py-1.5 text-left font-medium">
-                              Assigned To
-                            </th>
-                            <th className="px-3 py-1.5 w-8" />
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                          {dayInstances.map((inst, idx) => {
-                            const assigneeNames =
-                              inst.assignees
-                                .map(
-                                  (a) => a.membership.user?.name ?? "Unknown",
-                                )
-                                .join(", ") || "—";
-                            return (
-                              <tr
-                                key={inst.id}
-                                onClick={() => setEditingInstance(inst)}
-                                className="hover:bg-primary/5 active:bg-primary/10 transition-colors cursor-pointer"
-                              >
-                                <td className="px-3 py-2 text-muted-foreground">
-                                  {idx + 1}
-                                </td>
-                                <td className="px-3 py-2 text-muted-foreground text-xs font-mono">
-                                  {minTo12h(inst.startTimeMin)}
-                                </td>
-                                <td className="px-3 py-2 font-medium">
-                                  <span className="flex items-center gap-2">
-                                    <span
-                                      className="w-2 h-2 rounded-full shrink-0"
-                                      style={{
-                                        background: inst.taskColor ?? "#9ca3af",
-                                      }}
-                                    />
-                                    {inst.task.name}
-                                  </span>
-                                </td>
-                                <td className="px-3 py-2 text-muted-foreground text-xs">
-                                  {inst.task.durationMin} min
-                                </td>
-                                <td className="px-3 py-2 text-muted-foreground text-xs">
-                                  {assigneeNames}
-                                </td>
-                                <td className="px-2 py-2">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setEditingInstance(inst);
-                                    }}
-                                    className="flex items-center justify-center w-6 h-6 rounded hover:bg-muted transition-colors cursor-pointer text-muted-foreground"
-                                  >
-                                    <MoreHorizontal className="h-3.5 w-3.5" />
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })()}
+      {mode === "simple" && (
+        <TemplateSimpleView
+          instances={instances}
+          visibleDays={visibleDays}
+          templateDays={templateDays}
+          memberships={memberships}
+          orgId={orgId}
+          templateId={templateId}
+          availableTasks={availableTasks}
+        />
+      )}
 
       {/* ── Grid + desktop panel ── */}
       {mode === "calendar" && (
@@ -924,6 +599,9 @@ export function TemplateEditorClient({
               )}
 
             <TimeGrid
+              columnHighlightClass={(col) =>
+                col === String(focalDay) ? "bg-primary/[0.04] text-foreground" : undefined
+              }
               columns={columns}
               instances={visibleInstances}
               getColumnKey={(inst) => String(inst.dayIndex)}
@@ -981,7 +659,7 @@ export function TemplateEditorClient({
               closeTimeMin={closeTimeMin}
               fillHeight={fillHeight}
               hourHeight={hourHeight}
-              blockColor={(inst) => inst.taskColor ?? undefined}
+              blockColor={(inst) => getTaskColorMaybe(inst)}
               selectedTaskId={isMobile ? selectedTaskId : null}
               onTapPlace={isMobile ? handleTapPlace : undefined}
               onGroupClick={(groupInstances) => openGroupSidebar(groupInstances)}
@@ -1011,7 +689,7 @@ export function TemplateEditorClient({
                         <div key={inst.id} className="flex items-start gap-1 min-w-0">
                           <span
                             className="w-0.5 self-stretch rounded-full shrink-0 mt-0.5"
-                            style={{ backgroundColor: inst.taskColor ?? "#9ca3af" }}
+                            style={{ backgroundColor: getTaskColor(inst) }}
                           />
                           <div className="flex-1 min-w-0">
                             <span className="text-[10px] font-semibold truncate leading-tight block">
@@ -1095,16 +773,7 @@ export function TemplateEditorClient({
         </>
       )}
 
-      {editingInstance && (
-        <EditPopup
-          instance={editingInstance}
-          memberships={memberships}
-          orgId={orgId}
-          onSave={handleEditSave}
-          onRemove={handleEditRemove}
-          onClose={() => setEditingInstance(null)}
-        />
-      )}
+      {/* Editing now uses ActionSidebar; inline popup removed. */}
     </div>
   );
 }

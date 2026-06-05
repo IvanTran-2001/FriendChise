@@ -279,7 +279,7 @@ export function TimetableSidebarContent({
           weekHref={weekHref}
           className="flex-col items-start"
         />
-        <ZoomSlider />
+        {mode === "calendar" && <ZoomSlider />}
       </div>
 
       {/* Actions section — managers only */}

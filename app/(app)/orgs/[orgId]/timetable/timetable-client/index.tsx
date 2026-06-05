@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { TaskPanel } from "../_shared/task-panel";
+import { registerDragHandlers, unregisterDragHandlers } from "../_shared/drag-registry";
 import { addDays, getDayName, getMonthName } from "../_shared/grid-utils";
 import { getMondayOf, formatDayRange } from "./helpers";
 import { CalendarView } from "./calendar-view";
@@ -113,6 +114,7 @@ export function TimetableClient({
   const hasPanel = !!availableTasks;
   const [taskPanelOpen, setTaskPanelOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
 
   useEffect(() => {
@@ -129,6 +131,11 @@ export function TimetableClient({
     return () =>
       window.removeEventListener("timetable:open-task-panel", handler);
   }, [hasPanel]);
+
+  useEffect(() => {
+    registerDragHandlers({ setIsDragging });
+    return () => unregisterDragHandlers();
+  }, [setIsDragging]);
 
   // Track the actual column count reported by CalendarView (ResizeObserver).
   const [navColCount, setNavColCount] = useState(7);
@@ -265,6 +272,7 @@ export function TimetableClient({
             selectedTaskId={selectedTaskId}
             onSelectedTaskIdChange={setSelectedTaskId}
             onOpenTaskPanel={() => setTaskPanelOpen(true)}
+            isDraggingExternal={isDragging}
           />
         ) : (
           <SimpleView
@@ -275,6 +283,7 @@ export function TimetableClient({
             canManage={canManage}
             memberships={memberships}
             orgId={orgId}
+            tasks={availableTasks}
           />
         )}
       </div>
@@ -324,8 +333,11 @@ export function TimetableClient({
                   setSelectedTaskId(taskId);
                   if (taskId) setTaskPanelOpen(false);
                 }}
-                onDragStart={() => {}}
-                onDragEnd={() => setTaskPanelOpen(false)}
+                onDragStart={() => setIsDragging(true)}
+                onDragEnd={() => {
+                  setTaskPanelOpen(false);
+                  setIsDragging(false);
+                }}
               />
             </SheetContent>
           </Sheet>

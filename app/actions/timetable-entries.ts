@@ -35,7 +35,7 @@ export async function createTimetableEntryAction(
   taskId: string,
   dateStr: string,
   startTimeMin: number,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; data?: WeekTimetableInstance; error?: string }> {
   const authz = await requireOrgPermissionAction(
     orgId,
     PermissionAction.MANAGE_TIMETABLE,
@@ -52,8 +52,10 @@ export async function createTimetableEntryAction(
   );
   if (!result.ok) return { ok: false, error: result.error };
 
+  // Map the created entry to the client WeekTimetableInstance shape
+  const instances = await getTimetableInstancesByIds(orgId, [result.data.id]);
   revalidatePath(`/orgs/${orgId}/timetable`);
-  return { ok: true };
+  return { ok: true, data: instances[0] };
 }
 
 /**

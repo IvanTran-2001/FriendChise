@@ -17,7 +17,7 @@ import { ROLE_KEYS } from "@/lib/rbac";
 import { localToUTC } from "@/lib/date-utils";
 import { PermissionAction, EntryStatus, VoteType, TaskScope } from "@prisma/client";
 
-const DEMO_MAX_CONCURRENT = 50;
+const DEMO_MAX_CONCURRENT = 200;
 const DEMO_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 /**
  * JWT session lifetime for demo accounts.
@@ -25,7 +25,7 @@ const DEMO_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
  * before their token expires. Capacity checks use it to exclude rows whose
  * JWT has already expired. Must stay in sync with the token.exp logic in auth.ts.
  */
-export const DEMO_JWT_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
+export const DEMO_JWT_TTL_MS = 1 * 60 * 60 * 1000; // 1 hour
 const DEMO_GLOBAL_TASK_SOFT_CAP = 1480; // trigger aggressive cleanup at this threshold (80% of hard cap)
 const DEMO_GLOBAL_TASK_HARD_CAP = DEMO_MAX_CONCURRENT * 37; // hard reject new sessions above this threshold (50 * 37 = 1850)
 

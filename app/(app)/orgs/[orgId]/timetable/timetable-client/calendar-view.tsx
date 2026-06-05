@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, Plus, ChevronRight, GripVertical, Layers, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
@@ -66,6 +66,8 @@ export interface CalendarViewProps {
   onSelectedTaskIdChange?: (id: string | null) => void;
   /** Called when the empty-state "Add task" button is tapped (opens task panel Sheet). */
   onOpenTaskPanel?: () => void;
+  /** Optional external dragging state controlled by parent. */
+  isDraggingExternal?: boolean;
 }
 
 function GroupSidebarComponent({
@@ -77,6 +79,7 @@ function GroupSidebarComponent({
   getTaskColor,
   openEditForInst,
   todayStr,
+  initialInstances,
 }: {
   ids: string[];
   orgId: string;
@@ -97,13 +100,16 @@ function GroupSidebarComponent({
   getTaskColor: (inst: ClientTimetableInstance) => string;
   openEditForInst: (inst: ClientTimetableInstance) => void;
   todayStr: string;
+  /** Optional server-provided instances to avoid refetching */
+  initialInstances?: ClientTimetableInstance[];
 }) {
-  const [loading, setLoading] = useState(true);
-  const [currentGroup, setCurrentGroup] = useState<ClientTimetableInstance[]>([]);
+  const [loading, setLoading] = useState(initialInstances ? false : true);
+  const [currentGroup, setCurrentGroup] = useState<ClientTimetableInstance[]>(initialInstances ?? []);
   const router = useRouter();
 
   const idsKey = ids.join(",");
   useEffect(() => {
+    if (initialInstances) return; // server provided data — skip fetch
     let mounted = true;
     (async () => {
       try {
@@ -118,7 +124,9 @@ function GroupSidebarComponent({
         const byId = new Map<string, ClientTimetableInstance>(
           fetched.map((i) => [i.id, i]),
         );
-        const ordered = ids.map((id) => byId.get(id)).filter(Boolean) as ClientTimetableInstance[];
+        const ordered = ids
+          .map((id) => byId.get(id))
+          .filter((i): i is ClientTimetableInstance => i !== undefined && i !== null);
         setCurrentGroup(ordered);
       } catch (error) {
         if (!mounted) return;
@@ -131,7 +139,7 @@ function GroupSidebarComponent({
     return () => {
       mounted = false;
     };
-  }, [idsKey, ids, orgId]);
+  }, [idsKey, ids, orgId, initialInstances]);
 
   if (loading)
     return (
@@ -177,8 +185,8 @@ function GroupSidebarComponent({
             }`}
             onClick={() => openEditForInst(inst)}
           >
-            {canManage && <GripVertical className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground/40" />}
-            <span className="w-1 self-stretch rounded-full shrink-0 mt-0.5" style={{ backgroundColor: getTaskColor(inst) }} />
+            {canManage && <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground/40" />}
+            <span className="w-1 self-stretch rounded-full shrink-0" style={{ backgroundColor: getTaskColor(inst) }} />
             <div className="flex-1 min-w-0">
               <div className="text-sm font-semibold truncate block">{inst.task.title}</div>
               <div className="flex items-center gap-2 mt-0.5">
@@ -201,7 +209,7 @@ function GroupSidebarComponent({
                 aria-label="Open task"
                 className="h-6 w-6 flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground/90"
               >
-                <ExternalLink className="h-4 w-4 hover:cursor-pointer" />
+                <ExternalLink className="h-4 w-4" />
               </button>
             )}
           </div>
@@ -228,6 +236,7 @@ export function CalendarView({
   selectedTaskId = null,
   onSelectedTaskIdChange,
   onOpenTaskPanel,
+  isDraggingExternal,
 }: CalendarViewProps) {
   function effStatus(inst: ClientTimetableInstance) {
     return inst.status === "TODO" && inst.date < todayStr
@@ -236,6 +245,9 @@ export function CalendarView({
   }
   const router = useRouter();
   const [isDropPending, startT] = useTransition();
+
+  // Dragging state is controlled externally via `isDraggingExternal`.
+  const effectiveIsDragging = typeof isDraggingExternal === "boolean" ? isDraggingExternal : false;
 
   // Track the actual calendar container width via ResizeObserver so that
   // zoom level, sidebar state, and task panel are all accounted for.
@@ -301,14 +313,58 @@ export function CalendarView({
     column: string;
     timeMin: number;
   } | null>(null);
-  const { open: openSidebar, close: closeSidebar } = useActionSidebar();
+  const { open: openSidebar, close: closeSidebar, activeTitle } = useActionSidebar();
+  // Track the slot (date + time range) of the currently open group sidebar.
+  // We store the slot (not the original instance ids) so that when the
+  // `instances` prop updates we can re-derive membership by overlap. This
+  // ensures items moved out of the slot are excluded and items moved into
+  // the slot are included automatically.
+  const openGroupSlotRef = useRef<{ date: string; startMin: number; endMin: number } | null>(null);
+  const lastGroupTitleRef = useRef<string | null>(null);
+  const lastEditTitleRef = useRef<string | null>(null);
+  const lastEditDateRef = useRef<string | null>(null);
   const { hourHeight } = useTimetableZoom();
 
-  // Consistent color helpers: prefer the instance's `taskColor` computed
-  // server-side; fall back to a sensible grey for UI elements that need
-  // a concrete color value.
-  const getTaskColor = (inst: ClientTimetableInstance) => inst.taskColor ?? "#9ca3af";
-  const getTaskColorMaybe = (inst: ClientTimetableInstance) => inst.taskColor ?? undefined;
+  // Clear the stored open group slot if the sidebar is closed or a different
+  // panel is active. This prevents accidental re-opening on `instances`
+  // refresh when the user has dismissed or replaced the group panel.
+  useEffect(() => {
+    if (!activeTitle) {
+      openGroupSlotRef.current = null;
+      lastGroupTitleRef.current = null;
+      lastEditTitleRef.current = null;
+      lastEditDateRef.current = null;
+      return;
+    }
+    if (lastGroupTitleRef.current && activeTitle !== lastGroupTitleRef.current) {
+      openGroupSlotRef.current = null;
+      lastGroupTitleRef.current = null;
+    }
+    if (lastEditTitleRef.current && activeTitle !== lastEditTitleRef.current) {
+      lastEditTitleRef.current = null;
+      lastEditDateRef.current = null;
+    }
+  }, [activeTitle]);
+
+  // Precompute a map for fast lookups of the server-provided roleColor.
+  const taskRoleColorMap = useMemo(
+    () =>
+      new Map<string, string | null>(
+        (availableTasks ?? []).map((t) => [t.id, t.roleColor ?? null] as [string, string | null]),
+      ),
+    [availableTasks],
+  );
+
+  // Consistent color helpers: prefer the server-selected `roleColor` from
+  // `availableTasks`, then the instance snapshot `taskColor`, then fallbacks.
+  const getTaskColor = (inst: ClientTimetableInstance) => {
+    const fromTasks = taskRoleColorMap.get(inst.taskId);
+    return fromTasks ?? inst.taskColor ?? "#9ca3af";
+  };
+  const getTaskColorMaybe = (inst: ClientTimetableInstance) => {
+    const fromTasks = taskRoleColorMap.get(inst.taskId);
+    return fromTasks ?? inst.taskColor ?? undefined;
+  };
 
   function openEditSidebar(
     inst: ClientTimetableInstance,
@@ -332,34 +388,99 @@ export function CalendarView({
   }
 
   function openGroupSidebar(groupInstancesOrIds: ClientTimetableInstance[] | string[]) {
-    const ids =
+    const groupInsts: ClientTimetableInstance[] =
       typeof groupInstancesOrIds[0] === "string"
         ? (groupInstancesOrIds as string[])
-        : (groupInstancesOrIds as ClientTimetableInstance[]).map((i) => i.id);
-    // Compute a best-effort title using currently loaded instances (may be stale)
-    const currentGroup = ids
-      .map((id) => instances.find((i) => i.id === id))
-      .filter(Boolean) as ClientTimetableInstance[];
+            .map((id) => instances.find((i) => i.id === id))
+            .filter((i): i is ClientTimetableInstance => i !== undefined)
+        : (groupInstancesOrIds as ClientTimetableInstance[]);
 
-    const groupStart = currentGroup.length ? Math.min(...currentGroup.map((i) => i.startTimeMin)) : 0;
-    const groupEnd = currentGroup.length ? Math.max(...currentGroup.map((i) => i.startTimeMin + i.task.durationMin)) : 0;
+    if (groupInsts.length === 0) return;
 
+    const groupStart = Math.min(...groupInsts.map((i) => i.startTimeMin));
+    const groupEnd = Math.max(...groupInsts.map((i) => i.startTimeMin + i.task.durationMin));
+    const ids = groupInsts.map((i) => i.id);
+
+    // Store the canonical slot for this opened group. This tells the effect
+    // which date and time-range to re-evaluate against the fresh `instances`
+    // whenever `CalendarView` receives updated data (via `router.refresh()`).
+    // We intentionally store the slot instead of ids so the group reflects
+    // the current contents of that timeslot rather than the original snapshot.
+    openGroupSlotRef.current = { date: groupInsts[0].date, startMin: groupStart, endMin: groupEnd };
+      const title = `${ids.length} overlapping · ${minToHHMM(groupStart)}–${minToHHMM(groupEnd)}`;
+      lastGroupTitleRef.current = title;
+      openSidebar(
+        title,
+        <GroupSidebarComponent
+          ids={ids}
+          initialInstances={groupInsts}
+          orgId={orgId}
+          memberships={memberships}
+          canManage={canManage}
+          dragDataRef={dragDataRef}
+          getTaskColor={getTaskColor}
+          openEditForInst={(inst: ClientTimetableInstance) =>
+            openEditSidebar(inst)
+          }
+          todayStr={todayStr}
+        />,
+      );
+  }
+
+  // Re-open the group sidebar with fresh data whenever `instances` changes
+  // (triggered by `router.refresh()` after mutations). The effect below:
+  // 1) reads the saved slot from `openGroupSlotRef.current` (if any)
+  // 2) re-derives the current members of that slot by checking overlap
+  //    against the fresh `instances` prop
+  // 3) calls `openSidebar(...)` with a new `key` to force remounting the
+  //    `GroupSidebarComponent` so its own fetch runs and the UI updates.
+  //
+  // Using slot-overlap (date + time range) rather than stored ids ensures:
+  // - items moved out of the original group are not shown
+  // - items moved into the same slot are included
+  // - deleted items disappear
+
+  useEffect(() => {
+    const slot = openGroupSlotRef.current;
+    if (!slot) return;
+
+    const freshGroup = instances.filter(
+      (i) =>
+        i.date === slot.date &&
+        i.startTimeMin < slot.endMin &&
+        i.startTimeMin + i.task.durationMin > slot.startMin,
+    );
+
+    if (freshGroup.length === 0) {
+      openGroupSlotRef.current = null;
+      closeSidebar();
+      return;
+    }
+
+    const freshIds = freshGroup.map((i) => i.id);
+    const freshStart = Math.min(...freshGroup.map((i) => i.startTimeMin));
+    const freshEnd = Math.max(...freshGroup.map((i) => i.startTimeMin + i.task.durationMin));
+
+    const title = `${freshIds.length} overlapping · ${minToHHMM(freshStart)}–${minToHHMM(freshEnd)}`;
+    lastGroupTitleRef.current = title;
     openSidebar(
-      `${ids.length} overlapping${currentGroup.length ? ` · ${minToHHMM(groupStart)}–${minToHHMM(groupEnd)}` : ""}`,
+      title,
       <GroupSidebarComponent
-        ids={ids}
+        key={freshGroup.map((i) => `${i.id}:${i.startTimeMin}:${i.date}`).join(",")}
+        ids={freshIds}
+        initialInstances={freshGroup}
         orgId={orgId}
         memberships={memberships}
         canManage={canManage}
         dragDataRef={dragDataRef}
         getTaskColor={getTaskColor}
         openEditForInst={(inst: ClientTimetableInstance) =>
-          openEditSidebar(inst, () => openGroupSidebar(ids))
+          openEditSidebar(inst, () => openGroupSidebar(freshIds))
         }
         todayStr={todayStr}
       />,
     );
-  }
+  }, [instances]); // eslint-disable-line react-hooks/exhaustive-deps
 
   type PendingDrop =
     | { kind: "drop"; col: string; timeMin: number; data: DragData }
@@ -406,16 +527,45 @@ export function CalendarView({
           timeMin,
         );
         if (!result.ok) { toast.error(result.error ?? "Something went wrong"); return; }
+        // If the server returned the created instance, open the ActionSidebar
+        // immediately so the user can edit assignees/schedule. Also highlight
+        // the target column while the panel is open.
+        if (result.data) {
+          const inst = result.data;
+          const title = inst.task.title;
+          lastEditTitleRef.current = title;
+          lastEditDateRef.current = inst.date;
+          openSidebar(
+            title,
+            <CalendarEditSidebarContent
+              key={inst.id}
+              instance={inst}
+              memberships={memberships ?? []}
+              orgId={orgId}
+              canManage={canManage}
+              onClose={() => {
+                closeSidebar();
+                lastEditDateRef.current = null;
+              }}
+              onRefresh={() => router.refresh()}
+              router={router}
+              todayStr={todayStr}
+            />,
+          );
+        }
       } else if (data.type === "group") {
         let delta = timeMin - data.groupStartMin;
         const insts = data.instances ?? data.instanceIds.map((id) => instances.find((i) => i.id === id)).filter(Boolean) as ClientTimetableInstance[];
-        // Compute allowed delta range to prevent any member from exceeding 1439 or going below 0
-        const maxDelta = 1439 - Math.max(...insts.map(i => i.startTimeMin));
-        const minDelta = -Math.min(...insts.map(i => i.startTimeMin));
+        // Compute allowed delta range to prevent any member from moving outside
+        // the org's open/close hours (falls back to full-day bounds).
+        const minAllowed = openTimeMin ?? 0;
+        const maxAllowed = (closeTimeMin ?? 1440);
+        const minDelta = Math.max(...insts.map(i => minAllowed - i.startTimeMin));
+        const maxDelta = Math.min(...insts.map(i => maxAllowed - (i.startTimeMin + (i.task?.durationMin ?? 0))));
         const originalDelta = delta;
         delta = Math.max(minDelta, Math.min(delta, maxDelta));
         if (originalDelta !== delta) {
-          toast("Drop was adjusted to prevent tasks moving outside allowed day range", { duration: 3000 });
+          toast("Drop was adjusted to prevent tasks moving outside allowed hours", { duration: 3000 });
         }
         const updates = insts.map((inst) => ({ entryId: inst.id, startTimeMin: inst.startTimeMin + delta, dateStr: col }));
         const result = await updateTimetableEntriesBatchAction(orgId, updates);
@@ -439,7 +589,10 @@ export function CalendarView({
       setPendingDrop({ kind: "drop", col, timeMin, data });
       return;
     }
-    executeDrop(col, timeMin, data);
+    const minAllowed = openTimeMin ?? 0;
+    const maxAllowed = (closeTimeMin ?? 1440) - 1;
+    const clampedTime = Math.max(minAllowed, Math.min(maxAllowed, timeMin));
+    executeDrop(col, clampedTime, data);
   }
 
   // Place a new task at a specific column/time (used for tap-to-place on mobile).
@@ -506,7 +659,9 @@ export function CalendarView({
             return (
               !hasVisibleInstances &&
               !dragOver &&
-              !selectedTaskId && (
+              !selectedTaskId &&
+              !isDropPending &&
+              !effectiveIsDragging && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center border bg-background/90">
                   <div className="flex flex-col items-center gap-3 text-center">
                     <CalendarDays className="h-10 w-10 text-muted-foreground/40" />
@@ -606,11 +761,13 @@ export function CalendarView({
             initialScrollMin={initialScrollMin}
             fillHeight={fillHeight}
             hourHeight={hourHeight}
-            columnHighlightClass={(dayStr) =>
-              dayStr === todayStr
-                ? "bg-primary/[0.04] text-foreground"
-                : undefined
-            }
+            columnHighlightClass={(dayStr) => {
+              if (dayStr === todayStr) return "bg-primary/[0.04] text-foreground";
+              if (lastEditDateRef.current && lastEditTitleRef.current && activeTitle === lastEditTitleRef.current && dayStr === lastEditDateRef.current) {
+                return "bg-primary/10 ring-1 ring-primary/40 text-foreground";
+              }
+              return undefined;
+            }}
             blockColor={(inst) => getTaskColorMaybe(inst)}
             openTimeMin={openTimeMin}
             closeTimeMin={closeTimeMin}

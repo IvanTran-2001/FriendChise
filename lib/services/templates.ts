@@ -98,7 +98,14 @@ export async function addTemplateInstance(
   taskId: string,
   dayIndex: number,
   startTimeMin: number,
-): Promise<ServiceResult<null>> {
+): Promise<ServiceResult<{
+  id: string;
+  dayIndex: number;
+  startTimeMin: number;
+  taskColor: string | null;
+  task: { id: string; name: string; durationMin: number };
+  assignees: Array<{ id: string; membership: { id: string; botName: string | null; user: { id: string; name: string } | null } }>;
+}>> {
   const [task, template] = await Promise.all([
     prisma.task.findFirst({
       where: { id: taskId, orgId },
@@ -124,11 +131,41 @@ export async function addTemplateInstance(
   }
 
   const endTimeMin = Math.min(startTimeMin + task.durationMin, 1440);
-  await prisma.timetableTemplateEntry.create({
+  const created = await prisma.timetableTemplateEntry.create({
     data: { taskId, templateId, dayIndex, startTimeMin, endTimeMin },
+    include: {
+      task: { select: { id: true, name: true, durationMin: true } },
+      assignees: {
+        include: {
+          membership: {
+            select: {
+              id: true,
+              botName: true,
+              user: { select: { id: true, name: true } },
+            },
+          },
+        },
+      },
+    },
   });
-  log.info("Template instance added", { orgId, templateId, taskId });
-  return { ok: true, data: null };
+  log.info("Template instance added", { orgId, templateId, taskId, instanceId: created.id });
+  // Map to a client-friendly shape similar to `ClientTemplateInstance`.
+  const mapped = {
+    id: created.id,
+    dayIndex: created.dayIndex,
+    startTimeMin: created.startTimeMin,
+    taskColor: null,
+    task: { id: created.task.id, name: created.task.name, durationMin: created.task.durationMin },
+    assignees: created.assignees.map((a) => ({
+      id: a.id,
+      membership: {
+        id: a.membership.id,
+        botName: a.membership.botName,
+        user: a.membership.user ? { id: a.membership.user.id, name: a.membership.user.name } : null,
+      },
+    })),
+  };
+  return { ok: true, data: mapped };
 }
 
 /**
@@ -210,6 +247,77 @@ export async function updateTemplateInstance(
   });
   log.info("Template instance updated", { orgId, instanceId });
   return { ok: true, data: null };
+}
+
+/**
+ * Updates multiple template entries in a single transaction.
+ * Validates inputs (belongs to org, dayIndex within cycle, time bounds) and
+ * updates `startTimeMin` / `dayIndex` and recomputes `endTimeMin` safely.
+ */
+export async function updateTemplateInstancesBatch(
+  orgId: string,
+  updates: Array<{ id: string; dayIndex?: number; startTimeMin?: number }>,
+): Promise<ServiceResult<{ templateIds: string[] }>> {
+  if (!Array.isArray(updates) || updates.length === 0) {
+    return { ok: true, data: { templateIds: [] } };
+  }
+
+  const ids = updates.map((u) => u.id);
+  const entries = await prisma.timetableTemplateEntry.findMany({
+    where: { id: { in: ids }, template: { orgId } },
+    select: {
+      id: true,
+      templateId: true,
+      startTimeMin: true,
+      durationMin: true,
+      task: { select: { durationMin: true } },
+      template: { select: { cycleLengthDays: true } },
+    },
+  });
+
+  if (entries.length !== ids.length) {
+    return { ok: false, error: "Not found", code: "NOT_FOUND" };
+  }
+
+  const byId = new Map(entries.map((e) => [e.id, e]));
+
+  // Validate all updates first
+  for (const u of updates) {
+    const entry = byId.get(u.id);
+    if (!entry) return { ok: false, error: "Not found", code: "NOT_FOUND" };
+    if (u.dayIndex !== undefined) {
+      const cycle = entry.template.cycleLengthDays;
+      if (!Number.isInteger(u.dayIndex) || u.dayIndex < 0 || u.dayIndex >= cycle) {
+        return {
+          ok: false,
+          error: `Day must be between 0 and ${cycle - 1}`,
+          code: "INVALID",
+        };
+      }
+    }
+    if (u.startTimeMin !== undefined && (u.startTimeMin < 0 || u.startTimeMin > 1439)) {
+      return { ok: false, error: "Invalid time", code: "INVALID" };
+    }
+  }
+
+  // Build update operations (compute endTimeMin using available duration)
+  const ops = updates.map((u) => {
+    const entry = byId.get(u.id)!;
+    const data: Record<string, any> = {};
+    if (u.dayIndex !== undefined) data.dayIndex = u.dayIndex;
+    if (u.startTimeMin !== undefined) {
+      data.startTimeMin = u.startTimeMin;
+      const dur = entry.durationMin ?? entry.task?.durationMin ?? 0;
+      data.endTimeMin = Math.min(u.startTimeMin + dur, 1440);
+    }
+    return prisma.timetableTemplateEntry.update({ where: { id: u.id }, data });
+  });
+
+  await prisma.$transaction(ops);
+
+  const templateIds = Array.from(new Set(entries.map((e) => e.templateId)));
+  log.info("Template instances batch updated", { orgId, templateIds, count: updates.length });
+  return { ok: true, data: { templateIds } };
 }
 
 /**
