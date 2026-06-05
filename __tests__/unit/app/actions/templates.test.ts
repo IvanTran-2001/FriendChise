@@ -170,7 +170,14 @@ describe("addTemplateInstanceAction", () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
     vi.mocked(addTemplateInstanceService).mockResolvedValue({
       ok: true,
-      data: null,
+      data: {
+        id: "inst-1",
+        dayIndex: 0,
+        startTimeMin: 480,
+        taskColor: null,
+        task: { id: "task-1", name: "Task", durationMin: 30 },
+        assignees: [],
+      },
     });
 
     const result = await addTemplateInstanceAction(

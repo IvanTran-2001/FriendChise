@@ -104,7 +104,7 @@ export async function addTemplateInstance(
   startTimeMin: number;
   taskColor: string | null;
   task: { id: string; name: string; durationMin: number };
-  assignees: Array<{ id: string; membership: { id: string; botName: string | null; user: { id: string; name: string } | null } }>;
+  assignees: Array<{ id: string; membership: { id: string; botName: string | null; user: { id: string; name: string | null } | null } }>;
 }>> {
   const [task, template] = await Promise.all([
     prisma.task.findFirst({
