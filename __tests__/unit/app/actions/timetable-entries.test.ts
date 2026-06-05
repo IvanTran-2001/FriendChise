@@ -14,6 +14,7 @@ vi.mock("@/lib/services/timetable-entries", () => ({
   deleteTimetableEntry: vi.fn(),
   addTimetableEntryAssignee: vi.fn(),
   removeTimetableEntryAssignee: vi.fn(),
+  getTimetableInstancesByIds: vi.fn(),
 }));
 
 import {
@@ -27,6 +28,7 @@ import {
   deleteTimetableEntry as deleteTimetableEntryService,
   addTimetableEntryAssignee as addTimetableEntryAssigneeService,
   removeTimetableEntryAssignee as removeTimetableEntryAssigneeService,
+  getTimetableInstancesByIds as getTimetableInstancesByIdsService,
 } from "@/lib/services/timetable-entries";
 import {
   createTimetableEntryAction,
@@ -72,6 +74,25 @@ describe("createTimetableEntryAction", () => {
       ok: true,
       data: {} as any,
     });
+    vi.mocked(getTimetableInstancesByIdsService).mockResolvedValue([
+      {
+        id: "entry-1",
+        taskId: "task-1",
+        date: "2025-06-01",
+        startTimeMin: 480,
+        status: EntryStatus.TODO,
+        assignees: [],
+        taskColor: null,
+        scheduledStartAt: "2025-06-01T08:00:00.000Z",
+        scheduledEndAt: "2025-06-01T09:00:00.000Z",
+        task: {
+          id: "task-1",
+          title: "Task",
+          durationMin: 60,
+          preferredStartTimeMin: null,
+        },
+      },
+    ] as any);
 
     const result = await createTimetableEntryAction(
       "org-1",
@@ -80,7 +101,26 @@ describe("createTimetableEntryAction", () => {
       480,
     );
 
-    expect(result).toEqual({ ok: true });
+    expect(result).toEqual({
+      ok: true,
+      data: {
+        id: "entry-1",
+        taskId: "task-1",
+        date: "2025-06-01",
+        startTimeMin: 480,
+        status: EntryStatus.TODO,
+        assignees: [],
+        taskColor: null,
+        scheduledStartAt: "2025-06-01T08:00:00.000Z",
+        scheduledEndAt: "2025-06-01T09:00:00.000Z",
+        task: {
+          id: "task-1",
+          title: "Task",
+          durationMin: 60,
+          preferredStartTimeMin: null,
+        },
+      },
+    });
     expect(createTimetableEntryService).toHaveBeenCalledWith(
       "org-1",
       "task-1",
