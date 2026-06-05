@@ -303,7 +303,7 @@ export async function updateTemplateInstancesBatch(
   // Build update operations (compute endTimeMin using available duration)
   const ops = updates.map((u) => {
     const entry = byId.get(u.id)!;
-    const data: Record<string, any> = {};
+    const data: Prisma.TimetableTemplateEntryUpdateInput = {};
     if (u.dayIndex !== undefined) data.dayIndex = u.dayIndex;
     if (u.startTimeMin !== undefined) {
       data.startTimeMin = u.startTimeMin;

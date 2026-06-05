@@ -141,6 +141,7 @@ export function CalendarEditSidebarContent({
                 <button
                   onClick={() => handleRemoveAssignee(a.membership.id)}
                   className="text-muted-foreground hover:text-destructive transition-colors ml-2"
+                  aria-label={`Remove assignee ${a.membership.user?.name ?? a.membership.botName ?? a.membership.id}`}
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -160,7 +161,7 @@ export function CalendarEditSidebarContent({
                   </option>
                 ))}
               </select>
-              <Button size="sm" variant="outline" onClick={handleAddAssignee} className="h-8 w-8 p-0 shrink-0">
+              <Button size="sm" variant="outline" onClick={handleAddAssignee} className="h-8 w-8 p-0 shrink-0" aria-label="Add assignee">
                 <Plus className="h-3.5 w-3.5" />
               </Button>
             </div>

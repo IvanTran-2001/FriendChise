@@ -36,17 +36,6 @@ export function TemplateSimpleView({
 
   const byDate = groupBy(instances, (inst) => String(inst.dayIndex));
 
-  if (instances.length === 0) {
-    return (
-      <div className="flex items-center justify-center rounded-xl border border-dashed bg-muted/20 py-16">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <CalendarDays className="h-10 w-10 text-muted-foreground/40" />
-          <p className="text-xl font-semibold text-foreground">No tasks</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-4">
       {visibleDays.map((dayIdx) => {
@@ -131,7 +120,14 @@ export function TemplateSimpleView({
             </div>
 
             {sortedDayInstances.length === 0 ? (
-              <div className={`px-4 py-3 text-sm ${highlightedDay === dayStr ? "text-foreground bg-primary/4" : "text-muted-foreground"}`}>No tasks scheduled</div>
+              <div className={`px-4 py-3 text-sm ${highlightedDay === dayStr ? "text-foreground bg-primary/4" : "text-muted-foreground"}`}>
+                No tasks scheduled
+                {instances.length === 0 && (
+                  <div className="flex justify-center mt-2">
+                    <CalendarDays className="h-6 w-6 text-muted-foreground/30" />
+                  </div>
+                )}
+              </div>
             ) : (
               <div className={`divide-y ${highlightedDay === dayStr ? "bg-primary/4" : ""}`}>
                 {sortedDayInstances.map((inst) => (
@@ -165,6 +161,24 @@ export function TemplateSimpleView({
                           onClose={() => actionSidebar.close()}
                         />,
                       );
+                    }}
+                    tabIndex={memberships ? 0 : undefined}
+                    role={memberships ? "button" : undefined}
+                    onKeyDown={(e) => {
+                      if (!memberships) return;
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        actionSidebar.open(
+                          inst.task.name,
+                          <CalendarEditSidebarContent
+                            key={inst.id}
+                            instance={inst}
+                            memberships={memberships}
+                            orgId={orgId}
+                            onClose={() => actionSidebar.close()}
+                          />,
+                        );
+                      }
                     }}
                   >
                     <div className="w-1 self-stretch rounded-full shrink-0" style={{ backgroundColor: inst.taskColor ?? "#94a3b8" }} />

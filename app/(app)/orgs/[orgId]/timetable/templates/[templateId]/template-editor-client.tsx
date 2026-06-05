@@ -228,8 +228,6 @@ export function TemplateEditorClient({
     return fromTasks ?? inst.taskColor ?? undefined;
   }, [taskRoleColorMap]);
 
-  const noop = useCallback(() => {}, []);
-
   // Track the slot (dayIndex + time range) of the currently open group sidebar.
   const openGroupSlotRef = useRef<{ dayIndex: number; startMin: number; endMin: number } | null>(null);
   const lastGroupTitleRef = useRef<string | null>(null);
@@ -247,6 +245,10 @@ export function TemplateEditorClient({
   const [isDraggingInternal, setIsDraggingInternal] = useState(false);
   const isDragging = typeof isDraggingExternal === "boolean" ? isDraggingExternal : isDraggingInternal;
   const setIsDragging = onExternalDragChange ?? setIsDraggingInternal;
+
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+  }, [setIsDragging]);
 
   useEffect(() => {
     registerDragHandlers({ setIsDragging });
@@ -344,7 +346,7 @@ export function TemplateEditorClient({
                 e.dataTransfer.effectAllowed = "move";
                 setIsDragging(true);
               }}
-              onDragEnd={noop}
+              onDragEnd={handleDragEnd}
               onClick={() => openEditInSidebar(inst)}
               className="flex items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5 hover:bg-accent/40 transition-colors cursor-grab active:cursor-grabbing"
             >
@@ -423,7 +425,7 @@ export function TemplateEditorClient({
                 e.dataTransfer.effectAllowed = "move";
                 setIsDragging(true);
               }}
-              onDragEnd={noop}
+              onDragEnd={handleDragEnd}
               onClick={() => openEditInSidebar(inst)}
               className="flex items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5 hover:bg-accent/40 transition-colors cursor-grab active:cursor-grabbing"
             >

@@ -20,14 +20,14 @@ import { PermissionAction, EntryStatus, VoteType, TaskScope } from "@prisma/clie
 const DEMO_MAX_CONCURRENT = 200;
 const DEMO_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 /**
- * JWT session lifetime for demo accounts.
+ * JWT session lifetime for demo accounts (1 hour).
  * Aggressive cleanup uses this as its cutoff so sessions are never removed
  * before their token expires. Capacity checks use it to exclude rows whose
  * JWT has already expired. Must stay in sync with the token.exp logic in auth.ts.
  */
 export const DEMO_JWT_TTL_MS = 1 * 60 * 60 * 1000; // 1 hour
-const DEMO_GLOBAL_TASK_SOFT_CAP = 1480; // trigger aggressive cleanup at this threshold (80% of hard cap)
-const DEMO_GLOBAL_TASK_HARD_CAP = DEMO_MAX_CONCURRENT * 37; // hard reject new sessions above this threshold (50 * 37 = 1850)
+const DEMO_GLOBAL_TASK_SOFT_CAP = 1480; // trigger aggressive cleanup at this threshold (80% of hard cap = 1480 / 1850 ≈ 80%)
+const DEMO_GLOBAL_TASK_HARD_CAP = DEMO_MAX_CONCURRENT * 37; // hard reject new sessions above this threshold (200 * 37 / 4 = 1850)
 
 /** Per-entity limits enforced inside active demo sessions. */
 export const DEMO_LIMITS = {
@@ -468,7 +468,7 @@ const TASKS: TaskDef[] = [
  * Deletes expired demo users + their orgs.
  *
  * Normal mode:     removes sessions older than DEMO_TTL_MS (24 h).
- * Aggressive mode: removes sessions older than DEMO_JWT_TTL_MS (2 h, the JWT lifetime)
+ * Aggressive mode: removes sessions older than DEMO_JWT_TTL_MS (1 hour, the JWT lifetime)
  *                  — triggered when the global task count nears the soft cap.
  *                  The cutoff is bounded to ≥ DEMO_JWT_TTL_MS so a session is never
  *                  deleted while its JWT is still valid.

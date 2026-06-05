@@ -179,7 +179,9 @@ function GroupSidebarComponent({
               dragDataRef.current = { type: "move", instanceId: inst.id, offsetMin: 0 };
               e.dataTransfer.effectAllowed = "move";
             }}
-            onDragEnd={() => {}}
+            onDragEnd={() => {
+              dragDataRef.current = null;
+            }}
             className={`flex items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5 hover:bg-accent/40 transition-colors ${
               canManage ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
             }`}
@@ -945,7 +947,10 @@ export function CalendarView({
                 setPendingDrop(null);
                 setSuppressDrop(false);
                 if (p.kind === "drop") {
-                  executeDrop(p.col, p.timeMin, p.data);
+                  const minAllowed = openTimeMin ?? 0;
+                  const maxAllowed = (closeTimeMin ?? 1440) - 1;
+                  const clampedTime = Math.max(minAllowed, Math.min(maxAllowed, p.timeMin));
+                  executeDrop(p.col, clampedTime, p.data);
                 } else {
                   executeTap(p.col, p.timeMin, p.taskId);
                 }

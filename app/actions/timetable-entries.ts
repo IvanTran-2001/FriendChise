@@ -53,9 +53,34 @@ export async function createTimetableEntryAction(
   if (!result.ok) return { ok: false, error: result.error };
 
   // Map the created entry to the client WeekTimetableInstance shape
-  const instances = await getTimetableInstancesByIds(orgId, [result.data.id]);
   revalidatePath(`/orgs/${orgId}/timetable`);
-  return { ok: true, data: instances[0] };
+  try {
+    const instances = await getTimetableInstancesByIds(orgId, [result.data.id]);
+    return { ok: true, data: instances[0] };
+  } catch (err) {
+    // Fetch failed, but the entry was created successfully. Return a minimal
+    // fallback instance constructed from the result so the client doesn't see a false failure.
+    // Note: These are placeholder ISO timestamps since we don't have access to the UTC conversion here
+    const now = new Date().toISOString();
+    const fallback: WeekTimetableInstance = {
+      id: result.data.id,
+      taskId: result.data.taskId,
+      date: result.data.dateStr ?? dateStr,
+      startTimeMin: result.data.startTimeMin ?? startTimeMin,
+      status: result.data.status ?? "TODO",
+      assignees: [],
+      taskColor: null,
+      scheduledStartAt: now,
+      scheduledEndAt: now,
+      task: {
+        id: result.data.taskId,
+        title: result.data.taskName ?? "Task",
+        durationMin: result.data.durationMin ?? 60,
+        preferredStartTimeMin: null,
+      },
+    };
+    return { ok: true, data: fallback };
+  }
 }
 
 /**
