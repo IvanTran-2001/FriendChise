@@ -29,6 +29,7 @@ import { Users } from "lucide-react";
 import { SearchInput } from "@/components/ui/search-input";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useSupportsHover } from "@/hooks/use-hover-capability";
 import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { MemberActions } from "./member-actions";
@@ -172,6 +173,7 @@ export function MembersView({
 }) {
   const [search, setSearch] = useState("");
   const { open } = useActionSidebar();
+  const supportsHover = useSupportsHover();
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -249,6 +251,7 @@ export function MembersView({
             orgId={orgId}
             canManage={canManage}
             allRoles={allRoles}
+            supportsHover={supportsHover}
             onView={handleView}
           />
         ) : (
@@ -257,6 +260,7 @@ export function MembersView({
             orgId={orgId}
             canManage={canManage}
             allRoles={allRoles}
+            supportsHover={supportsHover}
             onView={handleView}
           />
         )}
@@ -270,12 +274,14 @@ function CardGrid({
   orgId,
   canManage,
   allRoles,
+  supportsHover,
   onView,
 }: {
   members: Member[];
   orgId: string;
   canManage: boolean;
   allRoles: Role[];
+  supportsHover: boolean;
   onView: (m: Member) => void;
 }) {
   return (
@@ -327,7 +333,7 @@ function CardGrid({
             </Card>
             {canManage && (
               <div
-                className="absolute top-1 right-1"
+                className={`absolute top-1 right-1 transition-opacity ${supportsHover ? "opacity-0 group-hover:opacity-100 focus-within:opacity-100" : "opacity-100"}`}
                 onClick={(e) => e.stopPropagation()}
               >
                 <MemberActions
@@ -355,12 +361,14 @@ function MemberList({
   orgId,
   canManage,
   allRoles,
+  supportsHover,
   onView,
 }: {
   members: Member[];
   orgId: string;
   canManage: boolean;
   allRoles: Role[];
+  supportsHover: boolean;
   onView: (m: Member) => void;
 }) {
   return (
@@ -374,7 +382,7 @@ function MemberList({
         return (
           <li
             key={m.id}
-            className="flex items-center hover:bg-primary/5 transition-colors"
+            className="group flex items-center hover:bg-primary/5 transition-colors"
           >
             <button
               onClick={() => onView(m)}
@@ -410,7 +418,7 @@ function MemberList({
               </div>
             </button>
             {canManage && (
-              <div className="pr-3 shrink-0">
+              <div className={`pr-3 shrink-0 transition-opacity ${supportsHover ? "opacity-0 group-hover:opacity-100 focus-within:opacity-100" : "opacity-100"}`}>
                 <MemberActions
                   orgId={orgId}
                   membershipId={m.id}

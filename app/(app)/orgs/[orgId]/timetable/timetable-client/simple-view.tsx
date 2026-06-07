@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 // Title no longer links to task detail here; use the icon button instead.
 import { CalendarDays, ExternalLink } from "lucide-react";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useSupportsHover } from "@/hooks/use-hover-capability";
 import { toast } from "sonner";
 import { createTimetableEntryAction } from "@/app/actions/timetable-entries";
 import { cn } from "@/lib/utils";
@@ -58,6 +59,7 @@ export function SimpleView({
   tasks,
 }: SimpleViewProps) {
   const router = useRouter();
+  const supportsHover = useSupportsHover();
   const actionSidebar = useActionSidebar();
   const [highlightedDay, setHighlightedDay] = useState<string | null>(null);
   const clearHighlight = useCallback(() => setHighlightedDay(null), []);
@@ -384,7 +386,7 @@ export function SimpleView({
                               e.stopPropagation();
                               router.push(`/orgs/${orgId}/tasks/${inst.taskId}?ref=timetable`);
                             }}
-                            className="flex items-center justify-center w-6 h-6 rounded hover:bg-muted transition-colors shrink-0 text-muted-foreground sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100"
+                            className={`flex items-center justify-center w-6 h-6 rounded hover:bg-muted transition-colors shrink-0 text-muted-foreground ${supportsHover ? "opacity-0 group-hover:opacity-100 focus-within:opacity-100" : "opacity-100"}`}
                             aria-label="Open task"
                           >
                             <ExternalLink className="h-3.5 w-3.5" />

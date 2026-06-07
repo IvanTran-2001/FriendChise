@@ -11,6 +11,7 @@
  */
 import { useState, useReducer, useTransition, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useSupportsHover } from "@/hooks/use-hover-capability";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import { MoreHorizontal, ListTodo, Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -121,6 +122,7 @@ export function TaskTable({
   view,
 }: TaskTableProps) {
   const router = useRouter();
+  const supportsHover = useSupportsHover();
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = usePersistedState(`tasks-search-${orgId}`, "");
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
@@ -604,7 +606,7 @@ export function TaskTable({
                   {/* Actions — hidden until hover */}
                   {canManageTasks && (
                     <div
-                      className="shrink-0 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity"
+                      className={`shrink-0 transition-opacity ${supportsHover ? "opacity-0 group-hover:opacity-100 focus-within:opacity-100" : "opacity-100"}`}
                       onClick={(e) => e.stopPropagation()}
                     >
                       {task._available ? (

@@ -2,9 +2,10 @@
 
 import { useState, useTransition, useRef, useEffect } from "react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useSupportsHover } from "@/hooks/use-hover-capability";
 import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
 import { cn } from "@/lib/utils";
 import { updateToolItemListEntryAmountAction } from "@/app/actions/tools";
@@ -57,6 +58,7 @@ export function ListGridView({
   onItemClick,
   onSubIndexChange,
 }: ListGridViewProps) {
+  const supportsHover = useSupportsHover();
   const cols = list.gridConfig?.gridCols ?? 4;
   const rows = list.gridConfig?.gridRows ?? 4;
   const pageSize = cols * rows;
@@ -309,7 +311,7 @@ export function ListGridView({
                   {/* Prev arrow — always visible on touch/mobile, hover-only on desktop */}
                   {hasMultiple && subIdx > 0 && (
                     <button
-                      className="absolute left-0 top-1/2 -translate-y-1/2 z-20 sm:invisible sm:group-hover:visible bg-background/80 hover:bg-background rounded-r p-0.5 transition-opacity"
+                      className={`absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-background/80 hover:bg-background rounded-r p-0.5 transition-opacity ${supportsHover ? "invisible group-hover:visible" : "visible"}`}
                       onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -326,7 +328,7 @@ export function ListGridView({
                   {/* Next arrow — always visible on touch/mobile, hover-only on desktop */}
                   {hasMultiple && subIdx < cellEntries.length - 1 && (
                     <button
-                      className="absolute right-0 top-1/2 -translate-y-1/2 z-20 sm:invisible sm:group-hover:visible bg-background/80 hover:bg-background rounded-l p-0.5 transition-opacity"
+                      className={`absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-background/80 hover:bg-background rounded-l p-0.5 transition-opacity ${supportsHover ? "invisible group-hover:visible" : "visible"}`}
                       onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -387,7 +389,7 @@ export function ListGridView({
                               if (e.key === "Escape") setEditingEntryId(null);
                             }}
                             onBlur={() => commitAmount(entry)}
-                            className="w-full text-[10px] bg-transparent border-b border-primary outline-none leading-tight tabular-nums py-0"
+                            className="w-full rounded-md border border-primary/30 bg-background/90 px-1 py-0.5 text-[10px] leading-tight tabular-nums outline-none shadow-sm focus:border-primary"
                           />
                           <span className="text-[10px] text-muted-foreground shrink-0 leading-tight">
                             {entry.item.unit}
@@ -396,8 +398,8 @@ export function ListGridView({
                       ) : (
                         <p
                           className={cn(
-                            "text-[10px] text-muted-foreground leading-tight flex items-baseline gap-0.5",
-                            canManage && "cursor-text hover:text-foreground transition-colors",
+                            "text-[10px] text-muted-foreground leading-tight flex items-baseline gap-1",
+                            canManage && "cursor-pointer hover:text-foreground transition-colors",
                           )}
                           onClick={
                             canManage
@@ -408,9 +410,19 @@ export function ListGridView({
                               : undefined
                           }
                         >
+                          {canManage && (
+                            <span className="inline-flex items-center justify-center rounded-full border border-border/70 bg-background/80 p-0.5 text-muted-foreground">
+                              <Pencil className="h-2.5 w-2.5" />
+                            </span>
+                          )}
                           {/* Number always visible; unit hides at narrow sizes */}
                           <span className="shrink-0 tabular-nums">{entry.amount}</span>
                           <span className="hidden @[7rem]/cell:inline truncate">{entry.item.unit}</span>
+                          {canManage && (
+                            <span className="hidden @[8rem]/cell:inline text-[9px] text-muted-foreground/70">
+                              edit
+                            </span>
+                          )}
                         </p>
                       )
                     )}

@@ -4,6 +4,7 @@ import React, { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, ExternalLink } from "lucide-react";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useSupportsHover } from "@/hooks/use-hover-capability";
 import { cn } from "@/lib/utils";
 import { groupBy, minTo12h } from "../../../_shared/grid-utils";
 import { AddTemplateTaskPanel } from "../_components/add-template-task-panel";
@@ -30,6 +31,7 @@ export function TemplateSimpleView({
   availableTasks,
 }: SimpleViewProps) {
   const router = useRouter();
+  const supportsHover = useSupportsHover();
   const actionSidebar = useActionSidebar();
   const [highlightedDay, setHighlightedDay] = useState<string | null>(null);
   const clearHighlight = useCallback(() => setHighlightedDay(null), []);
@@ -193,7 +195,7 @@ export function TemplateSimpleView({
                       {inst.assignees.length > 3 && <span className="w-6 h-6 rounded-full bg-muted text-muted-foreground text-[10px] font-semibold flex items-center justify-center">+{inst.assignees.length - 3}</span>}
                     </div>
                     <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">{inst.task.durationMin}m</span>
-                    <button onClick={(e) => { e.stopPropagation(); router.push(`/orgs/${orgId}/tasks/${inst.task.id}?ref=timetable`); }} className="flex items-center justify-center w-6 h-6 rounded hover:bg-muted transition-colors shrink-0 text-muted-foreground sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100" aria-label="Open task"><ExternalLink className="h-3.5 w-3.5" /></button>
+                    <button onClick={(e) => { e.stopPropagation(); router.push(`/orgs/${orgId}/tasks/${inst.task.id}?ref=timetable`); }} className={`flex items-center justify-center w-6 h-6 rounded hover:bg-muted transition-colors shrink-0 text-muted-foreground ${supportsHover ? "opacity-0 group-hover:opacity-100 focus-within:opacity-100" : "opacity-100"}`} aria-label="Open task"><ExternalLink className="h-3.5 w-3.5" /></button>
                   </div>
                 ))}
               </div>
