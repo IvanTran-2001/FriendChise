@@ -109,7 +109,7 @@ export function SegmentedControl<T extends string>({
           type="button"
           onClick={() => handleClick(value)}
           disabled={disabled}
-          aria-current={isActive(value) ? "true" : undefined}
+          aria-pressed={isActive(value)}
           className={cn(
             size === "sm" ? "h-8 px-2.5" : "h-9 px-3.5",
             "inline-flex items-center justify-center rounded-full transition-all duration-150 cursor-pointer select-none text-center whitespace-nowrap leading-none",

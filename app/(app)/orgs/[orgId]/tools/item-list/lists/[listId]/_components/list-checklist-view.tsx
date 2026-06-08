@@ -89,8 +89,8 @@ export function ListChecklistView({
 
   function commitAmount(entry: ListDetail["entries"][number]) {
     const parsed = Number.parseFloat(editingAmount);
-    if (Number.isNaN(parsed) || parsed <= 0 || parsed === entry.amount) return;
     setEditingAmountId(null);
+    if (Number.isNaN(parsed) || parsed <= 0 || parsed === entry.amount) return;
     setPendingAmountId(entry.id);
     startTransition(async () => {
       const result = await updateToolItemListEntryAmountAction(orgId, list.id, entry.id, parsed);
@@ -245,7 +245,7 @@ export function ListChecklistView({
                         Rates
                       </div>
                       <div className="max-h-28 overflow-y-auto space-y-1 pr-1">
-                        {rates.slice(0, 3).map((rate) => {
+                        {rates.map((rate) => {
                           const isToItem = rate.toItem.id === entry.item.id;
                           const otherItem = isToItem ? rate.fromItem : rate.toItem;
                           const multiplier = isToItem
@@ -280,11 +280,6 @@ export function ListChecklistView({
                             </div>
                           );
                         })}
-                        {rates.length > 3 && (
-                          <p className="pt-1 text-[10px] text-muted-foreground/60">
-                            Scroll for more rates
-                          </p>
-                        )}
                       </div>
                     </div>
                   )}
