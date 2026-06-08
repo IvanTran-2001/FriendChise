@@ -15,14 +15,18 @@ import { SegmentedControl } from "@/components/ui/segmented-control";
 import { CalendarDays, CalendarRange, Calendar, List } from "lucide-react";
 
 interface TimetableViewPickerProps {
-  orgId: string;
-  anchor: string;
+  orgId?: string;
+  anchor?: string;
   mode: "calendar" | "simple";
   span: "day" | "week";
   roleId?: string | null;
   tagId?: string | null;
-  onModeChange: (mode: "calendar" | "simple") => void;
-  onSpanChange: (span: "day" | "week") => void;
+  calendarHref?: string;
+  simpleHref?: string;
+  dayHref?: string;
+  weekHref?: string;
+  onModeChange?: (mode: "calendar" | "simple") => void;
+  onSpanChange?: (span: "day" | "week") => void;
   /** Extra classes applied to the outer wrapper (e.g. "flex-col" in sidebars). */
   className?: string;
 }
@@ -34,11 +38,32 @@ export function TimetableViewPicker({
   span,
   roleId,
   tagId,
+  calendarHref,
+  simpleHref,
+  dayHref,
+  weekHref,
   onModeChange,
   onSpanChange,
   className,
 }: TimetableViewPickerProps) {
+  const hasHrefNavigation =
+    Boolean(calendarHref) &&
+    Boolean(simpleHref) &&
+    Boolean(dayHref) &&
+    Boolean(weekHref);
+
   function buildHref(nextMode: "calendar" | "simple", nextSpan: "day" | "week") {
+    if (hasHrefNavigation) {
+      if (nextMode === "calendar" && nextSpan === "day") return calendarHref!;
+      if (nextMode === "calendar" && nextSpan === "week") return dayHref!;
+      if (nextMode === "simple" && nextSpan === "day") return simpleHref!;
+      return weekHref!;
+    }
+
+    if (!orgId || !anchor) {
+      return "";
+    }
+
     const params = new URLSearchParams({ anchor, mode: nextMode, span: nextSpan });
     if (roleId) params.set("roleId", roleId);
     if (tagId) params.set("tagId", tagId);
@@ -46,13 +71,19 @@ export function TimetableViewPicker({
   }
 
   function setMode(nextMode: "calendar" | "simple") {
-    window.history.replaceState(null, "", buildHref(nextMode, span));
-    onModeChange(nextMode);
+    const nextHref = buildHref(nextMode, span);
+    if (nextHref) {
+      window.history.replaceState(null, "", nextHref);
+    }
+    onModeChange?.(nextMode);
   }
 
   function setSpan(nextSpan: "day" | "week") {
-    window.history.replaceState(null, "", buildHref(mode, nextSpan));
-    onSpanChange(nextSpan);
+    const nextHref = buildHref(mode, nextSpan);
+    if (nextHref) {
+      window.history.replaceState(null, "", nextHref);
+    }
+    onSpanChange?.(nextSpan);
   }
 
   return (
