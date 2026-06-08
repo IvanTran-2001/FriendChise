@@ -9,7 +9,7 @@
  */
 import { usePathname } from "next/navigation";
 import { Building2, PlusCircle, Network, Mail } from "lucide-react";
-import { SidebarNavItem } from "@/components/layout/sidebar-nav-item";
+import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
 
 const items = [
   { title: "Create", url: "/orgs/new", icon: PlusCircle, disabled: false },
@@ -24,7 +24,7 @@ export function OrgManagementNav() {
   return (
     <aside className="flex flex-col flex-1 overflow-y-auto">
       {items.map(({ title, url, icon, disabled }) => (
-        <SidebarNavItem
+        <PageSidebarNavItem
           key={url}
           title={title}
           url={url}

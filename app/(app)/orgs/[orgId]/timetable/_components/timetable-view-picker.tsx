@@ -7,63 +7,55 @@
  *  - Calendar / Simple  (mode)
  *  - Day / Week         (span)
  *
- * All state is URL-driven — switching calls `router.push()` with the new
- * href, so mode/span persist across navigation and page refreshes.
- * A `useTransition` keeps the button interactive while the navigation is
- * pending.
- *
- * Accepts an optional `className` for layout adjustments (e.g. `flex-col
- * items-start` when rendered in a narrow sidebar vs. the toolbar).
+ * The picker updates the URL in place and notifies the parent so the view
+ * switches immediately without a route navigation.
  */
-import { useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 
 interface TimetableViewPickerProps {
+  orgId: string;
+  anchor: string;
   mode: "calendar" | "simple";
   span: "day" | "week";
-  calendarHref: string;
-  simpleHref: string;
-  dayHref: string;
-  weekHref: string;
+  roleId?: string | null;
+  tagId?: string | null;
+  onModeChange: (mode: "calendar" | "simple") => void;
+  onSpanChange: (span: "day" | "week") => void;
   /** Extra classes applied to the outer wrapper (e.g. "flex-col" in sidebars). */
   className?: string;
 }
 
 export function TimetableViewPicker({
+  orgId,
+  anchor,
   mode,
   span,
-  calendarHref,
-  simpleHref,
-  dayHref,
-  weekHref,
+  roleId,
+  tagId,
+  onModeChange,
+  onSpanChange,
   className,
 }: TimetableViewPickerProps) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  function buildHref(nextMode: "calendar" | "simple", nextSpan: "day" | "week") {
+    const params = new URLSearchParams({ anchor, mode: nextMode, span: nextSpan });
+    if (roleId) params.set("roleId", roleId);
+    if (tagId) params.set("tagId", tagId);
+    return `/orgs/${orgId}/timetable?${params.toString()}`;
+  }
 
-  const navigate = (href: string, meta?: { mode?: string; span?: string }) =>
-    startTransition(() => {
-      if (meta) {
-        try {
-          if (meta.mode) localStorage.setItem("timetable:mode", meta.mode);
-          if (meta.span) localStorage.setItem("timetable:span", meta.span);
-        } catch {
-          /* ignore */
-        }
-      }
-      router.push(href);
-    });
+  function setMode(nextMode: "calendar" | "simple") {
+    window.history.replaceState(null, "", buildHref(nextMode, span));
+    onModeChange(nextMode);
+  }
+
+  function setSpan(nextSpan: "day" | "week") {
+    window.history.replaceState(null, "", buildHref(mode, nextSpan));
+    onSpanChange(nextSpan);
+  }
 
   return (
-    <div
-      className={cn(
-        "flex items-center gap-2",
-        isPending && "pointer-events-none opacity-50",
-        className,
-      )}
-    >
+    <div className={cn("flex items-center gap-2", className)}>
       {/* Day / Week */}
       <SegmentedControl
         options={[
@@ -71,9 +63,7 @@ export function TimetableViewPicker({
           { label: "Week", value: "week" },
         ]}
         value={span}
-        onChange={(v) =>
-          navigate(v === "day" ? dayHref : weekHref, { span: v })
-        }
+        onChange={(v) => setSpan(v as "day" | "week")}
       />
 
       {/* Calendar / Simple */}
@@ -83,9 +73,7 @@ export function TimetableViewPicker({
           { label: "Simple", value: "simple" },
         ]}
         value={mode}
-        onChange={(v) =>
-          navigate(v === "calendar" ? calendarHref : simpleHref, { mode: v })
-        }
+        onChange={(v) => setMode(v as "calendar" | "simple")}
       />
     </div>
   );

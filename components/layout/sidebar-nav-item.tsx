@@ -15,9 +15,9 @@
  */
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import type { ComponentType } from "react";
+import type { ComponentType, MouseEvent } from "react";
 
-type SidebarNavItemProps = {
+export type SidebarNavItemProps = {
   title: string;
   url: string;
   icon: ComponentType<{ className?: string }>;
@@ -31,7 +31,7 @@ type SidebarNavItemProps = {
   compact?: boolean;
   /** Abbreviated label used in compact mode. Falls back to title if omitted. */
   compactLabel?: string;
-  onClick?: () => void;
+  onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
 };
 
 export function SidebarNavItem({
@@ -48,25 +48,26 @@ export function SidebarNavItem({
   const appActive =
     "bg-sidebar-primary text-sidebar-primary-foreground font-bold after:absolute after:bottom-1.5 after:left-1/2 after:-translate-x-1/2 after:w-5 after:h-0.5 after:rounded-full after:bg-primary";
   const pageActive =
-    "bg-sidebar-primary text-sidebar-primary-foreground font-medium before:absolute before:top-2 before:left-2 before:w-2.5 before:h-2.5 before:border-t-2 before:border-l-2 before:border-primary after:absolute after:bottom-2 after:right-2 after:w-2.5 after:h-2.5 after:border-b-2 after:border-r-2 after:border-primary";
-  const hover = "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
+    "bg-sidebar-primary/10 text-sidebar-primary-foreground font-semibold ring-1 ring-sidebar-border/60 shadow-sm before:absolute before:left-2.5 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-primary after:absolute after:right-2.5 after:top-1/2 after:h-2 after:w-2 after:-translate-y-1/2 after:rounded-full after:bg-primary/30";
 
   if (variant === "app") {
     const base =
-      "relative flex items-center h-12 w-full overflow-hidden rounded-none transition-colors";
+      "relative flex items-center h-12 w-full overflow-hidden rounded-none transition-all duration-150";
     const inner = compact ? (
-      <span className="w-12 flex flex-col items-center justify-center shrink-0 gap-0.5 py-1">
-        <Icon className="h-4 w-4" />
-        <span className="text-[9px] leading-none text-center w-full px-0.5">
+      <span className="mx-auto flex w-10 flex-col items-center justify-center gap-0.5 rounded-xl border border-transparent bg-sidebar-background/70 py-1 shadow-sm ring-1 ring-transparent transition-all duration-150 group-hover:-translate-y-0.5 group-hover:border-sidebar-border/70 group-hover:bg-sidebar-accent/40 group-hover:ring-sidebar-border/40 group-hover:shadow-md">
+        <Icon className="h-4 w-4 transition-transform duration-150 group-hover:scale-105" />
+        <span className="text-[7px] leading-none text-center w-full px-0.5 tracking-[0.08em] uppercase text-sidebar-foreground/75">
           {compactLabel ?? title}
         </span>
       </span>
     ) : (
       <>
         <span className="w-12 flex items-center justify-center shrink-0">
-          <Icon className="h-5 w-5" />
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sidebar-background/70 ring-1 ring-transparent transition-colors group-hover:bg-sidebar-accent/70 group-hover:ring-sidebar-border/60">
+            <Icon className="h-4.5 w-4.5" />
+          </span>
         </span>
-        <span className="whitespace-nowrap text-sm pr-3">{title}</span>
+        <span className="whitespace-nowrap text-[13px] pr-3 font-medium tracking-[0.01em]">{title}</span>
       </>
     );
     if (disabled)
@@ -88,7 +89,13 @@ export function SidebarNavItem({
         onClick={onClick}
         className={cn(
           base,
-          isActive ? appActive : cn("text-sidebar-foreground", hover),
+          "group",
+          isActive
+            ? cn(appActive, "bg-sidebar-primary/12")
+            : cn(
+                "text-sidebar-foreground/85 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
+                "before:absolute before:left-0 before:top-1/2 before:h-6 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-transparent before:transition-colors",
+              ),
         )}
         aria-current={isActive ? "page" : undefined}
       >
@@ -99,11 +106,13 @@ export function SidebarNavItem({
 
   // page variant
   const base =
-    "relative flex items-center gap-2.5 h-12 px-4 text-sm transition-colors";
+    "group relative mx-2 my-0.5 flex h-12 items-center gap-3 rounded-xl px-3 text-[13px] font-medium transition-all duration-150 before:absolute before:left-2.5 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-transparent before:transition-colors";
   const inner = (
     <>
-      <Icon className="h-5 w-5 shrink-0" />
-      <span className="truncate">{title}</span>
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-background/70 text-sidebar-foreground ring-1 ring-sidebar-border/50 shadow-sm transition-all duration-150 group-hover:-translate-y-0.5 group-hover:bg-sidebar-accent/70 group-hover:shadow-md group-hover:ring-sidebar-border/70">
+        <Icon className="h-4.5 w-4.5" />
+      </span>
+      <span className="truncate tracking-[0.01em]">{title}</span>
     </>
   );
   if (disabled) {
@@ -112,6 +121,7 @@ export function SidebarNavItem({
         className={cn(
           base,
           "opacity-40 pointer-events-none text-sidebar-foreground",
+          "before:bg-transparent",
         )}
         role="link"
         aria-disabled="true"
@@ -126,7 +136,13 @@ export function SidebarNavItem({
       onClick={onClick}
       className={cn(
         base,
-        isActive ? pageActive : cn("text-sidebar-foreground", hover),
+        "group",
+        isActive
+          ? cn(pageActive, "bg-sidebar-primary/12")
+          : cn(
+              "text-sidebar-foreground/85 hover:-translate-y-0.5 hover:bg-sidebar-accent/55 hover:text-sidebar-accent-foreground hover:shadow-sm",
+              "before:bg-transparent",
+            ),
       )}
       aria-current={isActive ? "page" : undefined}
     >

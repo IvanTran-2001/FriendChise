@@ -2,7 +2,15 @@
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, Eye, EyeOff, Search, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Pencil,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +18,7 @@ import { cn } from "@/lib/utils";
 import {
   moveToolItemListEntryAction,
   removeToolItemListEntryAction,
+  updateToolItemListEntryAmountAction,
 } from "@/app/actions/tools";
 import type { ConversionRate } from "./item-rates-panel";
 
@@ -26,6 +35,7 @@ interface ItemDetailPanelProps {
   listId: string;
   entryId: string;
   item: { id: string; name: string; unit: string; imageSignedUrl: string | null };
+  amount: number;
   position: number;
   subIndex: number;
   totalInCell: number;
@@ -45,6 +55,7 @@ export function ItemDetailPanel({
   listId,
   entryId,
   item,
+  amount: initialAmount,
   position,
   subIndex,
   totalInCell,
@@ -67,25 +78,35 @@ export function ItemDetailPanel({
   const [pageVal, setPageVal] = useState(String(initPage));
   const [colVal, setColVal] = useState(String(initCol));
   const [rowVal, setRowVal] = useState(String(initRow));
+  const [amountVal, setAmountVal] = useState(String(initialAmount));
   const [hiddenIds, setHiddenIds] = useState(new Set(initialHidden));
   const [search, setSearch] = useState("");
   const [isMovePending, startMoveTransition] = useTransition();
   const [isDeletePending, startDeleteTransition] = useTransition();
+  const [isAmountPending, startAmountTransition] = useTransition();
 
-  const parsedPage = parseInt(pageVal);
-  const parsedCol = parseInt(colVal);
-  const parsedRow = parseInt(rowVal);
+  const parsedPage = Number.parseInt(pageVal);
+  const parsedCol = Number.parseInt(colVal);
+  const parsedRow = Number.parseInt(rowVal);
   const newPos =
-    !isNaN(parsedPage) && !isNaN(parsedCol) && !isNaN(parsedRow)
+    !Number.isNaN(parsedPage) &&
+    !Number.isNaN(parsedCol) &&
+    !Number.isNaN(parsedRow)
       ? (parsedPage - 1) * pageSize + (parsedRow - 1) * gridCols + (parsedCol - 1)
       : -1;
   const posChanged = newPos >= 0 && newPos !== position;
+  const parsedAmount = Number.parseFloat(amountVal);
+  const amountChanged =
+    !Number.isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount !== initialAmount;
 
   function handleMove() {
     if (!posChanged) return;
     startMoveTransition(async () => {
       const result = await moveToolItemListEntryAction(orgId, listId, position, newPos);
-      if (!result.ok) { toast.error("Failed to move item."); return; }
+      if (!result.ok) {
+        toast.error("Failed to move item.");
+        return;
+      }
       toast.success("Item moved.");
       onClose();
     });
@@ -94,9 +115,29 @@ export function ItemDetailPanel({
   function handleDelete() {
     startDeleteTransition(async () => {
       const result = await removeToolItemListEntryAction(orgId, listId, entryId);
-      if (!result.ok) { toast.error("Failed to remove item."); return; }
+      if (!result.ok) {
+        toast.error("Failed to remove item.");
+        return;
+      }
       toast.success(`"${item.name}" removed.`);
       onClose();
+    });
+  }
+
+  function handleAmountUpdate() {
+    if (!amountChanged) return;
+    startAmountTransition(async () => {
+      const result = await updateToolItemListEntryAmountAction(
+        orgId,
+        listId,
+        entryId,
+        parsedAmount,
+      );
+      if (!result.ok) {
+        toast.error("Failed to update amount.");
+        return;
+      }
+      toast.success("Quantity updated.");
     });
   }
 
@@ -111,134 +152,175 @@ export function ItemDetailPanel({
   });
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Hero: image + name + unit + stack position */}
-      <div className="flex flex-col border-b border-border">
-        {/* Image */}
-        <div className="relative w-full aspect-video bg-muted flex items-center justify-center overflow-hidden">
-          {item.imageSignedUrl ? (
-            <Image
-              src={item.imageSignedUrl}
-              alt={item.name}
-              fill
-              className="object-cover"
-              sizes="300px"
-            />
-          ) : (
-            <span className="text-5xl font-semibold text-muted-foreground/20 uppercase select-none">
+    <div className="flex h-full flex-col bg-card">
+      <div className="relative aspect-video w-full overflow-hidden bg-muted">
+        {item.imageSignedUrl ? (
+          <Image
+            src={item.imageSignedUrl}
+            alt={item.name}
+            fill
+            className="object-cover"
+            sizes="300px"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="select-none text-5xl font-semibold uppercase text-muted-foreground/20">
               {item.name.charAt(0)}
             </span>
-          )}
-          {/* Stack nav overlay — only shown when cell has multiple items */}
-          {totalInCell > 1 && (
-            <div className="absolute inset-x-0 bottom-0 flex items-center justify-between px-2 py-1.5 bg-linear-to-t from-black/60 to-transparent">
-              <button
-                className={cn(
-                  "rounded p-1 text-white transition-opacity",
-                  subIndex === 0 ? "opacity-20 pointer-events-none" : "hover:bg-white/20",
-                )}
-                aria-label="Previous item in cell"
-                disabled={subIndex === 0}
-                onClick={() => onNavigate?.("prev")}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="text-white/80 text-xs tabular-nums font-medium">
-                {subIndex + 1} / {totalInCell}
-              </span>
-              <button
-                className={cn(
-                  "rounded p-1 text-white transition-opacity",
-                  subIndex >= totalInCell - 1 ? "opacity-20 pointer-events-none" : "hover:bg-white/20",
-                )}
-                aria-label="Next item in cell"
-                disabled={subIndex >= totalInCell - 1}
-                onClick={() => onNavigate?.("next")}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
+          </div>
+        )}
+
+        {totalInCell > 1 && (
+          <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-linear-to-t from-black/60 to-transparent px-2 py-1.5">
+            <button
+              className={cn(
+                "rounded p-1 text-white transition-opacity",
+                subIndex === 0 ? "pointer-events-none opacity-20" : "hover:bg-white/20",
+              )}
+              aria-label="Previous item in cell"
+              disabled={subIndex === 0}
+              onClick={() => onNavigate?.("prev")}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-xs font-medium tabular-nums text-white/80">
+              {subIndex + 1} / {totalInCell}
+            </span>
+            <button
+              className={cn(
+                "rounded p-1 text-white transition-opacity",
+                subIndex >= totalInCell - 1
+                  ? "pointer-events-none opacity-20"
+                  : "hover:bg-white/20",
+              )}
+              aria-label="Next item in cell"
+              disabled={subIndex >= totalInCell - 1}
+              onClick={() => onNavigate?.("next")}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="border-b border-border px-4 py-3">
+        <div className="space-y-3">
+          <div>
+            <p className="text-base font-semibold leading-tight">{item.name}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{item.unit}</p>
+          </div>
+
+          {canManage && (
+            <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  <Pencil className="h-3 w-3" />
+                  Quantity
+                </div>
+                <span className="text-[10px] text-muted-foreground/70">Edit and save</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={amountVal}
+                  onChange={(e) => setAmountVal(e.target.value)}
+                  className="h-8 text-sm"
+                />
+                <Button
+                  size="sm"
+                  className="shrink-0"
+                  disabled={!amountChanged || isAmountPending}
+                  onClick={handleAmountUpdate}
+                >
+                  Save
+                </Button>
+              </div>
             </div>
           )}
-        </div>
-        {/* Name + unit */}
-        <div className="px-4 py-3">
-          <p className="text-base font-semibold leading-tight">{item.name}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{item.unit}</p>
         </div>
       </div>
 
-      {/* Position + actions */}
       {canManage && (
-        <div className="px-4 pt-3 pb-3 border-b border-border flex flex-col gap-3">
-          <p className="text-xs font-medium text-muted-foreground/60 uppercase tracking-wider">Position</p>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">Page</label>
-              <Input
-                type="number"
-                min="1"
-                value={pageVal}
-                onChange={(e) => setPageVal(e.target.value)}
-                className="h-8 text-sm"
-              />
+        <div className="border-b border-border px-4 py-3">
+          <div className="rounded-lg border border-border bg-card p-3">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground/60">
+                Position
+              </p>
+              <span className="text-[10px] text-muted-foreground/70">{position + 1} in list</span>
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">Col</label>
-              <Input
-                type="number"
-                min="1"
-                max={gridCols}
-                value={colVal}
-                onChange={(e) => setColVal(e.target.value)}
-                className="h-8 text-sm"
-              />
+            <div className="grid grid-cols-3 gap-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted-foreground">Page</label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={pageVal}
+                  onChange={(e) => setPageVal(e.target.value)}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted-foreground">Col</label>
+                <Input
+                  type="number"
+                  min="1"
+                  max={gridCols}
+                  value={colVal}
+                  onChange={(e) => setColVal(e.target.value)}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted-foreground">Row</label>
+                <Input
+                  type="number"
+                  min="1"
+                  max={gridRows}
+                  value={rowVal}
+                  onChange={(e) => setRowVal(e.target.value)}
+                  className="h-8 text-sm"
+                />
+              </div>
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">Row</label>
-              <Input
-                type="number"
-                min="1"
-                max={gridRows}
-                value={rowVal}
-                onChange={(e) => setRowVal(e.target.value)}
-                className="h-8 text-sm"
-              />
+            <div className="mt-3 flex items-center gap-2">
+              <Button
+                size="sm"
+                className="flex-1"
+                disabled={!posChanged || isMovePending}
+                onClick={handleMove}
+              >
+                Move item
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0 text-destructive hover:text-destructive"
+                disabled={isDeletePending}
+                onClick={handleDelete}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
             </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              className="flex-1"
-              disabled={!posChanged || isMovePending}
-              onClick={handleMove}
-            >
-              Move
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              disabled={isDeletePending}
-              onClick={handleDelete}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
           </div>
         </div>
       )}
 
-      {/* Rates */}
       {setName && relevantRates.length > 0 && (
-        <>
-          <div className="px-4 py-2.5 border-b border-border">
-            <p className="text-xs text-muted-foreground/60">
-              Rates · {setName}
+        <div className="flex min-h-0 flex-1 flex-col px-4 py-3">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground/60">
+              Rates
             </p>
+            <span className="truncate text-[10px] text-muted-foreground/70">{setName}</span>
           </div>
 
           {relevantRates.length > 3 && (
-            <div className="px-3 py-2 border-b border-border">
-              <div className="flex items-center gap-2 rounded-md border border-input bg-background px-2.5 py-1.5">
-                <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <div className="mb-3 rounded-md border border-input bg-background px-2.5 py-1.5">
+              <div className="flex items-center gap-2">
+                <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -249,13 +331,13 @@ export function ItemDetailPanel({
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
             {filteredRates.length === 0 ? (
-              <div className="px-4 py-6 text-center">
+              <div className="py-6 text-center">
                 <p className="text-sm text-muted-foreground">No matches.</p>
               </div>
             ) : (
-              <div className="py-1">
+              <div className="space-y-1">
                 {filteredRates.map((rate) => {
                   const hidden = hiddenIds.has(rate.id);
                   const isToItem = rate.toItem.id === item.id;
@@ -263,18 +345,19 @@ export function ItemDetailPanel({
                   const multiplier = isToItem
                     ? formatMultiplier(rate.fromQty, rate.toQty)
                     : formatMultiplier(rate.toQty, rate.fromQty);
+
                   return (
                     <div
                       key={rate.id}
                       className={cn(
-                        "flex items-center gap-3 px-4 py-2.5 transition-opacity",
+                        "flex items-center gap-3 rounded-md border border-border/60 bg-background px-3 py-2.5 transition-opacity",
                         hidden && "opacity-40",
                       )}
                     >
-                      <div className="flex-1 min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p
                           className={cn(
-                            "text-sm font-medium truncate transition-all",
+                            "truncate text-sm font-medium transition-all",
                             hidden && "line-through text-muted-foreground",
                           )}
                         >
@@ -282,7 +365,7 @@ export function ItemDetailPanel({
                         </p>
                         <p
                           className={cn(
-                            "text-xs text-muted-foreground tabular-nums",
+                            "text-xs tabular-nums text-muted-foreground",
                             hidden && "line-through",
                           )}
                         >
@@ -314,10 +397,9 @@ export function ItemDetailPanel({
               </div>
             )}
           </div>
-        </>
+        </div>
       )}
 
-      {/* Empty state when no rates and can't manage */}
       {!canManage && (!setName || relevantRates.length === 0) && (
         <div className="px-4 py-8 text-center">
           <p className="text-sm text-muted-foreground">No rates for this item.</p>

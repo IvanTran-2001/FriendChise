@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
-import { SidebarNavItem } from "@/components/layout/sidebar-nav-item";
+import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
 import { FilterCombobox } from "@/components/ui/filter-combobox";
 import { TagFilterButton } from "@/components/ui/tag-filter-button";
 import { SORT_OPTIONS, type SortOption } from "./tasks-config";
@@ -50,6 +50,8 @@ interface TasksSidebarContentProps {
   mode: "list" | "shared" | "available";
   isModeExplicit: boolean;
   isFiltersExplicit: boolean;
+  onViewChange: (view: "list" | "card") => void;
+  onModeChange: (mode: "list" | "shared" | "available") => void;
 }
 
 export function TasksSidebarContent({
@@ -64,6 +66,8 @@ export function TasksSidebarContent({
   mode,
   isModeExplicit,
   isFiltersExplicit,
+  onViewChange,
+  onModeChange,
 }: TasksSidebarContentProps) {
   const router = useRouter();
 
@@ -190,34 +194,43 @@ export function TasksSidebarContent({
     <>
       {/* Mode nav items */}
       <div>
-        <SidebarNavItem
+        <PageSidebarNavItem
           title="All"
           url={buildHref({ mode: "shared" })}
           icon={Globe}
           isActive={mode === "shared"}
-          onClick={() => {
+          onClick={(event) => {
+            event.preventDefault();
             localStorage.setItem(TASKS_MODE_KEY, "shared");
             setTasksCookie(TASKS_MODE_KEY, "shared");
+            window.history.replaceState(null, "", buildHref({ mode: "shared" }));
+            onModeChange("shared");
           }}
         />
-        <SidebarNavItem
+        <PageSidebarNavItem
           title="My Tasks"
           url={buildHref({ mode: "list" })}
           icon={ListTodo}
           isActive={mode === "list"}
-          onClick={() => {
+          onClick={(event) => {
+            event.preventDefault();
             localStorage.setItem(TASKS_MODE_KEY, "list");
             setTasksCookie(TASKS_MODE_KEY, "list");
+            window.history.replaceState(null, "", buildHref({ mode: "list" }));
+            onModeChange("list");
           }}
         />
-        <SidebarNavItem
+        <PageSidebarNavItem
           title="Shared"
           url={buildHref({ mode: "available" })}
           icon={Share2}
           isActive={mode === "available"}
-          onClick={() => {
+          onClick={(event) => {
+            event.preventDefault();
             localStorage.setItem(TASKS_MODE_KEY, "available");
             setTasksCookie(TASKS_MODE_KEY, "available");
+            window.history.replaceState(null, "", buildHref({ mode: "available" }));
+            onModeChange("available");
           }}
         />
       </div>
@@ -302,7 +315,8 @@ export function TasksSidebarContent({
             const newPrefs = JSON.stringify({ sort, roleId, tagId, view: newView });
             try { localStorage.setItem(TASKS_PREFS_KEY, newPrefs); } catch { /* ignore */ }
             setTasksCookie(TASKS_PREFS_KEY, newPrefs);
-            router.push(buildHref({ view: newView }));
+            window.history.replaceState(null, "", buildHref({ view: newView }));
+            onViewChange(newView);
           }}
           options={[
             { value: "list", label: <span className="flex items-center gap-1.5"><List className="h-3.5 w-3.5" />List</span> },

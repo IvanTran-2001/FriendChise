@@ -25,6 +25,7 @@ interface ListDetailSidebarContentProps {
   activeSetId: string | null;
   /** Called when the user clicks "Add Item" — handled by the parent which has highlight state. */
   onOpenAddItem?: () => void;
+  onViewChange?: (view: "grid" | "checklist") => void;
 }
 
 export function ListDetailSidebarContent({
@@ -38,6 +39,7 @@ export function ListDetailSidebarContent({
   conversionSets,
   activeSetId,
   onOpenAddItem,
+  onViewChange,
 }: ListDetailSidebarContentProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -94,7 +96,7 @@ export function ListDetailSidebarContent({
           </span>
           <SegmentedControl
             value={view}
-            onChange={(v) => navigate({ view: v })}
+            onChange={(v) => onViewChange?.(v)}
             options={[
               {
                 value: "grid",

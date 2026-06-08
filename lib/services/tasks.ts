@@ -18,7 +18,7 @@
  * Section layouts are seeded on task creation (`createDefaultSectionLayouts`)
  * and copied to franchisee orgs on inheritance.
  */
-import { TaskScope } from "@prisma/client";
+import { Prisma, TaskScope } from "@prisma/client";
 import { log } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/services/audit-log";
@@ -218,6 +218,28 @@ export type TasksPage = {
   nextCursor: string | null;
 };
 
+type TaskPageFilters = {
+  search?: string;
+  roleId?: string;
+  tagId?: string;
+};
+
+function buildTaskWhere(filters: TaskPageFilters): Prisma.TaskWhereInput {
+  const where: Prisma.TaskWhereInput = {};
+
+  if (filters.search) {
+    where.name = { contains: filters.search, mode: "insensitive" };
+  }
+  if (filters.roleId) {
+    where.eligibility = { some: { roleId: filters.roleId } };
+  }
+  if (filters.tagId) {
+    where.tags = { some: { tagId: filters.tagId } };
+  }
+
+  return where;
+}
+
 function sortOrderBy(sort: TaskSortOption) {
   switch (sort) {
     case "name-asc":    return { name: "asc" as const };
@@ -237,18 +259,26 @@ function sortOrderBy(sort: TaskSortOption) {
  *
  * Uses cursor-based pagination on task.id (stable across sorts).
  */
-export async function getTasksPaginated(
+export async function  getTasksPaginated(
   orgId: string,
   mode: "list" | "available" | "shared",
   options: {
     cursor?: string;
     limit?: number;
     sort?: TaskSortOption;
+    search?: string;
+    roleId?: string;
+    tagId?: string;
   } = {},
 ): Promise<TasksPage> {
   const limit = Math.min(options.limit ?? 30, 100);
   const sort = options.sort ?? "name-asc";
   const cursor = options.cursor;
+  const taskWhere = buildTaskWhere({
+    search: options.search,
+    roleId: options.roleId,
+    tagId: options.tagId,
+  });
 
   if (mode === "shared") {
     // Show inherited tasks first (phase "list"), then available tasks (phase "available").
@@ -266,7 +296,14 @@ export async function getTasksPaginated(
     }
 
     if (phase === "list") {
-      const listPage = await getTasksPaginated(orgId, "list", { cursor: subCursor, limit, sort });
+      const listPage = await getTasksPaginated(orgId, "list", {
+        cursor: subCursor,
+        limit,
+        sort,
+        search: options.search,
+        roleId: options.roleId,
+        tagId: options.tagId,
+      });
       if (listPage.nextCursor) {
         return {
           tasks: listPage.tasks,
@@ -279,6 +316,9 @@ export async function getTasksPaginated(
         cursor: undefined,
         limit: remaining > 0 ? remaining : limit,
         sort,
+        search: options.search,
+        roleId: options.roleId,
+        tagId: options.tagId,
       });
       return {
         tasks: [...listPage.tasks, ...availablePage.tasks],
@@ -289,7 +329,14 @@ export async function getTasksPaginated(
     }
 
     // phase === "available"
-    const availablePage = await getTasksPaginated(orgId, "available", { cursor: subCursor, limit, sort });
+    const availablePage = await getTasksPaginated(orgId, "available", {
+      cursor: subCursor,
+      limit,
+      sort,
+      search: options.search,
+      roleId: options.roleId,
+      tagId: options.tagId,
+    });
     return {
       tasks: availablePage.tasks,
       nextCursor: availablePage.nextCursor
@@ -301,7 +348,10 @@ export async function getTasksPaginated(
   if (mode === "list") {
     const orderBy = sortOrderBy(sort);
     const inheritances = await prisma.taskInheritance.findMany({
-      where: { orgId },
+      where: {
+        orgId,
+        ...(Object.keys(taskWhere).length > 0 && { task: taskWhere }),
+      },
       include: { task: { include: taskInclude } },
       orderBy: { task: orderBy },
       take: limit + 1,
@@ -334,6 +384,7 @@ export async function getTasksPaginated(
 
   const rows = await prisma.task.findMany({
     where: {
+      ...taskWhere,
       scope: TaskScope.GLOBAL,
       orgId: { not: orgId },
       ...(alreadyInherited.length > 0 && { id: { notIn: alreadyInherited } }),

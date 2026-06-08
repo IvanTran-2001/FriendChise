@@ -9,9 +9,7 @@ import {
 import { PermissionAction } from "@prisma/client";
 import { cookies } from "next/headers";
 
-import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
-import { TaskTable } from "./_components/task-table";
-import { TasksSidebarContent } from "./_components/tasks-sidebar-content";
+import { TasksPageClient } from "./_components/tasks-page-client";
 import { SORT_OPTIONS, type SortOption } from "./_components/tasks-config";
 
 /**
@@ -126,34 +124,19 @@ const TasksPage = async ({
         : null;
 
   return (
-    <>
-      <RegisterPageSidebarSubContent
-        content={
-          <TasksSidebarContent
-            orgId={orgId}
-            roles={roles}
-            tags={tags}
-            canManageTasks={canManageTasks}
-            sort={sort}
-            roleId={roleId}
-            tagId={tagId}
-            view={view}
-            mode={mode}
-            isModeExplicit={isModeExplicit}
-            isFiltersExplicit={isFiltersExplicit}
-          />
-        }
-      />
-      <TaskTable
-        orgId={orgId}
-        mode={mode}
-        canManageTasks={canManageTasks}
-        sort={sort}
-        filterRoleId={roleId}
-        filterTagId={tagId}
-        view={view}
-      />
-    </>
+    <TasksPageClient
+      orgId={orgId}
+      roles={roles}
+      tags={tags}
+      canManageTasks={canManageTasks}
+      sort={sort}
+      roleId={roleId}
+      tagId={tagId}
+      view={view}
+      mode={mode}
+      isModeExplicit={isModeExplicit}
+      isFiltersExplicit={isFiltersExplicit}
+    />
   );
 };
 

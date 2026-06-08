@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { ArrowLeft, LayoutTemplate, Plus, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { SidebarNavItem } from "@/components/layout/sidebar-nav-item";
+import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
@@ -108,21 +108,19 @@ export function RosterTemplatesSidebarContent({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Back to roster */}
-      <SidebarNavItem
+      <PageSidebarNavItem
         title="Back"
         url={`/orgs/${orgId}/tools/roster`}
         icon={ArrowLeft}
         isActive={false}
-        variant="page"
       />
 
       {/* Templates (active) */}
-      <SidebarNavItem
+      <PageSidebarNavItem
         title="Templates"
         url={`/orgs/${orgId}/tools/roster/templates`}
         icon={LayoutTemplate}
         isActive={true}
-        variant="page"
       />
 
       {/* Actions */}

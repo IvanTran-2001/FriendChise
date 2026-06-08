@@ -8,10 +8,9 @@
  * `usePageSidebarSubContent()` so the shell stays mounted during navigation
  * between timetable routes — eliminating sidebar flicker.
  */
-import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { Calendar, LayoutList } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
 import { usePageSidebarSubContent } from "@/components/layout/page-sidebar-context";
 
 const tabs = [
@@ -42,20 +41,13 @@ export function TimetableSidebarShell() {
           const url = href(orgId);
           const isActive = exact ? pathname === url : pathname.startsWith(url);
           return (
-            <Link
+            <PageSidebarNavItem
               key={label}
-              href={url}
-              className={cn(
-                "relative flex items-center gap-2.5 h-12 px-4 text-sm transition-colors",
-                isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium before:absolute before:top-2 before:left-2 before:w-2.5 before:h-2.5 before:border-t-2 before:border-l-2 before:border-primary after:absolute after:bottom-2 after:right-2 after:w-2.5 after:h-2.5 after:border-b-2 after:border-r-2 after:border-primary"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              )}
-              aria-current={isActive ? "page" : undefined}
-            >
-              <Icon className="h-5 w-5 shrink-0" />
-              <span className="truncate">{label}</span>
-            </Link>
+              title={label}
+              url={url}
+              icon={Icon}
+              isActive={isActive}
+            />
           );
         })}
       </nav>

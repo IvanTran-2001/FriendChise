@@ -68,7 +68,7 @@ export function ListGridView({
   const [externalDragTargetPos, setExternalDragTargetPos] = useState<number | null>(null);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [editingAmount, setEditingAmount] = useState("");
-  const [_isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
   // Per-cell sub-item index — tracks which stacked item is visible per cell
   const [cellSubIndex, setCellSubIndex] = useState<Map<number, number>>(new Map());
 
@@ -289,7 +289,6 @@ export function ListGridView({
                       canManage && "cursor-pointer hover:bg-primary/5 hover:border-primary/30",
                     ],
                 isDragSource && "opacity-40 scale-95",
-                isDragTarget && "ring-2 ring-primary ring-offset-1 bg-primary/5",
                 externalDragTargetPos === absPos && "ring-2 ring-green-500 ring-offset-1 bg-green-500/5",
                 highlightedPosition === absPos && !isDragTarget && !isDragSource && "ring-2 ring-primary ring-offset-1 bg-primary/10 border-primary/40",
               )}
@@ -373,7 +372,10 @@ export function ListGridView({
                     {(showAmount || isEditingThisAmount) && (
                       isEditingThisAmount ? (
                         <div
-                          className="flex items-center gap-1"
+                          className={cn(
+                            "flex items-center gap-1",
+                            isPending && "opacity-70",
+                          )}
                           onClick={(e) => e.stopPropagation()}
                           onMouseDown={(e) => e.stopPropagation()}
                         >
@@ -383,6 +385,7 @@ export function ListGridView({
                             min={0}
                             step="any"
                             value={editingAmount}
+                            disabled={isPending}
                             onChange={(e) => setEditingAmount(e.target.value)}
                             onKeyDown={(e) => {
                               if (e.key === "Enter") commitAmount(entry);

@@ -49,19 +49,16 @@ export async function GET(
   const tagId = searchParams.get("tagId") ?? undefined;
   const search = searchParams.get("search")?.toLowerCase() ?? undefined;
 
-  const page = await getTasksPaginated(orgId, mode, { cursor, limit, sort });
+  const page = await getTasksPaginated(orgId, mode, {
+    cursor,
+    limit,
+    sort,
+    search,
+    roleId,
+    tagId,
+  });
 
-  // Apply search, role and tag filters in-memory (after pagination fetch).
-  let tasks = page.tasks;
-  if (search) {
-    tasks = tasks.filter((t) => t.name.toLowerCase().includes(search));
-  }
-  if (roleId) {
-    tasks = tasks.filter((t) => t.eligibility.some((e) => e.role.id === roleId));
-  }
-  if (tagId) {
-    tasks = tasks.filter((t) => t.tags.some((tt) => tt.tag.id === tagId));
-  }
+  const tasks = page.tasks;
 
   // Batch-resolve signed image URLs for tasks that have an image.
   const paths = tasks.flatMap((t) => (t.imageUrl ? [t.imageUrl] : []));

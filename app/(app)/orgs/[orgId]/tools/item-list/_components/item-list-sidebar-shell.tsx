@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { LayoutList, Package } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { usePageSidebarSubContent } from "@/components/layout/page-sidebar-context";
+import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
 
 const tabs = [
   {
@@ -28,31 +27,16 @@ export function ItemListSidebarShell() {
 
   return (
     <aside className="flex flex-col flex-1 overflow-y-auto">
-      {/* Nav tabs */}
+      {/* Keep the top navigation on the shared page-sidebar item so tab styling stays consistent. */}
       <nav className="shrink-0">
         {tabs.map(({ label, icon: Icon, href, exact }) => {
           const url = href(orgId);
           const isActive = exact ? pathname === url : pathname.startsWith(url);
-          return (
-            <Link
-              key={label}
-              href={url}
-              className={cn(
-                "relative flex items-center gap-2.5 h-12 px-4 text-sm transition-colors",
-                isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium before:absolute before:top-2 before:left-2 before:w-2.5 before:h-2.5 before:border-t-2 before:border-l-2 before:border-primary after:absolute after:bottom-2 after:right-2 after:w-2.5 after:h-2.5 after:border-b-2 after:border-r-2 after:border-primary"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              )}
-              aria-current={isActive ? "page" : undefined}
-            >
-              <Icon className="h-5 w-5 shrink-0" />
-              <span className="truncate">{label}</span>
-            </Link>
-          );
+          return <PageSidebarNavItem key={label} title={label} icon={Icon} url={url} isActive={isActive} />;
         })}
       </nav>
 
-      {/* Page-specific sub-content (view toggle, actions, filters…) */}
+      {/* Page-specific sub-content lives below the shared tab row. */}
       {subContent}
     </aside>
   );

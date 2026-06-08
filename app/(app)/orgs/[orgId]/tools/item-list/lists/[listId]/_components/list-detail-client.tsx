@@ -65,11 +65,23 @@ export function ListDetailClient({
   const [, startTransition] = useTransition();
   const [hiddenRateIds, setHiddenRateIds] = useState<Set<string>>(new Set());
   const [highlightedPos, setHighlightedPos] = useState<number | undefined>(undefined);
+  const [currentView, setCurrentView] = useState(view);
 
   // Clear highlight whenever the action sidebar is closed (X button or nav)
   useEffect(() => {
     if (activeTitle === null) setHighlightedPos(undefined);
   }, [activeTitle]);
+
+  useEffect(() => {
+    setCurrentView(view);
+  }, [view]);
+
+  function handleViewChange(nextView: "grid" | "checklist") {
+    setCurrentView(nextView);
+    const url = new URL(window.location.href);
+    url.searchParams.set("view", nextView);
+    window.history.replaceState(window.history.state, "", url.toString());
+  }
 
   const showRates = activeSetRates.length > 0;
 
@@ -158,6 +170,7 @@ export function ListDetailClient({
         listId={list.id}
         entryId={entry.entryId}
         item={entry.item}
+        amount={siblings.find((s) => s.id === entry.entryId)?.amount ?? 0}
         position={entry.position}
         subIndex={entry.subIndex}
         totalInCell={entry.totalInCell}
@@ -196,7 +209,7 @@ export function ListDetailClient({
     <ListDetailSidebarContent
       orgId={orgId}
       listId={list.id}
-      view={view}
+      view={currentView}
       canManage={canManage}
       availableItems={allOrgItems}
       gridCols={list.gridConfig?.gridCols}
@@ -204,10 +217,11 @@ export function ListDetailClient({
       conversionSets={conversionSets}
       activeSetId={activeSetId}
       onOpenAddItem={() => openAddItemPanel()}
+      onViewChange={handleViewChange}
     />
   );
 
-  if (view === "checklist") {
+  if (currentView === "checklist") {
     return (
       <>
         <RegisterPageSidebarTitle title={list.name} />
@@ -216,6 +230,7 @@ export function ListDetailClient({
           orgId={orgId}
           list={{ ...list, entries: optimisticEntries }}
           canManage={canManage}
+          activeSetRates={activeSetRates}
         />
       </>
     );

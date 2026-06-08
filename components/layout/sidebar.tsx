@@ -74,7 +74,7 @@ type NavItem = {
 
 function getOrgItems(orgId: string): NavItem[] {
   return [
-    { title: "Overview", url: `/orgs/${orgId}`, icon: Building2 },
+    { title: "Home", url: `/orgs/${orgId}`, icon: Building2 },
     {
       title: "Timetable",
       compactLabel: "Sched",
@@ -150,9 +150,9 @@ function getSettingsItems(orgId: string): NavItem[] {
 /**
  * Global sidebar rendered in the app layout.
  *
- * Desktop: a w-12 spacer holds space in the flex layout. An `absolute`-
- * positioned panel sits over it and expands to w-52 on hover, overlaying
- * the page content. Icons are always centred in the 48px strip.
+ * Desktop: a fixed sidebar sits in the flex layout. When the page has its own
+ * sidebar, the app nav stays compact (`w-12`) and uses the mobile-style icon
+ * strip. Otherwise it renders as the wider full nav (`w-52`).
  *
  * Mobile: hidden by default. A full-screen overlay is toggled via
  * GlobalSidebarProvider / MobileSidebarTrigger.
@@ -313,10 +313,20 @@ export function AppSidebar() {
 
   return (
     <>
-      {/* ── Desktop: spacer + absolute hover-expand panel ── */}
-      <div className="hidden md:block relative w-12 shrink-0">
-        <div className="absolute inset-y-0 left-0 z-30 flex flex-col w-12 hover:w-52 transition-[width] duration-200 bg-sidebar border-r border-sidebar-border overflow-hidden">
-          {navContent()}
+      {/* ── Desktop: fixed width, compact when a page sidebar is present ── */}
+      <div
+        className={cn(
+          "hidden md:block relative shrink-0",
+          hasSidebar ? "w-12" : "w-52",
+        )}
+      >
+        <div
+          className={cn(
+            "absolute inset-y-0 left-0 z-30 flex flex-col bg-sidebar border-r border-sidebar-border overflow-hidden",
+            hasSidebar ? "w-12" : "w-52",
+          )}
+        >
+          {navContent(hasSidebar)}
         </div>
       </div>
 

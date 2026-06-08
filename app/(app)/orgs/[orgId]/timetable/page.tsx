@@ -15,9 +15,7 @@ import { getMemberships } from "@/lib/services/memberships";
 import { getRoles } from "@/lib/services/roles";
 import { getOrgTags } from "@/lib/services/tags";
 import { prisma } from "@/lib/prisma";
-import { TimetableClient } from "./timetable-client";
-import { TimetableSidebarContent } from "./_components/timetable-sidebar-content";
-import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
+import { TimetablePageClient } from "./_components/timetable-page-client";
 import { toLocalDateStr, addCalendarDays } from "@/lib/date-utils";
 
 export default async function TimetablePage({
@@ -261,40 +259,12 @@ export default async function TimetablePage({
     taskColor: taskRoleColorMap.get(inst.taskId) ?? null,
   }));
 
-  const timetableHref = (m: string, s = span) => {
-    const params = new URLSearchParams({ anchor, mode: m, span: s });
-    if (selectedRoleId) params.set("roleId", selectedRoleId);
-    if (selectedTagId) params.set("tagId", selectedTagId);
-    return `/orgs/${orgId}/timetable?${params.toString()}`;
-  };
-
   const isFiltersExplicit = !!(urlRoleId || urlTagId);
-
-  const sidebarProps = {
-    orgId,
-    anchor,
-    mode,
-    span,
-    selectedRoleId,
-    roles: filterRoles,
-    tags: filterTags,
-    selectedTagId,
-    calendarHref: timetableHref("calendar"),
-    simpleHref: timetableHref("simple"),
-    dayHref: timetableHref(mode, "day"),
-    weekHref: timetableHref(mode, "week"),
-    canManage: canManageTimetable,
-    templates: templates.map((t) => ({
-      id: t.id,
-      name: t.name,
-      cycleLengthDays: t.cycleLengthDays,
-    })),
-    todayStr,
-    userId,
-    isModeExplicit,
-    isSpanExplicit,
-    isFiltersExplicit,
-  };
+  const templateOptions = templates.map((t) => ({
+    id: t.id,
+    name: t.name,
+    cycleLengthDays: t.cycleLengthDays,
+  }));
 
   const availableTasks = canManageTimetable
     ? tasks.map((t) => {
@@ -317,29 +287,28 @@ export default async function TimetablePage({
       className="flex flex-col"
       style={{ height: "calc(100dvh - 148px)", minHeight: "500px" }}
     >
-      {/* Desktop page sidebar */}
-      <RegisterPageSidebarSubContent
-        content={
-          <TimetableSidebarContent {...sidebarProps} tasks={availableTasks} />
-        }
-      />
-
-      <TimetableClient
+      <TimetablePageClient
         orgId={orgId}
         instances={coloredInstances}
         anchor={anchor}
         openTimeMin={orgMeta?.openTimeMin ?? 360}
         closeTimeMin={orgMeta?.closeTimeMin ?? 1320}
-        mode={mode}
-        span={span}
+        initialMode={mode}
+        initialSpan={span}
         fillHeight
         todayStr={todayStr}
-        roleId={rawRoleId}
-        tagId={selectedTagId}
+        selectedRoleId={rawRoleId}
+        selectedTagId={selectedTagId}
+        roles={filterRoles}
+        tags={filterTags}
         canManage={canManageTimetable}
+        templates={templateOptions}
         userId={userId}
-        availableTasks={availableTasks}
+        tasks={availableTasks}
         memberships={clientMemberships}
+        isModeExplicit={isModeExplicit}
+        isSpanExplicit={isSpanExplicit}
+        isFiltersExplicit={isFiltersExplicit}
       />
     </div>
   );

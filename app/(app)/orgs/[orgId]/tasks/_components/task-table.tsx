@@ -125,9 +125,19 @@ export function TaskTable({
   const supportsHover = useSupportsHover();
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = usePersistedState(`tasks-search-${orgId}`, "");
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
 
-  // ── Pagination state ──────────────────────────────────────────────────────
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [search]);
+
+  // The table keeps its own paginated result set so scrolling can append more
+  // rows without forcing a full route navigation or server round-trip.
   type PageState = {
     tasks: Task[];
     nextCursor: string | null;
@@ -169,9 +179,10 @@ export function TaskTable({
     { tasks: [], nextCursor: null, isFetching: false, initialLoad: true },
   );
   const sentinelRef = useRef<HTMLDivElement>(null);
-  // Track the "reset key" — whenever filters change, reset and refetch from scratch.
+  // Tracks the latest fetch cycle. If filters change while a request   flight, older responses are ignored.
   const resetKeyRef = useRef(0);
 
+  // Build the API URL from the current page state and optional cursor.
   const buildUrl = useCallback(
     (cursor: string | null | undefined) => {
       const url = new URL(
@@ -182,14 +193,15 @@ export function TaskTable({
       url.searchParams.set("sort", sort);
       if (filterRoleId) url.searchParams.set("roleId", filterRoleId);
       if (filterTagId) url.searchParams.set("tagId", filterTagId);
-      if (search) url.searchParams.set("search", search);
+      if (debouncedSearch) url.searchParams.set("search", debouncedSearch);
       if (cursor) url.searchParams.set("cursor", cursor);
       return url.toString();
     },
-    [orgId, mode, sort, filterRoleId, filterTagId, search],
+    [orgId, mode, sort, filterRoleId, filterTagId, debouncedSearch],
   );
 
-  // Reset and fetch first page whenever filters / mode change.
+  // When any filter changes, drop the current page state and fetch a fresh
+  // first page for the new query.
   useEffect(() => {
     const key = ++resetKeyRef.current;
     dispatch({ type: "reset" });
@@ -210,7 +222,7 @@ export function TaskTable({
     };
   }, [buildUrl]);
 
-  // Load next page — called by IntersectionObserver
+  // Fetch the next cursor page when the sentinel comes into view.
   const loadMore = useCallback(() => {
     if (isFetching || !nextCursor) return;
     const key = resetKeyRef.current;
@@ -227,7 +239,7 @@ export function TaskTable({
       });
   }, [isFetching, nextCursor, buildUrl]);
 
-  // IntersectionObserver on the sentinel at the bottom of the list
+  // Watch the bottom sentinel so the next page loads automatically on scroll.
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
@@ -243,6 +255,8 @@ export function TaskTable({
 
   // ── Mutations ─────────────────────────────────────────────────────────────
 
+  // Local mutations optimistically update the current page instead of waiting
+  // for the next fetch cycle to reconcile the row list.
   function handleDeleteClick(task: Task) {
     setDeleteTarget(task);
   }
@@ -293,6 +307,7 @@ export function TaskTable({
 
   // ── Render ────────────────────────────────────────────────────────────────
 
+  // Empty state only appears after the first page has finished loading.
   const isEmpty = !initialLoad && tasks.length === 0;
   const hasMore = !!nextCursor;
 

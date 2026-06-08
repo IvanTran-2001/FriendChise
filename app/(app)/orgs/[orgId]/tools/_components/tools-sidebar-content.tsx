@@ -13,7 +13,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { ArrowLeftRight, List, Users } from "lucide-react";
 import { SearchInput } from "@/components/ui/search-input";
-import { SidebarNavItem } from "@/components/layout/sidebar-nav-item";
+import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
 
 // Placeholder tool list — replace with DB-driven data once the Tool model exists
 const PLACEHOLDER_TOOLS = [
@@ -53,13 +53,12 @@ export function ToolsSidebarContent({ orgId }: { orgId: string }) {
             const isActive = pathname === href;
             const Icon = tool.icon;
             return (
-              <SidebarNavItem
+              <PageSidebarNavItem
                 key={tool.id}
                 title={tool.name}
                 url={href}
                 icon={Icon}
                 isActive={isActive}
-                variant="page"
               />
             );
           })
