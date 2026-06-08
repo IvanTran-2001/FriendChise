@@ -7,11 +7,9 @@
  * The page sidebar (TaskDetailSidebar) conditionally renders:
  *  - "Inherited from franchisor" notice — franchisee orgs viewing a parent task
  *  - Sharing controls (publish / make private) — task-owning org with MANAGE_TASKS
- *  - Layout editor (Edit Sections panel) — any member with MANAGE_TASKS
  *  - Actions (Edit link, Delete) — task-owning org with MANAGE_TASKS
  *
- * Section layout rows are fetched server-side and passed to the sidebar so the
- * drag-to-reorder panel opens immediately without a loading state.
+ * The layout editor is disabled for now because the feature is not ready.
  */
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
@@ -19,10 +17,6 @@ import { PermissionAction } from "@prisma/client";
 import { requireOrgMemberPage } from "@/lib/authz";
 import { getOrgMembership, memberHasPermission } from "@/lib/authz/_shared";
 import { getAccessibleTaskById } from "@/lib/services/tasks";
-import {
-  getSectionLayout,
-  type SectionLayoutRow,
-} from "@/lib/services/task-sections";
 import { createSignedReadUrl } from "@/lib/supabase-storage";
 import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
 import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
@@ -73,12 +67,11 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
 
   const { task, isOwner } = accessible;
 
-  const [canManage, imageSignedUrl, sectionRows] = await Promise.all([
+  const [canManage, imageSignedUrl] = await Promise.all([
     membership
       ? memberHasPermission(membership.id, orgId, PermissionAction.MANAGE_TASKS)
       : Promise.resolve(false),
     task.imageUrl ? createSignedReadUrl(task.imageUrl) : Promise.resolve(null),
-    getSectionLayout(taskId, orgId),
   ]);
 
   const sharedBy = !isOwner
@@ -88,15 +81,6 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
 
   const eligibleRoles = task.eligibility.map((e) => e.role);
   const taskTags = task.tags.map((t) => t.tag);
-  const sections = sectionRows.map((s: SectionLayoutRow) => ({
-    id: s.id,
-    type: s.type,
-    title: s.title,
-    scope: s.scope as "ORG" | "GLOBAL",
-    position: s.position,
-    visible: s.visible,
-  }));
-
   return (
     <>
       <RegisterPageSidebarSubContent
@@ -108,7 +92,6 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
             isOwner={isOwner}
             canManage={canManage}
             scope={task.scope as "ORG" | "GLOBAL"}
-            sections={sections}
             sharedBy={sharedBy}
             createdByName={createdByName}
           />

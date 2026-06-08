@@ -22,6 +22,8 @@ interface TasksPageClientProps {
   mode: "list" | "shared" | "available";
   isModeExplicit: boolean;
   isFiltersExplicit: boolean;
+  initialTasks: Parameters<typeof TaskTable>[0]["initialTasks"];
+  initialNextCursor: string | null;
 }
 
 export function TasksPageClient({
@@ -36,6 +38,8 @@ export function TasksPageClient({
   mode,
   isModeExplicit,
   isFiltersExplicit,
+  initialTasks,
+  initialNextCursor,
 }: TasksPageClientProps) {
   const [currentView, setCurrentView] = useState<"list" | "card">(view);
   const [currentMode, setCurrentMode] = useState<"list" | "shared" | "available">(mode);
@@ -69,6 +73,8 @@ export function TasksPageClient({
         filterRoleId={roleId}
         filterTagId={tagId}
         view={currentView}
+        initialTasks={initialTasks}
+        initialNextCursor={initialNextCursor}
       />
     </>
   );

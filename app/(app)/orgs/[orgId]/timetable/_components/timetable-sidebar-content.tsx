@@ -52,10 +52,13 @@ interface TimetableSidebarContentProps {
 
 function ZoomSlider() {
   const { hourHeight, setHourHeight } = useTimetableZoom();
+
   return (
-    <div className="px-1 mt-3">
-      <div className="flex items-center justify-between mb-1">
-        <label htmlFor="hour-height-slider" className="text-xs text-muted-foreground">Hour height</label>
+    <div className="mt-3 px-1">
+      <div className="flex items-center justify-between gap-3 mb-1.5">
+        <label htmlFor="hour-height-slider" className="text-xs font-medium text-muted-foreground">
+          Zoom
+        </label>
         <span className="text-xs tabular-nums text-muted-foreground">{hourHeight}px</span>
       </div>
       <input
@@ -65,7 +68,7 @@ function ZoomSlider() {
         max={MAX_HOUR_HEIGHT}
         value={hourHeight}
         onChange={(e) => setHourHeight(Number(e.target.value))}
-        className="w-full accent-primary"
+        className="h-2 w-full cursor-pointer accent-primary"
       />
     </div>
   );

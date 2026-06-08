@@ -67,7 +67,12 @@ export function SegmentedControl<T extends string>({
 
   if (variant === "pills") {
     return (
-      <div className={cn("flex gap-2 flex-wrap", className)}>
+      <div
+        className={cn(
+          "inline-flex w-fit flex-wrap gap-1.5 rounded-full border border-border/70 bg-muted/35 p-0.5 shadow-sm",
+          className,
+        )}
+      >
         {options.map(({ label, value }) => (
           <button
             key={value}
@@ -76,11 +81,11 @@ export function SegmentedControl<T extends string>({
             disabled={disabled}
             aria-pressed={isActive(value)}
             className={cn(
-              "px-3 py-1.5 text-sm font-medium border transition-colors cursor-pointer select-none",
+              "inline-flex h-8 items-center justify-center rounded-full px-2.5 text-xs font-medium border transition-all duration-150 cursor-pointer select-none whitespace-nowrap leading-none",
               "disabled:pointer-events-none disabled:opacity-50",
               isActive(value)
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-white text-muted-foreground border-border hover:border-primary/50 hover:text-foreground",
+                ? "bg-background text-foreground border-border shadow-sm ring-1 ring-black/5"
+                : "bg-transparent text-muted-foreground border-transparent hover:bg-background/80 hover:text-foreground",
             )}
           >
             {label}
@@ -94,11 +99,11 @@ export function SegmentedControl<T extends string>({
   return (
     <div
       className={cn(
-        "flex overflow-hidden border text-sm font-medium w-fit",
+        "inline-flex w-fit overflow-hidden rounded-full border border-border/70 bg-muted/35 p-0.5 text-xs font-medium shadow-sm",
         className,
       )}
     >
-      {options.map(({ label, value }, i) => (
+      {options.map(({ label, value }) => (
         <button
           key={value}
           type="button"
@@ -106,13 +111,12 @@ export function SegmentedControl<T extends string>({
           disabled={disabled}
           aria-current={isActive(value) ? "true" : undefined}
           className={cn(
-            size === "sm" ? "p-1.5" : "px-3 py-1",
-            "transition-colors cursor-pointer select-none text-center",
+            size === "sm" ? "h-8 px-2.5" : "h-9 px-3.5",
+            "inline-flex items-center justify-center rounded-full transition-all duration-150 cursor-pointer select-none text-center whitespace-nowrap leading-none",
             "disabled:pointer-events-none disabled:opacity-50",
-            i > 0 && "border-l",
             isActive(value)
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:bg-muted",
+              ? "bg-background text-foreground shadow-sm ring-1 ring-black/5"
+              : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
           )}
         >
           {label}

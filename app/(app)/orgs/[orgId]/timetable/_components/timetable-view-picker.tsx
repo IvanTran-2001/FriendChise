@@ -12,6 +12,7 @@
  */
 import { cn } from "@/lib/utils";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { CalendarDays, CalendarRange, Calendar, List } from "lucide-react";
 
 interface TimetableViewPickerProps {
   orgId: string;
@@ -59,21 +60,55 @@ export function TimetableViewPicker({
       {/* Day / Week */}
       <SegmentedControl
         options={[
-          { label: "Day", value: "day" },
-          { label: "Week", value: "week" },
+          {
+            label: (
+              <span className="flex items-center gap-1.5">
+                <CalendarDays className="h-3.5 w-3.5" />
+                Day
+              </span>
+            ),
+            value: "day",
+          },
+          {
+            label: (
+              <span className="flex items-center gap-1.5">
+                <CalendarRange className="h-3.5 w-3.5" />
+                Week
+              </span>
+            ),
+            value: "week",
+          },
         ]}
         value={span}
         onChange={(v) => setSpan(v as "day" | "week")}
+        size="sm"
       />
 
       {/* Calendar / Simple */}
       <SegmentedControl
         options={[
-          { label: "Calendar", value: "calendar" },
-          { label: "Simple", value: "simple" },
+          {
+            label: (
+              <span className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
+                Calendar
+              </span>
+            ),
+            value: "calendar",
+          },
+          {
+            label: (
+              <span className="flex items-center gap-1.5">
+                <List className="h-3.5 w-3.5" />
+                Simple
+              </span>
+            ),
+            value: "simple",
+          },
         ]}
         value={mode}
         onChange={(v) => setMode(v as "calendar" | "simple")}
+        size="sm"
       />
     </div>
   );

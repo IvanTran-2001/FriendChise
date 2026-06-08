@@ -7,15 +7,13 @@
  *  - "Inherited" notice when the org has inherited this task from its parent
  *  - Sharing section (scope indicator + Publish / Freeze / Make Private) for
  *    task owners with MANAGE_TASKS
- *  - Sections section (opens the section-layout ActionSidebar) for any member
- *    with MANAGE_TASKS
  *  - Actions section (Edit link + Delete with confirmation) for task owners
  *    with MANAGE_TASKS
  */
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Globe, LayoutList, Lock, Pencil, Trash2 } from "lucide-react";
+import { Globe, Lock, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +32,6 @@ import {
   publishTaskAction,
   unpublishTaskAction,
 } from "@/app/actions/tasks";
-import { TaskSectionsPanel, type SectionRow } from "./task-sections-panel";
 
 type TaskScope = "ORG" | "GLOBAL";
 
@@ -45,7 +42,6 @@ interface TaskDetailSidebarProps {
   isOwner: boolean;
   canManage: boolean;
   scope: TaskScope;
-  sections: SectionRow[];
   sharedBy?: string;
   createdByName?: string;
 }
@@ -263,28 +259,10 @@ export function TaskDetailSidebar({
   isOwner,
   canManage,
   scope,
-  sections,
   sharedBy,
   createdByName,
 }: TaskDetailSidebarProps) {
-  const { open, close, activeTitle } = useActionSidebar();
-  const SECTIONS_TITLE = "Sections";
-
-  function handleSectionsOpen() {
-    if (activeTitle === SECTIONS_TITLE) {
-      close();
-      return;
-    }
-    open(
-      SECTIONS_TITLE,
-      <TaskSectionsPanel
-        orgId={orgId}
-        taskId={taskId}
-        initialSections={sections}
-        onSaved={close}
-      />,
-    );
-  }
+  const { open, close } = useActionSidebar();
 
   return (
     <div className="flex flex-col gap-0">
@@ -314,24 +292,6 @@ export function TaskDetailSidebar({
             Sharing
           </p>
           <ScopeSection orgId={orgId} taskId={taskId} initialScope={scope} />
-        </div>
-      )}
-
-      {/* Sections section */}
-      {canManage && (
-        <div className="px-3 pt-2 pb-2 border-t border-border">
-          <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
-            Layout
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full justify-start gap-2"
-            onClick={handleSectionsOpen}
-          >
-            <LayoutList className="h-3.5 w-3.5" />
-            Edit Sections
-          </Button>
         </div>
       )}
 

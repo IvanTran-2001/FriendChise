@@ -3,9 +3,7 @@ import { getRoles } from "@/lib/services/roles";
 import { requireOrgMemberPage } from "@/lib/authz";
 import { memberHasPermission, getOrgMembership } from "@/lib/authz/_shared";
 import { PermissionAction } from "@prisma/client";
-import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
-import { MembersView } from "./_components/members-view";
-import { MembersSidebarContent } from "./_components/page-sidebar/members-sidebar-content";
+import { MembersPageClient } from "./_components/members-page-client";
 
 /**
  * Members list page — server component.
@@ -51,36 +49,23 @@ const MembersPage = async ({
   const view: "list" | "card" = sp.view === "list" ? "list" : "card";
 
   return (
-    <>
-      <RegisterPageSidebarSubContent
-        content={
-          <MembersSidebarContent
-            orgId={orgId}
-            roles={roles}
-            canManage={canManage}
-            roleId={roleId}
-            view={view}
-          />
-        }
-      />
-      <MembersView
-        members={memberships.map((m) => ({
-          id: m.id,
-          userId: m.userId,
-          botName: m.botName,
-          status: m.status,
-          workingDays: m.workingDays,
-          joinedAt: m.joinedAt,
-          user: m.user,
-          memberRoles: m.memberRoles,
-        }))}
-        orgId={orgId}
-        canManage={canManage}
-        allRoles={roles}
-        roleId={roleId}
-        view={view}
-      />
-    </>
+    <MembersPageClient
+      orgId={orgId}
+      members={memberships.map((m) => ({
+        id: m.id,
+        userId: m.userId,
+        botName: m.botName,
+        status: m.status,
+        workingDays: m.workingDays,
+        joinedAt: m.joinedAt,
+        user: m.user,
+        memberRoles: m.memberRoles,
+      }))}
+      canManage={canManage}
+      roles={roles}
+      roleId={roleId}
+      view={view}
+    />
   );
 };
 

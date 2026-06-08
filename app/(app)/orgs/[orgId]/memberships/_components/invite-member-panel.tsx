@@ -1,19 +1,19 @@
 "use client";
 
 /**
- * AddBotPanel — inline bot-creation form for the ActionSidebar.
+ * InviteMemberPanel — inline invite form for the ActionSidebar.
  */
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RolePicker } from "../role-picker";
-import { DAYS } from "../../_constants";
-import { createBotAction } from "@/app/actions/bots";
+import { RolePicker } from "./role-picker";
+import { DAYS } from "../_constants";
+import { sendMemberInviteAction } from "@/app/actions/memberships";
 
 type Role = { id: string; name: string; color: string };
 
-export function AddBotPanel({
+export function InviteMemberPanel({
   orgId,
   roles,
   onClose,
@@ -23,7 +23,7 @@ export function AddBotPanel({
   onClose: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [botName, setBotName] = useState("");
+  const [email, setEmail] = useState("");
   const [roleIds, setRoleIds] = useState<string[]>([]);
   const [workingDays, setWorkingDays] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -34,63 +34,56 @@ export function AddBotPanel({
     );
   }
 
-  function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    if (!botName.trim()) {
-      setErrors({ botName: "Name is required" });
-      return;
-    }
+  function handleSubmit() {
     setErrors({});
     startTransition(async () => {
-      try {
-        const result = await createBotAction(orgId, {
-          botName: botName.trim(),
-          roleIds,
-          workingDays,
-        });
-        if (!result.ok) {
-          setErrors({ _: result.error });
-          return;
-        }
-        toast.success(`Bot "${botName.trim()}" added.`);
-        onClose();
-      } catch (error: unknown) {
-        setErrors({
-          _: error instanceof Error ? error.message : String(error),
-        });
-        toast.error("Failed to add bot");
+      const result = await sendMemberInviteAction(orgId, {
+        email,
+        roleIds,
+        workingDays,
+      });
+      if (!result.ok) {
+        setErrors(
+          result.field ? { [result.field]: result.error } : { _: result.error },
+        );
+        return;
       }
+      setEmail("");
+      setRoleIds([]);
+      setWorkingDays([]);
+      toast.success("Invite sent!");
+      onClose();
     });
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4 p-4">
       {errors._ && <p className="text-sm text-destructive">{errors._}</p>}
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium">
-          Bot Name <span className="text-destructive">*</span>
+        <label htmlFor="invite-email" className="text-sm font-medium">
+          Email <span className="text-destructive">*</span>
         </label>
         <Input
-          type="text"
-          placeholder="e.g. Open Slot"
-          value={botName}
-          onChange={(e) => setBotName(e.target.value)}
+          id="invite-email"
+          type="email"
+          placeholder="member@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
-        {errors.botName && (
-          <p className="text-xs text-destructive">{errors.botName}</p>
+        {errors.email && (
+          <p className="text-xs text-destructive">{errors.email}</p>
         )}
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium">Working Days</label>
+      <fieldset className="flex flex-col gap-2">
+        <legend className="text-sm font-medium">Working Days</legend>
         <div className="flex flex-wrap gap-2">
           {DAYS.map(({ key, label }) => (
             <button
               key={key}
               type="button"
               onClick={() => toggleDay(key)}
-              aria-pressed={workingDays.includes(key)}
               className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                 workingDays.includes(key)
                   ? "bg-primary text-primary-foreground border-primary"
@@ -101,20 +94,23 @@ export function AddBotPanel({
             </button>
           ))}
         </div>
-      </div>
+      </fieldset>
 
       <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium">Roles</label>
+        <label id="invite-roles-label" className="text-sm font-medium">
+          Roles
+        </label>
         <RolePicker
           allRoles={roles}
           selectedIds={roleIds}
           onChange={setRoleIds}
+          aria-labelledby="invite-roles-label"
         />
       </div>
 
-      <Button type="submit" disabled={isPending} className="w-full">
-        {isPending ? "Adding…" : "Add Bot"}
+      <Button onClick={handleSubmit} disabled={isPending} className="w-full">
+        {isPending ? "Sending…" : "Send Invite"}
       </Button>
-    </form>
+    </div>
   );
 }

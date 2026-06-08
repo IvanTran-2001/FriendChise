@@ -1,5 +1,6 @@
 import { getRoles } from "@/lib/services/roles";
 import { getOrgTags } from "@/lib/services/tags";
+import { getTasksPaginated } from "@/lib/services/tasks";
 import { requireOrgMemberPage } from "@/lib/authz";
 import {
   getOrgMembership,
@@ -123,6 +124,12 @@ const TasksPage = async ({
         ? (savedPrefs!.tagId as string)
         : null;
 
+  const initialTasksPage = await getTasksPaginated(orgId, mode, {
+    sort,
+    roleId: roleId ?? undefined,
+    tagId: tagId ?? undefined,
+  });
+
   return (
     <TasksPageClient
       orgId={orgId}
@@ -136,6 +143,8 @@ const TasksPage = async ({
       mode={mode}
       isModeExplicit={isModeExplicit}
       isFiltersExplicit={isFiltersExplicit}
+      initialTasks={initialTasksPage.tasks}
+      initialNextCursor={initialTasksPage.nextCursor}
     />
   );
 };

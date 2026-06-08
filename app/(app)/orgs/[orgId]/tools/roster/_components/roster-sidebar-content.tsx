@@ -7,7 +7,7 @@ import { useRef } from "react";
 import { ArrowLeft, LayoutTemplate } from "lucide-react";
 import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
 import { Button } from "@/components/ui/button";
-import { MembersActions } from "../../../memberships/_components/action-sidebar/members-panel-triggers";
+import { MembersActions } from "../../../memberships/_components/members-panel-triggers";
 import {
   SearchableCombobox,
   type ComboboxItem,

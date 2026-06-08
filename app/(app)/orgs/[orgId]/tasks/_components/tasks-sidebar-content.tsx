@@ -325,7 +325,7 @@ export function TasksSidebarContent({
         />
       </div>
 
-      {canManageTasks && mode === "list" && (
+      {canManageTasks && (
         <div className="px-3 pt-2 pb-3 border-t border-border">
           <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
             Actions

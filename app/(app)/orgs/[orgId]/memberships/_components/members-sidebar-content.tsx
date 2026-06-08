@@ -7,16 +7,16 @@
  *  - Filters — role filter, list/card view toggle
  *  - Actions — Invite Member, Add Bot (canManage only)
  *
- * All filter/view state is URL-driven: each control pushes a new URL so the
- * server page re-renders with the updated params.
+ * The view toggle updates local state immediately for responsiveness, then
+ * updates the URL with `history.replaceState` so the current view is still
+ * reflected in the address bar without triggering a rerender.
  */
-import { useRouter } from "next/navigation";
+import { MembersSidebarFilters } from "./members-sidebar-filters";
+import Link from "next/link";
 import { LayoutGrid, List, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MembersActions } from "./members-panel-triggers";
 import { SegmentedControl } from "@/components/ui/segmented-control";
-import { FilterCombobox } from "@/components/ui/filter-combobox";
-import { MembersActions } from "../action-sidebar/members-panel-triggers";
-import Link from "next/link";
 
 type Role = { id: string; name: string; color: string };
 
@@ -26,6 +26,7 @@ interface MembersSidebarContentProps {
   canManage: boolean;
   roleId: string | null;
   view: "list" | "card";
+  onViewChange: (view: "list" | "card") => void;
 }
 
 export function MembersSidebarContent({
@@ -34,9 +35,8 @@ export function MembersSidebarContent({
   canManage,
   roleId,
   view,
+  onViewChange,
 }: MembersSidebarContentProps) {
-  const router = useRouter();
-
   function buildHref(overrides: {
     roleId?: string | null;
     view?: "list" | "card";
@@ -51,42 +51,43 @@ export function MembersSidebarContent({
 
   return (
     <>
-      {/* Filters section */}
-      <div className="px-3 pt-3 pb-2">
-        <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
-          Filters
-        </p>
-        <div className="flex flex-col gap-2">
-          {/* Role filter */}
-          {roles.length > 0 && (
-            <FilterCombobox
-              items={roles}
-              selectedId={roleId}
-              allLabel="All roles"
-              placeholder="Search roles…"
-              onSelect={(newRoleId) => router.push(buildHref({ roleId: newRoleId }))}
-            />
-          )}
-        </div>
-      </div>
-
-      {/* View section */}
+      <MembersSidebarFilters
+        roles={roles}
+        roleId={roleId}
+        buildHref={buildHref}
+      />
       <div className="px-3 pt-2.5 pb-3 border-t border-border">
         <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
           View
         </p>
         <SegmentedControl
           value={view}
-          onChange={(v) =>
-            router.push(buildHref({ view: v as "list" | "card" }))
-          }
+          onChange={(nextView) => {
+            onViewChange(nextView);
+            window.history.replaceState(null, "", buildHref({ view: nextView }));
+          }}
           options={[
-            { value: "list", label: <span className="flex items-center gap-1.5"><List className="h-3.5 w-3.5" />List</span> },
-            { value: "card", label: <span className="flex items-center gap-1.5"><LayoutGrid className="h-3.5 w-3.5" />Card</span> },
+            {
+              value: "list",
+              label: (
+                <span className="flex items-center gap-1.5">
+                  <List className="h-3.5 w-3.5" />
+                  List
+                </span>
+              ),
+            },
+            {
+              value: "card",
+              label: (
+                <span className="flex items-center gap-1.5">
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                  Card
+                </span>
+              ),
+            },
           ]}
         />
       </div>
-
       {canManage && (
         <div className="px-3 pt-2.5 pb-3 border-t border-border">
           <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">

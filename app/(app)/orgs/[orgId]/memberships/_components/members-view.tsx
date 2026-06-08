@@ -33,7 +33,7 @@ import { useSupportsHover } from "@/hooks/use-hover-capability";
 import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { MemberActions } from "./member-actions";
-import { MemberViewPanel } from "./action-sidebar/member-view-panel";
+import { MemberViewPanel } from "./member-view-panel";
 
 type Role = { id: string; name: string; color: string };
 

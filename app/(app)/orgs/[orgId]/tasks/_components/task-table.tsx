@@ -9,7 +9,7 @@
  * All filtering params (sort, roleId, tagId, mode) come from URL-driven props.
  * Local search is debounced and triggers a fresh fetch from the start.
  */
-import { useState, useReducer, useTransition, useEffect, useRef, useCallback } from "react";
+import { useState, useReducer, useTransition, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSupportsHover } from "@/hooks/use-hover-capability";
 import { usePersistedState } from "@/hooks/use-persisted-state";
@@ -97,7 +97,7 @@ type Task = {
   _count: { inheritedBy: number };
   eligibility: { role: { id: string; name: string; color: string | null } }[];
   tags: { tag: { id: string; name: string; color: string } }[];
-  imageSignedUrl: string | null;
+  imageSignedUrl?: string | null;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -110,6 +110,8 @@ interface TaskTableProps {
   filterRoleId: string | null;
   filterTagId: string | null;
   view: "list" | "card";
+  initialTasks: Task[];
+  initialNextCursor: string | null;
 }
 
 export function TaskTable({
@@ -120,6 +122,8 @@ export function TaskTable({
   filterRoleId,
   filterTagId,
   view,
+  initialTasks,
+  initialNextCursor,
 }: TaskTableProps) {
   const router = useRouter();
   const supportsHover = useSupportsHover();
@@ -176,11 +180,31 @@ export function TaskTable({
 
   const [{ tasks, nextCursor, isFetching, initialLoad }, dispatch] = useReducer(
     pageReducer,
-    { tasks: [], nextCursor: null, isFetching: false, initialLoad: true },
+    {
+      tasks: initialTasks,
+      nextCursor: initialNextCursor,
+      isFetching: false,
+      initialLoad: initialTasks.length === 0 && initialNextCursor === null,
+    },
   );
   const sentinelRef = useRef<HTMLDivElement>(null);
   // Tracks the latest fetch cycle. If filters change while a request   flight, older responses are ignored.
   const resetKeyRef = useRef(0);
+  const pageCacheRef = useRef<Record<string, { tasks: Task[]; nextCursor: string | null }>>({});
+  const initialQueryKeyRef = useRef(
+    [mode, sort, filterRoleId ?? "", filterTagId ?? "", ""].join("|")
+  );
+  const queryKey = useMemo(
+    () => [mode, sort, filterRoleId ?? "", filterTagId ?? "", debouncedSearch].join("|"),
+    [mode, sort, filterRoleId, filterTagId, debouncedSearch],
+  );
+
+  useEffect(() => {
+    pageCacheRef.current[initialQueryKeyRef.current] = {
+      tasks: initialTasks,
+      nextCursor: initialNextCursor,
+    };
+  }, [initialTasks, initialNextCursor]);
 
   // Build the API URL from the current page state and optional cursor.
   const buildUrl = useCallback(
@@ -200,17 +224,32 @@ export function TaskTable({
     [orgId, mode, sort, filterRoleId, filterTagId, debouncedSearch],
   );
 
-  // When any filter changes, drop the current page state and fetch a fresh
-  // first page for the new query.
+  // When the query changes, keep the current rows visible, then swap in a
+  // cached or freshly fetched first page for the new query.
   useEffect(() => {
     const key = ++resetKeyRef.current;
-    dispatch({ type: "reset" });
+
+    const cachedPage = pageCacheRef.current[queryKey];
+    if (cachedPage) {
+      dispatch({
+        type: "loaded",
+        tasks: cachedPage.tasks,
+        nextCursor: cachedPage.nextCursor,
+      });
+      return;
+    }
+
+    dispatch({ type: "load_more" });
 
     let cancelled = false;
     fetch(buildUrl(null))
       .then((r) => r.json() as Promise<{ tasks: Task[]; nextCursor: string | null }>)
       .then((data) => {
         if (cancelled || resetKeyRef.current !== key) return;
+        pageCacheRef.current[queryKey] = {
+          tasks: data.tasks,
+          nextCursor: data.nextCursor,
+        };
         dispatch({ type: "loaded", tasks: data.tasks, nextCursor: data.nextCursor });
       })
       .catch(() => {
@@ -220,7 +259,7 @@ export function TaskTable({
     return () => {
       cancelled = true;
     };
-  }, [buildUrl]);
+  }, [buildUrl, queryKey]);
 
   // Fetch the next cursor page when the sentinel comes into view.
   const loadMore = useCallback(() => {
@@ -308,8 +347,9 @@ export function TaskTable({
   // ── Render ────────────────────────────────────────────────────────────────
 
   // Empty state only appears after the first page has finished loading.
-  const isEmpty = !initialLoad && tasks.length === 0;
+  const isEmpty = !initialLoad && !isFetching && tasks.length === 0;
   const hasMore = !!nextCursor;
+  const showSkeleton = initialLoad || (isFetching && tasks.length === 0);
 
   return (
     <>
@@ -324,7 +364,7 @@ export function TaskTable({
       </RegisterPageToolbar>
 
       <div>
-        {initialLoad ? (
+        {showSkeleton ? (
           view === "card" ? (
             <TaskCardSkeleton count={6} />
           ) : (

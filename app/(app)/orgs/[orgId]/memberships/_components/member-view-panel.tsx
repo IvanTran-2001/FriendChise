@@ -3,8 +3,8 @@
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
-import { MemberForm } from "../member-form";
-import { DAYS } from "../../_constants";
+import { MemberForm } from "./member-form";
+import { DAYS } from "../_constants";
 
 type Role = { id: string; name: string; color: string };
 
