@@ -26,15 +26,22 @@ export function RecentOrgBanner({ orgs }: { orgs: Org[] }) {
   return (
     <Link
       href={`/orgs/${org.id}`}
-      className="group flex items-center justify-between gap-3 rounded-xl border bg-muted/40 hover:bg-muted/70 px-4 py-3 transition-colors mb-6"
+      className="group mb-6 flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-card px-4 py-3.5 shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
     >
-      <div className="flex flex-col gap-0.5">
-        <span className="text-xs text-muted-foreground font-medium">
-          Continue where you left off
-        </span>
-        <span className="text-sm font-semibold">{org.name}</span>
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <ArrowRight className="h-4 w-4 rotate-180" />
+        </div>
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            Recent organization
+          </span>
+          <span className="truncate text-sm font-semibold text-foreground">
+            {org.name}
+          </span>
+        </div>
       </div>
-      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform shrink-0" />
+      <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
     </Link>
   );
 }

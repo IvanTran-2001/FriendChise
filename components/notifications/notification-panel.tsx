@@ -52,7 +52,7 @@ export function NotificationPanel({
       variant="ghost"
       size="icon"
       aria-label="Notifications"
-      className="relative h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent"
+      className="relative h-9 w-9 rounded-full border border-border/70 bg-background/85 text-muted-foreground shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background hover:text-foreground hover:shadow-md"
     >
       <Bell className="h-4 w-4" />
       {unseenCount > 0 && (

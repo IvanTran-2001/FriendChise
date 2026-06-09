@@ -1,24 +1,22 @@
-import { HeartHandshake } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { LOGO_ALT_TEXT, LOGO_PUBLIC_SRC } from "@/lib/logo";
 
 /**
- * FriendChise wordmark — circle icon + logotype.
- * Renders purely with SVG/CSS so it scales crisply at any size and
- * inherits theme colors automatically.
+ * FriendChise logo badge — icon-only mark used across the app shell.
  */
 export function Logo({ className }: { className?: string }) {
   return (
-    <span className={cn("flex items-center gap-2.5 select-none", className)}>
-      {/* Circle badge */}
-      <span className="flex items-center justify-center rounded-full border-2 border-current p-1.5">
-        <HeartHandshake className="h-4 w-4" strokeWidth={1.75} />
-      </span>
-      {/* Logotype — Poppins SemiBold */}
-      <span
-        className="text-base font-semibold tracking-tight leading-none"
-        style={{ fontFamily: "var(--font-logo, system-ui)" }}
-      >
-        FriendChise
+    <span className={cn("inline-flex select-none", className)}>
+      <span className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#4f7ddb]/25 bg-[#f4f8ff] shadow-[0_1px_2px_rgba(0,0,0,0.06)] ring-1 ring-[#4f7ddb]/10">
+        <Image
+          src={LOGO_PUBLIC_SRC}
+          alt={LOGO_ALT_TEXT}
+          fill
+          sizes="48px"
+          className="object-cover object-[center_18%] scale-[1.28]"
+          priority
+        />
       </span>
     </span>
   );

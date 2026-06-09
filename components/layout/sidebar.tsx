@@ -3,9 +3,8 @@
 /**
  * AppSidebar — global navigation sidebar.
  *
- * Desktop: fixed `w-12` strip that hover-expands to `w-52`. Items are
- * `SidebarNavItem variant="app"` — full-bleed `h-12` rows with a `w-12` icon
- * well and a label that slides in on expand.
+ * Desktop: fixed `w-12` strip. Items are `SidebarNavItem variant="app"`
+ * icon-only rows so the global sidebar stays compact everywhere.
  *
  * Mobile: hidden by default; renders as a fixed overlay (`inset-y-0 left-0
  * z-50`) when the hamburger button in NavBar is tapped. Controlled via
@@ -28,7 +27,6 @@ import {
   HelpCircle,
   Network,
   Menu,
-  HeartHandshake,
   Wrench,
   ShieldCheck,
   Bell,
@@ -40,7 +38,6 @@ import {
   useMobileSidebar,
   GlobalSidebarProvider,
 } from "./mobile-sidebar-context";
-import { useHasPageSidebar } from "./page-sidebar-context";
 import { Logo } from "./logo";
 import { SidebarNavItem } from "./sidebar-nav-item";
 
@@ -54,7 +51,7 @@ export function MobileSidebarTrigger() {
       onClick={() => setOpen(!open)}
       aria-label={open ? "Close menu" : "Open menu"}
       aria-expanded={open}
-      className="md:hidden rounded-md p-1.5 text-foreground/70 hover:text-foreground hover:bg-accent transition-colors"
+      className="md:hidden flex items-center justify-center h-9 w-9 rounded-full border border-border/70 bg-background/85 text-foreground/70 shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background hover:text-foreground hover:shadow-md"
     >
       <Menu className="h-5 w-5" />
     </button>
@@ -65,8 +62,6 @@ export function MobileSidebarTrigger() {
 
 type NavItem = {
   title: string;
-  /** Short label shown in the w-12 compact mobile sidebar. Falls back to title. */
-  compactLabel?: string;
   url: string;
   icon: React.ComponentType<{ className?: string }>;
   disabled?: boolean;
@@ -76,8 +71,7 @@ function getOrgItems(orgId: string): NavItem[] {
   return [
     { title: "Home", url: `/orgs/${orgId}`, icon: Building2 },
     {
-      title: "Timetable",
-      compactLabel: "Sched",
+      title: "Sched",
       url: `/orgs/${orgId}/timetable`,
       icon: Calendar,
     },
@@ -103,8 +97,7 @@ function getFooterItems(
     ...(franchiseeOrgId
       ? [
           {
-            title: "Franchisee",
-            compactLabel: "Frnch",
+            title: "Franch",
             url: `/orgs/${franchiseeOrgId}/franchisee`,
             icon: Network,
           },
@@ -117,8 +110,7 @@ function getFooterItems(
 function getSettingsItems(orgId: string): NavItem[] {
   return [
     {
-      title: "Organization",
-      compactLabel: "Org",
+      title: "Org",
       url: `/orgs/${orgId}/settings/organization`,
       icon: Building2,
     },
@@ -126,14 +118,12 @@ function getSettingsItems(orgId: string): NavItem[] {
     { title: "Tags", url: `/orgs/${orgId}/settings/tags`, icon: Tag },
     {
       title: "Timetable",
-      compactLabel: "Sched",
       url: `/orgs/${orgId}/settings/timetable`,
       icon: Calendar,
       disabled: true,
     },
     {
       title: "Notification",
-      compactLabel: "Alerts",
       url: `/orgs/${orgId}/settings/notification`,
       icon: Bell,
       disabled: true,
@@ -161,7 +151,6 @@ export function AppSidebar() {
   const { orgId } = useParams<{ orgId?: string }>();
   const pathname = usePathname();
   const { open, setOpen } = useContext(MobileSidebarCtx);
-  const hasSidebar = useHasPageSidebar();
 
   // Close the mobile overlay on navigation
   useEffect(() => {
@@ -212,7 +201,7 @@ export function AppSidebar() {
     return pathname === url || pathname.startsWith(`${url}/`);
   };
 
-  const navContent = (compact = false) => {
+  const navContent = () => {
     // ── Settings mode ──────────────────────────────────────────────────────
     if (isSettingsRoute && orgId) {
       return (
@@ -231,8 +220,6 @@ export function AppSidebar() {
                 <SidebarNavItem
                   key={item.title}
                   variant="app"
-                  compact={compact}
-                  compactLabel={item.compactLabel}
                   {...item}
                   isActive={isActiveItem(item.url)}
                 />
@@ -253,8 +240,6 @@ export function AppSidebar() {
                 <SidebarNavItem
                   key={item.title}
                   variant="app"
-                  compact={compact}
-                  compactLabel={item.compactLabel}
                   {...item}
                   isActive={isActiveItem(item.url)}
                 />
@@ -263,7 +248,6 @@ export function AppSidebar() {
               <>
                 <SidebarNavItem
                   variant="app"
-                  compact={compact}
                   title="Hub"
                   url="/"
                   icon={LayoutDashboard}
@@ -271,16 +255,13 @@ export function AppSidebar() {
                 />
                 <SidebarNavItem
                   variant="app"
-                  compact={compact}
-                  title="Organizations"
-                  compactLabel="Orgs"
+                  title="Org"
                   url="/orgs/new"
                   icon={Building2}
                   isActive={isActiveItem("/orgs")}
                 />
                 <SidebarNavItem
                   variant="app"
-                  compact={compact}
                   title="Help"
                   url="/help"
                   icon={HelpCircle}
@@ -298,8 +279,6 @@ export function AppSidebar() {
                 <SidebarNavItem
                   key={item.title}
                   variant="app"
-                  compact={compact}
-                  compactLabel={item.compactLabel}
                   {...item}
                   isActive={isActiveItem(item.url)}
                 />
@@ -316,17 +295,15 @@ export function AppSidebar() {
       {/* ── Desktop: fixed width, compact when a page sidebar is present ── */}
       <div
         className={cn(
-          "hidden md:block relative shrink-0",
-          hasSidebar ? "w-12" : "w-52",
+          "hidden md:block relative shrink-0 w-12",
         )}
       >
         <div
           className={cn(
-            "absolute inset-y-0 left-0 z-30 flex flex-col bg-sidebar border-r border-sidebar-border overflow-hidden",
-            hasSidebar ? "w-12" : "w-52",
+            "absolute inset-y-0 left-0 z-30 flex flex-col bg-sidebar border-r border-sidebar-border overflow-hidden w-12",
           )}
         >
-          {navContent(hasSidebar)}
+          {navContent()}
         </div>
       </div>
 
@@ -339,24 +316,17 @@ export function AppSidebar() {
           />
           <div
             className={cn(
-              "md:hidden fixed inset-y-0 left-0 z-50 bg-sidebar border-r border-sidebar-border flex flex-col overflow-hidden",
-              !hasSidebar ? "w-52" : "w-12",
+              "md:hidden fixed inset-y-0 left-0 z-50 bg-sidebar border-r border-sidebar-border flex flex-col overflow-hidden w-12",
             )}
           >
             <Link
               href="/"
               onClick={() => setOpen(false)}
-              className="flex items-center h-12 shrink-0 text-foreground px-2"
+              className="flex h-12 shrink-0 items-center justify-center px-0 text-foreground"
             >
-              {!hasSidebar ? (
-                <Logo className="text-foreground" />
-              ) : (
-                <span className="flex items-center justify-center w-full rounded-full border-2 border-current p-1.5">
-                  <HeartHandshake className="h-4 w-4" strokeWidth={1.75} />
-                </span>
-              )}
+              <Logo className="scale-[0.84] text-foreground" />
             </Link>
-            {navContent(hasSidebar)}
+            {navContent()}
           </div>
         </>
       )}

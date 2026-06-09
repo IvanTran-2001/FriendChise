@@ -26,11 +26,6 @@ export type SidebarNavItemProps = {
   /** "app" = fixed w-12 icon wrapper for the collapsible global sidebar.
    *  "page" = standard px-3 gap layout for full-width page sidebars. */
   variant?: "app" | "page";
-  /** When true (mobile minimized mode), stacks a tiny label below the icon
-   *  so items are identifiable without widening the sidebar. */
-  compact?: boolean;
-  /** Abbreviated label used in compact mode. Falls back to title if omitted. */
-  compactLabel?: string;
   onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
 };
 
@@ -41,8 +36,6 @@ export function SidebarNavItem({
   disabled,
   isActive,
   variant = "page",
-  compact = false,
-  compactLabel,
   onClick,
 }: SidebarNavItemProps) {
   const appActive =
@@ -53,22 +46,13 @@ export function SidebarNavItem({
   if (variant === "app") {
     const base =
       "relative flex items-center h-12 w-full overflow-hidden rounded-none transition-all duration-150";
-    const inner = compact ? (
+    const inner = (
       <span className="mx-auto flex w-10 flex-col items-center justify-center gap-0.5 rounded-xl border border-transparent bg-sidebar-background/70 py-1 shadow-sm ring-1 ring-transparent transition-all duration-150 group-hover:-translate-y-0.5 group-hover:border-sidebar-border/70 group-hover:bg-sidebar-accent/40 group-hover:ring-sidebar-border/40 group-hover:shadow-md">
         <Icon className="h-4 w-4 transition-transform duration-150 group-hover:scale-105" />
-        <span className="text-[7px] leading-none text-center w-full px-0.5 tracking-[0.08em] uppercase text-sidebar-foreground/75">
-          {compactLabel ?? title}
+        <span className="w-full px-0.5 text-center text-[7px] leading-none uppercase tracking-[0.08em] text-sidebar-foreground/75">
+          {title}
         </span>
       </span>
-    ) : (
-      <>
-        <span className="w-12 flex items-center justify-center shrink-0">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sidebar-background/70 ring-1 ring-transparent transition-colors group-hover:bg-sidebar-accent/70 group-hover:ring-sidebar-border/60">
-            <Icon className="h-4.5 w-4.5" />
-          </span>
-        </span>
-        <span className="whitespace-nowrap text-[13px] pr-3 font-medium tracking-[0.01em]">{title}</span>
-      </>
     );
     if (disabled)
       return (

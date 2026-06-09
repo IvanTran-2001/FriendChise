@@ -68,9 +68,9 @@ export function SearchableCombobox({
   return (
     <Popover
       open={open}
-      onOpenChange={(v) => {
-        setOpen(v);
-        if (!v) setSearch("");
+      onOpenChange={(value) => {
+        setOpen(value);
+        if (!value) setSearch("");
       }}
     >
       <PopoverTrigger asChild>
@@ -78,10 +78,10 @@ export function SearchableCombobox({
           variant="outline"
           size="sm"
           type="button"
-          className="w-full justify-between gap-1.5 overflow-hidden"
+          className="h-9 w-full justify-between gap-2 overflow-hidden rounded-full border-border/70 bg-background/85 px-3.5 text-left shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background hover:shadow-md"
           disabled={disabled}
         >
-          <span className="truncate">{triggerLabel}</span>
+          <span className="truncate text-sm font-medium">{triggerLabel}</span>
           <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -89,49 +89,66 @@ export function SearchableCombobox({
         align="start"
         sideOffset={4}
         collisionPadding={8}
-        className="p-0"
+        className="w-80 overflow-hidden rounded-2xl border-border/70 bg-popover/95 p-0 shadow-xl backdrop-blur-xl"
         style={{ minWidth: "var(--radix-popover-trigger-width)" }}
-        onOpenAutoFocus={(e) => e.preventDefault()}
+        onOpenAutoFocus={(event) => event.preventDefault()}
       >
-        <div className="border-b px-1 py-1">
+        <div className="border-b border-border/60 bg-background/70 px-3 py-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              {triggerLabel}
+            </p>
+            {items.length > 0 && (
+              <span className="rounded-full border border-border/70 bg-background px-2 py-0.5 text-[11px] text-muted-foreground">
+                {filtered.length}/{items.length}
+              </span>
+            )}
+          </div>
           <Input
             autoFocus
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(event) => setSearch(event.target.value)}
             placeholder={placeholder}
-            className="h-7 border-0 shadow-none focus-visible:ring-0 text-sm"
+            className="h-9 rounded-xl border-border/70 bg-background/90 text-sm shadow-sm focus-visible:ring-0"
           />
         </div>
-        <div className="max-h-28 overflow-y-auto">
+
+        <div className="max-h-56 overflow-y-auto p-2">
           {filtered.length === 0 && !canCreate && trimmed !== "" && (
-            <p className="px-3 py-2 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-dashed border-border/70 bg-muted/30 px-3 py-4 text-center text-sm text-muted-foreground">
               {emptyText}
-            </p>
+            </div>
           )}
+
           {filtered.map((item) => (
             <button
               key={item.id}
               type="button"
-              className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
+              className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/70"
               onClick={() => handleSelect(item)}
             >
               {item.color && (
                 <span
-                  className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                  className="inline-block h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-black/5"
                   style={{ backgroundColor: item.color }}
                 />
               )}
-              <span className="truncate">{item.name}</span>
+              <span className="truncate font-medium text-foreground">
+                {item.name}
+              </span>
             </button>
           ))}
+
           {canCreate && (
             <button
               type="button"
-              className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-1.5 text-primary"
+              className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-primary transition-colors hover:bg-primary/8"
               onClick={handleCreate}
             >
-              <span className="text-base leading-none">+</span>
-              Create &ldquo;{trimmed}&rdquo;
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm leading-none">
+                +
+              </span>
+              <span className="truncate">Create &ldquo;{trimmed}&rdquo;</span>
             </button>
           )}
         </div>

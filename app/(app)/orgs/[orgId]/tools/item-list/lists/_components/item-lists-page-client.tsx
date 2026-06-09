@@ -20,6 +20,7 @@ type ToolItemList = {
 interface ItemListsPageClientProps {
   orgId: string;
   lists: ToolItemList[];
+  recentLists: { id: string; entityKey: string; entityName: string; entityHref: string | null; lastUsedAt: Date }[];
   canManage: boolean;
   view: "list" | "card";
 }
@@ -33,6 +34,7 @@ interface ItemListsPageClientProps {
 export function ItemListsPageClient({
   orgId,
   lists: initial,
+  recentLists,
   canManage,
   view,
 }: ItemListsPageClientProps) {
@@ -73,6 +75,7 @@ export function ItemListsPageClient({
       <ItemListsClient
         orgId={orgId}
         lists={lists}
+        recentLists={recentLists}
         onListsChange={setLists}
         canManage={canManage}
         view={view}

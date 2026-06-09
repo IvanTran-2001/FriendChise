@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import {
   CheckSquare,
   Copy,
+  ArrowRight,
   LayoutGrid,
   List,
   MoreHorizontal,
   Pencil,
+  Clock,
   Search,
   Trash2,
 } from "lucide-react";
@@ -43,6 +45,13 @@ interface ItemListsClientProps {
   orgId: string;
   /** Current list of item lists — owned by ItemListsPageClient so create/edit/delete stay in sync across sidebar and main content. */
   lists: ToolItemList[];
+  recentLists: {
+    id: string;
+    entityKey: string;
+    entityName: string;
+    entityHref: string | null;
+    lastUsedAt: Date;
+  }[];
   /** State setter passed down from ItemListsPageClient; allows in-place mutations without router.refresh(). */
   onListsChange: React.Dispatch<React.SetStateAction<ToolItemList[]>>;
   canManage: boolean;
@@ -63,7 +72,14 @@ const DISPLAY_TYPE_ICON: Record<ListDisplayType, React.ElementType> = {
   GALLERY: LayoutGrid,
 };
 
-export function ItemListsClient({ orgId, lists, onListsChange: setLists, canManage, view }: ItemListsClientProps) {
+export function ItemListsClient({
+  orgId,
+  lists,
+  recentLists,
+  onListsChange: setLists,
+  canManage,
+  view,
+}: ItemListsClientProps) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   // Inline editing state: { id, name, description }
@@ -125,6 +141,14 @@ export function ItemListsClient({ orgId, lists, onListsChange: setLists, canMana
   const filtered = search
     ? lists.filter((l) => l.name.toLowerCase().includes(search.toLowerCase()))
     : lists;
+  const recent = recentLists
+    .map((item) => ({
+      id: item.entityKey,
+      name: item.entityName,
+      href: item.entityHref ?? `/orgs/${orgId}/tools/item-list/lists/${item.entityKey}`,
+      usedAt: item.lastUsedAt,
+    }))
+    .filter((item) => lists.some((list) => list.id === item.id));
 
   return (
     <>
@@ -142,6 +166,45 @@ export function ItemListsClient({ orgId, lists, onListsChange: setLists, canMana
       </RegisterPageToolbar>
 
       <div>
+        {recent.length > 0 && !search && (
+          <section className="mb-6 flex flex-col gap-3">
+            <div className="flex items-end justify-between gap-3 px-1">
+              <div>
+                <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Recent lists
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Jump back into the lists you opened recently.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {recent.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => router.push(item.href)}
+                  className="group rounded-3xl border border-border bg-card p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-700 ring-1 ring-sky-500/15 dark:text-sky-300">
+                        <Clock className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="truncate text-sm font-semibold">{item.name}</h3>
+                        <p className="mt-1 text-xs text-muted-foreground">Open list</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
         {lists.length === 0 ? (
           <div className="flex items-center justify-center border rounded-lg py-24">
             <div className="flex flex-col items-center gap-3 text-center">

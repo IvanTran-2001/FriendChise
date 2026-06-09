@@ -37,6 +37,12 @@ export default async function FranchiseePage({
   ]);
 
   return (
-    <FranchiseeClient orgId={orgId} franchisees={franchisees} tokens={tokens} />
+    <div className="mx-auto w-full max-w-4xl px-4 sm:px-6">
+      <FranchiseeClient
+        orgId={orgId}
+        franchisees={franchisees}
+        tokens={tokens}
+      />
+    </div>
   );
 }

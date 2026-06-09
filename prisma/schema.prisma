@@ -191,6 +191,7 @@ model Organization {
   toolItems           ToolItem[]
   toolItemLists       ToolItemList[]
   conversionSets      ConversionSet[]
+  recentActivities    RecentActivity[]
   feedback            Feedback[]
   taskInheritances    TaskInheritance[]
   sectionLayouts      TaskSectionLayout[]
@@ -202,6 +203,29 @@ model Organization {
 
   @@index([ownerId])
   @@index([parentId])
+}
+
+// ─────────────────────────────────────
+// 3.5 RECENT ACTIVITY
+// ─────────────────────────────────────
+
+model RecentActivity {
+  id          String   @id @default(cuid())
+
+  orgId       String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  category    String
+  entityKey   String
+  entityName  String
+  entityHref  String?
+  lastUsedAt  DateTime
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([orgId, category, entityKey])
+  @@index([orgId, category, lastUsedAt])
 }
 
 // ─────────────────────────────────────

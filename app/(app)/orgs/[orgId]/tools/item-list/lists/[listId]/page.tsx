@@ -10,6 +10,10 @@ import { PermissionAction } from "@prisma/client";
 import { getToolItemListDetail, getToolItemsFull, getConversionSets, getConversionRates } from "@/lib/services/tools";
 import { createSignedReadUrls } from "@/lib/supabase-storage";
 import {
+  RECENT_ACTIVITY_CATEGORY,
+  recordRecentActivity,
+} from "@/lib/services/recent-activity";
+import {
   RegisterPageSidebar,
 } from "@/components/layout/page-sidebar-context";
 import { ItemListSidebarShell } from "../../_components/item-list-sidebar-shell";
@@ -65,6 +69,14 @@ export default async function ListDetailPage({
         PermissionAction.MANAGE_TASKS,
       )
     : false;
+
+  await recordRecentActivity({
+    orgId,
+    category: RECENT_ACTIVITY_CATEGORY.ITEM_LISTS,
+    entityKey: list.id,
+    entityName: list.name,
+    entityHref: `/orgs/${orgId}/tools/item-list/lists/${list.id}`,
+  });
 
   const imagePaths = allOrgItems.map((i) => i.imgUrl).filter((p): p is string => !!p);
   const entryImagePaths = list.entries.map((e) => e.item.imgUrl).filter((p): p is string => !!p);

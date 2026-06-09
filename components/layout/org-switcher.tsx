@@ -7,15 +7,15 @@
  * and navigates to the selected org's root page on selection.
  */
 import { useRouter, usePathname } from "next/navigation";
-import { useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
@@ -36,7 +36,7 @@ function OrgBadge({ org }: { org: Org }) {
       <img
         src={org.image}
         alt={org.name}
-        className="h-5 w-5 shrink-0 rounded object-cover select-none"
+        className="h-5 w-5 shrink-0 rounded-full object-cover select-none ring-1 ring-border/70"
         aria-hidden
       />
     );
@@ -44,7 +44,7 @@ function OrgBadge({ org }: { org: Org }) {
   const hue = orgHue(org.id);
   return (
     <span
-      className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white select-none"
+      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white select-none ring-1 ring-white/20"
       style={{ background: `hsl(${hue} 60% 45%)` }}
       aria-hidden
     >
@@ -57,23 +57,43 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
 
   // Derive active org from the current URL e.g. /orgs/[orgId]/...
   const activeOrgId = pathname.match(/^\/orgs\/([^\/]+)/)?.[1];
   const activeOrg = orgs.find((o) => o.id === activeOrgId);
+  const filteredOrgs = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return orgs;
+    return orgs.filter((org) => org.name.toLowerCase().includes(query));
+  }, [orgs, search]);
 
   return (
-    <DropdownMenu>
+    <DropdownMenu
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (!nextOpen) setSearch("");
+      }}
+    >
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 max-w-48 pl-1.5"
+          className="group h-8.5 max-w-44 rounded-full border-border/70 bg-background/85 pl-1 pr-2 text-left shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2"
           disabled={isPending}
         >
-          {activeOrg ? <OrgBadge org={activeOrg} /> : null}
-          <span className="truncate max-w-28 sm:max-w-40">
-            {activeOrg?.name ?? "Select Org"}
+          <span className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full bg-muted/70 ring-1 ring-border/70 transition-colors group-hover:bg-muted">
+            {activeOrg ? <OrgBadge org={activeOrg} /> : null}
+          </span>
+          <span className="flex min-w-0 flex-col items-start leading-none">
+            <span className="truncate max-w-28 text-[13px] font-medium sm:max-w-40">
+              {activeOrg?.name ?? "Select Org"}
+            </span>
+            <span className="mt-px text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
+              Organization
+            </span>
           </span>
           {isPending ? (
             <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin opacity-50" />
@@ -82,44 +102,86 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-52">
+      <DropdownMenuContent
+        align="start"
+        className="w-76 overflow-hidden rounded-[1.25rem] border-border/70 bg-popover/95 p-0 shadow-2xl backdrop-blur-xl"
+      >
         {orgs.length === 0 ? (
-          <>
-            <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-              Organizations
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem disabled>No organizations</DropdownMenuItem>
-          </>
+          <div className="p-3">
+            <div className="rounded-2xl border border-dashed bg-muted/30 px-3 py-6 text-center text-sm text-muted-foreground">
+              No organizations
+            </div>
+          </div>
         ) : (
-          <>
-            <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-              Organizations
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {orgs.map((org) => {
-              const isActive = org.id === activeOrgId;
-              return (
-                <DropdownMenuItem
-                  key={org.id}
-                  onSelect={() =>
-                    startTransition(() => router.push(`/orgs/${org.id}`))
-                  }
-                  className="gap-2"
-                >
-                  <OrgBadge org={org} />
-                  <span
-                    className={cn("flex-1 truncate", isActive && "font-medium")}
-                  >
-                    {org.name}
-                  </span>
-                  {isActive && (
-                    <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
-                  )}
+          <div className="flex flex-col">
+            <div className="border-b border-border/60 bg-background/60 p-3 pb-2">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div>
+                  <DropdownMenuLabel className="p-0 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    Switch organization
+                  </DropdownMenuLabel>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Search and jump between orgs
+                  </p>
+                </div>
+                <span className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-[11px] text-muted-foreground">
+                  {filteredOrgs.length}/{orgs.length}
+                </span>
+              </div>
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search organizations"
+                className="h-9 rounded-xl border-border/70 bg-background/90 shadow-sm"
+              />
+            </div>
+
+            <div className="max-h-72 overflow-y-auto p-2">
+              {filteredOrgs.length === 0 ? (
+                <DropdownMenuItem disabled className="justify-center rounded-xl py-3 text-sm text-muted-foreground">
+                  No matches
                 </DropdownMenuItem>
-              );
-            })}
-          </>
+              ) : (
+                filteredOrgs.map((org) => {
+                  const isActive = org.id === activeOrgId;
+                  return (
+                    <DropdownMenuItem
+                      key={org.id}
+                      onSelect={() =>
+                        startTransition(() => router.push(`/orgs/${org.id}`))
+                      }
+                      className={cn(
+                        "group mb-1 gap-2 rounded-2xl px-2.5 py-2.5 transition-all last:mb-0",
+                        isActive
+                          ? "bg-primary/8 text-foreground shadow-sm"
+                          : "hover:bg-muted/70",
+                      )}
+                    >
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-background shadow-sm ring-1 ring-border/70">
+                        <OrgBadge org={org} />
+                      </span>
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span
+                          className={cn(
+                            "truncate text-sm",
+                            isActive && "font-semibold",
+                          )}
+                        >
+                          {org.name}
+                        </span>
+                        <span className="truncate text-[11px] text-muted-foreground">
+                          {isActive ? "Current organization" : "Tap to switch"}
+                        </span>
+                      </span>
+                      {isActive && (
+                        <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
+                      )}
+                    </DropdownMenuItem>
+                  );
+                })
+              )}
+            </div>
+          </div>
         )}
       </DropdownMenuContent>
     </DropdownMenu>

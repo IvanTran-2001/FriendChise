@@ -2,6 +2,7 @@ import { getRoles } from "@/lib/services/roles";
 import { getOrgTags } from "@/lib/services/tags";
 import { getTasksPaginated } from "@/lib/services/tasks";
 import { requireOrgMemberPage } from "@/lib/authz";
+import { createSignedReadUrls } from "@/lib/supabase-storage";
 import {
   getOrgMembership,
   memberHasPermission,
@@ -130,6 +131,14 @@ const TasksPage = async ({
     tagId: tagId ?? undefined,
   });
 
+  const imagePaths = initialTasksPage.tasks
+    .flatMap((task) => (task.imageUrl ? [task.imageUrl] : []));
+  const signedUrls = await createSignedReadUrls(imagePaths);
+  const initialTasks = initialTasksPage.tasks.map((task) => ({
+    ...task,
+    imageSignedUrl: task.imageUrl ? (signedUrls.get(task.imageUrl) ?? null) : null,
+  }));
+
   return (
     <TasksPageClient
       orgId={orgId}
@@ -143,7 +152,7 @@ const TasksPage = async ({
       mode={mode}
       isModeExplicit={isModeExplicit}
       isFiltersExplicit={isFiltersExplicit}
-      initialTasks={initialTasksPage.tasks}
+      initialTasks={initialTasks}
       initialNextCursor={initialTasksPage.nextCursor}
     />
   );

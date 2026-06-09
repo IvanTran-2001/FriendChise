@@ -9,9 +9,7 @@ import { requireOrgPermissionPage } from "@/lib/authz";
 import { PermissionAction } from "@prisma/client";
 import { getRoles } from "@/lib/services/roles";
 import { getOrgTags } from "@/lib/services/tags";
-import { TaskForm } from "../task-form";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
-import { BackButton } from "@/components/layout/back-button";
+import { TaskCreateClient } from "./task-create-client";
 
 const NewTaskPage = async ({
   params,
@@ -28,28 +26,7 @@ const NewTaskPage = async ({
   ]);
 
   return (
-    <>
-      <RegisterPageToolbar>
-        <BackButton
-          fallbackHref={`/orgs/${orgId}/tasks`}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-        >
-          ← Tasks
-        </BackButton>
-      </RegisterPageToolbar>
-
-      <div className="w-full max-w-3xl mx-auto flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold">Create Task</h1>
-        <div className="w-full rounded-lg border bg-card p-6">
-          <TaskForm
-            mode="create"
-            orgId={orgId}
-            allRoles={allRoles}
-            allTags={allTags}
-          />
-        </div>
-      </div>
-    </>
+    <TaskCreateClient orgId={orgId} allRoles={allRoles} allTags={allTags} />
   );
 };
 

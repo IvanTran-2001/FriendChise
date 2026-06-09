@@ -21,7 +21,7 @@ function OrgInitials({ name, color }: { name: string; color: string }) {
     words.length >= 2 ? words[0][0] + words[1][0] : name.slice(0, 2);
   return (
     <div
-      className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-semibold shrink-0 uppercase"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold uppercase shadow-sm ring-1 ring-white/70"
       style={{ backgroundColor: color + "25", color }}
     >
       {initials}
@@ -45,14 +45,14 @@ function OrgCard({ org }: { org: OrgEntry }) {
     <Link
       href={`/orgs/${org.id}`}
       className={cn(
-        "group flex flex-col rounded-xl border bg-card shadow-sm overflow-hidden",
-        "hover:border-primary/40 hover:shadow-md transition-all duration-150",
+        "group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-all duration-150",
+        "hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg",
       )}
     >
       {/* Color accent bar */}
       <div className="h-1.5" style={{ backgroundColor: color }} />
 
-      <div className="flex flex-col gap-4 p-5 flex-1">
+      <div className="flex flex-1 flex-col gap-4 p-5">
         <div className="flex items-start gap-3">
           {org.image ? (
             <Image
@@ -60,42 +60,41 @@ function OrgCard({ org }: { org: OrgEntry }) {
               alt={org.name}
               width={44}
               height={44}
-              className="rounded-xl object-cover shrink-0"
+              className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-border/70"
             />
           ) : (
             <OrgInitials name={org.name} color={color} />
           )}
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm truncate leading-tight">
+            <p className="truncate text-sm font-semibold leading-tight">
               {org.name}
             </p>
-            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
               {org.isOwner && (
-                <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs font-medium">
+                <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                   Owner
                 </span>
               )}
               {org.isParent && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 text-xs font-medium">
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
                   <Network className="h-3 w-3" />
                   Franchisor
                 </span>
               )}
               {!org.isOwner && !org.isParent && (
-                <span className="inline-flex items-center rounded-full bg-muted text-muted-foreground px-2 py-0.5 text-xs font-medium">
+                <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                   Member
                 </span>
               )}
             </div>
           </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
+          <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/40 transition-all group-hover:translate-x-0.5 group-hover:text-muted-foreground" />
         </div>
 
-        <div className="flex items-center gap-4 text-xs text-muted-foreground mt-auto">
-          <span className="flex items-center gap-1.5">
+        <div className="mt-auto flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/60 px-2.5 py-1">
             <Users className="h-3.5 w-3.5" />
-            {org.memberCount}{" "}
-            {org.memberCount === 1 ? "member" : "members"}
+            {org.memberCount} {org.memberCount === 1 ? "member" : "members"}
           </span>
           <span className="flex items-center gap-1.5 truncate">
             <Globe className="h-3.5 w-3.5 shrink-0" />
@@ -114,7 +113,7 @@ function NewOrgTile() {
     <Link
       href="/orgs/new"
       className={cn(
-        "group flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-5 transition-all duration-150 min-h-[120px]",
+        "group flex min-h-30 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-5 transition-all duration-150",
         "border-border hover:border-primary/40 hover:bg-primary/5 text-muted-foreground hover:text-primary",
       )}
     >
