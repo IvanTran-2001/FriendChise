@@ -168,6 +168,12 @@ export async function createTaskAction(
       imageStoragePath,
     );
     if (!imageResult.ok) {
+      // Rollback: delete the partially-created task
+      try {
+        await deleteTask(orgId, task.id, authz.userId, authz.userEmail);
+      } catch (deleteErr) {
+        console.error("Failed to rollback task creation:", deleteErr);
+      }
       return { ok: false, errors: { _: [imageResult.error] } };
     }
   }

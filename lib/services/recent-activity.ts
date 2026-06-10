@@ -32,9 +32,21 @@ export async function recordRecentActivity({
   category,
   entityKey,
   entityName,
-  entityHref = null,
+  entityHref,
   lastUsedAt = new Date(),
 }: RecentActivityInput) {
+  const updateData: {
+    entityName: string;
+    lastUsedAt: Date;
+    entityHref?: string | null;
+  } = {
+    entityName,
+    lastUsedAt,
+  };
+  if (entityHref !== undefined) {
+    updateData.entityHref = entityHref;
+  }
+
   return prisma.recentActivity.upsert({
     where: {
       orgId_category_entityKey: {
@@ -48,14 +60,10 @@ export async function recordRecentActivity({
       category,
       entityKey,
       entityName,
-      entityHref,
+      entityHref: entityHref ?? null,
       lastUsedAt,
     },
-    update: {
-      entityName,
-      entityHref,
-      lastUsedAt,
-    },
+    update: updateData,
     select: {
       id: true,
       orgId: true,

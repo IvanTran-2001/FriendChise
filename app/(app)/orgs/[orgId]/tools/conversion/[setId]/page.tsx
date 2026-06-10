@@ -39,12 +39,14 @@ export default async function ConversionSetPage({
 
   if (!set) notFound();
 
-  await recordRecentActivity({
+  void recordRecentActivity({
     orgId,
     category: RECENT_ACTIVITY_CATEGORY.TOOLS,
     entityKey: set.id,
     entityName: set.name,
     entityHref: `/orgs/${orgId}/tools/conversion/${set.id}`,
+  }).catch((err) => {
+    console.error("Failed to record recent activity:", err);
   });
 
   // Ensure every set has a "Default" template

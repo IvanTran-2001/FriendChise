@@ -87,10 +87,12 @@ function StartTimePicker({
   defaultValueMin,
   name,
   error,
+  onChangeMinutes,
 }: {
   defaultValueMin: number | null;
   name: string;
   error: string | null;
+  onChangeMinutes: (min: number | null) => void;
 }) {
   const toHHMM = (min: number) => {
     const hours = Math.floor(min / 60).toString().padStart(2, "0");
@@ -106,6 +108,10 @@ function StartTimePicker({
         .split(":")
         .reduce((hours, minutes, index) => hours + Number(minutes) * (index === 0 ? 60 : 1), 0)
     : "";
+
+  useEffect(() => {
+    onChangeMinutes(valueMin ? Number(valueMin) : null);
+  }, [valueMin, onChangeMinutes]);
 
   return (
     <>
@@ -254,6 +260,7 @@ function SidebarFields({
           defaultValueMin={startTimeMin}
           name="preferredStartTimeMin"
           error={null}
+          onChangeMinutes={onStartTimeChange}
         />
         {startTimeMin != null && (
           <button

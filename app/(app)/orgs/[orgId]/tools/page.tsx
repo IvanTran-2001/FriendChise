@@ -36,7 +36,7 @@ export default async function ToolsPage({
           name: item.entityName,
           updatedAt: item.lastUsedAt,
           category: item.category,
-          href: item.entityHref ?? `/orgs/${orgId}/tools/conversion/${item.entityKey}`,
+          href: item.entityHref ?? (item.category === 'item-list' ? `/orgs/${orgId}/tools/item-lists/${item.entityKey}` : `/orgs/${orgId}/tools/conversion/${item.entityKey}`),
         }))
       : fallbackSets.slice(0, 5).map((set: (typeof fallbackSets)[number]) => ({
           id: set.id,

@@ -70,12 +70,14 @@ export default async function ListDetailPage({
       )
     : false;
 
-  await recordRecentActivity({
+  void recordRecentActivity({
     orgId,
     category: RECENT_ACTIVITY_CATEGORY.ITEM_LISTS,
     entityKey: list.id,
     entityName: list.name,
     entityHref: `/orgs/${orgId}/tools/item-list/lists/${list.id}`,
+  }).catch((err) => {
+    console.error("Failed to record recent activity:", err);
   });
 
   const imagePaths = allOrgItems.map((i) => i.imgUrl).filter((p): p is string => !!p);

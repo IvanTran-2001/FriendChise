@@ -87,7 +87,7 @@ export function ToolsClient({
               </div>
               <div className="rounded-2xl border border-border bg-background px-2.5 py-2.5 shadow-sm sm:px-4 sm:py-3">
                 <div className="truncate text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px] sm:tracking-[0.16em]">
-                  Recent sets
+                  Recent activity
                 </div>
                 <div className="mt-1 text-lg font-semibold tabular-nums sm:text-2xl">{totalRecent}</div>
               </div>

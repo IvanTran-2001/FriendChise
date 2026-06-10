@@ -121,7 +121,7 @@ const Page = async ({ params }: { params: Promise<{ orgId: string }> }) => {
           name: item.entityName,
           updatedAt: item.lastUsedAt,
           category: item.category,
-          href: item.entityHref ?? `/orgs/${orgId}/tools/conversion/${item.entityKey}`,
+          href: item.entityHref ?? (item.category === 'item-lists' ? `/orgs/${orgId}/tools/item-lists/${item.entityKey}` : `/orgs/${orgId}/tools/conversion/${item.entityKey}`),
         }))
       : fallbackSets.map((set: (typeof fallbackSets)[number]): RecentWorkItem => ({
           id: set.id,
