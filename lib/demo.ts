@@ -12,7 +12,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { ROLE_KEYS } from "@/lib/rbac";
 import { localToUTC } from "@/lib/date-utils";
 import { PermissionAction, EntryStatus, VoteType, TaskScope } from "@prisma/client";
@@ -497,41 +497,45 @@ export async function prepareDemoSession(): Promise<{
   // Regular cleanup: remove sessions older than 24 h.
   await cleanupExpiredDemos();
 
-  // Check global task count. If near the soft cap, run aggressive cleanup
-  // (removes sessions whose JWT has expired, i.e. older than DEMO_JWT_TTL_MS)
-  // to free space before accepting new visitors.
-  const globalTaskCount = await prisma.task.count({
-    where: { organization: { owner: { email: { endsWith: "@demo.friendchise.app" } } } },
-  });
-  if (globalTaskCount >= DEMO_GLOBAL_TASK_SOFT_CAP) {
-    await cleanupExpiredDemos(true);
-    const rechecked = await prisma.task.count({
+  // Serialize demo provisioning so concurrent sign-ins cannot race the
+  // capacity checks.
+  const result = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('friendchise-demo-session'))`;
+
+    // Check global task count. If near the soft cap, run aggressive cleanup
+    // (removes sessions whose JWT has expired, i.e. older than DEMO_JWT_TTL_MS)
+    // to free space before accepting new visitors.
+    const globalTaskCount = await tx.task.count({
       where: { organization: { owner: { email: { endsWith: "@demo.friendchise.app" } } } },
     });
-    if (rechecked >= DEMO_GLOBAL_TASK_HARD_CAP) {
-      throw new Error("Demo is under high load. Please try again in 10 minutes.");
+    if (globalTaskCount >= DEMO_GLOBAL_TASK_SOFT_CAP) {
+      await cleanupExpiredDemos(true);
+      const rechecked = await tx.task.count({
+        where: { organization: { owner: { email: { endsWith: "@demo.friendchise.app" } } } },
+      });
+      if (rechecked >= DEMO_GLOBAL_TASK_HARD_CAP) {
+        throw new Error("Demo is under high load. Please try again in 10 minutes.");
+      }
     }
-  }
 
-  // Count only rows whose JWT could still be valid (createdAt within the last
-  // DEMO_JWT_TTL_MS). Rows outside that window have expired JWTs and should not
-  // consume a concurrency slot even if cleanup hasn't run yet.
-  const active = await prisma.user.count({
-    where: {
-      email: { endsWith: "@demo.friendchise.app" },
-      createdAt: { gte: new Date(Date.now() - DEMO_JWT_TTL_MS) },
-    },
-  });
-  if (active >= DEMO_MAX_CONCURRENT) {
-    throw new Error("Demo capacity reached. Please try again in a few minutes.");
-  }
+    // Count only rows whose JWT could still be valid (createdAt within the last
+    // DEMO_JWT_TTL_MS). Rows outside that window have expired JWTs and should not
+    // consume a concurrency slot even if cleanup hasn't run yet.
+    const active = await tx.user.count({
+      where: {
+        email: { endsWith: "@demo.friendchise.app" },
+        createdAt: { gte: new Date(Date.now() - DEMO_JWT_TTL_MS) },
+      },
+    });
+    if (active >= DEMO_MAX_CONCURRENT) {
+      throw new Error("Demo capacity reached. Please try again in a few minutes.");
+    }
 
-  const demoId = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
-  const email = `demo-${demoId}@demo.friendchise.app`;
+    const demoId = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+    const email = `demo-${demoId}@demo.friendchise.app`;
 
-  // Wrap user creation and seeding in a transaction to ensure atomicity.
-  // Timeout raised to 60 s — the seed creates 100+ rows across many tables.
-  const result = await prisma.$transaction(async (tx) => {
+    // Wrap user creation and seeding in a transaction to ensure atomicity.
+    // Timeout raised to 60 s — the seed creates 100+ rows across many tables.
     const demoUser = await tx.user.create({
       data: {
         email,
@@ -542,7 +546,7 @@ export async function prepareDemoSession(): Promise<{
 
     const orgId = await seedDemoOrg(demoUser.id, tx);
     return { userId: demoUser.id, orgId };
-  }, { timeout: 60_000 });
+  }, { timeout: 60_000, isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
   return result;
 }

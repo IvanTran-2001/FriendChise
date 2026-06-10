@@ -17,7 +17,7 @@ const E2E_TEST_USER_EMAIL =
 // Must match the storageState path in playwright.config.ts
 export const AUTH_FILE = "playwright/.auth/ivan.json";
 
-setup("authenticate as Ivan", async ({ page }) => {
+setup("authenticate as Email", async ({ page }) => {
   const response = await page.request.get(
     `/api/test/login?email=${encodeURIComponent(E2E_TEST_USER_EMAIL)}`,
   );

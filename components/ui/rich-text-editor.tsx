@@ -77,8 +77,8 @@ interface RichTextEditorProps {
   ariaInvalid?: boolean;
   ariaDescribedBy?: string;
   ariaLabel?: string;
-  /** Called on any content change — use to mark the form dirty. */
-  onChange?: () => void;
+  /** Called on any content change with the current markdown string. */
+  onChange?: (value: string) => void;
 }
 
 export function RichTextEditor({
@@ -132,12 +132,13 @@ export function RichTextEditor({
       },
     },
     onUpdate({ editor }) {
+      const markdown =
+        (editor.storage as unknown as { markdown: MarkdownStorage }).markdown.getMarkdown();
       // Imperatively update the hidden input without triggering a re-render
       if (hiddenRef.current) {
-        hiddenRef.current.value =
-          (editor.storage as unknown as { markdown: MarkdownStorage }).markdown.getMarkdown();
+        hiddenRef.current.value = markdown;
       }
-      onChange?.();
+      onChange?.(markdown);
     },
   });
 

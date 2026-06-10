@@ -285,6 +285,7 @@ function SidebarFields({
           value={peopleRequired}
           onChange={(e) => onPeopleChange(Number(e.target.value))}
           className={SIDEBAR_INPUT_CLASS}
+          aria-label="people required"
         />
       </div>
 
@@ -340,6 +341,9 @@ export function TaskCreateClient({
 }) {
   const router = useRouter();
   const [color, setColor] = useState(() => randomColor());
+  // Keep markdown in React state so sidebar-driven rerenders can't drop it
+  // before FormData is assembled on submit.
+  const [description, setDescription] = useState("");
   const [selectedImage, setSelectedImage] = useState<{
     storagePath: string;
     signedUrl: string;
@@ -373,12 +377,17 @@ export function TaskCreateClient({
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-      const formData = new FormData(event.currentTarget);
-      formData.set("durationMin", String(durationMin));
-      formData.set("minWaitDays", normalizeWaitDays(minWaitDays));
-      formData.set("maxWaitDays", normalizeWaitDays(maxWaitDays));
-      formData.set("preferredStartTimeMin", startTimeMin == null ? "" : String(startTimeMin));
-      startTransition(() => dispatch(formData));
+    const formData = new FormData(event.currentTarget);
+    // Source the description from state instead of the editor's hidden input.
+    formData.set("description", description);
+    formData.set("durationMin", String(durationMin));
+    formData.set("minWaitDays", normalizeWaitDays(minWaitDays));
+    formData.set("maxWaitDays", normalizeWaitDays(maxWaitDays));
+    formData.set(
+      "preferredStartTimeMin",
+      startTimeMin == null ? "" : String(startTimeMin),
+    );
+    startTransition(() => dispatch(formData));
   };
 
   const handleImageSelect = (storagePath: string, signedUrl: string) => {
@@ -482,17 +491,6 @@ export function TaskCreateClient({
             )}
           </div>
 
-          <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-foreground">Description</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Add details, steps, or notes for the task.
-                </p>
-              </div>
-            </div>
-          </div>
-
           <div className="flex flex-col gap-1.5">
             <label htmlFor="description" className="text-sm font-medium">
               Description
@@ -502,6 +500,7 @@ export function TaskCreateClient({
               placeholder="Add details, steps, or notes…"
               minHeightClass="min-h-80"
               ariaLabel="Description"
+              onChange={setDescription}
               ariaInvalid={!!err("description")}
               ariaDescribedBy={err("description") ? "description-error" : undefined}
             />

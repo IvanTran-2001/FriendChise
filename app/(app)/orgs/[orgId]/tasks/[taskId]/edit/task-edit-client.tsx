@@ -516,6 +516,9 @@ export function TaskEditClient({
 
   // ── Sidebar-controlled field state ────────────────────────────────────────
   const [color, setColor] = useState(defaultValues.color);
+  // Same state bridge as create mode: the description must survive sidebar
+  // rerenders and be re-injected into the submit payload explicitly.
+  const [description, setDescription] = useState(defaultValues.description ?? "");
   const [durationMin, setDurationMin] = useState(defaultValues.durationMin);
   const [startTimeMin, setStartTimeMin] = useState<number | null>(
     defaultValues.preferredStartTimeMin ?? null,
@@ -614,6 +617,8 @@ export function TaskEditClient({
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    // Prefer the in-memory description over the editor's serialized field.
+    fd.set("description", description);
     startTransition(() => dispatch(fd));
   };
 
@@ -759,7 +764,10 @@ export function TaskEditClient({
             defaultValue={defaultValues.description}
             placeholder="Add details, steps, or notes…"
             minHeightClass="min-h-80"
-            onChange={markDirty}
+            onChange={(value) => {
+              setDescription(value);
+              markDirty();
+            }}
             ariaLabel="Description"
             ariaInvalid={!!err("description")}
             ariaDescribedBy={

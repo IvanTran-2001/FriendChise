@@ -1,4 +1,5 @@
 export { requireUser, requireOrgMember, requireOrgPermission } from "./api";
+export { isAdminUser } from "./_shared";
 export {
   requireUserPage,
   requireOrgMemberPage,

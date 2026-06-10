@@ -629,61 +629,170 @@ const TASKS: [string, string, number, string][] = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-export async function seedConversionData(prisma: PrismaClient, orgId: string) {
-  const itemMap = new Map<string, string>();
-  for (const item of TOOL_ITEMS) {
-    const result = await prisma.toolItem.upsert({
-      where: { orgId_name: { orgId, name: item.name } },
-      update: { unit: item.unit },
-      create: { orgId, name: item.name, unit: item.unit },
-      select: { id: true },
-    });
-    itemMap.set(item.name, result.id);
+function groupNamesByUnit(items: { name: string; unit: string }[]) {
+  const grouped = new Map<string, string[]>();
+
+  for (const item of items) {
+    const names = grouped.get(item.unit);
+    if (names) {
+      names.push(item.name);
+    } else {
+      grouped.set(item.unit, [item.name]);
+    }
   }
-  console.log(`  ✓ ${TOOL_ITEMS.length} tool items upserted`);
+
+  return grouped;
+}
+
+async function seedToolItems(prisma: PrismaClient, orgId: string) {
+  await prisma.toolItem.createMany({
+    data: TOOL_ITEMS.map((item) => ({
+      orgId,
+      name: item.name,
+      unit: item.unit,
+    })),
+    skipDuplicates: true,
+  });
+
+  for (const [unit, names] of groupNamesByUnit(TOOL_ITEMS)) {
+    await prisma.toolItem.updateMany({
+      where: { orgId, name: { in: names } },
+      data: { unit },
+    });
+  }
+
+  const items = await prisma.toolItem.findMany({
+    where: { orgId, name: { in: TOOL_ITEMS.map((item) => item.name) } },
+    select: { id: true, name: true },
+  });
+
+  return new Map(items.map((item) => [item.name, item.id]));
+}
+
+function flattenConversionData(itemMap: Map<string, string>) {
+  const sets = CONVERSION_SETS.map(({ name }) => ({ name }));
+  const templates: { setName: string; name: string; entries: { itemName: string; quantity: number | null; pinnedOutput: number }[] }[] = [];
+  const rates: { setName: string; fromItemId: string; toItemId: string; fromQty: number; toQty: number }[] = [];
 
   for (const setDef of CONVERSION_SETS) {
-    const set = await prisma.conversionSet.upsert({
-      where: { orgId_name: { orgId, name: setDef.name } },
-      update: {},
-      create: { orgId, name: setDef.name },
-      select: { id: true },
-    });
-
     for (const rate of setDef.rates) {
       const fromItemId = itemMap.get(rate.fromItemName);
       const toItemId = itemMap.get(rate.toItemName);
+
       if (!fromItemId || !toItemId) {
         console.warn(`  ⚠ Skipping rate: item not found (${rate.fromItemName} → ${rate.toItemName})`);
         continue;
       }
-      await prisma.conversionRate.upsert({
-        where: { setId_fromItemId_toItemId: { setId: set.id, fromItemId, toItemId } },
-        update: { fromQty: rate.fromQty, toQty: rate.toQty },
-        create: { setId: set.id, fromItemId, toItemId, fromQty: rate.fromQty, toQty: rate.toQty },
+
+      rates.push({
+        setName: setDef.name,
+        fromItemId,
+        toItemId,
+        fromQty: rate.fromQty,
+        toQty: rate.toQty,
       });
     }
-    console.log(`  ✓ "${setDef.name}": ${setDef.rates.length} rates upserted`);
 
     for (const tplDef of setDef.templates) {
-      const tpl = await prisma.conversionTemplate.upsert({
-        where: { setId_name: { setId: set.id, name: tplDef.name } },
-        update: {},
-        create: { setId: set.id, name: tplDef.name },
-        select: { id: true },
+      templates.push({
+        setName: setDef.name,
+        name: tplDef.name,
+        entries: tplDef.entries,
       });
-      for (const entry of tplDef.entries) {
+    }
+  }
+
+  return { sets, templates, rates };
+}
+
+export async function seedConversionData(prisma: PrismaClient, orgId: string) {
+  await prisma.conversionSet.deleteMany({ where: { orgId } });
+
+  const itemMap = await seedToolItems(prisma, orgId);
+  const { sets, templates, rates } = flattenConversionData(itemMap);
+
+  console.log(`  ✓ ${TOOL_ITEMS.length} tool items upserted`);
+
+  await prisma.conversionSet.createMany({
+    data: sets.map((set) => ({ orgId, name: set.name })),
+    skipDuplicates: true,
+  });
+
+  const setRecords = await prisma.conversionSet.findMany({
+    where: { orgId, name: { in: sets.map((set) => set.name) } },
+    select: { id: true, name: true },
+  });
+  const setIdByName = new Map(setRecords.map((set) => [set.name, set.id]));
+
+  await prisma.conversionTemplate.createMany({
+    data: templates.flatMap((template) => {
+      const setId = setIdByName.get(template.setName);
+      return setId ? [{ setId, name: template.name }] : [];
+    }),
+    skipDuplicates: true,
+  });
+
+  const templateRecords = await prisma.conversionTemplate.findMany({
+    where: {
+      set: { orgId },
+      name: { in: templates.map((template) => template.name) },
+    },
+    select: { id: true, name: true, setId: true },
+  });
+  const templateIdByKey = new Map(
+    templateRecords.map((template) => [`${template.setId}:${template.name}`, template.id]),
+  );
+
+  await prisma.conversionRate.createMany({
+    data: rates.flatMap((rate) => {
+      const setId = setIdByName.get(rate.setName);
+      if (!setId) {
+        return [];
+      }
+
+      return [
+        {
+          setId,
+          fromItemId: rate.fromItemId,
+          toItemId: rate.toItemId,
+          fromQty: rate.fromQty,
+          toQty: rate.toQty,
+        },
+      ];
+    }),
+    skipDuplicates: true,
+  });
+
+  await prisma.conversionTemplateEntry.createMany({
+    data: templates.flatMap((template) => {
+      const templateId = templateIdByKey.get(`${setIdByName.get(template.setName)}:${template.name}`);
+      if (!templateId) {
+        return [];
+      }
+
+      return template.entries.flatMap((entry) => {
         const itemId = itemMap.get(entry.itemName);
         if (!itemId) {
           console.warn(`  ⚠ Skipping template entry: item not found (${entry.itemName})`);
-          continue;
+          return [];
         }
-        await prisma.conversionTemplateEntry.upsert({
-          where: { templateId_itemId: { templateId: tpl.id, itemId } },
-          update: { quantity: entry.quantity, pinnedOutput: entry.pinnedOutput },
-          create: { templateId: tpl.id, itemId, quantity: entry.quantity, pinnedOutput: entry.pinnedOutput },
-        });
-      }
+
+        return [
+          {
+            templateId,
+            itemId,
+            quantity: entry.quantity,
+            pinnedOutput: entry.pinnedOutput,
+          },
+        ];
+      });
+    }),
+    skipDuplicates: true,
+  });
+
+  for (const setDef of CONVERSION_SETS) {
+    console.log(`  ✓ "${setDef.name}": ${setDef.rates.length} rates upserted`);
+    for (const tplDef of setDef.templates) {
       console.log(`    ✓ Template "${tplDef.name}": ${tplDef.entries.length} entries`);
     }
   }

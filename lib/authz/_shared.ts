@@ -43,6 +43,13 @@ export async function isParentOrgOwner(
 /** Returns true if the given email belongs to an AdminUser row. */
 export async function isAdminUser(email: string | null): Promise<boolean> {
   if (!email) return false;
+
+  // In local development, any signed-in user can access admin surfaces so the
+  // admin panel is usable without seeding an AdminUser row.
+  if (process.env.NODE_ENV === "development") {
+    return true;
+  }
+
   // Normalize email: trim whitespace and lowercase
   const normalizedEmail = email.trim().toLowerCase();
   const admin = await prisma.adminUser.findUnique({

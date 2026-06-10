@@ -17,6 +17,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getPublicUrl } from "@/lib/supabase-storage";
+import { isAdminUser } from "@/lib/authz";
 import { Button } from "@/components/ui/button";
 import { OrgSwitcher } from "@/components/layout/org-switcher";
 import { MobileSidebarTrigger } from "@/components/layout/sidebar";
@@ -87,6 +88,8 @@ export const NavBar = async () => {
       })
     : [[], 0, [], 0];
 
+  const canAccessAdmin = user?.email ? await isAdminUser(user.email) : false;
+
   return (
     <header
       className="sticky top-0 z-20 border-b border-border/60 bg-card/85 backdrop-blur-xl supports-backdrop-filter:bg-card/70"
@@ -123,6 +126,17 @@ export const NavBar = async () => {
 
         {/* Right: quick actions and user menu */}
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {canAccessAdmin && (
+            <Button
+              variant="outline"
+              asChild
+              className="hidden sm:flex h-9 rounded-full px-3 text-xs font-semibold"
+            >
+              <Link href="/admin" aria-label="Open admin panel">
+                Admin
+              </Link>
+            </Button>
+          )}
           <FeedbackButton />
           {/* Notification bell */}
           <NotificationPanel
@@ -167,6 +181,11 @@ export const NavBar = async () => {
                   )}
                 </div>
                 <DropdownMenuSeparator />
+                {canAccessAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin">Admin panel</Link>
+                  </DropdownMenuItem>
+                )}
                 {/* TODO: restore <DropdownMenuItem asChild><Link href="/profile">Profile</Link></DropdownMenuItem> when profile page is implemented */}
                 <DropdownMenuItem disabled>Profile</DropdownMenuItem>
                 {/* TODO: restore <DropdownMenuItem asChild><Link href="/settings/account">Account Settings</Link></DropdownMenuItem> when account settings page is implemented */}
