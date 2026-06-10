@@ -478,16 +478,19 @@ const TASKS: TaskDef[] = [
  * Note: user.createdAt ≈ demoIssuedAt (the JWT is issued immediately after the user
  * row is created), so it is a reliable proxy for session expiry.
  */
-async function cleanupExpiredDemos(aggressive = false) {
+async function cleanupExpiredDemos(
+  client: typeof prisma | Prisma.TransactionClient,
+  aggressive = false
+) {
   const cutoff = new Date(Date.now() - (aggressive ? DEMO_JWT_TTL_MS : DEMO_TTL_MS));
-  const expired = await prisma.user.findMany({
+  const expired = await client.user.findMany({
     where: { email: { endsWith: "@demo.friendchise.app" }, createdAt: { lt: cutoff } },
     select: { id: true },
   });
   if (expired.length === 0) return;
   const ids = expired.map((u) => u.id);
-  await prisma.organization.deleteMany({ where: { ownerId: { in: ids } } });
-  await prisma.user.deleteMany({ where: { id: { in: ids } } });
+  await client.organization.deleteMany({ where: { ownerId: { in: ids } } });
+  await client.user.deleteMany({ where: { id: { in: ids } } });
 }
 
 export async function prepareDemoSession(): Promise<{
@@ -495,7 +498,7 @@ export async function prepareDemoSession(): Promise<{
   orgId: string;
 }> {
   // Regular cleanup: remove sessions older than 24 h.
-  await cleanupExpiredDemos();
+  await cleanupExpiredDemos(prisma);
 
   // Serialize demo provisioning so concurrent sign-ins cannot race the
   // capacity checks.
@@ -509,7 +512,7 @@ export async function prepareDemoSession(): Promise<{
       where: { organization: { owner: { email: { endsWith: "@demo.friendchise.app" } } } },
     });
     if (globalTaskCount >= DEMO_GLOBAL_TASK_SOFT_CAP) {
-      await cleanupExpiredDemos(true);
+      await cleanupExpiredDemos(tx, true);
       const rechecked = await tx.task.count({
         where: { organization: { owner: { email: { endsWith: "@demo.friendchise.app" } } } },
       });

@@ -34,11 +34,14 @@ export async function seedUsers(prisma: import("@prisma/client").PrismaClient) {
         where: {
           email: process.env.E2E_TEST_USER_EMAIL ?? "ivan@example.test",
         },
-        update: { name: "Riley", image: "https://i.pravatar.cc/150?img=5" },
+        update: {
+          name: process.env.E2E_TEST_USER_NAME ?? "Riley",
+          image: process.env.E2E_TEST_USER_IMAGE ?? "https://i.pravatar.cc/150?img=5"
+        },
         create: {
           email: process.env.E2E_TEST_USER_EMAIL ?? "ivan@example.test",
-          name: "Riley",
-          image: "https://i.pravatar.cc/150?img=5",
+          name: process.env.E2E_TEST_USER_NAME ?? "Riley",
+          image: process.env.E2E_TEST_USER_IMAGE ?? "https://i.pravatar.cc/150?img=5",
         },
       }),
       prisma.user.upsert({

@@ -629,21 +629,6 @@ const TASKS: [string, string, number, string][] = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function groupNamesByUnit(items: { name: string; unit: string }[]) {
-  const grouped = new Map<string, string[]>();
-
-  for (const item of items) {
-    const names = grouped.get(item.unit);
-    if (names) {
-      names.push(item.name);
-    } else {
-      grouped.set(item.unit, [item.name]);
-    }
-  }
-
-  return grouped;
-}
-
 async function seedToolItems(prisma: PrismaClient, orgId: string) {
   await prisma.toolItem.createMany({
     data: TOOL_ITEMS.map((item) => ({
@@ -653,13 +638,6 @@ async function seedToolItems(prisma: PrismaClient, orgId: string) {
     })),
     skipDuplicates: true,
   });
-
-  for (const [unit, names] of groupNamesByUnit(TOOL_ITEMS)) {
-    await prisma.toolItem.updateMany({
-      where: { orgId, name: { in: names } },
-      data: { unit },
-    });
-  }
 
   const items = await prisma.toolItem.findMany({
     where: { orgId, name: { in: TOOL_ITEMS.map((item) => item.name) } },

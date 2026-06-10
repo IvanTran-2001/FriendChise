@@ -185,32 +185,32 @@ export async function seedDonutShopA(prisma: PrismaClient, users: Users) {
   };
 
   // Validate all role keys exist before batch inserts
-  for (const [name, , , , roleKey] of DONUT_TASKS) {
-    if (roleByKey[roleKey] === undefined) {
+  for (const taskDef of DONUT_TASKS) {
+    if (roleByKey[taskDef.assignedTo] === undefined) {
       throw new Error(
-        `Role key "${roleKey}" not found in roleByKey lookup for task "${name}". Available keys: ${Object.keys(roleByKey).join(", ")}`,
+        `Role key "${taskDef.assignedTo}" not found in roleByKey lookup for task "${taskDef.title}". Available keys: ${Object.keys(roleByKey).join(", ")}`,
       );
     }
   }
   const _createdTaskRows = await prisma.task.createManyAndReturn({
-    data: DONUT_TASKS.map(([name, color, durationMin, description, , preferredStart, minWait, maxWait]) => ({
+    data: DONUT_TASKS.map((task) => ({
       orgId: org.id,
-      name,
-      color,
-      durationMin,
-      description,
-      preferredStartTimeMin: timeToMin(preferredStart),
+      name: task.title,
+      color: task.priority,
+      durationMin: task.estimatedMinutes,
+      description: task.description,
+      preferredStartTimeMin: timeToMin(task.scheduledTime),
       minPeople: 1,
-      minWaitDays: minWait,
-      maxWaitDays: maxWait,
+      minWaitDays: task.retryCount,
+      maxWaitDays: task.timeoutSeconds,
     })),
   });
   const _tasksByName = Object.fromEntries(_createdTaskRows.map((task) => [task.name, task]));
   await Promise.all([
     prisma.taskEligibility.createMany({
-      data: DONUT_TASKS.map(([name, , , , roleKey]) => ({
-        taskId: _tasksByName[name]!.id,
-        roleId: roleByKey[roleKey]!,
+      data: DONUT_TASKS.map((taskDef) => ({
+        taskId: _tasksByName[taskDef.title]!.id,
+        roleId: roleByKey[taskDef.assignedTo]!,
       })),
     }),
     prisma.taskInheritance.createMany({
@@ -218,9 +218,9 @@ export async function seedDonutShopA(prisma: PrismaClient, users: Users) {
     }),
   ]);
   // Preserve the { task, roleKey }[] shape expected by downstream code
-  const createdTasks = DONUT_TASKS.map(([name, , , , roleKey]) => ({
-    task: _tasksByName[name]!,
-    roleKey,
+  const createdTasks = DONUT_TASKS.map((taskDef) => ({
+    task: _tasksByName[taskDef.title]!,
+    roleKey: taskDef.assignedTo,
   }));
   console.log(
     `  ✓ ${createdTasks.length} tasks + eligibilities + inheritances created`,
