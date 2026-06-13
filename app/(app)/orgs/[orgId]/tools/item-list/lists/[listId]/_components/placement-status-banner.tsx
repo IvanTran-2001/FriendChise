@@ -25,6 +25,7 @@ export function PlacementStatusBanner({ title, itemName, message, onCancel }: Pl
       </div>
       <div className="mt-2 flex justify-end">
         <button
+          type="button"
           onClick={onCancel}
           className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-background/60 px-2 py-1 text-xs font-medium text-primary transition-colors hover:bg-background"
           aria-label="Cancel placement"

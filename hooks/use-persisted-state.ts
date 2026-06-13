@@ -41,14 +41,22 @@ export function usePersistedState<T>(
 
     const onCustomChange = () => syncFromStorage();
 
+    const onStorageChange = (event: StorageEvent) => {
+      if (event.key === key) syncFromStorage();
+    };
+
     window.addEventListener(eventName, onCustomChange as EventListener);
+    window.addEventListener("storage", onStorageChange as EventListener);
     try {
       syncFromStorage();
     } catch {
       // Ignore parse errors
     }
     setHydrated(true);
-    return () => window.removeEventListener(eventName, onCustomChange as EventListener);
+    return () => {
+      window.removeEventListener(eventName, onCustomChange as EventListener);
+      window.removeEventListener("storage", onStorageChange as EventListener);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once after mount
 

@@ -101,7 +101,7 @@ export function AddItemToListPanel({
     }
 
     // Manual mode: place immediately using the typed position
-    if (selectedItem?.id === item.id) {
+    if (selectedItem?.id === item.id && manualPosition >= 0) {
       setSelectedItem(null);
       return;
     }
