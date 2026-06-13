@@ -20,19 +20,35 @@ export function usePersistedState<T>(
   // first render because the read effect hasn't restored the stored value yet,
   // so writing would overwrite localStorage with the blank initialValue.
   const canWrite = useRef(false);
+  const lastSerializedRef = useRef<string | null>(null);
 
   // Read from localStorage after mount (client-side only)
   useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw !== null) {
-        setState(JSON.parse(raw) as T);
+    const eventName = `persisted-state-change:${key}`;
+
+    const syncFromStorage = () => {
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw !== null) {
+          lastSerializedRef.current = raw;
+          setState(JSON.parse(raw) as T);
+        }
+      } catch {
+        // Ignore parse errors
       }
+    };
+
+    const onCustomChange = () => syncFromStorage();
+
+    window.addEventListener(eventName, onCustomChange as EventListener);
+    try {
+      syncFromStorage();
     } catch {
       // Ignore parse errors
     }
     setHydrated(true);
+    return () => window.removeEventListener(eventName, onCustomChange as EventListener);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once after mount
 
@@ -44,8 +60,12 @@ export function usePersistedState<T>(
       return;
     }
     if (typeof window === "undefined") return;
+    const serialized = JSON.stringify(state);
+    if (lastSerializedRef.current === serialized) return;
     try {
-      localStorage.setItem(key, JSON.stringify(state));
+      localStorage.setItem(key, serialized);
+      lastSerializedRef.current = serialized;
+      window.dispatchEvent(new CustomEvent(`persisted-state-change:${key}`));
     } catch {
       // Ignore quota exceeded / private browsing errors
     }

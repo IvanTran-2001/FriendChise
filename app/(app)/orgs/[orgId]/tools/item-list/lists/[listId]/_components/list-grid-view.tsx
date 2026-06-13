@@ -40,6 +40,8 @@ interface ListGridViewProps {
   onItemClick?: (entry: { entryId: string; item: { id: string; name: string; unit: string; imageSignedUrl: string | null }; position: number; subIndex: number; totalInCell: number }) => void;
   /** Called when prev/next arrows cycle through stacked items in a cell, so parent can update the open sidebar. */
   onSubIndexChange?: (entry: { entryId: string; item: { id: string; name: string; unit: string; imageSignedUrl: string | null }; position: number; subIndex: number; totalInCell: number }) => void;
+  /** When true, all cells (including occupied) fire onCellClick — used for pending item placement. */
+  placementMode?: boolean;
 }
 
 export function ListGridView({
@@ -57,6 +59,7 @@ export function ListGridView({
   highlightedPosition,
   onItemClick,
   onSubIndexChange,
+  placementMode,
 }: ListGridViewProps) {
   const supportsHover = useSupportsHover();
   const cols = list.gridConfig?.gridCols ?? 4;
@@ -219,7 +222,7 @@ export function ListGridView({
           return (
             <div
               key={absPos}
-              draggable={!!entry && !!canManage && !isEditingThisAmount}
+              draggable={!!entry && !!canManage && !isEditingThisAmount && !placementMode}
               onDragStart={
                 entry && !isEditingThisAmount
                   ? () => setDragFromPos(absPos)
@@ -269,6 +272,10 @@ export function ListGridView({
               }}
               onClick={() => {
                 if (isEditingThisAmount) return;
+                if (placementMode) {
+                  onCellClick?.(absPos);
+                  return;
+                }
                 if (!entry && canManage) {
                   onCellClick?.(absPos);
                 } else if (entry && onItemClick) {
@@ -278,7 +285,14 @@ export function ListGridView({
               style={{ aspectRatio: "1 / 1" }}
               className={cn(
                 "relative group @container/cell rounded-lg border flex flex-col overflow-hidden transition-all select-none",
-                entry
+                placementMode
+                  ? [
+                      "cursor-pointer",
+                      entry
+                        ? "bg-sky-50/70 border-sky-200/70 hover:bg-sky-100/80 hover:ring-2 hover:ring-sky-500/60 hover:ring-offset-1"
+                        : "bg-sky-50/60 border-sky-200/70 hover:bg-sky-100/90 hover:ring-2 hover:ring-sky-500/70 hover:ring-offset-1",
+                    ]
+                  : entry
                   ? [
                       "bg-card",
                       canManage && !isEditingThisAmount && "cursor-grab active:cursor-grabbing",
@@ -290,7 +304,7 @@ export function ListGridView({
                     ],
                 isDragSource && "opacity-40 scale-95",
                 externalDragTargetPos === absPos && "ring-2 ring-green-500 ring-offset-1 bg-green-500/5",
-                highlightedPosition === absPos && !isDragTarget && !isDragSource && "ring-2 ring-primary ring-offset-1 bg-primary/10 border-primary/40",
+                highlightedPosition === absPos && !isDragTarget && !isDragSource && "ring-2 ring-sky-500 ring-offset-1 bg-sky-100/80 border-sky-400",
               )}
             >
               {entry ? (

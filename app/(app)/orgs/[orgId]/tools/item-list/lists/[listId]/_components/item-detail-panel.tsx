@@ -5,6 +5,7 @@ import Image from "next/image";
 import {
   ChevronLeft,
   ChevronRight,
+  LayoutGrid,
   Eye,
   EyeOff,
   Pencil,
@@ -16,11 +17,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
-  moveToolItemListEntryAction,
   removeToolItemListEntryAction,
+  moveToolItemListEntryByIdAction,
   updateToolItemListEntryAmountAction,
 } from "@/app/actions/tools";
 import type { ConversionRate } from "./item-rates-panel";
+import { BlueActionButton } from "./blue-action-button";
 
 function formatMultiplier(toQty: number, fromQty: number): string {
   const m = toQty / fromQty;
@@ -46,6 +48,7 @@ interface ItemDetailPanelProps {
   setName: string | null;
   hiddenRateIds: Set<string>;
   onToggleRate: (rateId: string) => void;
+  onSelectCell: () => void;
   onNavigate?: (direction: "prev" | "next") => void;
   onClose: () => void;
 }
@@ -66,51 +69,24 @@ export function ItemDetailPanel({
   setName,
   hiddenRateIds: initialHidden,
   onToggleRate,
+  onSelectCell,
   onNavigate,
   onClose,
 }: ItemDetailPanelProps) {
   const pageSize = gridCols * gridRows;
-  const initPage = Math.floor(position / pageSize) + 1;
-  const posInPage = position % pageSize;
-  const initRow = Math.floor(posInPage / gridCols) + 1;
-  const initCol = (posInPage % gridCols) + 1;
-
-  const [pageVal, setPageVal] = useState(String(initPage));
-  const [colVal, setColVal] = useState(String(initCol));
-  const [rowVal, setRowVal] = useState(String(initRow));
   const [amountVal, setAmountVal] = useState(String(initialAmount));
   const [hiddenIds, setHiddenIds] = useState(new Set(initialHidden));
   const [search, setSearch] = useState("");
-  const [isMovePending, startMoveTransition] = useTransition();
+  const [pageVal, setPageVal] = useState(String(Math.floor(position / pageSize) + 1));
+  const [colVal, setColVal] = useState(String((position % pageSize) % gridCols + 1));
+  const [rowVal, setRowVal] = useState(String(Math.floor((position % pageSize) / gridCols) + 1));
   const [isDeletePending, startDeleteTransition] = useTransition();
   const [isAmountPending, startAmountTransition] = useTransition();
+  const [isManualMovePending, startManualMoveTransition] = useTransition();
 
-  const parsedPage = Number.parseInt(pageVal);
-  const parsedCol = Number.parseInt(colVal);
-  const parsedRow = Number.parseInt(rowVal);
-  const newPos =
-    !Number.isNaN(parsedPage) &&
-    !Number.isNaN(parsedCol) &&
-    !Number.isNaN(parsedRow)
-      ? (parsedPage - 1) * pageSize + (parsedRow - 1) * gridCols + (parsedCol - 1)
-      : -1;
-  const posChanged = newPos >= 0 && newPos !== position;
   const parsedAmount = Number.parseFloat(amountVal);
   const amountChanged =
     !Number.isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount !== initialAmount;
-
-  function handleMove() {
-    if (!posChanged) return;
-    startMoveTransition(async () => {
-      const result = await moveToolItemListEntryAction(orgId, listId, position, newPos);
-      if (!result.ok) {
-        toast.error("Failed to move item.");
-        return;
-      }
-      toast.success("Item moved.");
-      onClose();
-    });
-  }
 
   function handleDelete() {
     startDeleteTransition(async () => {
@@ -138,6 +114,40 @@ export function ItemDetailPanel({
         return;
       }
       toast.success("Quantity updated.");
+    });
+  }
+
+  function handleManualMove() {
+    if (isManualMovePending) return;
+    const parsedPage = Number.parseInt(pageVal);
+    const parsedCol = Number.parseInt(colVal);
+    const parsedRow = Number.parseInt(rowVal);
+    if (
+      Number.isNaN(parsedPage) ||
+      Number.isNaN(parsedCol) ||
+      Number.isNaN(parsedRow) ||
+      parsedPage < 1 ||
+      parsedCol < 1 ||
+      parsedCol > gridCols ||
+      parsedRow < 1 ||
+      parsedRow > gridRows
+    ) {
+      toast.error("Enter a valid page, column, and row.");
+      return;
+    }
+    const nextPosition = (parsedPage - 1) * pageSize + (parsedRow - 1) * gridCols + (parsedCol - 1);
+    if (nextPosition === position) {
+      toast.error("That is already the current position.");
+      return;
+    }
+    startManualMoveTransition(async () => {
+      const result = await moveToolItemListEntryByIdAction(orgId, listId, entryId, nextPosition);
+      if (!result.ok) {
+        toast.error("Failed to move item.");
+        return;
+      }
+      toast.success("Item moved.");
+      onClose();
     });
   }
 
@@ -211,7 +221,7 @@ export function ItemDetailPanel({
           </div>
 
           {canManage && (
-            <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+            <div className="border-t border-border pt-3">
               <div className="mb-2 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   <Pencil className="h-3 w-3" />
@@ -244,56 +254,71 @@ export function ItemDetailPanel({
 
       {canManage && (
         <div className="border-b border-border px-4 py-3">
-          <div className="rounded-lg border border-border bg-card p-3">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground/60">
-                Position
+          <div className="space-y-3">
+            <div>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground/60">
+                  Position
+                </p>
+                <span className="text-[10px] text-muted-foreground/70">{position + 1} in list</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Select a blue cell, or use manual columns below.
               </p>
-              <span className="text-[10px] text-muted-foreground/70">{position + 1} in list</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground">Page</label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={pageVal}
-                  onChange={(e) => setPageVal(e.target.value)}
-                  className="h-8 text-sm"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground">Col</label>
-                <Input
-                  type="number"
-                  min="1"
-                  max={gridCols}
-                  value={colVal}
-                  onChange={(e) => setColVal(e.target.value)}
-                  className="h-8 text-sm"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground">Row</label>
-                <Input
-                  type="number"
-                  min="1"
-                  max={gridRows}
-                  value={rowVal}
-                  onChange={(e) => setRowVal(e.target.value)}
-                  className="h-8 text-sm"
-                />
+              <div className="mt-2">
+                <BlueActionButton onClick={onSelectCell} icon={<LayoutGrid className="h-3.5 w-3.5" />}>
+                  Select Cell
+                </BlueActionButton>
               </div>
             </div>
-            <div className="mt-3 flex items-center gap-2">
-              <Button
-                size="sm"
-                className="flex-1"
-                disabled={!posChanged || isMovePending}
-                onClick={handleMove}
+            <div className="border-t border-border pt-3">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground/60">
+                Manual Position
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted-foreground">Page</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={pageVal}
+                    onChange={(e) => setPageVal(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted-foreground">Col</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max={gridCols}
+                    value={colVal}
+                    onChange={(e) => setColVal(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted-foreground">Row</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max={gridRows}
+                    value={rowVal}
+                    onChange={(e) => setRowVal(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+              <BlueActionButton
+                className="mt-3"
+                disabled={isManualMovePending}
+                onClick={handleManualMove}
+                icon={<LayoutGrid className="h-3.5 w-3.5" />}
               >
                 Move item
-              </Button>
+              </BlueActionButton>
+            </div>
+            <div className="mt-3 flex items-center gap-2">
               <Button
                 size="sm"
                 variant="outline"
