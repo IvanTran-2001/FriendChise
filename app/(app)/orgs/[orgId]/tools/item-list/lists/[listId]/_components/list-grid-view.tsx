@@ -74,6 +74,17 @@ export function ListGridView({
   const [isPending, startTransition] = useTransition();
   // Per-cell sub-item index — tracks which stacked item is visible per cell
   const [cellSubIndex, setCellSubIndex] = useState<Map<number, number>>(new Map());
+  const swipeGestureRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+  } | null>(null);
+  const suppressClickRef = useRef(false);
+  const swipeAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [swipeAnimation, setSwipeAnimation] = useState<{
+    pos: number;
+    direction: "prev" | "next";
+  } | null>(null);
 
   // Detect when CSS auto-fill wraps to fewer columns than configured
   const gridRef = useRef<HTMLDivElement>(null);
@@ -95,6 +106,43 @@ export function ListGridView({
   function setCellSub(pos: number, idx: number) {
     setCellSubIndex((prev) => new Map(prev).set(pos, idx));
   }
+  function syncCellSubIndex(
+    pos: number,
+    cellEntries: typeof list.entries,
+    nextIdx: number,
+    direction: "prev" | "next" = "next",
+  ) {
+    const clamped = Math.max(0, Math.min(nextIdx, cellEntries.length - 1));
+    if (clamped !== nextIdx) return;
+    setCellSub(pos, clamped);
+    setSwipeAnimation({ pos, direction });
+    if (swipeAnimationTimeoutRef.current !== null) {
+      clearTimeout(swipeAnimationTimeoutRef.current);
+    }
+    swipeAnimationTimeoutRef.current = setTimeout(() => {
+      setSwipeAnimation(null);
+      swipeAnimationTimeoutRef.current = null;
+    }, 180);
+    const newEntry = cellEntries[clamped];
+    if (newEntry) {
+      onSubIndexChange?.({
+        entryId: newEntry.id,
+        item: { ...newEntry.item },
+        position: newEntry.position,
+        subIndex: clamped,
+        totalInCell: cellEntries.length,
+      });
+    }
+  }
+
+  useEffect(
+    () => () => {
+      if (swipeAnimationTimeoutRef.current !== null) {
+        clearTimeout(swipeAnimationTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   // Adjusting state during render (React official pattern) — auto-navigate to the
   // highlighted cell's page when highlightedPosition changes, without blocking navigation.
@@ -218,19 +266,85 @@ export function ListGridView({
             dragFromPos !== absPos;
           const isEditingThisAmount =
             entry && editingEntryId === entry.id;
+          const canDragEntry = !!entry && !!canManage && !isEditingThisAmount && !placementMode && supportsHover;
+          const canCycleStack = !!entry && hasMultiple && !isEditingThisAmount && !placementMode && !supportsHover;
 
           return (
             <div
               key={absPos}
-              draggable={!!entry && !!canManage && !isEditingThisAmount && !placementMode}
+              draggable={canDragEntry}
               onDragStart={
-                entry && !isEditingThisAmount
+                canDragEntry
                   ? () => setDragFromPos(absPos)
                   : undefined
               }
               onDragEnd={() => {
                 setDragFromPos(null);
                 setDragOverPos(null);
+              }}
+              onPointerDown={(e) => {
+                if (!canCycleStack || e.button !== 0) return;
+                suppressClickRef.current = false;
+                swipeGestureRef.current = {
+                  pointerId: e.pointerId,
+                  startX: e.clientX,
+                  startY: e.clientY,
+                };
+                try {
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                } catch {
+                  // Ignore capture failures on browsers that do not support it here.
+                }
+              }}
+              onPointerMove={(e) => {
+                const gesture = swipeGestureRef.current;
+                if (!canCycleStack || !gesture || gesture.pointerId !== e.pointerId) return;
+                const dx = e.clientX - gesture.startX;
+                const dy = e.clientY - gesture.startY;
+                if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+                if (Math.abs(dx) <= Math.abs(dy)) return;
+                e.preventDefault();
+              }}
+              onPointerUp={(e) => {
+                const gesture = swipeGestureRef.current;
+                if (!gesture || gesture.pointerId !== e.pointerId) return;
+                const dx = e.clientX - gesture.startX;
+                const dy = e.clientY - gesture.startY;
+                const shouldCycle = Math.abs(dx) > 24 && Math.abs(dx) > Math.abs(dy) * 1.2;
+                if (shouldCycle) {
+                  suppressClickRef.current = true;
+                  const direction = dx < 0 ? 1 : -1;
+                  syncCellSubIndex(absPos, cellEntries, subIdx + direction, direction < 0 ? "prev" : "next");
+                }
+                swipeGestureRef.current = null;
+                try {
+                  e.currentTarget.releasePointerCapture(e.pointerId);
+                } catch {
+                  // Ignore capture release failures.
+                }
+              }}
+              onPointerCancel={(e) => {
+                const gesture = swipeGestureRef.current;
+                if (!gesture || gesture.pointerId !== e.pointerId) return;
+                swipeGestureRef.current = null;
+                try {
+                  e.currentTarget.releasePointerCapture(e.pointerId);
+                } catch {
+                  // Ignore capture release failures.
+                }
+              }}
+              onWheel={(e) => {
+                if (!canCycleStack) return;
+                const horizontalDelta =
+                  Math.abs(e.deltaX) >= Math.abs(e.deltaY)
+                    ? e.deltaX
+                    : e.shiftKey
+                      ? e.deltaY
+                      : 0;
+                if (Math.abs(horizontalDelta) < 8) return;
+                e.preventDefault();
+                const direction = horizontalDelta < 0 ? 1 : -1;
+                syncCellSubIndex(absPos, cellEntries, subIdx + direction, direction < 0 ? "prev" : "next");
               }}
               onDragOver={(e) => {
                 e.preventDefault();
@@ -271,6 +385,10 @@ export function ListGridView({
                 setDragFromPos(null);
               }}
               onClick={() => {
+                if (suppressClickRef.current) {
+                  suppressClickRef.current = false;
+                  return;
+                }
                 if (isEditingThisAmount) return;
                 if (placementMode) {
                   onCellClick?.(absPos);
@@ -282,7 +400,10 @@ export function ListGridView({
                   onItemClick({ entryId: entry.id, item: { ...entry.item }, position: entry.position, subIndex: subIdx, totalInCell: cellEntries.length });
                 }
               }}
-              style={{ aspectRatio: "1 / 1" }}
+              style={{
+                aspectRatio: "1 / 1",
+                touchAction: canCycleStack ? "pan-y" : undefined,
+              }}
               className={cn(
                 "relative group @container/cell rounded-lg border flex flex-col overflow-hidden transition-all select-none",
                 placementMode
@@ -295,7 +416,7 @@ export function ListGridView({
                   : entry
                   ? [
                       "bg-card",
-                      canManage && !isEditingThisAmount && "cursor-grab active:cursor-grabbing",
+                        canDragEntry && "cursor-grab active:cursor-grabbing",
                       onItemClick && !isEditingThisAmount && "cursor-pointer",
                     ]
                   : [
@@ -305,10 +426,23 @@ export function ListGridView({
                 isDragSource && "opacity-40 scale-95",
                 externalDragTargetPos === absPos && "ring-2 ring-green-500 ring-offset-1 bg-green-500/5",
                 highlightedPosition === absPos && !isDragTarget && !isDragSource && "ring-2 ring-sky-500 ring-offset-1 bg-sky-100/80 border-sky-400",
+                canCycleStack && "touch-pan-y",
               )}
             >
               {entry ? (
-                <>
+                <div
+                  className="flex h-full min-h-0 flex-col"
+                  style={
+                    swipeAnimation?.pos === absPos
+                      ? {
+                          animation:
+                            swipeAnimation.direction === "next"
+                              ? "list-swipe-next 180ms ease-out both"
+                              : "list-swipe-prev 180ms ease-out both",
+                        }
+                      : undefined
+                  }
+                >
                   {/* Row/Col badge — bottom-left, shown when grid is narrower than configured */}
                   {isWrapped && (
                     <div className="absolute top-1 left-1 z-20 bg-background/80 backdrop-blur-sm text-[8px] font-medium px-1 py-0.5 rounded leading-none border border-border/50 text-muted-foreground pointer-events-none tabular-nums">
@@ -325,13 +459,13 @@ export function ListGridView({
                   {hasMultiple && subIdx > 0 && (
                     <button
                       className={`absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-background/80 hover:bg-background rounded-r p-0.5 transition-opacity ${supportsHover ? "invisible group-hover:visible" : "visible"}`}
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                      }}
                       onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        const newIdx = subIdx - 1;
-                        setCellSub(absPos, newIdx);
-                        const newEntry = cellEntries[newIdx];
-                        if (newEntry) onSubIndexChange?.({ entryId: newEntry.id, item: { ...newEntry.item }, position: newEntry.position, subIndex: newIdx, totalInCell: cellEntries.length });
+                        syncCellSubIndex(absPos, cellEntries, subIdx - 1);
                       }}
                       aria-label="Previous item"
                     >
@@ -342,13 +476,13 @@ export function ListGridView({
                   {hasMultiple && subIdx < cellEntries.length - 1 && (
                     <button
                       className={`absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-background/80 hover:bg-background rounded-l p-0.5 transition-opacity ${supportsHover ? "invisible group-hover:visible" : "visible"}`}
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                      }}
                       onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        const newIdx = subIdx + 1;
-                        setCellSub(absPos, newIdx);
-                        const newEntry = cellEntries[newIdx];
-                        if (newEntry) onSubIndexChange?.({ entryId: newEntry.id, item: { ...newEntry.item }, position: newEntry.position, subIndex: newIdx, totalInCell: cellEntries.length });
+                        syncCellSubIndex(absPos, cellEntries, subIdx + 1);
                       }}
                       aria-label="Next item"
                     >
@@ -492,7 +626,7 @@ export function ListGridView({
                       );
                     })()}
                   </div>
-                </>
+                </div>
               ) : (
                 <div className="flex-1 flex items-center justify-center">
                   {canManage && (
