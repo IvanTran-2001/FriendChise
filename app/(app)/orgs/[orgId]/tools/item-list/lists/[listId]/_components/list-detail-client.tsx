@@ -170,6 +170,7 @@ export function ListDetailClient({
 
   function handleDetailMoveCellClick(position: number) {
     if (!pendingDetailMove || isMovingItem) return;
+    if (pendingDetailMove.fromPosition === position) return;
     const { entryId, itemName } = pendingDetailMove;
     setHighlightedPos(position);
     setIsMovingItem(true);
