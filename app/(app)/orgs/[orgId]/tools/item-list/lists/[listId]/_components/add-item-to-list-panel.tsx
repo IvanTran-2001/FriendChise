@@ -33,7 +33,7 @@ interface AddItemToListPanelProps {
   /** Fired in manual mode whenever the computed target position changes. */
   onPositionChange?: (position: number) => void;
   /** Grid mode: called when user picks an item; parent handles cell selection. */
-  onItemPicked?: (item: PickableItem) => void;
+  onItemPicked: (item: PickableItem) => void;
 }
 
 export function AddItemToListPanel({
@@ -58,6 +58,11 @@ export function AddItemToListPanel({
     `item-list-add-item-mode-${orgId}-${listId}`,
     "grid",
   );
+
+  // Notify parent of mode changes from persisted state restoration
+  useEffect(() => {
+    onModeChange?.(mode);
+  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pageSize = gridCols * gridRows;
 
@@ -88,7 +93,6 @@ export function AddItemToListPanel({
 
   function setAddItemMode(nextMode: "grid" | "manual") {
     setMode(nextMode);
-    onModeChange?.(nextMode);
   }
 
   function handleSelectItem(item: PickableItem) {
@@ -96,7 +100,7 @@ export function AddItemToListPanel({
 
     if (mode === "grid") {
       // Grid mode: notify parent to handle cell selection.
-      onItemPicked?.(item);
+      onItemPicked(item);
       return;
     }
 

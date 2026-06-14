@@ -147,18 +147,20 @@ export function ListDetailClient({
     setHighlightedPos(position);
     setIsPlacingItem(true);
     startPlacingTransition(async () => {
-      const { toast } = await import("sonner");
-      const result = await addToolItemListEntryAtPositionAction(orgId, list.id, item.id, position);
-      if (!result.ok) {
-        toast.error("error" in result ? result.error : "Failed to add item.");
+      try {
+        const { toast } = await import("sonner");
+        const result = await addToolItemListEntryAtPositionAction(orgId, list.id, item.id, position);
+        if (!result.ok) {
+          toast.error("error" in result ? result.error : "Failed to add item.");
+          return;
+        } else {
+          toast.success(`"${item.name}" added.`);
+        }
+        setPendingItem(null);
+        if (isMobile) openAddItemPanel();
+      } finally {
         setIsPlacingItem(false);
-        return;
-      } else {
-        toast.success(`"${item.name}" added.`);
       }
-      setPendingItem(null);
-      setIsPlacingItem(false);
-      if (isMobile) openAddItemPanel();
     });
   }
 
@@ -175,17 +177,19 @@ export function ListDetailClient({
     setHighlightedPos(position);
     setIsMovingItem(true);
     startMoveDetailTransition(async () => {
-      const { toast } = await import("sonner");
-      const result = await moveToolItemListEntryByIdAction(orgId, list.id, entryId, position);
-      if (!result.ok) {
-        toast.error("Failed to move item.");
+      try {
+        const { toast } = await import("sonner");
+        const result = await moveToolItemListEntryByIdAction(orgId, list.id, entryId, position);
+        if (!result.ok) {
+          toast.error("Failed to move item.");
+          return;
+        }
+        toast.success(`"${itemName}" moved.`);
+        setPendingDetailMove(null);
+        close();
+      } finally {
         setIsMovingItem(false);
-        return;
       }
-      toast.success(`"${itemName}" moved.`);
-      setIsMovingItem(false);
-      setPendingDetailMove(null);
-      close();
     });
   }
 
@@ -346,7 +350,7 @@ export function ListDetailClient({
         <PlacementStatusBanner
           title="Select a blue cell"
           itemName={pendingDetailMove.itemName}
-          message="Tap any blue cell to place the item."
+          message="Tap any blue cell to move the item there."
           onCancel={cancelPendingDetailMove}
         />
       )}

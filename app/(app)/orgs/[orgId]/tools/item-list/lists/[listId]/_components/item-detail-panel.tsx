@@ -277,8 +277,9 @@ export function ItemDetailPanel({
               </p>
               <div className="grid grid-cols-3 gap-2">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs text-muted-foreground">Page</label>
+                  <label htmlFor="manual-page-input" className="text-xs text-muted-foreground">Page</label>
                   <Input
+                    id="manual-page-input"
                     type="number"
                     min="1"
                     value={pageVal}
@@ -287,8 +288,9 @@ export function ItemDetailPanel({
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs text-muted-foreground">Col</label>
+                  <label htmlFor="manual-col-input" className="text-xs text-muted-foreground">Col</label>
                   <Input
+                    id="manual-col-input"
                     type="number"
                     min="1"
                     max={gridCols}
@@ -298,8 +300,9 @@ export function ItemDetailPanel({
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs text-muted-foreground">Row</label>
+                  <label htmlFor="manual-row-input" className="text-xs text-muted-foreground">Row</label>
                   <Input
+                    id="manual-row-input"
                     type="number"
                     min="1"
                     max={gridRows}

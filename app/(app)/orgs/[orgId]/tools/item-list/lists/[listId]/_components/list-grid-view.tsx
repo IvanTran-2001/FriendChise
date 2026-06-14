@@ -465,7 +465,7 @@ export function ListGridView({
                       onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        syncCellSubIndex(absPos, cellEntries, subIdx - 1);
+                        syncCellSubIndex(absPos, cellEntries, subIdx - 1, "prev");
                       }}
                       aria-label="Previous item"
                     >
