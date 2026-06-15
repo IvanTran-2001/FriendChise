@@ -6,7 +6,14 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ImageIcon, MessageSquareMore, LayoutDashboard } from "lucide-react";
 
-const NAV_ITEMS = [
+type AdminNavItem = {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  exact?: boolean;
+};
+
+const NAV_ITEMS: AdminNavItem[] = [
   {
     href: "/admin",
     label: "Overview",
