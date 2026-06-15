@@ -403,7 +403,7 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
                 </div>
                 <div className="rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
                   <p className="font-medium text-foreground">Demo share</p>
-                  <p className="mt-1">{records.length > 0 ? `${Math.round((selectedTotals.demo / records.length) * 100)}%` : "0%"}</p>
+                  <p className="mt-1">{selectedTotals.total > 0 ? `${Math.round((selectedTotals.demo / selectedTotals.total) * 100)}%` : "0%"}</p>
                 </div>
               </div>
             </div>
