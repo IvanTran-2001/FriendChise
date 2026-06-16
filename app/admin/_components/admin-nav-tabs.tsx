@@ -9,7 +9,7 @@ type AdminNavItem = {
   href: string;
   label: string;
   icon: typeof LayoutDashboard;
-  exact: boolean;
+  exact?: boolean;
 };
 
 const NAV_ITEMS: AdminNavItem[] = [
