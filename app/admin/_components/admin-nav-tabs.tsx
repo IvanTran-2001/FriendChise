@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ImageIcon, MessageSquareMore, LayoutDashboard } from "lucide-react";
 
@@ -10,7 +9,7 @@ type AdminNavItem = {
   href: string;
   label: string;
   icon: typeof LayoutDashboard;
-  exact?: boolean;
+  exact: boolean;
 };
 
 const NAV_ITEMS: AdminNavItem[] = [
@@ -29,8 +28,9 @@ const NAV_ITEMS: AdminNavItem[] = [
     href: "/admin/photos",
     label: "Photos",
     icon: ImageIcon,
+    exact: false,
   },
-] as const;
+];
 
 export function AdminNavTabs() {
   const pathname = usePathname();
@@ -40,7 +40,7 @@ export function AdminNavTabs() {
       {NAV_ITEMS.map((item) => {
         const isActive = item.exact?
           ? pathname === item.href
-          : pathname === item.href || pathname.startsWith(`${item.href}/`);
+          : pathname === item.href || pathname.startsWith(item.href + "/");
         const Icon = item.icon;
 
         return (
@@ -48,10 +48,7 @@ export function AdminNavTabs() {
             key={item.href}
             variant={isActive ? "default" : "outline"}
             asChild
-            className={cn(
-              "justify-start gap-2.5 rounded-xl",
-              isActive && "shadow-sm",
-            )}
+            className={isActive ? "justify-start gap-2.5 rounded-xl shadow-sm" : "justify-start gap-2.5 rounded-xl"}
             aria-current={isActive ? "page" : undefined}
           >
             <Link href={item.href}>
