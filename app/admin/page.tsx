@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { FeedbackType } from "@prisma/client";
 import { ArrowRight, CheckCheck, ImageIcon, Lightbulb, MessageSquareWarning, ShieldAlert } from "lucide-react";
+import { prisma } from "@/lib/prisma";
+import { isDemoEmail } from "@/lib/demo";
 import { requireSuperAdminPage } from "@/lib/authz";
 import { getAllFeedback } from "@/lib/services/feedback";
 import { Button } from "@/components/ui/button";
@@ -11,17 +13,36 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { AdminUserGrowthCard, type UserGrowthRecord } from "./_components/admin-user-growth-card";
 
 export default async function AdminHomePage() {
   await requireSuperAdminPage();
 
-  const feedback = await getAllFeedback();
+  const [feedback, users] = await Promise.all([
+    getAllFeedback(),
+    prisma.user.findMany({
+      select: {
+        createdAt: true,
+        email: true,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    }),
+  ]);
   const unreviewed = feedback.filter((item) => !item.reviewed);
   const issues = feedback.filter((item) => item.type === FeedbackType.ISSUE);
   const ideas = feedback.filter((item) => item.type === FeedbackType.IDEA);
+  const userGrowthRecords: UserGrowthRecord[] = users.map((user) => ({
+    createdAt: user.createdAt.toISOString(),
+    isDemo: isDemoEmail(user.email),
+  }));
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
+    <div className="grid gap-6">
+      <AdminUserGrowthCard records={userGrowthRecords} />
+
+      <div className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
       <Card className="overflow-hidden border-border/70 bg-card/90 shadow-sm backdrop-blur-xl">
         <CardHeader className="gap-3 border-b border-border/60 bg-muted/30">
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
@@ -117,6 +138,7 @@ export default async function AdminHomePage() {
             <p>• More admin sections can be added beside it later</p>
           </CardContent>
         </Card>
+      </div>
       </div>
     </div>
   );

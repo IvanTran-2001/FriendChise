@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowLeft, ImageIcon, Shield, MessageSquareMore, PanelLeft } from "lucide-react";
+import { ArrowLeft, Shield, MessageSquareMore, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminNavTabs } from "./_components/admin-nav-tabs";
 
 export default function AdminLayout({
   children,
@@ -9,8 +10,8 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-full bg-linear-to-br from-violet-500/10 via-background to-sky-500/10">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="h-dvh overflow-hidden bg-linear-to-br from-violet-500/10 via-background to-sky-500/10">
+      <div className="mx-auto flex h-full w-full max-w-7xl flex-col gap-6 overflow-y-auto overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8">
         <header className="rounded-3xl border border-border/70 bg-card/90 p-4 shadow-sm backdrop-blur-xl sm:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-5">
             <div className="flex flex-1 items-center gap-3">
@@ -60,19 +61,8 @@ export default function AdminLayout({
                   Jump between the admin overview, feedback, and photos.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-col gap-2">
-                <Button variant="outline" asChild className="justify-start">
-                  <Link href="/admin">Overview</Link>
-                </Button>
-                <Button variant="outline" asChild className="justify-start">
-                  <Link href="/admin/feedback">Feedback</Link>
-                </Button>
-                <Button variant="outline" asChild className="justify-start">
-                  <Link href="/admin/photos">
-                    <ImageIcon className="h-4 w-4" />
-                    Photos
-                  </Link>
-                </Button>
+              <CardContent>
+                <AdminNavTabs />
               </CardContent>
             </Card>
 
@@ -87,7 +77,9 @@ export default function AdminLayout({
             </Card>
           </aside>
 
-          <main>{children}</main>
+          <main className="pb-2">
+            {children}
+          </main>
         </div>
       </div>
     </div>
