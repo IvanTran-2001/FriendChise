@@ -6,11 +6,7 @@ Thanks for helping improve FriendChise. This repo is a shared dev environment, s
 
 Before opening a PR, please open a GitHub issue first to discuss your idea with maintainers. This helps ensure alignment, avoids duplicate work, and saves you time.
 
-<<<<<<< HEAD
-Not sure what to work on? See [docs/ideas-for-contribution.md](docs/ideas-for-contribution.md) for examples across performance, security, UI/UX, services, and more.
-=======
-Not sure what to work on? See [IDEAS_FOR_CONTRIBUTION.md](IDEAS_FOR_CONTRIBUTION.md) for examples across performance, security, UI/UX, services, and more.
->>>>>>> origin/master
+Not sure what to work on? See [docs/contributing/ideas-for-contribution.md](docs/contributing/ideas-for-contribution.md) for examples across performance, security, UI/UX, services, and more.
 
 ## Before you start
 

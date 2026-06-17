@@ -3,18 +3,6 @@
 import { useMemo, useState } from "react";
 import { CalendarRange, LineChart, Users, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
-<<<<<<< HEAD
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { AdminGrowthChart } from "./admin-growth-chart";
-
-type RangeKey = "day" | "7d" | "month" | "6m" | "year" | "lifetime";
-=======
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminGrowthChart } from "./admin-growth-chart";
 
@@ -25,7 +13,6 @@ export type UserGrowthRecord = {
 
 type RangeKey = "day" | "7d" | "month" | "6m" | "year" | "lifetime";
 type Granularity = "hour" | "day" | "month";
->>>>>>> origin/master
 
 type Bucket = {
   key: string;
@@ -34,11 +21,6 @@ type Bucket = {
   demo: number;
 };
 
-<<<<<<< HEAD
-export type UserGrowthByRange = Record<RangeKey, Bucket[]>;
-
-=======
->>>>>>> origin/master
 const RANGE_OPTIONS: Array<{ key: RangeKey; label: string }> = [
   { key: "day", label: "Last day" },
   { key: "7d", label: "7 days" },
@@ -48,8 +30,6 @@ const RANGE_OPTIONS: Array<{ key: RangeKey; label: string }> = [
   { key: "lifetime", label: "Lifetime" },
 ];
 
-<<<<<<< HEAD
-=======
 function startOfDay(date: Date) {
   const next = new Date(date);
   next.setHours(0, 0, 0, 0);
@@ -213,19 +193,11 @@ function getRangeConfig(records: UserGrowthRecord[], range: RangeKey) {
   return buckets;
 }
 
->>>>>>> origin/master
 // Computes a nice y-axis ceiling and evenly-spaced tick values.
 function computeYScale(dataMax: number): { scale: number; ticks: number[] } {
   if (dataMax === 0) return { scale: 5, ticks: [0, 1, 2, 3, 4, 5] };
   if (dataMax <= 5) {
-<<<<<<< HEAD
-    return {
-      scale: dataMax,
-      ticks: Array.from({ length: dataMax + 1 }, (_, i) => i),
-    };
-=======
     return { scale: dataMax, ticks: Array.from({ length: dataMax + 1 }, (_, i) => i) };
->>>>>>> origin/master
   }
   const rawStep = dataMax / 4;
   const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
@@ -280,23 +252,10 @@ function linePath(points: Bucket[], selector: "total" | "demo", scale: number) {
     .join(" ");
 }
 
-<<<<<<< HEAD
-export function AdminUserGrowthCard({
-  series,
-  lifetimeTotal,
-}: {
-  series: UserGrowthByRange;
-  lifetimeTotal: number;
-}) {
-  const [range, setRange] = useState<RangeKey>("month");
-
-  const points = useMemo(() => series[range] ?? [], [series, range]);
-=======
 export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }) {
   const [range, setRange] = useState<RangeKey>("month");
 
   const points = useMemo(() => getRangeConfig(records, range), [records, range]);
->>>>>>> origin/master
   const selectedTotals = useMemo(
     () =>
       points.reduce(
@@ -310,29 +269,10 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
     [points],
   );
 
-<<<<<<< HEAD
-  const dataMax = Math.max(
-    0,
-    ...points.map((point) => Math.max(point.total, point.demo)),
-  );
-  const { scale: chartScale, ticks: yTicks } = useMemo(
-    () => computeYScale(dataMax),
-    [dataMax],
-  );
-  const totalPath = useMemo(
-    () => linePath(points, "total", chartScale),
-    [points, chartScale],
-  );
-  const demoPath = useMemo(
-    () => linePath(points, "demo", chartScale),
-    [points, chartScale],
-  );
-=======
   const dataMax = Math.max(0, ...points.map((point) => Math.max(point.total, point.demo)));
   const { scale: chartScale, ticks: yTicks } = useMemo(() => computeYScale(dataMax), [dataMax]);
   const totalPath = useMemo(() => linePath(points, "total", chartScale), [points, chartScale]);
   const demoPath = useMemo(() => linePath(points, "demo", chartScale), [points, chartScale]);
->>>>>>> origin/master
   const activeBuckets = points.filter((point) => point.total > 0);
   const peakBucket = activeBuckets.reduce<Bucket | null>((peak, point) => {
     if (!peak) return point;
@@ -340,29 +280,11 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
   }, null);
   const totalSeries = points.map((point) => point.total);
   const lastTotal = totalSeries[totalSeries.length - 1] ?? 0;
-<<<<<<< HEAD
-  const previousTotal =
-    totalSeries.length > 1 ? (totalSeries[totalSeries.length - 2] ?? 0) : 0;
-  const delta = lastTotal - previousTotal;
-  const deltaLabel =
-    delta === 0 ? "Flat" : delta > 0 ? `+${delta}` : `${delta}`;
-  const xAxisLabel =
-    range === "day"
-      ? "Hours"
-      : range === "7d" || range === "month"
-        ? "Days"
-        : "Months";
-  const xLabelIndexes = useMemo(
-    () => getXLabelIndexes(range, points.length),
-    [range, points.length],
-  );
-=======
   const previousTotal = totalSeries.length > 1 ? totalSeries[totalSeries.length - 2] ?? 0 : 0;
   const delta = lastTotal - previousTotal;
   const deltaLabel = delta === 0 ? "Flat" : delta > 0 ? `+${delta}` : `${delta}`;
   const xAxisLabel = range === "day" ? "Hours" : range === "7d" || range === "month" ? "Days" : "Months";
   const xLabelIndexes = useMemo(() => getXLabelIndexes(range, points.length), [range, points.length]);
->>>>>>> origin/master
 
   return (
     <Card className="overflow-hidden border-border/70 bg-card/90 shadow-sm backdrop-blur-xl">
@@ -371,19 +293,9 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
           <LineChart className="h-3.5 w-3.5" />
           User growth
         </div>
-<<<<<<< HEAD
-        <CardTitle className="text-2xl sm:text-3xl">
-          New users over time
-        </CardTitle>
-        <CardDescription className="max-w-3xl text-sm sm:text-base">
-          Based on account creation dates. Demo accounts are counted separately
-          using the demo email suffix because IP addresses are not stored in the
-          schema.
-=======
         <CardTitle className="text-2xl sm:text-3xl">New users over time</CardTitle>
         <CardDescription className="max-w-3xl text-sm sm:text-base">
           Based on account creation dates. Demo accounts are counted separately using the demo email suffix because IP addresses are not stored in the schema.
->>>>>>> origin/master
         </CardDescription>
       </CardHeader>
 
@@ -421,17 +333,8 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
               <Users className="h-3.5 w-3.5" />
               New users
             </div>
-<<<<<<< HEAD
-            <p className="mt-3 text-3xl font-semibold tracking-tight">
-              {selectedTotals.total}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Joined in the selected range.
-            </p>
-=======
             <p className="mt-3 text-3xl font-semibold tracking-tight">{selectedTotals.total}</p>
             <p className="mt-1 text-sm text-muted-foreground">Joined in the selected range.</p>
->>>>>>> origin/master
           </div>
 
           <div className="rounded-2xl border border-border/70 bg-background/80 p-4 shadow-sm">
@@ -439,17 +342,8 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
               <UserRound className="h-3.5 w-3.5" />
               Demo users
             </div>
-<<<<<<< HEAD
-            <p className="mt-3 text-3xl font-semibold tracking-tight">
-              {selectedTotals.demo}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Demo signups in the selected range.
-            </p>
-=======
             <p className="mt-3 text-3xl font-semibold tracking-tight">{selectedTotals.demo}</p>
             <p className="mt-1 text-sm text-muted-foreground">Demo signups in the selected range.</p>
->>>>>>> origin/master
           </div>
 
           <div className="rounded-2xl border border-border/70 bg-background/80 p-4 shadow-sm">
@@ -457,26 +351,13 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
               <CalendarRange className="h-3.5 w-3.5" />
               Lifetime total
             </div>
-<<<<<<< HEAD
-            <p className="mt-3 text-3xl font-semibold tracking-tight">
-              {lifetimeTotal}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              All created user accounts.
-            </p>
-=======
             <p className="mt-3 text-3xl font-semibold tracking-tight">{records.length}</p>
             <p className="mt-1 text-sm text-muted-foreground">All created user accounts.</p>
->>>>>>> origin/master
           </div>
         </div>
 
         <div className="rounded-3xl border border-border/70 bg-background/90 p-4 shadow-sm">
-<<<<<<< HEAD
-          {selectedTotals.total === 0 ? (
-=======
           {points.length === 0 ? (
->>>>>>> origin/master
             <div className="flex min-h-56 items-center justify-center rounded-2xl border border-dashed border-border/70 text-sm text-muted-foreground">
               No user signups yet.
             </div>
@@ -484,18 +365,9 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
             <div className="space-y-4">
               <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
                 <div>
-<<<<<<< HEAD
-                  <p className="text-sm font-medium text-foreground">
-                    Signup trend
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Left to right is the selected date range. Blue is total
-                    signups, amber is demo signups.
-=======
                   <p className="text-sm font-medium text-foreground">Signup trend</p>
                   <p className="text-xs text-muted-foreground">
                     Left to right is the selected date range. Blue is total signups, amber is demo signups.
->>>>>>> origin/master
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
@@ -523,27 +395,6 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
               <div className="grid gap-2 sm:grid-cols-3">
                 <div className="rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
                   <p className="font-medium text-foreground">Active buckets</p>
-<<<<<<< HEAD
-                  <p className="mt-1">
-                    {activeBuckets.length} with at least one signup.
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                  <p className="font-medium text-foreground">Highest bucket</p>
-                  <p className="mt-1">
-                    {peakBucket
-                      ? `${peakBucket.label} · ${peakBucket.total}`
-                      : "No signups"}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                  <p className="font-medium text-foreground">Demo share</p>
-                  <p className="mt-1">
-                    {selectedTotals.total > 0
-                      ? `${Math.round((selectedTotals.demo / selectedTotals.total) * 100)}%`
-                      : "0%"}
-                  </p>
-=======
                   <p className="mt-1">{activeBuckets.length} with at least one signup.</p>
                 </div>
                 <div className="rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
@@ -553,7 +404,6 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
                 <div className="rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
                   <p className="font-medium text-foreground">Demo share</p>
                   <p className="mt-1">{selectedTotals.total > 0 ? `${Math.round((selectedTotals.demo / selectedTotals.total) * 100)}%` : "0%"}</p>
->>>>>>> origin/master
                 </div>
               </div>
             </div>
@@ -562,8 +412,4 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
       </CardContent>
     </Card>
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> origin/master
