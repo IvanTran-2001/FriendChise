@@ -60,6 +60,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://test:test@localhost:5432/test
+      SEED_NAMESPACE: ci
       AUTH_SECRET: ci-test-secret-not-used-for-real-auth
       AUTH_GOOGLE_ID: test-google-client-id
       AUTH_GOOGLE_SECRET: test-google-client-secret
@@ -113,6 +114,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://test:test@localhost:5432/test
+      SEED_NAMESPACE: ci
       AUTH_SECRET: ci-test-secret-not-used-for-real-auth
       AUTH_GOOGLE_ID: test-google-client-id
       AUTH_GOOGLE_SECRET: test-google-client-secret

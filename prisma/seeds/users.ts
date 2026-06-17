@@ -1,91 +1,129 @@
 import type { SeedPlan } from "./seed-plan";
+import { seedDisplayName, seedEmail } from "@/lib/seed-namespace";
+
+/**
+ * Helper function to resolve the seed email for the E2E test user.
+ * Treats empty or whitespace-only strings as unset values.
+ */
+function resolveSeedEmail(): string {
+  const envEmail = process.env.E2E_TEST_USER_EMAIL?.trim();
+  return envEmail || seedEmail("riley");
+}
 
 export async function seedUsers(prisma: import("@prisma/client").PrismaClient) {
   const [owner, jordan, casey, riley, morgan, alex, taylor, sam, quinn] =
     await Promise.all([
       prisma.user.upsert({
-        where: { email: "owner@example.test" },
-        update: { name: "MainDev", image: "https://i.pravatar.cc/150?img=3" },
+        where: { email: seedEmail("owner") },
+        update: {
+          name: seedDisplayName("MainDev"),
+          image: "https://i.pravatar.cc/150?img=3",
+        },
         create: {
-          email: "owner@example.test",
-          name: "MainDev",
+          email: seedEmail("owner"),
+          name: seedDisplayName("MainDev"),
           image: "https://i.pravatar.cc/150?img=3",
         },
       }),
       prisma.user.upsert({
-        where: { email: "jordan@example.test" },
-        update: { name: "Jordan", image: "https://i.pravatar.cc/150?img=8" },
+        where: { email: seedEmail("jordan") },
+        update: {
+          name: seedDisplayName("Jordan"),
+          image: "https://i.pravatar.cc/150?img=8",
+        },
         create: {
-          email: "jordan@example.test",
-          name: "Jordan",
+          email: seedEmail("jordan"),
+          name: seedDisplayName("Jordan"),
           image: "https://i.pravatar.cc/150?img=8",
         },
       }),
       prisma.user.upsert({
-        where: { email: "casey@example.test" },
-        update: { name: "Casey", image: "https://i.pravatar.cc/150?img=12" },
+        where: { email: seedEmail("casey") },
+        update: {
+          name: seedDisplayName("Casey"),
+          image: "https://i.pravatar.cc/150?img=12",
+        },
         create: {
-          email: "casey@example.test",
-          name: "Casey",
+          email: seedEmail("casey"),
+          name: seedDisplayName("Casey"),
           image: "https://i.pravatar.cc/150?img=12",
         },
       }),
       prisma.user.upsert({
         where: {
-          email: process.env.E2E_TEST_USER_EMAIL ?? "ivan@example.test",
+          email: resolveSeedEmail(),
         },
         update: {
-          name: process.env.E2E_TEST_USER_NAME ?? "Riley",
-          image: process.env.E2E_TEST_USER_IMAGE ?? "https://i.pravatar.cc/150?img=5"
+          name: process.env.E2E_TEST_USER_NAME ?? seedDisplayName("Riley"),
+          image:
+            process.env.E2E_TEST_USER_IMAGE ??
+            "https://i.pravatar.cc/150?img=5",
         },
         create: {
-          email: process.env.E2E_TEST_USER_EMAIL ?? "ivan@example.test",
-          name: process.env.E2E_TEST_USER_NAME ?? "Riley",
-          image: process.env.E2E_TEST_USER_IMAGE ?? "https://i.pravatar.cc/150?img=5",
+          email: resolveSeedEmail(),
+          name: process.env.E2E_TEST_USER_NAME ?? seedDisplayName("Riley"),
+          image:
+            process.env.E2E_TEST_USER_IMAGE ??
+            "https://i.pravatar.cc/150?img=5",
         },
       }),
       prisma.user.upsert({
-        where: { email: "morgan@example.test" },
-        update: { name: "Morgan", image: "https://i.pravatar.cc/150?img=22" },
+        where: { email: seedEmail("morgan") },
+        update: {
+          name: seedDisplayName("Morgan"),
+          image: "https://i.pravatar.cc/150?img=22",
+        },
         create: {
-          email: "morgan@example.test",
-          name: "Morgan",
+          email: seedEmail("morgan"),
+          name: seedDisplayName("Morgan"),
           image: "https://i.pravatar.cc/150?img=22",
         },
       }),
       prisma.user.upsert({
-        where: { email: "alex@example.test" },
-        update: { name: "Alex", image: "https://i.pravatar.cc/150?img=15" },
+        where: { email: seedEmail("alex") },
+        update: {
+          name: seedDisplayName("Alex"),
+          image: "https://i.pravatar.cc/150?img=15",
+        },
         create: {
-          email: "alex@example.test",
-          name: "Alex",
+          email: seedEmail("alex"),
+          name: seedDisplayName("Alex"),
           image: "https://i.pravatar.cc/150?img=15",
         },
       }),
       prisma.user.upsert({
-        where: { email: "taylor@example.test" },
-        update: { name: "Taylor", image: "https://i.pravatar.cc/150?img=29" },
+        where: { email: seedEmail("taylor") },
+        update: {
+          name: seedDisplayName("Taylor"),
+          image: "https://i.pravatar.cc/150?img=29",
+        },
         create: {
-          email: "taylor@example.test",
-          name: "Taylor",
+          email: seedEmail("taylor"),
+          name: seedDisplayName("Taylor"),
           image: "https://i.pravatar.cc/150?img=29",
         },
       }),
       prisma.user.upsert({
-        where: { email: "sam@example.test" },
-        update: { name: "Sam", image: "https://i.pravatar.cc/150?img=35" },
+        where: { email: seedEmail("sam") },
+        update: {
+          name: seedDisplayName("Sam"),
+          image: "https://i.pravatar.cc/150?img=35",
+        },
         create: {
-          email: "sam@example.test",
-          name: "Sam",
+          email: seedEmail("sam"),
+          name: seedDisplayName("Sam"),
           image: "https://i.pravatar.cc/150?img=35",
         },
       }),
       prisma.user.upsert({
-        where: { email: "quinn@example.test" },
-        update: { name: "Quinn", image: "https://i.pravatar.cc/150?img=44" },
+        where: { email: seedEmail("quinn") },
+        update: {
+          name: seedDisplayName("Quinn"),
+          image: "https://i.pravatar.cc/150?img=44",
+        },
         create: {
-          email: "quinn@example.test",
-          name: "Quinn",
+          email: seedEmail("quinn"),
+          name: seedDisplayName("Quinn"),
           image: "https://i.pravatar.cc/150?img=44",
         },
       }),

@@ -7,10 +7,7 @@
 import { prisma } from "@/lib/prisma";
 import { createOrg } from "@/lib/services/orgs";
 import { ROLE_KEYS } from "@/lib/rbac";
-
-// Set INTEGRATION_TEST_USER_EMAIL in .env.local to override (default: Casey)
-const SEED_USER_EMAIL =
-  process.env.INTEGRATION_TEST_USER_EMAIL ?? "casey@example.test";
+import { SEED_USER_EMAIL } from "../../helpers";
 
 describe("createOrg", () => {
   it("creates an org with Owner and Default Member roles bootstrapped", async () => {

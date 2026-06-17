@@ -22,21 +22,26 @@ import {
 import { DONUT_TASKS } from "./data";
 import { TASK_IMAGE_KEYWORDS, TASK_TAGS } from "./donut-shop-a-metadata";
 import type { Users } from "../../users";
+import { seedDisplayName } from "@/lib/seed-namespace";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 3. ORG 1 — Donut Shop A
-//    Owner: MainDev  |  Members: Jordan, Casey, Riley, Alex + 5 bots
+//    Owner: namespaced seed user | Members: Jordan, Casey, Riley, Alex + 5 bots
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function seedDonutShopA(prisma: PrismaClient, users: Users) {
   const { owner, jordan, casey, riley, alex } = users;
   const { utcEntry } = makeDateUtils("Australia/Sydney");
+  const orgName = seedDisplayName("Donut Shop A");
 
   // ── Org ────────────────────────────────────────────────────────────────────
   console.log("→ Creating org...");
+  await prisma.organization.deleteMany({
+    where: { name: orgName, ownerId: owner.id },
+  });
   const org = await prisma.organization.create({
     data: {
-      name: "Donut Shop A",
+      name: orgName,
       ownerId: owner.id,
       image: null,
       address: "42 Harbour Street, Sydney NSW 2000",
@@ -337,7 +342,7 @@ export async function seedDonutShopA(prisma: PrismaClient, users: Users) {
       },
       {
         taskId: biscoffTask.id, orgId: org.id,
-        authorId: owner.id, authorName: "MainDev", authorImage: "https://i.pravatar.cc/150?img=3",
+        authorId: owner.id, authorName: owner.name ?? seedDisplayName("MainDev"), authorImage: "https://i.pravatar.cc/150?img=3",
         content: "The 4% vegetable oil ratio in the recipe is the minimum — if the spread feels too thick after mixing, bump it up slightly. Don't go over 6% or it'll be too runny.",
       },
       {
@@ -374,12 +379,12 @@ export async function seedDonutShopA(prisma: PrismaClient, users: Users) {
       {
         taskId: biscoffTask.id, orgId: org.id,
         authorId: alex.id, authorName: "Alex", authorImage: "https://i.pravatar.cc/150?img=15",
-        content: "Thanks MainDev, didn't know there was a range. The batch I made yesterday felt a bit thick so I'll try 5% next time.",
+        content: `Thanks ${owner.name ?? seedDisplayName("MainDev")}, didn't know there was a range. The batch I made yesterday felt a bit thick so I'll try 5% next time.`,
         parentId: c3.id,
       },
       {
         taskId: biscoffTask.id, orgId: org.id,
-        authorId: owner.id, authorName: "MainDev", authorImage: "https://i.pravatar.cc/150?img=3",
+        authorId: owner.id, authorName: owner.name ?? seedDisplayName("MainDev"), authorImage: "https://i.pravatar.cc/150?img=3",
         content: "Yep, same trick works for the Nutella filling too.",
         parentId: c4.id,
       },

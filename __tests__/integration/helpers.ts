@@ -7,9 +7,10 @@
  */
 import { prisma } from "@/lib/prisma";
 import { ROLE_KEYS } from "@/lib/rbac";
+import { SEEDED_USERS } from "@/lib/seeded-users";
 
 export const SEED_USER_EMAIL =
-  process.env.INTEGRATION_TEST_USER_EMAIL ?? "casey@example.test";
+  SEEDED_USERS.casey.email;
 
 /** Returns the integration-test seed user (Casey). */
 export async function getSeedUser() {

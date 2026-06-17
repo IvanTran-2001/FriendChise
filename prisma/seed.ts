@@ -7,9 +7,11 @@ import {
 } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { runSeedPlan } from "./seeds/seed-plan";
+import { cleanupSeedNamespace } from "./seeds/namespace-cleanup";
 
 // Adapter and Prisma client will be initialized after validation
 let prisma: PrismaClient;
+let dbUrl: string;
 const seedStartedAt = Date.now();
 let seedSucceeded = false;
 
@@ -21,64 +23,12 @@ function formatDuration(ms: number): string {
   return `${(ms / 1000).toFixed(ms >= 10_000 ? 1 : 2)}s`;
 }
 
-// Clean Database
-async function cleanDatabase() {
-  await prisma.$executeRawUnsafe(`
-    TRUNCATE TABLE
-      "Account",
-      "Session",
-      "VerificationToken",
-      "User",
-      "Organization",
-      "RecentActivity",
-      "Membership",
-      "Role",
-      "Permission",
-      "MemberRole",
-      "Task",
-      "TaskEligibility",
-      "Tag",
-      "TaskTag",
-      "TimetableEntry",
-      "TimetableEntryAssignee",
-      "TimetableSettings",
-      "TimetableTemplate",
-      "TimetableTemplateEntry",
-      "TimetableTemplateEntryAssignee",
-      "RosterEntry",
-      "RosterDayConfig",
-      "RosterTemplate",
-      "RosterTemplateEntry",
-      "FranchiseToken",
-      "Invite",
-      "Notification",
-      "AuditLog",
-      "ToolItem",
-      "ToolItemList",
-      "ToolItemGridConfig",
-      "ToolItemListEntry",
-      "ToolItemChecklistEntry",
-      "ConversionSet",
-      "ConversionRate",
-      "ConversionTemplate",
-      "ConversionTemplateEntry",
-      "Feedback",
-      "AdminUser",
-      "TaskInheritance",
-      "TaskSectionLayout",
-      "TaskComment",
-      "TaskCommentVote",
-      "OrgImage"
-    RESTART IDENTITY CASCADE;
-  `);
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN
 // ─────────────────────────────────────────────────────────────────────────────
 
 function confirm(): void {
-  const dbUrl = process.env.DATABASE_URL;
+  dbUrl = process.env.DATABASE_URL ?? "";
 
   // Validate DATABASE_URL is present
   if (!dbUrl) {
@@ -130,13 +80,20 @@ function confirm(): void {
   console.log("");
 
   // Initialize Prisma client after validation
-  const adapter = new PrismaPg({ connectionString: dbUrl });
-  prisma = new PrismaClient({ adapter });
+  prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: dbUrl }) });
+}
+
+function createPrismaClient() {
+  return new PrismaClient({
+    adapter: new PrismaPg({ connectionString: dbUrl }),
+  });
 }
 
 async function main() {
   confirm();
-  await cleanDatabase();
+  await cleanupSeedNamespace(prisma);
+  await prisma.$disconnect();
+  prisma = createPrismaClient();
   const { users, donutShopA: org1 } = await runSeedPlan(prisma);
   seedSucceeded = true;
 

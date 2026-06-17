@@ -57,29 +57,38 @@ export async function createTimetableEntryAction(
   try {
     const instances = await getTimetableInstancesByIds(orgId, [result.data.id]);
     return { ok: true, data: instances[0] };
-  } catch (err) {
+  } catch {
     // Fetch failed, but the entry was created successfully. Return a minimal
     // fallback instance constructed from the result so the client doesn't see a false failure.
     // Convert result.data.date (Date object) to YYYY-MM-DD string
     const resultDateStr = result.data.date
-      ? result.data.date.toISOString().split('T')[0]
+      ? result.data.date.toISOString().split("T")[0]
       : dateStr;
     const resultStartTimeMin = result.data.startTimeMin ?? startTimeMin;
-    const resultStatus = (result.data.status ?? "TODO") as "TODO" | "IN_PROGRESS" | "DONE" | "SKIPPED";
+    const resultStatus = (result.data.status ?? "TODO") as
+      | "TODO"
+      | "IN_PROGRESS"
+      | "DONE"
+      | "SKIPPED";
     const durationMinutes = result.data.durationMin ?? 60;
 
     // Compute actual ISO timestamps from date string and minute offsets
     const startHours = Math.floor(resultStartTimeMin / 60);
     const startMinutes = resultStartTimeMin % 60;
-    const startTimeStr = `${String(startHours).padStart(2, '0')}:${String(startMinutes).padStart(2, '0')}:00`;
+    const startTimeStr = `${String(startHours).padStart(2, "0")}:${String(startMinutes).padStart(2, "0")}:00`;
 
-    const endTimeMin = result.data.endTimeMin ?? (resultStartTimeMin + durationMinutes);
+    const endTimeMin =
+      result.data.endTimeMin ?? resultStartTimeMin + durationMinutes;
     const endHours = Math.floor(endTimeMin / 60);
     const endMinutes = endTimeMin % 60;
-    const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}:00`;
+    const endTimeStr = `${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}:00`;
 
-    const scheduledStartAt = new Date(`${resultDateStr}T${startTimeStr}`).toISOString();
-    const scheduledEndAt = new Date(`${resultDateStr}T${endTimeStr}`).toISOString();
+    const scheduledStartAt = new Date(
+      `${resultDateStr}T${startTimeStr}`,
+    ).toISOString();
+    const scheduledEndAt = new Date(
+      `${resultDateStr}T${endTimeStr}`,
+    ).toISOString();
 
     const fallback: WeekTimetableInstance = {
       id: result.data.id,

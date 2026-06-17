@@ -1,4 +1,7 @@
 import { defineConfig } from "vitest/config";
+import { ensureTestRunNamespace } from "./lib/test-run-namespace";
+
+ensureTestRunNamespace();
 
 /**
  * Vitest config for integration tests.

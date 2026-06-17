@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { TEST_RUN_NAMESPACE } from "@/lib/test-run-namespace";
 
 /**
  * Org lifecycle E2E tests.
@@ -8,7 +9,7 @@ import { test, expect } from "@playwright/test";
  * independent — no assumptions about seeded data.
  */
 
-const ORG_NAME = `E2E Org ${Date.now()}`;
+const ORG_NAME = `E2E [${TEST_RUN_NAMESPACE}] Org ${Date.now()}`;
 
 test("create org → lands on overview → org name visible in navbar", async ({
   page,
@@ -30,7 +31,7 @@ test("create org → lands on overview → org name visible in navbar", async ({
 
 test("delete org → redirected to /", async ({ page }) => {
   // Create a dedicated org for this test so deletion doesn't affect others
-  const deleteOrgName = `E2E Delete Org ${Date.now()}`;
+  const deleteOrgName = `E2E [${TEST_RUN_NAMESPACE}] Delete Org ${Date.now()}`;
 
   await page.goto("/orgs/new");
   await page.getByLabel(/org name/i).fill(deleteOrgName);
@@ -75,7 +76,7 @@ test("create org without a name → stays on page, does not submit", async ({
 });
 
 test("delete org with wrong name → button stays disabled", async ({ page }) => {
-  const deleteOrgName = `E2E Wrong Delete Org ${Date.now()}`;
+  const deleteOrgName = `E2E [${TEST_RUN_NAMESPACE}] Wrong Delete Org ${Date.now()}`;
 
   await page.goto("/orgs/new");
   await page.getByLabel(/org name/i).fill(deleteOrgName);
