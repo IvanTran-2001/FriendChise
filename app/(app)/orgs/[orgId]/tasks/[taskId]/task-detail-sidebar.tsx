@@ -26,7 +26,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import {
   deleteTaskAction,
   publishTaskAction,
@@ -262,7 +261,7 @@ export function TaskDetailSidebar({
   sharedBy,
   createdByName,
 }: TaskDetailSidebarProps) {
-  const { open, close } = useActionSidebar();
+  // useActionSidebar hook call removed — open/close not used in this component
 
   return (
     <div className="flex flex-col gap-0">

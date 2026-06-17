@@ -3,6 +3,7 @@ import { ROLE_KEYS } from "@/lib/rbac";
 import type { SeedPlan } from "../seed-plan";
 import { ALL_OWNER_PERMISSIONS } from "../helpers";
 import type { Users } from "../users";
+import { seedDisplayName } from "@/lib/seed-namespace";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 5. EMPTY ORGS — multiple orgs with Riley as a member (not owner)
@@ -13,15 +14,19 @@ export async function seedEmptyOrgs(prisma: PrismaClient, users: Users) {
   const { jordan, riley } = users;
 
   const orgDefs = [
-    { name: "Coffee House B",  address: "10 George Street, Sydney NSW 2000",       timezone: "Australia/Sydney"    },
-    { name: "Bakery Co C",     address: "55 Collins Street, Melbourne VIC 3000",    timezone: "Australia/Melbourne" },
-    { name: "Pie Shop D",      address: "78 Queen Street, Brisbane QLD 4000",       timezone: "Australia/Brisbane"  },
-    { name: "Burger Joint E",  address: "22 Rundle Mall, Adelaide SA 5000",         timezone: "Australia/Adelaide"  },
-    { name: "Noodle Bar F",    address: "99 Murray Street, Perth WA 6000",          timezone: "Australia/Perth"     },
+    { name: seedDisplayName("Coffee House B"),  address: "10 George Street, Sydney NSW 2000",       timezone: "Australia/Sydney"    },
+    { name: seedDisplayName("Bakery Co C"),     address: "55 Collins Street, Melbourne VIC 3000",    timezone: "Australia/Melbourne" },
+    { name: seedDisplayName("Pie Shop D"),      address: "78 Queen Street, Brisbane QLD 4000",       timezone: "Australia/Brisbane"  },
+    { name: seedDisplayName("Burger Joint E"),  address: "22 Rundle Mall, Adelaide SA 5000",         timezone: "Australia/Adelaide"  },
+    { name: seedDisplayName("Noodle Bar F"),    address: "99 Murray Street, Perth WA 6000",          timezone: "Australia/Perth"     },
   ];
 
   console.log(`→ Creating ${orgDefs.length} empty orgs...`);
   for (const def of orgDefs) {
+    await prisma.organization.deleteMany({
+      where: { name: def.name, ownerId: jordan.id },
+    });
+
     const org = await prisma.organization.create({
       data: {
         name: def.name,

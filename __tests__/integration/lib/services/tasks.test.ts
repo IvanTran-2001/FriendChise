@@ -11,9 +11,7 @@ import {
   getTasks,
   updateTask,
 } from "@/lib/services/tasks";
-
-const SEED_USER_EMAIL =
-  process.env.INTEGRATION_TEST_USER_EMAIL ?? "casey@example.test";
+import { SEED_USER_EMAIL } from "../../helpers";
 
 // Re-use the first seeded org that belongs to the integration test user.
 async function getSeedOrg() {

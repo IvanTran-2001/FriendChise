@@ -5,37 +5,34 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black?logo=next.js)](https://nextjs.org)
 [![Deploy](https://img.shields.io/badge/deploy-friendchise.app-brightgreen)](https://friendchise.app)
 
-A role-based task and schedule management platform for franchise organizations. Parent orgs can spawn and manage franchisee orgs, each with their own members, roles, tasks, and timetables.
-
-## Timetable Editing
-
-- In timetable and template simple views, dragging an existing task card onto another day opens the action sidebar prefilled for that target day.
-- The move is only committed when the user clicks Save in the sidebar, which keeps drag-and-drop reversible until confirmation.
+Improve consistency across your franchise operations by sharing wisdom, optimal tools, and effective visuals. FriendChise enables parent organizations to manage franchisees through centralized task management, scheduling, role-based access, and a shared tools hub—ensuring every location operates with the same standards and best practices.
 
 Production deployment: **[friendchise.app](https://friendchise.app)**
 
-| Organizations Hub | Dashboard |
-| --- | --- |
+## Screen Shots
+
+| Organizations Hub                                                                                                                                                                                                        | Dashboard                                                                                                                                                                                              |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | [![Organizations Hub](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Organizations%20hub%20page.png)](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Organizations%20hub%20page.png) | [![Dashboard](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Org%20Overview%20Page.png)](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Org%20Overview%20Page.png) |
 
-| Timetable | Timetable (Simple List) |
-| --- | --- |
+| Timetable                                                                                                                                                                                                  | Timetable (Simple List)                                                                                                                                                                                             |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [![Timetable](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Timetable-Calender-V2.5.png)](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Timetable-Calender-V2.5.png) | [![Timetable Simple](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Calender%20Simple%20Mode.png)](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Calender%20Simple%20Mode.png) |
 
-| Task Detail | Create Task |
-| --- | --- |
+| Task Detail                                                                                                                                                                                            | Create Task                                                                                                                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | [![Task Detail](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Task%20Detail%20Page.png)](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Task%20Detail%20Page.png) | [![Create Task](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Create-Task-V2.png)](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Create-Task-V2.png) |
 
-| Roles | Members |
-| --- | --- |
+| Roles                                                                                                                                                                                                | Members                                                                                                                                                                                                          |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [![Roles](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Settings%20role%20page.png)](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Settings%20role%20page.png) | [![Members](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Member%20List%20Card%20Mode.png)](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Member%20List%20Card%20Mode.png) |
 
-| Tools Hub | Conversion Tool |
-| --- | --- |
+| Tools Hub                                                                                                                                                                            | Conversion Tool                                                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [![Tools Hub](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Tools%20Page.png)](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Tools%20Page.png) | [![Conversion](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Conversion%20Entries.png)](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Conversion%20Entries.png) |
 
-| Staff Roster | Task Comments |
-| --- | --- |
+| Staff Roster                                                                                                                                                                        | Task Comments                                                                                                                                                                                  |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [![Roster](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Roster%20List.png)](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Roster%20List.png) | [![Task comments](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Task%20Comments.png)](https://ivantran-2001.github.io/projects/pictures/friendchise/V2/Task%20Comments.png) |
 
 ## Tech Stack
@@ -61,8 +58,8 @@ Production deployment: **[friendchise.app](https://friendchise.app)**
 # Install dependencies
 pnpm install
 
-# Copy env and fill in values
-cp .env.example .env
+# Create your local env overrides and fill in values
+cp .env.local.example .env.local
 
 # Apply migrations and generate Prisma client
 pnpm prisma migrate dev
@@ -76,14 +73,20 @@ pnpm dev
 
 > For production deployments use `pnpm migrate:prod` (loads `.env`, skips `.env.local`).
 
+Local development and tests read `.env.local` first, so put your local
+DATABASE_URL, seed namespace, and test overrides there. Keep `.env` for
+production/deployment settings and `pnpm migrate:prod`.
+
 Required environment variables:
 
 ```env
 AUTH_SECRET=           # generate with: npx auth secret
-AUTH_GOOGLE_ID=        # Google OAuth client ID
-AUTH_GOOGLE_SECRET=    # Google OAuth client secret
 AUTH_URL=              # e.g. http://localhost:3000
 DATABASE_URL=          # PostgreSQL connection string
+
+# OAuth (optional for local dev — use dev sign-in with seeded users instead)
+AUTH_GOOGLE_ID=        # Google OAuth client ID (leave blank for local testing)
+AUTH_GOOGLE_SECRET=    # Google OAuth client secret (leave blank for local testing)
 
 # Sentry — error monitoring (get from sentry.io > Settings > Auth Tokens)
 SENTRY_AUTH_TOKEN=
@@ -101,10 +104,72 @@ SUPABASE_SECRET_KEY=            # service_role JWT (legacy eyJ... format)
 Optional / local overrides (`.env.local`):
 
 ```env
-E2E_TEST_USER_EMAIL=      # Test user email for E2E tests and seeding (default: ivan@example.test)
+SEED_NAMESPACE=          # optional seed namespace; defaults to your git/user name, or use "random" for a throwaway run
+E2E_TEST_USER_EMAIL=      # Test user email for E2E tests and seeding (defaults to the namespaced ivan@example.test)
 SEED_DEV_IDENTIFIERS=     # Space-separated Supabase project refs to seed with dev data (seed.ts production path)
 ADMIN_EMAIL=              # (legacy) super-admin email override — superseded by the AdminUser DB table
+
+# OAuth (optional — in dev mode, sign in using seeded user emails instead)
+AUTH_GOOGLE_ID=        # leave blank to skip Google OAuth in local development
+AUTH_GOOGLE_SECRET=    # leave blank to skip Google OAuth in local development
 ```
+
+### Example `.env.local` for contributors
+
+```env
+# ===== REQUIRED =====
+
+# Database — create your own Supabase project
+DATABASE_URL=postgresql://postgres:your-password@your-project.pooler.supabase.com:5432/postgres
+
+# Auth — generated via: npx auth secret
+AUTH_SECRET=your-generated-secret-here
+AUTH_URL=http://localhost:3000
+
+# Supabase — from your project settings
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SECRET_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SEED_DEV_IDENTIFIERS=your-project.pooler.supabase.com
+
+# ===== OPTIONAL =====
+
+# OAuth (leave blank to use dev sign-in with seeded users)
+AUTH_GOOGLE_ID=
+AUTH_GOOGLE_SECRET=
+
+# Sentry (error tracking, optional for local dev)
+NEXT_PUBLIC_SENTRY_DSN=
+
+# Upstash Redis (rate limiting, optional for local dev)
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+
+# Seed namespace (optional, skip if using your own Supabase)
+SEED_NAMESPACE=your-name
+```
+
+### Local development sign-in
+
+In development mode, you can sign in directly as any seeded user without OAuth:
+
+1. Go to the sign-in page
+2. Select the **Dev** option
+3. Enter a seeded user email (e.g., `owner+yourname@example.test` where `yourname` is your git user.name or system username)
+4. No password needed — you'll be signed in immediately
+
+Available seeded users: **owner**, **jordan**, **casey**, **riley**, **morgan**, **alex**, **taylor**, **sam**, **quinn**. See [prisma/seeds/users.ts](prisma/seeds/users.ts) for full details.
+
+If you are contributing code, the default setup is to use your own Supabase
+project and keep it in `.env.local`. If you intentionally share one dev
+database with trusted collaborators, set `SEED_NAMESPACE` per person or per
+fork so each seed run lands in its own namespace. Use `SEED_NAMESPACE=random`
+when you want a disposable one-off seed.
+
+If you only work locally, you can keep everything you need in `.env.local`.
+The separate `.env` file mainly matters for production deployment and the
+`migrate:prod` workflow.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the contributor workflow, test commands, and shared-database guidelines.
 
 ## Database
 
@@ -112,47 +177,47 @@ Provider: PostgreSQL (Supabase), managed via Prisma ORM.
 
 ### Models
 
-| Model                            | Description                                                                                                                                                                                                                                                                                                                                                     |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Organization`                   | Top-level tenant. Owns all other resources. Supports franchise hierarchy via `parentId`.                                                                                                                                                                                                                                                                        |
-| `User`                           | Auth account, identified by email. Linked to orgs via `Membership`.                                                                                                                                                                                                                                                                                             |
-| `Membership`                     | Links a `User` to an `Organization`. Tracks `workingDays` and `status` (ACTIVE / RESTRICTED).                                                                                                                                                                                                                                                                   |
-| `Role`                           | Org-scoped role (e.g. Owner, Worker) with a required `name`, `color` (hex), and stable `key`. System roles have `isDeletable: false`.                                                                                                                                                                                                                           |
-| `Permission`                     | Grants a `PermissionAction` enum value to a `Role`. One row per action per role.                                                                                                                                                                                                                                                                                |
-| `MemberRole`                     | Many-to-many junction between `Membership` and `Role`. A member can hold multiple roles.                                                                                                                                                                                                                                                                        |
-| `Task`                           | Reusable task definition (name, required `color` hex, duration, recurrence constraints, eligibility by role).                                                                                                                                                                                                                                                   |
-| `TaskEligibility`                | Links a `Task` to a `Role`, defining which roles can be assigned to it.                                                                                                                                                                                                                                                                                         |
-| `Tag`                            | An org-scoped label with a `name` and `color` hex. `isDefault: true` protects built-in tags from deletion. Unique on `(orgId, name)`.                                                                                                                                                                                                                           |
-| `TaskTag`                        | Many-to-many junction between `Task` and `Tag`. Composite PK on `(taskId, tagId)`.                                                                                                                                                                                                                                                                             |
-| `TimetableEntry`                 | A scheduled task occurrence with date, start/end times, status, and assignees.                                                                                                                                                                                                                                                                                  |
-| `TimetableEntryAssignee`         | Links a `Membership` to a `TimetableEntry` (many-to-many).                                                                                                                                                                                                                                                                                                      |
-| `TimetableSettings`              | Per-org timetable display preferences (view type, start day, slot duration).                                                                                                                                                                                                                                                                                    |
-| `TimetableTemplate`              | A reusable schedule template with a `cycleLengthDays`. Contains `TimetableTemplateEntry` rows.                                                                                                                                                                                                                                                                  |
-| `TimetableTemplateEntry`         | One time slot in a `TimetableTemplate` — which task, which day index, start/end times.                                                                                                                                                                                                                                                                          |
-| `TimetableTemplateEntryAssignee` | Pre-assigns a `Membership` to a `TimetableTemplateEntry`.                                                                                                                                                                                                                                                                                                       |
-| `RosterEntry`                    | One shift assignment: a membership assigned to a specific `weekStart` + `dayIndex` combination, with optional `shiftStartMin`/`shiftEndMin`.                                                                                                                                                                                                                    |
-| `RosterDayConfig`                | Per-org day configuration for the roster grid: `recommendedSize` (target headcount), optional `openTimeMin`/`closeTimeMin` for the default shift time range.                                                                                                                                                                                                    |
-| `RosterTemplate`                 | A reusable roster staffing pattern with a `cycleWeeks` (1–12). Contains `RosterTemplateEntry` rows that can be stamped onto the live roster.                                                                                                                                                                                                                    |
-| `RosterTemplateEntry`            | One shift slot in a `RosterTemplate` — which member, which `weekIndex` (0-based within the cycle), which `dayIndex` (0 = Mon … 6 = Sun), optional `shiftStartMin`/`shiftEndMin`.                                                                                                                                                                                |
-| `FranchiseToken`                 | One-time invite token issued by a parent org for a franchisee to join.                                                                                                                                                                                                                                                                                          |
-| `Invite`                         | A member or franchise invite sent to a `User`. Carries a status (`PENDING`/`ACCEPTED`/`DECLINED`), snapshot fields for the org name and inviter name, and a JSON `metadata` blob with the roleIds/workingDays pre-filled for the accept step. Visible in the notification panel.                                                                                |
-| `Notification`                   | A generic in-app notification tied to a `User`. Stores a human-readable `message` and an optional `seenAt` timestamp. Used for invite-acceptance confirmations and other system events.                                                                                                                                                                          |
-| `AuditLog`                       | Append-only record of significant org mutations. Stores `action` (e.g. `task.create`), `entityType`, `entityId`, optional `before`/`after` JSON snapshots, the `actorId` who triggered the change, and a `createdAt` timestamp. Scoped per org. Actor is nullable (set to `NULL` on user deletion via `onDelete: SetNull`). Org deletion cascades all its logs. |
-| `ToolItem`                       | An org-scoped ingredient / unit pair used in the Conversion tool (e.g. "Boston Cream", unit "doz"). Shared across all `ConversionSet`s in the org.                                                                                                                                                                                                              |
-| `ConversionSet`                  | A named collection of conversion rates for an org (e.g. "Donut Batches"). Acts as the container for rates and templates.                                                                                                                                                                                                                                        |
-| `ConversionRate`                 | A directional rate between two `ToolItem`s within a `ConversionSet`. Stored as a single `rate` scalar (`toQty / fromQty`). Bidirectional resolution is handled at query time.                                                                                                                                                                                   |
-| `ConversionTemplate`             | A named saved state of From/To item selections within a `ConversionSet` (e.g. "Default", "Monday Batch"). Each set always has a "Default" template created automatically.                                                                                                                                                                                       |
-| `ConversionTemplateEntry`        | One item slot in a `ConversionTemplate`. `quantity` is non-null for From items (the input quantity); `null` for To items (display-only calculated outputs). `visible` controls whether the item is shown.                                                                                                                                                       |
-| `Feedback`                       | A user-submitted feedback item. Linked to a `User` and optionally an `Organization`. `type` is `ISSUE` or `IDEA`. `message` is free text. `imageUrl` is an optional Supabase Storage path (public bucket) for an attached screenshot. `reviewed` is an admin toggle.                                                                                            |
-| `AdminUser`                      | Super-admin allow-list. Any `User` whose email appears here gains access to `/admin/*` routes and admin-only server actions.                                                                                                                                                                                                                                    |
-| `TaskInheritance`                | Tracks which orgs have added a GLOBAL task to their library. Created when a franchisee clicks "Add" on a shared task; deleted when they remove it. The owning org also gets an auto-created row on task creation. Unique on `(taskId, orgId)`.                                                                                                                  |
-| `TaskSectionLayout`              | Per-org, per-task section configuration. Stores `type` (e.g. `"PICTURE"`, `"DETAIL"`, `"COMMENT"`), display `title`, `scope` (`ORG`/`GLOBAL`), `position` (sort order), and `visible` flag. Defaults are seeded on task creation and copied from the parent org on inheritance. Unique on `(taskId, orgId, type)`.                                              |
+| Model                            | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Organization`                   | Top-level tenant. Owns all other resources. Supports franchise hierarchy via `parentId`.                                                                                                                                                                                                                                                                                                                                                                        |
+| `User`                           | Auth account, identified by email. Linked to orgs via `Membership`.                                                                                                                                                                                                                                                                                                                                                                                             |
+| `Membership`                     | Links a `User` to an `Organization`. Tracks `workingDays` and `status` (ACTIVE / RESTRICTED).                                                                                                                                                                                                                                                                                                                                                                   |
+| `Role`                           | Org-scoped role (e.g. Owner, Worker) with a required `name`, `color` (hex), and stable `key`. System roles have `isDeletable: false`.                                                                                                                                                                                                                                                                                                                           |
+| `Permission`                     | Grants a `PermissionAction` enum value to a `Role`. One row per action per role.                                                                                                                                                                                                                                                                                                                                                                                |
+| `MemberRole`                     | Many-to-many junction between `Membership` and `Role`. A member can hold multiple roles.                                                                                                                                                                                                                                                                                                                                                                        |
+| `Task`                           | Reusable task definition (name, required `color` hex, duration, recurrence constraints, eligibility by role).                                                                                                                                                                                                                                                                                                                                                   |
+| `TaskEligibility`                | Links a `Task` to a `Role`, defining which roles can be assigned to it.                                                                                                                                                                                                                                                                                                                                                                                         |
+| `Tag`                            | An org-scoped label with a `name` and `color` hex. `isDefault: true` protects built-in tags from deletion. Unique on `(orgId, name)`.                                                                                                                                                                                                                                                                                                                           |
+| `TaskTag`                        | Many-to-many junction between `Task` and `Tag`. Composite PK on `(taskId, tagId)`.                                                                                                                                                                                                                                                                                                                                                                              |
+| `TimetableEntry`                 | A scheduled task occurrence with date, start/end times, status, and assignees.                                                                                                                                                                                                                                                                                                                                                                                  |
+| `TimetableEntryAssignee`         | Links a `Membership` to a `TimetableEntry` (many-to-many).                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `TimetableSettings`              | Per-org timetable display preferences (view type, start day, slot duration).                                                                                                                                                                                                                                                                                                                                                                                    |
+| `TimetableTemplate`              | A reusable schedule template with a `cycleLengthDays`. Contains `TimetableTemplateEntry` rows.                                                                                                                                                                                                                                                                                                                                                                  |
+| `TimetableTemplateEntry`         | One time slot in a `TimetableTemplate` — which task, which day index, start/end times.                                                                                                                                                                                                                                                                                                                                                                          |
+| `TimetableTemplateEntryAssignee` | Pre-assigns a `Membership` to a `TimetableTemplateEntry`.                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `RosterEntry`                    | One shift assignment: a membership assigned to a specific `weekStart` + `dayIndex` combination, with optional `shiftStartMin`/`shiftEndMin`.                                                                                                                                                                                                                                                                                                                    |
+| `RosterDayConfig`                | Per-org day configuration for the roster grid: `recommendedSize` (target headcount), optional `openTimeMin`/`closeTimeMin` for the default shift time range.                                                                                                                                                                                                                                                                                                    |
+| `RosterTemplate`                 | A reusable roster staffing pattern with a `cycleWeeks` (1–12). Contains `RosterTemplateEntry` rows that can be stamped onto the live roster.                                                                                                                                                                                                                                                                                                                    |
+| `RosterTemplateEntry`            | One shift slot in a `RosterTemplate` — which member, which `weekIndex` (0-based within the cycle), which `dayIndex` (0 = Mon … 6 = Sun), optional `shiftStartMin`/`shiftEndMin`.                                                                                                                                                                                                                                                                                |
+| `FranchiseToken`                 | One-time invite token issued by a parent org for a franchisee to join.                                                                                                                                                                                                                                                                                                                                                                                          |
+| `Invite`                         | A member or franchise invite sent to a `User`. Carries a status (`PENDING`/`ACCEPTED`/`DECLINED`), snapshot fields for the org name and inviter name, and a JSON `metadata` blob with the roleIds/workingDays pre-filled for the accept step. Visible in the notification panel.                                                                                                                                                                                |
+| `Notification`                   | A generic in-app notification tied to a `User`. Stores a human-readable `message` and an optional `seenAt` timestamp. Used for invite-acceptance confirmations and other system events.                                                                                                                                                                                                                                                                         |
+| `AuditLog`                       | Append-only record of significant org mutations. Stores `action` (e.g. `task.create`), `entityType`, `entityId`, optional `before`/`after` JSON snapshots, the `actorId` who triggered the change, and a `createdAt` timestamp. Scoped per org. Actor is nullable (set to `NULL` on user deletion via `onDelete: SetNull`). Org deletion cascades all its logs.                                                                                                 |
+| `ToolItem`                       | An org-scoped ingredient / unit pair used in the Conversion tool (e.g. "Boston Cream", unit "doz"). Shared across all `ConversionSet`s in the org.                                                                                                                                                                                                                                                                                                              |
+| `ConversionSet`                  | A named collection of conversion rates for an org (e.g. "Donut Batches"). Acts as the container for rates and templates.                                                                                                                                                                                                                                                                                                                                        |
+| `ConversionRate`                 | A directional rate between two `ToolItem`s within a `ConversionSet`. Stored as a single `rate` scalar (`toQty / fromQty`). Bidirectional resolution is handled at query time.                                                                                                                                                                                                                                                                                   |
+| `ConversionTemplate`             | A named saved state of From/To item selections within a `ConversionSet` (e.g. "Default", "Monday Batch"). Each set always has a "Default" template created automatically.                                                                                                                                                                                                                                                                                       |
+| `ConversionTemplateEntry`        | One item slot in a `ConversionTemplate`. `quantity` is non-null for From items (the input quantity); `null` for To items (display-only calculated outputs). `visible` controls whether the item is shown.                                                                                                                                                                                                                                                       |
+| `Feedback`                       | A user-submitted feedback item. Linked to a `User` and optionally an `Organization`. `type` is `ISSUE` or `IDEA`. `message` is free text. `imageUrl` is an optional Supabase Storage path (public bucket) for an attached screenshot. `reviewed` is an admin toggle.                                                                                                                                                                                            |
+| `AdminUser`                      | Super-admin allow-list. Any `User` whose email appears here gains access to `/admin/*` routes and admin-only server actions.                                                                                                                                                                                                                                                                                                                                    |
+| `TaskInheritance`                | Tracks which orgs have added a GLOBAL task to their library. Created when a franchisee clicks "Add" on a shared task; deleted when they remove it. The owning org also gets an auto-created row on task creation. Unique on `(taskId, orgId)`.                                                                                                                                                                                                                  |
+| `TaskSectionLayout`              | Per-org, per-task section configuration. Stores `type` (e.g. `"PICTURE"`, `"DETAIL"`, `"COMMENT"`), display `title`, `scope` (`ORG`/`GLOBAL`), `position` (sort order), and `visible` flag. Defaults are seeded on task creation and copied from the parent org on inheritance. Unique on `(taskId, orgId, type)`.                                                                                                                                              |
 | `TaskComment`                    | One comment on a task. Scoped to both a `Task` and an `Organization` (the commenter's org). Supports one level of threading via `parentId`. `authorName`/`authorImage` are snapshotted at post time so display survives account deletion (`authorId` set to `NULL` via `onDelete: SetNull`). Soft-deletable (`isDeleted`). Supports pinning (`isPinned`, `pinnedAt`) and inline editing (`editedAt`). Indexed on `(taskId, orgId)`, `parentId`, and `authorId`. |
-| `TaskCommentVote`                | Up/down vote cast by a `User` on a `TaskComment`. Composite PK on `(commentId, userId)` prevents double-voting. `type` is `VoteType` (`UPVOTE` / `DOWNVOTE`). Cascades on comment and user deletion.                                                                                                                                                             |
-| `ToolItemList`                   | An org-scoped named list of items (grid, checklist, table, or gallery display). Owns an optional `ToolItemGridConfig` and a set of `ToolItemListEntry` rows. Unique on `(orgId, name)`.                                                                                                                                                                         |
-| `ToolItemGridConfig`             | One-to-one optional config for a `ToolItemList` storing `gridCols` and `gridRows` (default 4×4). Cascade-deleted with its list.                                                                                                                                                                                                                                |
-| `ToolItemListEntry`              | One entry in a `ToolItemList`. References a `ToolItem`, stores a `position` (sort order) and `amount`. May have a `ToolItemChecklistEntry` recording whether it has been ticked off.                                                                                                                                                                           |
-| `ToolItemChecklistEntry`         | Records that a `ToolItemListEntry` has been checked. Presence = checked; deletion = unchecked. Stores `checkedAt`.                                                                                                                                                                                                                                              |
+| `TaskCommentVote`                | Up/down vote cast by a `User` on a `TaskComment`. Composite PK on `(commentId, userId)` prevents double-voting. `type` is `VoteType` (`UPVOTE` / `DOWNVOTE`). Cascades on comment and user deletion.                                                                                                                                                                                                                                                            |
+| `ToolItemList`                   | An org-scoped named list of items (grid, checklist, table, or gallery display). Owns an optional `ToolItemGridConfig` and a set of `ToolItemListEntry` rows. Unique on `(orgId, name)`.                                                                                                                                                                                                                                                                         |
+| `ToolItemGridConfig`             | One-to-one optional config for a `ToolItemList` storing `gridCols` and `gridRows` (default 4×4). Cascade-deleted with its list.                                                                                                                                                                                                                                                                                                                                 |
+| `ToolItemListEntry`              | One entry in a `ToolItemList`. References a `ToolItem`, stores a `position` (sort order) and `amount`. May have a `ToolItemChecklistEntry` recording whether it has been ticked off.                                                                                                                                                                                                                                                                            |
+| `ToolItemChecklistEntry`         | Records that a `ToolItemListEntry` has been checked. Presence = checked; deletion = unchecked. Stores `checkedAt`.                                                                                                                                                                                                                                                                                                                                              |
 
 ### Enums
 
@@ -184,10 +249,17 @@ pnpm migrate:prod
 
 # Seed the database
 pnpm seed
+
+# Remove just your namespaced seed data from the shared dev database
+pnpm seed:clean
 ```
+
+`pnpm seed` automatically clears the current namespace before reseeding, so repeated runs stay isolated without touching other contributors' data.
 
 > **Never run `pnpm prisma migrate deploy` directly** — it picks up `.env.local` (the dev DB).
 > Always use `pnpm migrate:prod`, which explicitly loads `.env` (the production DB) and skips `.env.local`.
+
+`pnpm seed:clean` uses the same `SEED_NAMESPACE` resolution as the main seed command, so it only removes the data for the current contributor/fork namespace.
 
 #### Adding a new model — workflow
 
@@ -222,7 +294,7 @@ pnpm seed
 | `20260514000000_add_check_constraints`                            | DB-level CHECK constraints enforcing field bounds: time fields 0–1440, `dayIndex` 0–6, `cycleWeeks` 1–12.                                                                                                                                                                                                                     |
 | _(schema push)_                                                   | `Feedback` model (`userId`, `orgId?`, `type`, `message`, `imageUrl?`, `reviewed`) and `AdminUser` model (`email unique`) added. Applied via `prisma db push` (dev DB had migration drift).                                                                                                                                    |
 | _(schema push)_                                                   | `TaskInheritance` (`taskId`, `orgId`, `inheritedAt`) and `TaskSectionLayout` (`taskId`, `orgId`, `type`, `title`, `scope`, `position`, `visible`) models added. `Task.scope` (`TaskScope` enum, default `ORG`) added. `SectionScope` enum added. Applied via `prisma db push` on the `feat/task-inheritance-sections` branch. |
-| _(schema push)_                                                   | `TaskComment` and `TaskCommentVote` models added. `VoteType` enum (`UPVOTE`, `DOWNVOTE`) added. `Task.comments`, `Organization.taskComments`, `User.taskComments`/`taskCommentVotes` relations added. Applied via `prisma db push` on the `feature/task-comment-section` branch.                                               |
+| _(schema push)_                                                   | `TaskComment` and `TaskCommentVote` models added. `VoteType` enum (`UPVOTE`, `DOWNVOTE`) added. `Task.comments`, `Organization.taskComments`, `User.taskComments`/`taskCommentVotes` relations added. Applied via `prisma db push` on the `feature/task-comment-section` branch.                                              |
 
 ## Authentication
 
@@ -239,9 +311,9 @@ Configure your Google OAuth app at [console.cloud.google.com](https://console.cl
 
 In `NODE_ENV === "development"` a second `"dev"` credentials provider is registered that accepts any seeded user email with no password. The sign-in page renders a `DevUserPicker` component — a searchable, scrollable list of the 9 seeded test accounts — so engineers can switch personas without OAuth.
 
-| File | Purpose |
-| ---- | ------- |
-| `app/(auth)/signin/dev-user-picker.tsx` | Client component; renders the picker UI |
+| File                                      | Purpose                                                     |
+| ----------------------------------------- | ----------------------------------------------------------- |
+| `app/(auth)/signin/dev-user-picker.tsx`   | Client component; renders the picker UI                     |
 | `app/(auth)/signin/dev-sign-in-action.ts` | Server action; calls `signIn("dev", { email, redirectTo })` |
 
 The provider is registered in `auth.ts` and is excluded from production builds via a `process.env.NODE_ENV` guard.
@@ -925,12 +997,12 @@ ToolItemList           — named org-scoped list (displayType: GRID | CHECKLIST 
 
 ### Display types
 
-| Type        | Description                                                                  |
-| ----------- | ---------------------------------------------------------------------------- |
+| Type        | Description                                                                                                             |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `GRID`      | Cell-based grid (columns × rows). Cells show item image, name, amount, and live conversion rates when a set is applied. |
-| `CHECKLIST` | Vertical list with toggleable check state per entry.                         |
-| `TABLE`     | (Reserved — table view, not yet implemented.)                                |
-| `GALLERY`   | (Reserved — gallery view, not yet implemented.)                              |
+| `CHECKLIST` | Vertical list with toggleable check state per entry.                                                                    |
+| `TABLE`     | (Reserved — table view, not yet implemented.)                                                                           |
+| `GALLERY`   | (Reserved — gallery view, not yet implemented.)                                                                         |
 
 ### Apply Rates (conversion overlay)
 
@@ -947,39 +1019,39 @@ Members with `MANAGE_TASKS` can:
 
 ### Service layer (`lib/services/tools.ts`)
 
-| Function | Description |
-| -------- | ----------- |
-| `getToolItemLists(orgId)` | List all lists for an org (with entry count) |
-| `getToolItemListDetail(listId, orgId)` | Fetch a single list with all entries and item data |
-| `createToolItemList(orgId, name, displayType, description?)` | Create a list |
-| `updateToolItemList(orgId, listId, data)` | Rename and/or update description |
-| `deleteToolItemList(orgId, listId)` | Delete a list and all entries |
-| `duplicateToolItemList(orgId, listId)` | Deep-copy a list with a unique name |
-| `addToolItemListEntry(listId, itemId, amount?)` | Append an entry |
-| `addToolItemListEntryAtPosition(listId, itemId, position, amount?)` | Insert at a specific grid cell |
-| `moveToolItemListEntry(listId, fromPosition, toPosition)` | Swap two cells |
-| `removeToolItemListEntry(listId, entryId)` | Remove an entry |
-| `updateToolItemListEntryAmount(entryId, amount)` | Update an entry's amount |
-| `updateToolItemGridConfig(listId, gridCols, gridRows)` | Upsert grid dimensions |
-| `toggleChecklistEntry(listEntryId)` | Toggle checked state (insert/delete `ToolItemChecklistEntry`) |
+| Function                                                            | Description                                                   |
+| ------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `getToolItemLists(orgId)`                                           | List all lists for an org (with entry count)                  |
+| `getToolItemListDetail(listId, orgId)`                              | Fetch a single list with all entries and item data            |
+| `createToolItemList(orgId, name, displayType, description?)`        | Create a list                                                 |
+| `updateToolItemList(orgId, listId, data)`                           | Rename and/or update description                              |
+| `deleteToolItemList(orgId, listId)`                                 | Delete a list and all entries                                 |
+| `duplicateToolItemList(orgId, listId)`                              | Deep-copy a list with a unique name                           |
+| `addToolItemListEntry(listId, itemId, amount?)`                     | Append an entry                                               |
+| `addToolItemListEntryAtPosition(listId, itemId, position, amount?)` | Insert at a specific grid cell                                |
+| `moveToolItemListEntry(listId, fromPosition, toPosition)`           | Swap two cells                                                |
+| `removeToolItemListEntry(listId, entryId)`                          | Remove an entry                                               |
+| `updateToolItemListEntryAmount(entryId, amount)`                    | Update an entry's amount                                      |
+| `updateToolItemGridConfig(listId, gridCols, gridRows)`              | Upsert grid dimensions                                        |
+| `toggleChecklistEntry(listEntryId)`                                 | Toggle checked state (insert/delete `ToolItemChecklistEntry`) |
 
 ### Server actions (`app/actions/tools.ts`)
 
 All write actions require `MANAGE_TASKS`.
 
-| Action | Description |
-| ------ | ----------- |
-| `createToolItemListAction` | Create a list |
-| `updateToolItemListAction` | Rename and/or update description |
-| `deleteToolItemListAction` | Delete a list permanently |
-| `duplicateToolItemListAction` | Duplicate a list; returns `{ ok, list }` |
-| `addToolItemListEntryAction` | Add an item to a list |
-| `addToolItemListEntryAtPositionAction` | Add an item at a specific grid cell |
-| `moveToolItemListEntryAction` | Swap two cell positions |
-| `removeToolItemListEntryAction` | Remove an item from a list |
-| `updateToolItemListEntryAmountAction` | Update an entry's amount |
-| `updateToolItemGridConfigAction` | Save grid dimensions |
-| `toggleChecklistEntryAction` | Toggle a checklist item's checked state |
+| Action                                 | Description                              |
+| -------------------------------------- | ---------------------------------------- |
+| `createToolItemListAction`             | Create a list                            |
+| `updateToolItemListAction`             | Rename and/or update description         |
+| `deleteToolItemListAction`             | Delete a list permanently                |
+| `duplicateToolItemListAction`          | Duplicate a list; returns `{ ok, list }` |
+| `addToolItemListEntryAction`           | Add an item to a list                    |
+| `addToolItemListEntryAtPositionAction` | Add an item at a specific grid cell      |
+| `moveToolItemListEntryAction`          | Swap two cell positions                  |
+| `removeToolItemListEntryAction`        | Remove an item from a list               |
+| `updateToolItemListEntryAmountAction`  | Update an entry's amount                 |
+| `updateToolItemGridConfigAction`       | Save grid dimensions                     |
+| `toggleChecklistEntryAction`           | Toggle a checklist item's checked state  |
 
 ## Task Comments
 
@@ -1005,35 +1077,35 @@ Org members with `MANAGE_TASKS` can additionally pin and delete any comment.
 
 ### Service layer (`lib/services/task-comments.ts`)
 
-| Function                                          | Description                                           |
-| ------------------------------------------------- | ----------------------------------------------------- |
-| `canUserCommentOnTask(taskId, userOrgId)`          | Franchise root check — returns `true` if allowed      |
-| `getTaskComments(taskId)`                         | All top-level comments + one level of replies (asc)   |
-| `createComment(taskId, orgId, authorId, authorName, authorImage, input)`   | Insert a new comment or reply with author snapshot                         |
-| `editComment(taskId, commentId, authorId, input)`         | Update content and set `editedAt`; author-only guard  |
-| `softDeleteComment(commentId)`                    | Sets `isDeleted = true`; content replaced at render   |
-| `voteOnComment(commentId, userId, type)`          | Upserts a `TaskCommentVote`; removes vote if same type toggled |
-| `setPinComment(commentId, isPinned)`              | Toggles `isPinned` and `pinnedAt`                     |
+| Function                                                                 | Description                                                    |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| `canUserCommentOnTask(taskId, userOrgId)`                                | Franchise root check — returns `true` if allowed               |
+| `getTaskComments(taskId)`                                                | All top-level comments + one level of replies (asc)            |
+| `createComment(taskId, orgId, authorId, authorName, authorImage, input)` | Insert a new comment or reply with author snapshot             |
+| `editComment(taskId, commentId, authorId, input)`                        | Update content and set `editedAt`; author-only guard           |
+| `softDeleteComment(commentId)`                                           | Sets `isDeleted = true`; content replaced at render            |
+| `voteOnComment(commentId, userId, type)`                                 | Upserts a `TaskCommentVote`; removes vote if same type toggled |
+| `setPinComment(commentId, isPinned)`                                     | Toggles `isPinned` and `pinnedAt`                              |
 
 ### Server actions (`app/actions/task-comments.ts`)
 
-| Action                | Auth requirement      | Description                                      |
-| --------------------- | --------------------- | ------------------------------------------------ |
-| `addCommentAction`    | Franchise member      | Post a new comment or reply                      |
-| `editCommentAction`   | Comment author        | Edit content of own comment                      |
-| `deleteCommentAction` | Author or `MANAGE_TASKS` | Soft-delete a comment                         |
-| `voteCommentAction`   | Franchise member      | Cast or toggle an up/down vote                   |
-| `pinCommentAction`    | `MANAGE_TASKS`        | Pin or unpin a top-level comment                 |
+| Action                | Auth requirement         | Description                      |
+| --------------------- | ------------------------ | -------------------------------- |
+| `addCommentAction`    | Franchise member         | Post a new comment or reply      |
+| `editCommentAction`   | Comment author           | Edit content of own comment      |
+| `deleteCommentAction` | Author or `MANAGE_TASKS` | Soft-delete a comment            |
+| `voteCommentAction`   | Franchise member         | Cast or toggle an up/down vote   |
+| `pinCommentAction`    | `MANAGE_TASKS`           | Pin or unpin a top-level comment |
 
 ### UI components (`app/(app)/orgs/[orgId]/tasks/[taskId]/comments/`)
 
-| File                   | Type   | Description                                                                     |
-| ---------------------- | ------ | ------------------------------------------------------------------------------- |
-| `index.tsx`            | Server | Async gate + hydration — parallel-fetches comments, canComment, canManage       |
-| `comment-section.tsx`  | Client | Stateful shell — owns reply/edit open state; calls `router.refresh()` on change |
-| `comment-item.tsx`     | Client | One comment row — votes (optimistic), pin, edit, delete, reply                  |
-| `comment-input.tsx`    | Client | Controlled textarea for new comments or replies                                 |
-| `types.ts`             | —      | `CommentFE` type (ISO string dates, aggregated vote counts, one-level replies)  |
+| File                  | Type   | Description                                                                     |
+| --------------------- | ------ | ------------------------------------------------------------------------------- |
+| `index.tsx`           | Server | Async gate + hydration — parallel-fetches comments, canComment, canManage       |
+| `comment-section.tsx` | Client | Stateful shell — owns reply/edit open state; calls `router.refresh()` on change |
+| `comment-item.tsx`    | Client | One comment row — votes (optimistic), pin, edit, delete, reply                  |
+| `comment-input.tsx`   | Client | Controlled textarea for new comments or replies                                 |
+| `types.ts`            | —      | `CommentFE` type (ISO string dates, aggregated vote counts, one-level replies)  |
 
 ## Server Actions vs API Routes
 
@@ -1056,9 +1128,9 @@ Server Actions call `revalidatePath` to invalidate the Next.js cache so server-r
 | `/orgs/join`                                        | Signed in                                  | Join an existing org as a franchisee using a one-time token                                                                                                                                                             |
 | `/orgs/[orgId]`                                     | `requireOrgMemberPage`                     | Org overview — stat cards (members, tasks, roles, today's schedule completion), today's schedule list, org header (name, address, timezone, settings link for owner)                                                    |
 | `/orgs/[orgId]/tools`                               | `requireOrgMemberPage`                     | Tools hub — sidebar with search + nav links (Item List, Conversion, Roster); content area stub                                                                                                                          |
-| `/orgs/[orgId]/tools/item-list`                     | `requireOrgMemberPage`                     | Item List hub — grid of org ToolItems; sidebar: Back link + Add/Edit Item                                                                                                                                              |
+| `/orgs/[orgId]/tools/item-list`                     | `requireOrgMemberPage`                     | Item List hub — grid of org ToolItems; sidebar: Back link + Add/Edit Item                                                                                                                                               |
 | `/orgs/[orgId]/tools/item-list/lists`               | `requireOrgMemberPage`                     | List-of-lists index — search, list/card toggle; managers can create, rename, duplicate, and delete lists via ⋯ dropdown                                                                                                 |
-| `/orgs/[orgId]/tools/item-list/lists/[listId]`      | `requireOrgMemberPage`                     | List detail — grid or checklist view of entries; sidebar: view toggle, Add Item, grid-size controls, Apply Rates set picker (selection persisted in cookie `item-list-rates-prefs-{orgId}`)
+| `/orgs/[orgId]/tools/item-list/lists/[listId]`      | `requireOrgMemberPage`                     | List detail — grid or checklist view of entries; sidebar: view toggle, Add Item, grid-size controls, Apply Rates set picker (selection persisted in cookie `item-list-rates-prefs-{orgId}`)                             |
 | `/orgs/[orgId]/tools/conversion`                    | `requireOrgMemberPage`                     | Conversion tool — lists all ConversionSets for the org; sidebar: Back + "Add Set" action                                                                                                                                |
 | `/orgs/[orgId]/tools/conversion/[setId]`            | `requireOrgMemberPage`                     | Conversion calculator — two-column From/To grid with live calculations; template switcher dropdown in toolbar; template state persisted in DB via `ConversionTemplateEntry`; sidebar: Items · Rates · Templates actions |
 | `/orgs/[orgId]/tools/roster`                        | `requireOrgMemberPage`                     | Roster tool — scrollable weekly shift grid (Mon–Sun rows × multi-week columns); week navigation; Edit Day Config + Apply Template actions in sidebar                                                                    |

@@ -8,9 +8,7 @@
 import { prisma } from "@/lib/prisma";
 import { createMembership, deleteMembership } from "@/lib/services/memberships";
 import { ROLE_KEYS } from "@/lib/rbac";
-
-const SEED_USER_EMAIL =
-  process.env.INTEGRATION_TEST_USER_EMAIL ?? "casey@example.test";
+import { SEED_USER_EMAIL } from "../../helpers";
 
 async function getSeedOrg() {
   const user = await prisma.user.findFirstOrThrow({

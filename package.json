@@ -10,6 +10,7 @@
     "migrate:prod": "SKIP_DOTENV_LOCAL=1 dotenv -e .env -- prisma migrate deploy",
     "seed": "prisma db seed",
     "seed:dev": "prisma db seed",
+    "seed:clean": "tsx prisma/seed-clean.ts",
     "seed:donut-a": "tsx scripts/seeds/seed-donut-shop-a.ts",
     "seed:donut-a:reset": "tsx scripts/seeds/seed-donut-shop-a.ts --reset",
     "test": "vitest run",

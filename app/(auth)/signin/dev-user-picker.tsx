@@ -10,25 +10,20 @@
 
 import { useState, useTransition } from "react";
 import { devSignIn } from "./dev-sign-in-action";
+import type { DevUser } from "./get-dev-users";
 
-const USERS = [
-  { email: "owner@example.test",  label: "MainDev",  role: "Owner" },
-  { email: "jordan@example.test", label: "Jordan",   role: "Shift Lead" },
-  { email: "casey@example.test",  label: "Casey",    role: "Fryer Op" },
-  { email: "riley@example.test",  label: "Riley",    role: "Shift Lead + Fryer" },
-  { email: "alex@example.test",   label: "Alex",     role: "Trainee" },
-  { email: "morgan@example.test", label: "Morgan",   role: "" },
-  { email: "taylor@example.test", label: "Taylor",   role: "" },
-  { email: "sam@example.test",    label: "Sam",      role: "" },
-  { email: "quinn@example.test",  label: "Quinn",    role: "" },
-];
-
-export function DevUserPicker({ callbackUrl }: { callbackUrl: string }) {
+export function DevUserPicker({
+  callbackUrl,
+  users,
+}: {
+  callbackUrl: string;
+  users: DevUser[];
+}) {
   const [query, setQuery] = useState("");
   const [pending, startTransition] = useTransition();
   const [signingIn, setSigningIn] = useState<string | null>(null);
 
-  const filtered = USERS.filter(
+  const filtered = users.filter(
     (u) =>
       u.label.toLowerCase().includes(query.toLowerCase()) ||
       u.role.toLowerCase().includes(query.toLowerCase()) ||
@@ -56,7 +51,9 @@ export function DevUserPicker({ callbackUrl }: { callbackUrl: string }) {
 
       <div className="mt-2 max-h-48 overflow-y-auto">
         {filtered.length === 0 ? (
-          <p className="px-3 py-2 text-xs text-muted-foreground">No users match.</p>
+          <p className="px-3 py-2 text-xs text-muted-foreground">
+            No users match.
+          </p>
         ) : (
           filtered.map(({ email, label, role }) => (
             <button

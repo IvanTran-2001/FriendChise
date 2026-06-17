@@ -8,6 +8,7 @@
 
 import { PrismaClient, PermissionAction } from "@prisma/client";
 import { ROLE_KEYS } from "@/lib/rbac";
+import { seedDisplayName } from "@/lib/seed-namespace";
 
 const ALL_OWNER_PERMISSIONS = Object.values(PermissionAction);
 
@@ -790,8 +791,9 @@ export async function seedWalkersDoughnuts(
   prisma: PrismaClient,
   owner: { id: string },
 ) {
+  const orgName = seedDisplayName("Walker's Doughnuts");
   const existing = await prisma.organization.findFirst({
-    where: { name: "Walker's Doughnuts", ownerId: owner.id },
+    where: { name: orgName, ownerId: owner.id },
   });
 
   if (existing) {
@@ -865,7 +867,7 @@ export async function seedWalkersDoughnuts(
   console.log("→ Creating org...");
   const org = await prisma.organization.create({
     data: {
-      name: "Walker's Doughnuts",
+      name: orgName,
       ownerId: owner.id,
       timezone: "Australia/Sydney",
       openTimeMin: 6 * 60,

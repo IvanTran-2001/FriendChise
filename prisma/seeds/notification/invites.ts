@@ -16,8 +16,8 @@ export async function seedInvites(
         invitedById: users.owner.id,
         recipientId: users.sam.id,
         type: InviteType.MEMBER,
-        orgName: "Donut Shop A",
-        inviterName: "MainDev",
+        orgName: org1.org.name,
+        inviterName: users.owner.name ?? "Owner",
         metadata: {
           roleIds: [org1.roles.roleWorker.id],
           workingDays: ["mon", "wed", "fri"],

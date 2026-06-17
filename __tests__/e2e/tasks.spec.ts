@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { TEST_RUN_NAMESPACE } from "@/lib/test-run-namespace";
 
 /**
  * Task lifecycle E2E tests.
@@ -78,6 +79,17 @@ async function waitForEditPage(page: Page) {
   );
 }
 
+async function openTaskEditPage(page: Page) {
+  await Promise.all([
+    page.waitForURL(/\/orgs\/.+\/tasks\/.+\/edit$/, { timeout: 30000 }),
+    page
+      .getByTestId("task-actions")
+      .getByRole("link", { name: /edit/i })
+      .click(),
+  ]);
+  await waitForEditPage(page);
+}
+
 /**
  * Creates a role via the roles page sidebar → action sidebar form.
  */
@@ -94,10 +106,14 @@ async function createRole(page: Page, orgId: string, roleName: string) {
   });
 }
 
+function e2eOrgName(label: string) {
+  return `E2E [${TEST_RUN_NAMESPACE}] ${label} ${Date.now()}`;
+}
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 test("create task → appears in task list", async ({ page }) => {
-  const orgId = await createOrg(page, `E2E Task Org ${Date.now()}`);
+  const orgId = await createOrg(page, e2eOrgName("Task Org"));
   const taskTitle = `E2E Task ${Date.now()}`;
 
   await gotoNewTask(page, orgId);
@@ -114,7 +130,7 @@ test("create task → appears in task list", async ({ page }) => {
 test("edit task → updated title visible in task list and detail", async ({
   page,
 }) => {
-  const orgId = await createOrg(page, `E2E Edit Task Org ${Date.now()}`);
+  const orgId = await createOrg(page, e2eOrgName("Edit Task Org"));
   const taskTitle = `E2E Edit Task ${Date.now()}`;
   const updatedTitle = `E2E Edited Task ${Date.now()}`;
 
@@ -131,12 +147,7 @@ test("edit task → updated title visible in task list and detail", async ({
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
 
   // Click Edit
-  await page
-    .getByTestId("task-actions")
-    .getByRole("link", { name: /edit/i })
-    .click();
-  await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+\/edit$/);
-  await waitForEditPage(page);
+  await openTaskEditPage(page);
 
   // Update title and save
   await page.getByLabel(/title/i).fill(updatedTitle);
@@ -148,7 +159,7 @@ test("edit task → updated title visible in task list and detail", async ({
 });
 
 test("delete task from detail → removed from task list", async ({ page }) => {
-  const orgId = await createOrg(page, `E2E Delete Task Org ${Date.now()}`);
+  const orgId = await createOrg(page, e2eOrgName("Delete Task Org"));
   const taskTitle = `E2E Delete Task ${Date.now()}`;
 
   // Create task
@@ -183,7 +194,7 @@ test("delete task from detail → removed from task list", async ({ page }) => {
 test("delete task from table row menu → removed from task list", async ({
   page,
 }) => {
-  const orgId = await createOrg(page, `E2E Delete Row Org ${Date.now()}`);
+  const orgId = await createOrg(page, e2eOrgName("Delete Row Org"));
   const taskTitle = `E2E Delete Row Task ${Date.now()}`;
 
   // Create task
@@ -215,7 +226,7 @@ test("delete task from table row menu → removed from task list", async ({
 test("create task without title → stays on page, does not submit", async ({
   page,
 }) => {
-  const orgId = await createOrg(page, `E2E Validation Org ${Date.now()}`);
+  const orgId = await createOrg(page, e2eOrgName("Validation Org"));
 
   await gotoNewTask(page, orgId);
   await page.getByRole("button", { name: /create task/i }).click();
@@ -228,7 +239,7 @@ test("create task without title → stays on page, does not submit", async ({
 test("edit task without title → stays on edit page, does not submit", async ({
   page,
 }) => {
-  const orgId = await createOrg(page, `E2E Edit Validation Org ${Date.now()}`);
+  const orgId = await createOrg(page, e2eOrgName("Edit Validation Org"));
   const taskTitle = `E2E Edit Validation Task ${Date.now()}`;
 
   // Create a task to edit
@@ -241,12 +252,7 @@ test("edit task without title → stays on edit page, does not submit", async ({
   await searchTasks(page, taskTitle);
   await page.getByRole("button").filter({ hasText: taskTitle }).click();
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
-  await page
-    .getByTestId("task-actions")
-    .getByRole("link", { name: /edit/i })
-    .click();
-  await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+\/edit$/);
-  await waitForEditPage(page);
+  await openTaskEditPage(page);
 
   // Clear title and try to save
   await page.getByLabel(/title/i).fill("");
@@ -259,7 +265,7 @@ test("edit task without title → stays on edit page, does not submit", async ({
 test("create task with role → role badge visible in task list", async ({
   page,
 }) => {
-  const orgId = await createOrg(page, `E2E Role Task Org ${Date.now()}`);
+  const orgId = await createOrg(page, e2eOrgName("Role Task Org"));
   const taskTitle = `E2E Role Task ${Date.now()}`;
   const roleName = `E2E Role ${Date.now()}`;
 
@@ -285,7 +291,7 @@ test("create task with role → role badge visible in task list", async ({
 test("edit task to add role → role badge visible in task list", async ({
   page,
 }) => {
-  const orgId = await createOrg(page, `E2E Edit Role Org ${Date.now()}`);
+  const orgId = await createOrg(page, e2eOrgName("Edit Role Org"));
   const taskTitle = `E2E Edit Role Task ${Date.now()}`;
   const roleName = `E2E Edit Role ${Date.now()}`;
 
@@ -301,12 +307,7 @@ test("edit task to add role → role badge visible in task list", async ({
   await searchTasks(page, taskTitle);
   await page.getByRole("button").filter({ hasText: taskTitle }).click();
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
-  await page
-    .getByTestId("task-actions")
-    .getByRole("link", { name: /edit/i })
-    .click();
-  await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+\/edit$/);
-  await waitForEditPage(page);
+  await openTaskEditPage(page);
 
   // Add role
   await page.getByRole("button", { name: /add role/i }).click();
@@ -330,7 +331,7 @@ test("edit task to add role → role badge visible in task list", async ({
 test("edit task to remove role → role badge no longer visible in task list", async ({
   page,
 }) => {
-  const orgId = await createOrg(page, `E2E Remove Role Org ${Date.now()}`);
+  const orgId = await createOrg(page, e2eOrgName("Remove Role Org"));
   const taskTitle = `E2E Remove Role Task ${Date.now()}`;
   const roleName = `E2E Remove Role ${Date.now()}`;
 
@@ -349,12 +350,7 @@ test("edit task to remove role → role badge no longer visible in task list", a
   await searchTasks(page, taskTitle);
   await page.getByRole("button").filter({ hasText: taskTitle }).click();
   await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
-  await page
-    .getByTestId("task-actions")
-    .getByRole("link", { name: /edit/i })
-    .click();
-  await expect(page).toHaveURL(/\/orgs\/.+\/tasks\/.+\/edit$/);
-  await waitForEditPage(page);
+  await openTaskEditPage(page);
 
   // Remove role via chip × button
   await page.getByRole("button", { name: `Remove ${roleName}` }).click();
@@ -378,7 +374,7 @@ test("edit task to remove role → role badge no longer visible in task list", a
 });
 
 test("search filter → only matching tasks visible", async ({ page }) => {
-  const orgId = await createOrg(page, `E2E Search Org ${Date.now()}`);
+  const orgId = await createOrg(page, e2eOrgName("Search Org"));
   const ts = Date.now();
   const matchTitle = `E2E Search Match ${ts}`;
   const noMatchTitle = `E2E Search Other ${ts}`;
@@ -399,7 +395,7 @@ test("search filter → only matching tasks visible", async ({ page }) => {
 });
 
 test("role filter → only tasks with that role visible", async ({ page }) => {
-  const orgId = await createOrg(page, `E2E Filter Org ${Date.now()}`);
+  const orgId = await createOrg(page, e2eOrgName("Filter Org"));
   const ts = Date.now();
   const roleName = `E2E Filter Role ${ts}`;
   const taskWithRole = `E2E Filtered Task ${ts}`;
@@ -433,7 +429,7 @@ test("role filter → only tasks with that role visible", async ({ page }) => {
 });
 
 test("task detail → shows correct fields after create", async ({ page }) => {
-  const orgId = await createOrg(page, `E2E Detail Org ${Date.now()}`);
+  const orgId = await createOrg(page, e2eOrgName("Detail Org"));
   const taskTitle = `E2E Detail Task ${Date.now()}`;
   const description = "This is a test description.";
 
@@ -469,7 +465,7 @@ test("task detail → shows correct fields after create", async ({ page }) => {
 });
 
 test("task detail → shows updated values after edit", async ({ page }) => {
-  const orgId = await createOrg(page, `E2E Detail Edit Org ${Date.now()}`);
+  const orgId = await createOrg(page, e2eOrgName("Detail Edit Org"));
   const taskTitle = `E2E Detail Edit Task ${Date.now()}`;
   const updatedTitle = `E2E Detail Edited ${Date.now()}`;
   const updatedDescription = "Updated description.";
@@ -517,7 +513,7 @@ test("task detail → shows updated values after edit", async ({ page }) => {
 test.skip("duplicate task → opens new task form with duplicateFrom param", async ({
   page,
 }) => {
-  const orgId = await createOrg(page, `E2E Duplicate Org ${Date.now()}`);
+  const orgId = await createOrg(page, e2eOrgName("Duplicate Org"));
   const taskTitle = `E2E Duplicate Task ${Date.now()}`;
 
   await gotoNewTask(page, orgId);
