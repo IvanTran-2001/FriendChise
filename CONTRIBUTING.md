@@ -2,6 +2,12 @@
 
 Thanks for helping improve FriendChise. This repo is a shared dev environment, so the main goal is to keep changes isolated, reproducible, and easy to review.
 
+## Start here: discuss ideas before coding
+
+Before opening a PR, please open a GitHub issue first to discuss your idea with maintainers. This helps ensure alignment, avoids duplicate work, and saves you time.
+
+Not sure what to work on? See [IDEAS_FOR_CONTRIBUTION.md](IDEAS_FOR_CONTRIBUTION.md) for examples across performance, security, UI/UX, services, and more.
+
 ## Before you start
 
 1. Install dependencies with `pnpm install`.
@@ -111,19 +117,6 @@ If you are not intentionally sharing a dev database with the repo owner, use you
 - E2E and integration tests depend on the seeded dev database.
 - Keep test-created data namespaced or disposable so cleanup can remove it safely.
 - If you add a new test flow that creates organizations or other long-lived rows, make sure teardown or cleanup covers it.
-
-## Ideas for contributing
-
-Not sure what to work on? Check out [IDEAS_FOR_CONTRIBUTION.md](IDEAS_FOR_CONTRIBUTION.md) for suggestions on areas you could improve:
-
-- **Performance** — page load optimization, seed loading, API responses
-- **Security** — validation, rate limiting, XSS/CSRF prevention
-- **UI/UX** — animations, responsive design, accessibility
-- **Developer experience** — type safety, testing, documentation
-- **Services** — notifications, storage, validation, timezone handling
-- **Bug fixes** — anything you discover or encounter
-
-**Important**: Open a GitHub issue first to discuss your idea with the maintainers before diving into code. This helps ensure alignment and prevents duplicate work.
 
 ## Pull requests
 
