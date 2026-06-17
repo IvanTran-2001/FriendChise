@@ -1,6 +1,10 @@
-import { resolveSeedNamespace } from "@/lib/seed-namespace";
+import { resolveSeedNamespace } from "./seed-namespace";
 
 export function ensureTestRunNamespace(): string {
+  if (!process.env.SEED_NAMESPACE?.trim()) {
+    process.env.SEED_NAMESPACE = "random";
+  }
+
   return resolveSeedNamespace();
 }
 
