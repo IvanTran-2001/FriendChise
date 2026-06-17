@@ -81,4 +81,4 @@ SEED_NAMESPACE=your-name
 
 - Use `SEED_NAMESPACE=random` for disposable one-off seeds.
 - If you intentionally share a dev database, set `SEED_NAMESPACE` per person or per fork.
-- See the [Getting Started](/doc/getting-started) page for the quick setup flow.
+- See the [Getting Started](/doc/overview/getting-started) page for the quick setup flow.

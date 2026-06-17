@@ -1,6 +1,6 @@
 ---
 title: Project Structure
-description: hello
+description: Application directory layout, routes, components, and architectural organization
 order: 18.5
 ---
 ```text

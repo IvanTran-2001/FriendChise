@@ -19,7 +19,7 @@ If you are just exploring the app locally, you can still clone the repo directly
 
 1. Create a new Supabase project.
 2. Copy the Supabase connection details into `.env.local`.
-3. Set `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `SEED_DEV_IDENTIFIERS`.
+3. Set `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `SEED_DEV_IDENTIFIERS` (a comma-separated list of allowed DB hostnames/usernames for seed and cleanup safety checks, e.g., `your-project.pooler.supabase.com`).
 4. Optionally set `SEED_NAMESPACE` if you are sharing a dev database.
 
 ```bash

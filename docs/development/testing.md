@@ -30,4 +30,4 @@ pnpm lint
 
 ## Smoke test
 
-Use the [Smoke Test](/doc/Smoke%20Test) after setup to verify the app and seeded data work end to end.
+Use the [Smoke Test](/doc/smoke-test) after setup to verify the app and seeded data work end to end.

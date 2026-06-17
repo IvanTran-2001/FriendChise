@@ -24,7 +24,7 @@ AUTH_SECRET=your-generated-secret-here
 AUTH_URL=http://localhost:3000
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SECRET_KEY=your-supabase-service-role-key
-SEED_DEV_IDENTIFIERS=your-project.pooler.supabase.com
+SEED_DEV_IDENTIFIERS=your-project.pooler.supabase.com  # Comma-separated DB hostnames/usernames allowed for seed/cleanup safety checks
 ```
 
 ## Local sign-in
@@ -40,4 +40,4 @@ Examples:
 
 - Read [Contributing](/doc/contributing)
 - Review project [Architecture](/doc/architecture)
-- Run the [Smoke Test](/doc/Smoke%20Test) after setup
+- Run the [Smoke Test](/doc/smoke-test) after setup
