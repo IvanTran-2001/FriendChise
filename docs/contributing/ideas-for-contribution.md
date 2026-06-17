@@ -1,5 +1,8 @@
-# Ideas for Contributing
-
+---
+title: Ideas for Contributing
+description: Suggested areas for performance, security, UI, and developer experience improvements
+order: 1
+---
 We welcome contributions of any kind! Whether it's a small bug fix, a performance improvement, a new feature, or a UI enhancement, we'd love your help.
 
 ## How to Contribute an Idea
@@ -13,6 +16,7 @@ This process ensures we're all aligned and prevents duplicate work or wasted eff
 ## Areas You Could Improve
 
 ### 🚀 Performance
+
 - **Page load optimization** — Reduce initial bundle size, optimize images, implement lazy loading
 - **Seed data loading** — Speed up database seeding for faster local setup
 - **API response times** — Optimize server actions and database queries
@@ -20,6 +24,7 @@ This process ensures we're all aligned and prevents duplicate work or wasted eff
 - **Caching strategies** — Add caching for frequently accessed data
 
 ### 🔒 Security
+
 - **Input validation** — Strengthen validation in forms and server actions
 - **Rate limiting** — Add protection against brute force or abuse
 - **XSS/CSRF prevention** — Review and improve security headers
@@ -27,6 +32,7 @@ This process ensures we're all aligned and prevents duplicate work or wasted eff
 - **Access control** — Review and strengthen role-based access patterns
 
 ### 🎨 UI/UX
+
 - **Animations** — Add smooth transitions and micro-interactions
 - **Responsive design** — Improve mobile experience
 - **Accessibility** — Better keyboard navigation, ARIA labels, color contrast
@@ -34,6 +40,7 @@ This process ensures we're all aligned and prevents duplicate work or wasted eff
 - **Dark mode** — Add dark theme support
 
 ### ⚙️ Developer Experience
+
 - **Type safety** — Add stricter TypeScript checks or improve type definitions
 - **Testing** — Increase test coverage with new test cases
 - **Documentation** — Improve inline comments, JSDoc, or setup guides
@@ -41,6 +48,7 @@ This process ensures we're all aligned and prevents duplicate work or wasted eff
 - **Developer tooling** — Add scripts or commands to make development easier
 
 ### 📦 Services & Utilities
+
 - **Email notifications** — Implement or improve notification delivery
 - **Storage optimization** — Improve image compression or file handling
 - **Timezone handling** — Better support for multi-timezone operations
@@ -48,6 +56,7 @@ This process ensures we're all aligned and prevents duplicate work or wasted eff
 - **Seed data** — Add more realistic example data for testing
 
 ### 🐛 Bug Fixes
+
 - Any bugs you discover or issues you see in the codebase
 
 ## General Guidelines

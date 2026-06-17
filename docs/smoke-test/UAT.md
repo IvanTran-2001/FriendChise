@@ -1,3 +1,9 @@
+---
+title: UAT Script — FriendChise V1
+description: Facilitated user acceptance test script for the smoke test flow
+order: 8.1
+---
+
 # 🧪 UAT Script — FriendChise V1
 
 > **Instructions for the facilitator:**

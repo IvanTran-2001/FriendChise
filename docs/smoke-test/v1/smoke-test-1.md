@@ -1,8 +1,14 @@
+---
+title: Smoke Test Report — V1 Round 1
+description: First round smoke test report for the deployed V1 app
+order: 8.2
+---
+
 # 🔥 Smoke Test Report — V1 Round 1
 
-**Date:** 2026-04-15  
-**Tester:** @IvanTran-2001  
-**Environment:** Production (Deployed V1)  
+**Date:** 2026-04-15
+**Tester:** @IvanTran-2001
+**Environment:** Production (Deployed V1)
 **Devices Tested:** Desktop (Chrome), iPhone (Safari), Mobile Browser
 
 ✅ PASS · ❌ FAIL · ⚠️ PARTIAL
