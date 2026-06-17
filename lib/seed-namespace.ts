@@ -79,5 +79,8 @@ export function resolveSeedEmail(
   envVarName: string,
   defaultLocalPart: string,
 ): string {
-  return process.env[envVarName] ?? seedEmail(defaultLocalPart);
+  const configured = process.env[envVarName]?.trim();
+  return configured && configured.length > 0
+    ? configured
+    : seedEmail(defaultLocalPart);
 }
