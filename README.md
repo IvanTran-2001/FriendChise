@@ -98,15 +98,15 @@ UPSTASH_REDIS_REST_TOKEN=
 # Supabase Storage — file uploads (org logos, task images, feedback screenshots)
 # Get from Supabase dashboard > Settings > API
 NEXT_PUBLIC_SUPABASE_URL=       # e.g. https://<project-ref>.supabase.co
-SUPABASE_SECRET_KEY=            # service_role JWT (legacy eyJ... format)
+SUPABASE_SECRET_KEY=            # Supabase service role key
 ```
 
 Optional / local overrides (`.env.local`):
 
 ```env
 SEED_NAMESPACE=          # optional seed namespace; defaults to your git/user name, or use "random" for a throwaway run
-E2E_TEST_USER_EMAIL=      # Test user email for E2E tests and seeding (defaults to the namespaced ivan@example.test)
-SEED_DEV_IDENTIFIERS=     # Space-separated Supabase project refs to seed with dev data (seed.ts production path)
+E2E_TEST_USER_EMAIL=      # optional seeded Riley override (defaults to namespaced riley@example.test)
+SEED_DEV_IDENTIFIERS=     # comma-separated DB hostnames/usernames allowed for seed/cleanup safety checks
 ADMIN_EMAIL=              # (legacy) super-admin email override — superseded by the AdminUser DB table
 
 # OAuth (optional — in dev mode, sign in using seeded user emails instead)
@@ -128,7 +128,7 @@ AUTH_URL=http://localhost:3000
 
 # Supabase — from your project settings
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SECRET_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SECRET_KEY=your-supabase-service-role-key
 SEED_DEV_IDENTIFIERS=your-project.pooler.supabase.com
 
 # ===== OPTIONAL =====

@@ -41,7 +41,7 @@ AUTH_URL=http://localhost:3000
 
 # Supabase — from your project settings
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SECRET_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SECRET_KEY=your-supabase-service-role-key
 SEED_DEV_IDENTIFIERS=your-project.pooler.supabase.com
 
 # ===== OPTIONAL =====

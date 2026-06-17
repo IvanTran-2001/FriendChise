@@ -27,7 +27,7 @@ export const SEEDED_USERS = {
   },
   riley: {
     id: "riley",
-    email: seedEmail("ivan"),
+    email: seedEmail("riley"),
     displayName: seedDisplayName("Riley"),
   },
   morgan: {

@@ -25,7 +25,14 @@ function readGitUserName(): string | null {
 }
 
 function readLocalUserName(): string | null {
-  return process.env.USER ?? process.env.USERNAME ?? os.userInfo().username ?? null;
+  const envUser = process.env.USER ?? process.env.USERNAME;
+  if (envUser) return envUser;
+
+  try {
+    return os.userInfo().username ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export function resolveSeedNamespace(): string {
@@ -40,7 +47,9 @@ export function resolveSeedNamespace(): string {
     }
   } else {
     const fallback =
-      readGitUserName() ?? readLocalUserName() ?? `run-${crypto.randomUUID().slice(0, 8)}`;
+      readGitUserName() ??
+      readLocalUserName() ??
+      `run-${crypto.randomUUID().slice(0, 8)}`;
     cachedSeedNamespace = normalizeNamespace(fallback);
   }
 
