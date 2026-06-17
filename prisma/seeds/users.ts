@@ -1,5 +1,17 @@
 import type { SeedPlan } from "./seed-plan";
 import { seedDisplayName, seedEmail } from "@/lib/seed-namespace";
+<<<<<<< HEAD
+=======
+
+/**
+ * Helper function to resolve the seed email for the E2E test user.
+ * Treats empty or whitespace-only strings as unset values.
+ */
+function resolveSeedEmail(): string {
+  const envEmail = process.env.E2E_TEST_USER_EMAIL?.trim();
+  return envEmail || seedEmail("riley");
+}
+>>>>>>> origin/master
 
 export async function seedUsers(prisma: import("@prisma/client").PrismaClient) {
   const [owner, jordan, casey, riley, morgan, alex, taylor, sam, quinn] =
@@ -42,7 +54,11 @@ export async function seedUsers(prisma: import("@prisma/client").PrismaClient) {
       }),
       prisma.user.upsert({
         where: {
+<<<<<<< HEAD
           email: process.env.E2E_TEST_USER_EMAIL ?? seedEmail("riley"),
+=======
+          email: resolveSeedEmail(),
+>>>>>>> origin/master
         },
         update: {
           name: process.env.E2E_TEST_USER_NAME ?? seedDisplayName("Riley"),
@@ -51,7 +67,11 @@ export async function seedUsers(prisma: import("@prisma/client").PrismaClient) {
             "https://i.pravatar.cc/150?img=5",
         },
         create: {
+<<<<<<< HEAD
           email: process.env.E2E_TEST_USER_EMAIL ?? seedEmail("riley"),
+=======
+          email: resolveSeedEmail(),
+>>>>>>> origin/master
           name: process.env.E2E_TEST_USER_NAME ?? seedDisplayName("Riley"),
           image:
             process.env.E2E_TEST_USER_IMAGE ??

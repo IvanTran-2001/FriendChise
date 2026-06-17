@@ -1,4 +1,5 @@
 import Link from "next/link";
+<<<<<<< HEAD
 import { Prisma, FeedbackType } from "@prisma/client";
 import {
   ArrowRight,
@@ -9,6 +10,12 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+=======
+import { FeedbackType } from "@prisma/client";
+import { ArrowRight, CheckCheck, ImageIcon, Lightbulb, MessageSquareWarning, ShieldAlert } from "lucide-react";
+import { prisma } from "@/lib/prisma";
+import { isDemoEmail } from "@/lib/demo";
+>>>>>>> origin/master
 import { requireSuperAdminPage } from "@/lib/authz";
 import { getAllFeedback } from "@/lib/services/feedback";
 import { Button } from "@/components/ui/button";
@@ -19,6 +26,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+<<<<<<< HEAD
 import {
   AdminUserGrowthCard,
   type UserGrowthByRange,
@@ -228,10 +236,14 @@ function buildGrowthSeries(
     lifetime: fillSeries(lifetimeBuckets, monthlyRows, "month"),
   } satisfies Record<RangeKey, GrowthBucket[]>;
 }
+=======
+import { AdminUserGrowthCard, type UserGrowthRecord } from "./_components/admin-user-growth-card";
+>>>>>>> origin/master
 
 export default async function AdminHomePage() {
   await requireSuperAdminPage();
 
+<<<<<<< HEAD
   const [feedback, hourlyRows, dailyRows, monthlyRows] = await Promise.all([
     getAllFeedback(),
     prisma.$queryRaw<BucketRow[]>(Prisma.sql`
@@ -263,10 +275,24 @@ export default async function AdminHomePage() {
       GROUP BY 1
       ORDER BY 1 ASC
     `),
+=======
+  const [feedback, users] = await Promise.all([
+    getAllFeedback(),
+    prisma.user.findMany({
+      select: {
+        createdAt: true,
+        email: true,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    }),
+>>>>>>> origin/master
   ]);
   const unreviewed = feedback.filter((item) => !item.reviewed);
   const issues = feedback.filter((item) => item.type === FeedbackType.ISSUE);
   const ideas = feedback.filter((item) => item.type === FeedbackType.IDEA);
+<<<<<<< HEAD
   const userGrowthSeries = buildGrowthSeries(
     hourlyRows,
     dailyRows,
@@ -283,6 +309,30 @@ export default async function AdminHomePage() {
         series={userGrowthSeries}
         lifetimeTotal={lifetimeTotal}
       />
+=======
+  const userGrowthRecords: UserGrowthRecord[] = users.map((user) => ({
+    createdAt: user.createdAt.toISOString(),
+    isDemo: isDemoEmail(user.email),
+  }));
+
+  return (
+    <div className="grid gap-6">
+      <AdminUserGrowthCard records={userGrowthRecords} />
+
+      <div className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
+      <Card className="overflow-hidden border-border/70 bg-card/90 shadow-sm backdrop-blur-xl">
+        <CardHeader className="gap-3 border-b border-border/60 bg-muted/30">
+          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+            <ShieldAlert className="h-3.5 w-3.5" />
+            Admin overview
+          </div>
+          <CardTitle className="text-2xl sm:text-3xl">What needs attention</CardTitle>
+          <CardDescription className="max-w-2xl text-sm sm:text-base">
+            Feedback is the live admin workflow right now. Use the inbox to review
+            screenshots, toggle items as reviewed, and keep the team looped in.
+          </CardDescription>
+        </CardHeader>
+>>>>>>> origin/master
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
         <Card className="overflow-hidden border-border/70 bg-card/90 shadow-sm backdrop-blur-xl">
@@ -402,6 +452,7 @@ export default async function AdminHomePage() {
             </CardContent>
           </Card>
         </div>
+      </div>
       </div>
     </div>
   );
