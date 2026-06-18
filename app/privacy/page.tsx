@@ -134,10 +134,10 @@ export default function PrivacyPage() {
               If you have any questions about this Privacy Policy or wish to
               request deletion of your account and data, please contact us at{" "}
               <a
-                href="mailto:alt28920@gmail.com"
+                href="mailto:support@friendchise.app"
                 className="font-medium text-primary underline-offset-4 hover:underline"
               >
-                alt28920@gmail.com
+                support@friendchise.app
               </a>
               . Please include your account email address and the type of
               request (privacy inquiry or data deletion) in your message for
