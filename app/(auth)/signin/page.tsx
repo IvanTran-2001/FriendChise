@@ -16,6 +16,7 @@ import { prepareDemoSession } from "@/lib/demo";
 import { TryDemoButton } from "./try-demo-button";
 import { DevUserPicker } from "./dev-user-picker";
 import { getDevUsers } from "./get-dev-users";
+import { SignInResponsiveShell } from "./signin-responsive-shell";
 import {
   ArrowRight,
   LayoutList,
@@ -164,153 +165,309 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
         <SignInToast hint={hint} />
 
-        <div className="relative z-10 mx-auto grid min-h-full w-full max-w-6xl gap-8 px-4 py-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:px-6 lg:py-12">
-          <section className="flex flex-col justify-center gap-6">
-          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border/70 bg-card/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm">
-            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-            Production-led franchise operations
-          </div>
-
-          <div className="flex items-center gap-4">
-            <Logo className="shrink-0" />
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                FriendChise
-              </p>
-              <h1 className="mt-2 max-w-xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-                Make every location run like your best one.
-              </h1>
-            </div>
-          </div>
-
-          <p className="max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-            FriendChise is a wisdom-sharing and tool hub for franchises.
-            Capture tasks, timetables, tools, and comments once, then reuse
-            them across locations to improve consistency and quality.
-          </p>
-
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground/90">
-            Built for new franchise operators and seasoned teams alike.
-          </p>
-
-          <div className="grid gap-3 sm:grid-cols-2 xl:max-w-3xl">
-            {HERO_FEATURES.map((feature) => (
-              <HeroFeature key={feature.title} {...feature} />
-            ))}
-          </div>
-          </section>
-
-          <div className="flex flex-col justify-center gap-4">
-            <Card className="rounded-3xl border-border/70 bg-card/95 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-sm">
-            <CardHeader className="gap-3 border-b border-border/60 pb-5">
-              <div className="inline-flex w-fit items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                Production access
-              </div>
-              <CardTitle className="text-2xl tracking-tight sm:text-3xl">
-                Sign in to the operations hub
-              </CardTitle>
-              <CardDescription className="max-w-prose text-sm leading-6">
-                Use your work account or launch a seeded demo session to explore
-                the flow.
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="space-y-5 pt-5">
-              <div className="space-y-3">
-                {PROVIDERS.map(({ id, label, helper, Logo }) => (
-                  <form
-                    key={id}
-                    action={async () => {
-                      "use server";
-                      await signIn(id, { redirectTo: callbackUrl });
-                    }}
-                  >
-                    <Button
-                      type="submit"
-                      variant="outline"
-                      className="h-12 w-full justify-between rounded-2xl border-border/70 bg-background/85 px-4 shadow-sm hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background"
-                    >
-                      <span className="flex min-w-0 items-center gap-3 text-left">
-                        <Logo className="shrink-0" />
-                        <span className="flex min-w-0 flex-col items-start leading-tight">
-                          <span className="truncate font-medium text-foreground">
-                            {label}
-                          </span>
-                          <span className="truncate text-xs text-muted-foreground">
-                            {helper}
-                          </span>
-                        </span>
-                      </span>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover/button:translate-x-0.5" />
-                    </Button>
-                  </form>
-                ))}
-              </div>
-
-              <div className="relative flex items-center py-1">
-                <span className="flex-1 border-t border-border/60" />
-                <span className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  or
-                </span>
-                <span className="flex-1 border-t border-border/60" />
-              </div>
-
-              <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4">
-                <div className="flex items-start gap-3">
-                  <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground">
-                      Try the demo
-                    </p>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                      No account needed. Explore a live-style workflow in an
-                      isolated demo org that resets between runs.
-                    </p>
-
-                    <form
-                      className="mt-4"
-                      action={async () => {
-                        "use server";
-                        let session:
-                          | { userId: string; orgId: string }
-                          | undefined;
-                        try {
-                          session = await prepareDemoSession();
-                        } catch (err) {
-                          console.error("[demo] prepareDemoSession failed:", err);
-                          redirect("/signin?hint=demo_unavailable");
-                        }
-                        if (!session) return;
-                        await signIn("demo", {
-                          userId: session.userId,
-                          redirectTo: `/orgs/${session.orgId}`,
-                        });
-                      }}
-                    >
-                      <TryDemoButton />
-                    </form>
+        <div className="relative z-10 mx-auto max-w-6xl px-4 py-8 lg:px-6 lg:py-12">
+          <SignInResponsiveShell
+            mobile={
+              <div className="flex flex-col gap-6">
+                <section className="flex flex-col gap-4">
+                  <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border/70 bg-card/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm">
+                    <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                    Production-led franchise operations
                   </div>
+
+                  <div className="flex items-center gap-4">
+                    <Logo className="shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                        FriendChise
+                      </p>
+                      <h1 className="mt-2 max-w-xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+                        Make every location run like your best one.
+                      </h1>
+                    </div>
+                  </div>
+
+                  <p className="max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
+                    FriendChise is a wisdom-sharing and tool hub for franchises.
+                    Capture tasks, timetables, tools, and comments once, then reuse
+                    them across locations to improve consistency and quality.
+                  </p>
+                </section>
+
+                <Card className="rounded-3xl border-border/70 bg-card/95 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-sm">
+                  <CardHeader className="gap-3 border-b border-border/60 pb-5">
+                    <div className="inline-flex w-fit items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      Production access
+                    </div>
+                    <CardTitle className="text-2xl tracking-tight sm:text-3xl">
+                      Sign in to the operations hub
+                    </CardTitle>
+                    <CardDescription className="max-w-prose text-sm leading-6">
+                      Use your work account or launch a seeded demo session to explore
+                      the flow.
+                    </CardDescription>
+                  </CardHeader>
+
+                  <CardContent className="space-y-5 pt-5">
+                    <div className="space-y-3">
+                      {PROVIDERS.map(({ id, label, helper, Logo }) => (
+                        <form
+                          key={id}
+                          action={async () => {
+                            "use server";
+                            await signIn(id, { redirectTo: callbackUrl });
+                          }}
+                        >
+                          <Button
+                            type="submit"
+                            variant="outline"
+                            className="h-12 w-full justify-between rounded-2xl border-border/70 bg-background/85 px-4 shadow-sm hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background"
+                          >
+                            <span className="flex min-w-0 items-center gap-3 text-left">
+                              <Logo className="shrink-0" />
+                              <span className="flex min-w-0 flex-col items-start leading-tight">
+                                <span className="truncate font-medium text-foreground">
+                                  {label}
+                                </span>
+                                <span className="truncate text-xs text-muted-foreground">
+                                  {helper}
+                                </span>
+                              </span>
+                            </span>
+                            <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover/button:translate-x-0.5" />
+                          </Button>
+                        </form>
+                      ))}
+                    </div>
+
+                    <div className="relative flex items-center py-1">
+                      <span className="flex-1 border-t border-border/60" />
+                      <span className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        or
+                      </span>
+                      <span className="flex-1 border-t border-border/60" />
+                    </div>
+
+                    <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4">
+                      <div className="flex items-start gap-3">
+                        <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground">
+                            Try the demo
+                          </p>
+                          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                            No account needed. Explore a live-style workflow in an
+                            isolated demo org that resets between runs.
+                          </p>
+
+                          <form
+                            className="mt-4"
+                            action={async () => {
+                              "use server";
+                              let session:
+                                | { userId: string; orgId: string }
+                                | undefined;
+                              try {
+                                session = await prepareDemoSession();
+                              } catch (err) {
+                                console.error("[demo] prepareDemoSession failed:", err);
+                                redirect("/signin?hint=demo_unavailable");
+                              }
+                              if (!session) return;
+                              await signIn("demo", {
+                                userId: session.userId,
+                                redirectTo: `/orgs/${session.orgId}`,
+                              });
+                            }}
+                          >
+                            <TryDemoButton />
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      By signing in, you agree to our{" "}
+                      <Link
+                        href="/privacy"
+                        className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
+                      >
+                        Privacy Policy
+                      </Link>
+                      .
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {process.env.NODE_ENV === "development" && (
+                  <DevUserPicker callbackUrl={callbackUrl} users={getDevUsers()} />
+                )}
+
+                <p className="max-w-2xl text-sm leading-6 text-muted-foreground/90">
+                  Built for new franchise operators and seasoned teams alike.
+                </p>
+
+                <section className="flex flex-col gap-4">
+                  <div className="grid gap-3 sm:grid-cols-2 xl:max-w-3xl">
+                    {HERO_FEATURES.map((feature) => (
+                      <HeroFeature key={feature.title} {...feature} />
+                    ))}
+                  </div>
+                </section>
+              </div>
+            }
+            desktop={
+              <div className="relative z-10 mx-auto grid min-h-full w-full max-w-6xl gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-start">
+                <section className="order-1 flex flex-col justify-center gap-6 lg:col-start-1 lg:row-start-1">
+                  <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border/70 bg-card/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm">
+                    <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                    Production-led franchise operations
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <Logo className="shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                        FriendChise
+                      </p>
+                      <h1 className="mt-2 max-w-xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+                        Make every location run like your best one.
+                      </h1>
+                    </div>
+                  </div>
+
+                  <p className="max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
+                    FriendChise is a wisdom-sharing and tool hub for franchises.
+                    Capture tasks, timetables, tools, and comments once, then reuse
+                    them across locations to improve consistency and quality.
+                  </p>
+
+                  <p className="max-w-2xl text-sm leading-6 text-muted-foreground/90">
+                    Built for new franchise operators and seasoned teams alike.
+                  </p>
+
+                  <div className="grid gap-3 sm:grid-cols-2 xl:max-w-3xl">
+                    {HERO_FEATURES.map((feature) => (
+                      <HeroFeature key={feature.title} {...feature} />
+                    ))}
+                  </div>
+                </section>
+
+                <div className="order-2 mt-4 flex flex-col justify-center gap-4 lg:col-start-2 lg:row-start-1 lg:mt-10">
+                  <Card className="rounded-3xl border-border/70 bg-card/95 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-sm">
+                    <CardHeader className="gap-3 border-b border-border/60 pb-5">
+                      <div className="inline-flex w-fit items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        Production access
+                      </div>
+                      <CardTitle className="text-2xl tracking-tight sm:text-3xl">
+                        Sign in to the operations hub
+                      </CardTitle>
+                      <CardDescription className="max-w-prose text-sm leading-6">
+                        Use your work account or launch a seeded demo session to explore
+                        the flow.
+                      </CardDescription>
+                    </CardHeader>
+
+                    <CardContent className="space-y-5 pt-5">
+                      <div className="space-y-3">
+                        {PROVIDERS.map(({ id, label, helper, Logo }) => (
+                          <form
+                            key={id}
+                            action={async () => {
+                              "use server";
+                              await signIn(id, { redirectTo: callbackUrl });
+                            }}
+                          >
+                            <Button
+                              type="submit"
+                              variant="outline"
+                              className="h-12 w-full justify-between rounded-2xl border-border/70 bg-background/85 px-4 shadow-sm hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background"
+                            >
+                              <span className="flex min-w-0 items-center gap-3 text-left">
+                                <Logo className="shrink-0" />
+                                <span className="flex min-w-0 flex-col items-start leading-tight">
+                                  <span className="truncate font-medium text-foreground">
+                                    {label}
+                                  </span>
+                                  <span className="truncate text-xs text-muted-foreground">
+                                    {helper}
+                                  </span>
+                                </span>
+                              </span>
+                              <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover/button:translate-x-0.5" />
+                            </Button>
+                          </form>
+                        ))}
+                      </div>
+
+                      <div className="relative flex items-center py-1">
+                        <span className="flex-1 border-t border-border/60" />
+                        <span className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                          or
+                        </span>
+                        <span className="flex-1 border-t border-border/60" />
+                      </div>
+
+                      <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4">
+                        <div className="flex items-start gap-3">
+                          <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground">
+                              Try the demo
+                            </p>
+                            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                              No account needed. Explore a live-style workflow in an
+                              isolated demo org that resets between runs.
+                            </p>
+
+                            <form
+                              className="mt-4"
+                              action={async () => {
+                                "use server";
+                                let session:
+                                  | { userId: string; orgId: string }
+                                  | undefined;
+                                try {
+                                  session = await prepareDemoSession();
+                                } catch (err) {
+                                  console.error("[demo] prepareDemoSession failed:", err);
+                                  redirect("/signin?hint=demo_unavailable");
+                                }
+                                if (!session) return;
+                                await signIn("demo", {
+                                  userId: session.userId,
+                                  redirectTo: `/orgs/${session.orgId}`,
+                                });
+                              }}
+                            >
+                              <TryDemoButton />
+                            </form>
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        By signing in, you agree to our{" "}
+                        <Link
+                          href="/privacy"
+                          className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
+                        >
+                          Privacy Policy
+                        </Link>
+                        .
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {process.env.NODE_ENV === "development" && (
+                    <DevUserPicker callbackUrl={callbackUrl} users={getDevUsers()} />
+                  )}
                 </div>
               </div>
-
-              <p className="text-xs leading-5 text-muted-foreground">
-                By signing in, you agree to our{" "}
-                <Link
-                  href="/privacy"
-                  className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
-                >
-                  Privacy Policy
-                </Link>
-                .
-              </p>
-            </CardContent>
-            </Card>
-
-            {process.env.NODE_ENV === "development" && (
-              <DevUserPicker callbackUrl={callbackUrl} users={getDevUsers()} />
-            )}
-          </div>
+            }
+          />
         </div>
 
         <footer className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-8 lg:px-6">
