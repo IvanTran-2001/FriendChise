@@ -4,126 +4,123 @@
  * Tests real DB behaviour: unique constraint on duplicate membership (CONFLICT),
  * org owner cannot be removed (INVALID), and cascade cleanup of MemberRole rows
  * when a membership is deleted.
+ *
+ * Each test that needs a non-member user creates a temporary user via
+ * createTempUser() and cleans it up in a finally block. This avoids relying on
+ * a seeded non-member pool that may be empty (all seed users are connected to
+ * every org via connectSeedUsersToOrg).
  */
 import { prisma } from "@/lib/prisma";
 import { createMembership, deleteMembership } from "@/lib/services/memberships";
-import { ROLE_KEYS } from "@/lib/rbac";
-import { SEED_USER_EMAIL } from "../../helpers";
-
-async function getSeedOrg() {
-  const user = await prisma.user.findFirstOrThrow({
-    where: { email: SEED_USER_EMAIL },
-  });
-  const membership = await prisma.membership.findFirstOrThrow({
-    where: { userId: user.id },
-    include: { organization: true },
-  });
-  return membership.organization;
-}
-
-// Returns a user who is NOT already a member of the given org
-async function getNonMember(orgId: string) {
-  const existing = await prisma.membership.findMany({
-    where: { orgId },
-    select: { userId: true },
-  });
-  const memberIds = existing.map((m) => m.userId).filter(Boolean) as string[];
-  return prisma.user.findFirstOrThrow({
-    where: { id: { notIn: memberIds } },
-  });
-}
+import {
+  getSeedOrg,
+  getDefaultRole,
+  createTempUser,
+  cleanupTempUser,
+} from "../../helpers";
 
 describe("createMembership", () => {
   it("creates a membership and assigns the role", async () => {
     const org = await getSeedOrg();
-    const user = await getNonMember(org.id);
-    const memberRole = await prisma.role.findFirstOrThrow({
-      where: { orgId: org.id, key: ROLE_KEYS.DEFAULT_MEMBER },
-    });
+    const memberRole = await getDefaultRole(org.id);
+    const user = await createTempUser();
 
-    const result = await createMembership(org.id, {
-      userId: user.id,
-      roleId: memberRole.id,
-    });
+    try {
+      const result = await createMembership(org.id, {
+        userId: user.id,
+        roleId: memberRole.id,
+      });
 
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
 
-    const memberRole2 = await prisma.memberRole.findFirst({
-      where: { membershipId: result.data.id, roleId: memberRole.id },
-    });
-    expect(memberRole2).not.toBeNull();
+      const memberRole2 = await prisma.memberRole.findFirst({
+        where: { membershipId: result.data.id, roleId: memberRole.id },
+      });
+      expect(memberRole2).not.toBeNull();
+    } finally {
+      await cleanupTempUser(user.id);
+    }
   });
 
   it("returns CONFLICT when adding the same user twice", async () => {
     const org = await getSeedOrg();
-    const user = await getNonMember(org.id);
-    const memberRole = await prisma.role.findFirstOrThrow({
-      where: { orgId: org.id, key: ROLE_KEYS.DEFAULT_MEMBER },
-    });
+    const memberRole = await getDefaultRole(org.id);
+    const user = await createTempUser();
 
-    await createMembership(org.id, { userId: user.id, roleId: memberRole.id });
+    try {
+      await createMembership(org.id, { userId: user.id, roleId: memberRole.id });
 
-    // Second attempt — same user, same org
-    const result = await createMembership(org.id, {
-      userId: user.id,
-      roleId: memberRole.id,
-    });
+      // Second attempt — same user, same org
+      const result = await createMembership(org.id, {
+        userId: user.id,
+        roleId: memberRole.id,
+      });
 
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.code).toBe("CONFLICT");
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.code).toBe("CONFLICT");
+    } finally {
+      await cleanupTempUser(user.id);
+    }
   });
 
   it("returns INVALID when the roleId belongs to a different org", async () => {
     const org = await getSeedOrg();
-    const user = await getNonMember(org.id);
-    const otherOrg = await prisma.organization.findFirstOrThrow({
-      where: { id: { not: org.id } },
-    });
-    const foreignRole = await prisma.role.findFirstOrThrow({
-      where: { orgId: otherOrg.id },
-    });
+    const user = await createTempUser();
 
-    const result = await createMembership(org.id, {
-      userId: user.id,
-      roleId: foreignRole.id,
-    });
+    try {
+      const otherOrg = await prisma.organization.findFirstOrThrow({
+        where: { id: { not: org.id } },
+      });
+      const foreignRole = await prisma.role.findFirstOrThrow({
+        where: { orgId: otherOrg.id },
+      });
 
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.code).toBe("INVALID");
+      const result = await createMembership(org.id, {
+        userId: user.id,
+        roleId: foreignRole.id,
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.code).toBe("INVALID");
+    } finally {
+      await cleanupTempUser(user.id);
+    }
   });
 });
 
 describe("deleteMembership", () => {
   it("removes the membership and cascades MemberRole rows", async () => {
     const org = await getSeedOrg();
-    const user = await getNonMember(org.id);
-    const memberRole = await prisma.role.findFirstOrThrow({
-      where: { orgId: org.id, key: ROLE_KEYS.DEFAULT_MEMBER },
-    });
+    const memberRole = await getDefaultRole(org.id);
+    const user = await createTempUser();
 
-    const created = await createMembership(org.id, {
-      userId: user.id,
-      roleId: memberRole.id,
-    });
-    expect(created.ok).toBe(true);
-    if (!created.ok) return;
+    try {
+      const created = await createMembership(org.id, {
+        userId: user.id,
+        roleId: memberRole.id,
+      });
+      expect(created.ok).toBe(true);
+      if (!created.ok) return;
 
-    const membershipId = created.data.id;
-    const result = await deleteMembership(org.id, membershipId);
-    expect(result.ok).toBe(true);
+      const membershipId = created.data.id;
+      const result = await deleteMembership(org.id, membershipId);
+      expect(result.ok).toBe(true);
 
-    const found = await prisma.membership.findUnique({
-      where: { id: membershipId },
-    });
-    expect(found).toBeNull();
+      const found = await prisma.membership.findUnique({
+        where: { id: membershipId },
+      });
+      expect(found).toBeNull();
 
-    const memberRoles = await prisma.memberRole.findMany({
-      where: { membershipId },
-    });
-    expect(memberRoles).toHaveLength(0);
+      const memberRoles = await prisma.memberRole.findMany({
+        where: { membershipId },
+      });
+      expect(memberRoles).toHaveLength(0);
+    } finally {
+      await cleanupTempUser(user.id);
+    }
   });
 
   it("returns INVALID when trying to remove the org owner", async () => {
@@ -148,25 +145,27 @@ describe("deleteMembership", () => {
 
   it("returns NOT_FOUND for a cross-org delete attempt", async () => {
     const org = await getSeedOrg();
-    const user = await getNonMember(org.id);
-    const memberRole = await prisma.role.findFirstOrThrow({
-      where: { orgId: org.id, key: ROLE_KEYS.DEFAULT_MEMBER },
-    });
+    const memberRole = await getDefaultRole(org.id);
+    const user = await createTempUser();
 
-    const created = await createMembership(org.id, {
-      userId: user.id,
-      roleId: memberRole.id,
-    });
-    expect(created.ok).toBe(true);
-    if (!created.ok) return;
+    try {
+      const created = await createMembership(org.id, {
+        userId: user.id,
+        roleId: memberRole.id,
+      });
+      expect(created.ok).toBe(true);
+      if (!created.ok) return;
 
-    const otherOrg = await prisma.organization.findFirstOrThrow({
-      where: { id: { not: org.id } },
-    });
+      const otherOrg = await prisma.organization.findFirstOrThrow({
+        where: { id: { not: org.id } },
+      });
 
-    const result = await deleteMembership(otherOrg.id, created.data.id);
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.code).toBe("NOT_FOUND");
+      const result = await deleteMembership(otherOrg.id, created.data.id);
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.code).toBe("NOT_FOUND");
+    } finally {
+      await cleanupTempUser(user.id);
+    }
   });
 });
