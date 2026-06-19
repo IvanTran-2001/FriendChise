@@ -10,7 +10,8 @@ type ConnectSeedUsersOptions = {
  * Ensures every namespaced seed user is a member of the given org.
  *
  * Existing memberships are preserved. Any missing users are added with the
- * provided default role, if one is supplied.
+ * provided default role, if one is supplied. This function is idempotent:
+ * role assignment will execute even on reruns when no new memberships are created.
  */
 export async function connectSeedUsersToOrg(
   prisma: PrismaClient,
@@ -21,7 +22,7 @@ export async function connectSeedUsersToOrg(
   const allUserIds = Object.values(users).map((user) => user.id);
   const existingMemberships = await prisma.membership.findMany({
     where: { orgId, userId: { in: allUserIds } },
-    select: { userId: true },
+    select: { userId: true, id: true },
   });
   const existingUserIds = new Set(
     existingMemberships.map((membership) => membership.userId),
@@ -30,19 +31,26 @@ export async function connectSeedUsersToOrg(
   const missingUsers = Object.values(users).filter(
     (user) => !existingUserIds.has(user.id),
   );
-  if (missingUsers.length === 0) return [];
 
-  const memberships = await prisma.membership.createManyAndReturn({
-    data: missingUsers.map((user) => ({
-      orgId,
-      userId: user.id,
-      workingDays: options.workingDays ?? [],
-    })),
-  });
+  let newMemberships: Array<{ id: string }> = [];
+  if (missingUsers.length > 0) {
+    newMemberships = await prisma.membership.createManyAndReturn({
+      data: missingUsers.map((user) => ({
+        orgId,
+        userId: user.id,
+        workingDays: options.workingDays ?? [],
+      })),
+    });
+  }
 
   if (options.defaultRoleId) {
+    const allMemberships = await prisma.membership.findMany({
+      where: { orgId, userId: { in: allUserIds } },
+      select: { id: true },
+    });
+
     await prisma.memberRole.createMany({
-      data: memberships.map((membership) => ({
+      data: allMemberships.map((membership) => ({
         membershipId: membership.id,
         roleId: options.defaultRoleId!,
       })),
@@ -50,5 +58,5 @@ export async function connectSeedUsersToOrg(
     });
   }
 
-  return memberships;
+  return newMemberships;
 }

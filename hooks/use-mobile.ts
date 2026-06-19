@@ -4,11 +4,13 @@ import * as React from "react";
 const MOBILE_BREAKPOINT = 768;
 
 /**
- * Returns `true` when the viewport width is below the mobile breakpoint.
+ * Returns `true` when the viewport width is below the mobile breakpoint,
+ * `false` when above it, or `undefined` before the client-side measurement
+ * completes.
  *
  * Subscribes to a `MediaQueryList` change event so the value updates reactively
- * when the window is resized. Returns `false` on the first render (before the
- * effect runs) to avoid hydration mismatches.
+ * when the window is resized. Returns `undefined` on the first render (before
+ * the effect runs) to avoid hydration mismatches.
  */
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(
@@ -25,5 +27,5 @@ export function useIsMobile() {
     return () => mql.removeEventListener("change", onChange);
   }, []);
 
-  return !!isMobile;
+  return isMobile;
 }
