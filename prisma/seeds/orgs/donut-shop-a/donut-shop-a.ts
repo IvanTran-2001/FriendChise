@@ -23,6 +23,7 @@ import { DONUT_TASKS } from "./data";
 import { TASK_IMAGE_KEYWORDS, TASK_TAGS } from "./donut-shop-a-metadata";
 import type { Users } from "../../users";
 import { seedDisplayName } from "@/lib/seed-namespace";
+import { connectSeedUsersToOrg } from "../../connect-users";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 3. ORG 1 — Donut Shop A
@@ -178,6 +179,12 @@ export async function seedDonutShopA(prisma: PrismaClient, users: Users) {
     ],
   });
   console.log("  ✓ Member roles assigned");
+
+  await connectSeedUsersToOrg(prisma, org.id, users, {
+    workingDays: ["mon", "tue", "wed", "thu", "fri"],
+    defaultRoleId: roleWorker.id,
+  });
+  console.log("  ✓ All seed users connected to org");
 
   // ── Tasks ──────────────────────────────────────────────────────────────────
   console.log(`→ Creating ${DONUT_TASKS.length} tasks...`);

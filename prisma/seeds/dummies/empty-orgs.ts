@@ -4,6 +4,7 @@ import type { SeedPlan } from "../seed-plan";
 import { ALL_OWNER_PERMISSIONS } from "../helpers";
 import type { Users } from "../users";
 import { seedDisplayName } from "@/lib/seed-namespace";
+import { connectSeedUsersToOrg } from "../connect-users";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 5. EMPTY ORGS — multiple orgs with Riley as a member (not owner)
@@ -71,6 +72,11 @@ export async function seedEmptyOrgs(prisma: PrismaClient, users: Users) {
         { membershipId: mJordan.id, roleId: roleOwner.id  },
         { membershipId: mRiley.id,   roleId: roleWorker.id },
       ],
+    });
+
+    await connectSeedUsersToOrg(prisma, org.id, users, {
+      workingDays: ["mon", "tue", "wed", "thu", "fri"],
+      defaultRoleId: roleWorker.id,
     });
 
     console.log(`  ✓ ${org.name}`);

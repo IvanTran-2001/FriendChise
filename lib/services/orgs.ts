@@ -16,7 +16,9 @@ import type {
 } from "@/lib/validators/org";
 import {
   cloneRolesFromParent,
+  cloneTagsFromParent,
   cloneTasksFromParent,
+  cloneToolDataFromParent,
   cloneTemplatesFromParent,
   cloneTimetableSettingsFromParent,
   type Tx,
@@ -102,7 +104,8 @@ export async function createOrg(
   data: CreateOrgInput,
   actorEmail?: string | null,
 ) {
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(
+    async (tx) => {
     const org = await tx.organization.create({
       data: {
         name: data.title,
@@ -135,7 +138,11 @@ export async function createOrg(
     );
 
     return { org, ownerRole, memberRole, membership };
-  });
+    },
+    {
+      timeout: 30000,
+    },
+  );
   log.info("Org created", {
     orgId: result.org.id,
     userId,
@@ -148,9 +155,14 @@ export async function createOrg(
  * Joins an existing franchise as a child org using a one-time invite token.
  *
  * What IS inherited from the parent:
- *   - `name`        — child uses the same brand name as the parent.
+ *   - `name`        — child uses the parent's brand prefix plus the joining
+ *     user's name or email.
  *   - `parentId`    — FK that places this org in the franchise hierarchy.
  *   - Roles + permissions — full role structure is cloned (no users copied).
+ *   - Shared tasks  — GLOBAL tasks are copied into the child and linked into
+ *     its local task library.
+ *   - Tags / tools  — tag labels, tool items, conversion sets/rates/templates,
+ *     and item lists are cloned so the child starts with the parent's catalog.
  *
  * What is NOT inherited (franchisee sets independently):
  *   - Schedule — timezone, address, operating days and hours are per-location.
@@ -169,7 +181,8 @@ export async function joinFranchise(
   userEmail: string,
   data: JoinFranchiseInput,
 ) {
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(
+    async (tx) => {
     const [token, user] = await Promise.all([
       tx.franchiseToken.findUnique({
         where: { token: data.token },
@@ -207,23 +220,30 @@ export async function joinFranchise(
     });
 
     // Clone all roles + permissions from the parent (no users carried over).
-    const { clonedRoles, roleIdMap, membership } = await cloneRolesFromParent(
+    const { clonedRoles, membership } = await cloneRolesFromParent(
       tx,
       token.orgId,
       org.id,
       userId,
     );
 
-    // Clone tasks with eligibility remapped to the cloned roles.
-    const { taskIdMap } = await cloneTasksFromParent(
+    // Clone the parent tag library before task cloning so task-tag links can
+    // be remapped onto the child's new tag IDs.
+    await cloneTagsFromParent(tx, token.orgId, org.id);
+
+    // Inherit the parent's shared tasks and copy their section layouts.
+    const { inheritedTaskIds } = await cloneTasksFromParent(
       tx,
       token.orgId,
       org.id,
-      roleIdMap,
     );
 
-    // Clone timetable templates with taskIds remapped to the cloned tasks.
-    await cloneTemplatesFromParent(tx, token.orgId, org.id, taskIdMap);
+    // Clone the parent's conversion and item-list catalog into the child.
+    await cloneToolDataFromParent(tx, token.orgId, org.id);
+
+    // Clone timetable templates using the inherited task IDs.
+    await cloneTemplatesFromParent(tx, token.orgId, org.id, inheritedTaskIds);
+
 
     // Clone timetable view settings.
     await cloneTimetableSettingsFromParent(tx, token.orgId, org.id);
@@ -247,25 +267,29 @@ export async function joinFranchise(
       data: { status: "ACCEPTED", acceptedAt: new Date() },
     });
 
-    await recordAudit(
-      {
-        orgId: org.id,
-        actorId: userId,
-        actorEmail: userEmail ?? null,
-        action: "org.join_franchise",
-        targetType: "Organization",
-        targetId: org.id,
-        after: {
-          name: org.name,
-          parentId: org.parentId,
-          timezone: org.timezone,
+      await recordAudit(
+        {
+          orgId: org.id,
+          actorId: userId,
+          actorEmail: userEmail ?? null,
+          action: "org.join_franchise",
+          targetType: "Organization",
+          targetId: org.id,
+          after: {
+            name: org.name,
+            parentId: org.parentId,
+            timezone: org.timezone,
+          },
         },
-      },
-      tx,
-    );
+        tx,
+      );
 
-    return { org, clonedRoles, membership };
-  });
+      return { org, clonedRoles, membership };
+    },
+    {
+      timeout: 30000,
+    },
+  );
   log.info("Franchise joined", { orgId: result.org.id, userId });
   return result;
 }

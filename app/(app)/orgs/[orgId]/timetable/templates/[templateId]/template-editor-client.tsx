@@ -478,31 +478,52 @@ export function TemplateEditorClient({
     }
 
     startT(async () => {
-      const result =
-        data.type === "task"
-          ? await addTemplateInstanceAction(
-              orgId,
-              templateId,
-              data.taskId,
-              day,
-              timeMin,
-            )
-          : await updateTemplateInstanceAction(orgId, data.instanceId, {
-              dayIndex: day,
-              startTimeMin: timeMin,
-            });
-      if (!result.ok) return;
-      router.refresh();
+      try {
+        const result =
+          data.type === "task"
+            ? await addTemplateInstanceAction(
+                orgId,
+                templateId,
+                data.taskId,
+                day,
+                timeMin,
+              )
+            : await updateTemplateInstanceAction(orgId, data.instanceId, {
+                dayIndex: day,
+                startTimeMin: timeMin,
+              });
+        if (!result.ok) {
+          toast.error(result.error ?? "Something went wrong");
+          return;
+        }
+        router.refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Something went wrong");
+      }
     });
   }
 
   function handleTapPlace(col: string, timeMin: number, taskId: string) {
     const day = parseInt(col, 10);
     startT(async () => {
-      await addTemplateInstanceAction(orgId, templateId, taskId, day, timeMin);
-      setSelectedTaskId(null);
-      setTaskPanelOpen(false);
-      router.refresh();
+      try {
+        const result = await addTemplateInstanceAction(
+          orgId,
+          templateId,
+          taskId,
+          day,
+          timeMin,
+        );
+        if (!result.ok) {
+          toast.error(result.error ?? "Something went wrong");
+          return;
+        }
+        setSelectedTaskId(null);
+        setTaskPanelOpen(false);
+        router.refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Something went wrong");
+      }
     });
   }
 

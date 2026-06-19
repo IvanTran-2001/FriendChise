@@ -3,6 +3,7 @@
 import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Plus, X } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { addInstanceAssigneeAction, removeInstanceAssigneeAction, updateTemplateInstanceAction, removeTemplateInstanceAction } from "@/app/actions/templates";
 import { minToHHMM, hhmmToMin } from "../../../_shared/grid-utils";
@@ -74,12 +75,19 @@ export function CalendarEditSidebarContent({
   function handleSave() {
     if (parsedStartTime == null) return;
     startT(async () => {
-      const update: { startTimeMin?: number; dayIndex?: number } = { startTimeMin: parsedStartTime };
-      if (dayIndex != null && dayIndex !== instance.dayIndex) update.dayIndex = dayIndex;
-      const result = await updateTemplateInstanceAction(orgId, instance.id, update);
-      if (!result.ok) return;
-      router.refresh();
-      (onBack ?? onClose)();
+      try {
+        const update: { startTimeMin?: number; dayIndex?: number } = { startTimeMin: parsedStartTime };
+        if (dayIndex != null && dayIndex !== instance.dayIndex) update.dayIndex = dayIndex;
+        const result = await updateTemplateInstanceAction(orgId, instance.id, update);
+        if (!result.ok) {
+          toast.error(result.error ?? "Something went wrong");
+          return;
+        }
+        router.refresh();
+        (onBack ?? onClose)();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Something went wrong");
+      }
     });
   }
 

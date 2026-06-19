@@ -10,7 +10,7 @@ import { getOrgMembership, memberHasPermission } from "@/lib/authz/_shared";
 import { getRangeTimetableInstances } from "@/lib/services/timetable-entries";
 import { getTimetableTemplates } from "@/lib/services/templates";
 import { getOrgTimetableMeta } from "@/lib/services/orgs";
-import { getTasks } from "@/lib/services/tasks";
+import { getInheritedTasks } from "@/lib/services/tasks";
 import { getMemberships } from "@/lib/services/memberships";
 import { getRoles } from "@/lib/services/roles";
 import { getOrgTags } from "@/lib/services/tags";
@@ -122,7 +122,7 @@ export default async function TimetablePage({
   ] = await Promise.all([
     getRangeTimetableInstances(orgId, orgTz, rangeStart, 13),
     getTimetableTemplates(orgId),
-    getTasks(orgId),
+    getInheritedTasks(orgId),
     getMemberships(orgId),
     getOrgMembership(orgId, userId),
     getRoles(orgId),

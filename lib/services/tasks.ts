@@ -131,7 +131,7 @@ export async function deleteTask(
 }
 
 const taskInclude = {
-  organization: { select: { name: true } },
+  organization: { select: { id: true, name: true } },
   createdBy: { select: { id: true, name: true, image: true } },
   eligibility: {
     select: {

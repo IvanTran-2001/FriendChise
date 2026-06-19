@@ -18,7 +18,6 @@ import { prisma } from "@/lib/prisma";
 import { Prisma, EntryStatus } from "@prisma/client";
 import { recordAudit } from "@/lib/services/audit-log";
 import type { ServiceResult } from "./types";
-import type { CreateTimetableEntryInput } from "@/lib/validators/timetable-entry";
 import {
   localMidnightUTC,
   addCalendarDays,
@@ -32,90 +31,9 @@ export type ListTimetableEntriesOptions = {
   completed?: boolean;
 };
 
-/**
- * Creates a new timetable entry for the given org and task.
- * Validates that the task belongs to the org before inserting and
- * auto-populates snapshot fields (taskName, durationMin, etc.) from the task.
- * @param actorId - Optional caller ID forwarded from the action layer for audit log.
- */
-export async function createTimetableEntryFromInput(
-  orgId: string,
-  data: CreateTimetableEntryInput,
-  actorId?: string | null,
-  actorEmail?: string | null,
-): Promise<
-  ServiceResult<Prisma.TimetableEntryGetPayload<Record<string, never>>>
-> {
-  const task = await prisma.task.findFirst({
-    where: { id: data.taskId, orgId },
-    select: {
-      id: true,
-      name: true,
-      color: true,
-      description: true,
-      durationMin: true,
-    },
-  });
-  if (!task) {
-    return {
-      ok: false,
-      error: "Invalid taskId: not found or does not belong to this org",
-      code: "INVALID",
-    };
-  }
-
-  const endTimeMin = Math.min(
-    data.endTimeMin ?? data.startTimeMin + task.durationMin,
-    1440,
-  );
-
-  try {
-    const entry = await prisma.timetableEntry.create({
-      data: {
-        orgId,
-        taskId: task.id,
-        taskName: task.name,
-        taskColor: task.color,
-        taskDescription: task.description,
-        durationMin: task.durationMin,
-        date: new Date(data.date),
-        startTimeMin: data.startTimeMin,
-        endTimeMin,
-      },
-    });
-    log.info("Timetable entry created", {
-      orgId,
-      entryId: entry.id,
-      taskId: data.taskId,
-    });
-    recordAudit({
-      orgId,
-      actorId: actorId ?? null,
-      actorEmail: actorEmail ?? null,
-      action: "entry.create",
-      targetType: "TimetableEntry",
-      targetId: entry.id,
-      after: {
-        taskId: task.id,
-        taskName: task.name,
-        date: data.date,
-        startTimeMin: data.startTimeMin,
-        endTimeMin,
-      },
-    });
-    return { ok: true, data: entry };
-  } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError) {
-      if (e.code === "P2003") {
-        return {
-          ok: false,
-          error: "Invalid taskId: not found or does not belong to this org",
-          code: "INVALID",
-        };
-      }
-    }
-    throw e;
-  }
+function getFranchiseRoot(record: { id: string; parentId: string | null }) {
+  // Root orgs use their own id; child orgs inherit the parent's id for cross-org checks.
+  return record.parentId ?? record.id;
 }
 
 /**
@@ -316,21 +234,33 @@ export async function createTimetableEntry(
   const [org, task] = await Promise.all([
     prisma.organization.findUnique({
       where: { id: orgId },
-      select: { timezone: true },
+      select: { id: true, parentId: true, timezone: true },
     }),
-    prisma.task.findFirst({
-      where: { id: taskId, orgId },
+    prisma.task.findUnique({
+      where: { id: taskId },
       select: {
         id: true,
         name: true,
         color: true,
         description: true,
         durationMin: true,
+        organization: {
+          select: {
+            id: true,
+            parentId: true,
+          },
+        },
       },
     }),
   ]);
   if (!org) return { ok: false, error: "Org not found", code: "NOT_FOUND" };
   if (!task) return { ok: false, error: "Task not found", code: "NOT_FOUND" };
+
+  // Only allow timetable placement when the destination org and task owner
+  // resolve to the same franchise root.
+  if (getFranchiseRoot(org) !== getFranchiseRoot(task.organization)) {
+    return { ok: false, error: "Task not found", code: "NOT_FOUND" };
+  }
 
   const { utcDate, utcStartTimeMin } = localToUTC(
     dateStr,
@@ -601,20 +531,6 @@ export type WeekTimetableInstance = {
     };
   }>;
 };
-
-/**
- * Fetches and maps timetable entries for a local calendar week.
- * Delegates to `getTimetableEntries` for the UTC-aware query, then converts
- * each row to a local-time `WeekTimetableInstance` ready for client rendering.
- */
-export async function getWeekTimetableInstances(
-  orgId: string,
-  orgTz: string,
-  weekStart: string,
-): Promise<WeekTimetableInstance[]> {
-  const raw = await getTimetableEntries(orgId, orgTz, weekStart);
-  return raw.map((inst) => mapInstance(inst, orgTz));
-}
 
 /**
  * Fetches and maps timetable entries for an arbitrary date range.

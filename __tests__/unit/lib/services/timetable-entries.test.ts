@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
-  createTimetableEntryFromInput,
   createTimetableEntry,
   updateTimetableEntry,
   deleteTimetableEntry,
@@ -12,7 +10,7 @@ import {
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    task: { findFirst: vi.fn() },
+    task: { findUnique: vi.fn() },
     organization: { findUnique: vi.fn() },
     timetableEntry: {
       create: vi.fn(),
@@ -64,99 +62,25 @@ const mockEntry = {
 };
 
 beforeEach(() => vi.clearAllMocks());
-
-// ─── createTimetableEntryFromInput ────────────────────────────────────────────
-
-describe("createTimetableEntryFromInput", () => {
-  const input = { taskId: "task-1", date: "2026-04-20", startTimeMin: 360 };
-
-  it("creates and returns entry when task belongs to org", async () => {
-    vi.mocked(prisma.task.findFirst).mockResolvedValue({
-      id: "task-1",
-      name: "Open shop",
-      color: "#F59E0B",
-      description: null,
-      durationMin: 30,
-    } as any);
-    vi.mocked(prisma.timetableEntry.create).mockResolvedValue(mockEntry as any);
-
-    const result = await createTimetableEntryFromInput("org-1", input as any);
-
-    expect(result).toEqual({ ok: true, data: mockEntry });
-    expect(prisma.timetableEntry.create).toHaveBeenCalled();
-  });
-
-  it("returns INVALID when task does not belong to org", async () => {
-    vi.mocked(prisma.task.findFirst).mockResolvedValue(null);
-
-    const result = await createTimetableEntryFromInput("org-1", input as any);
-
-    expect(result).toEqual({
-      ok: false,
-      error: "Invalid taskId: not found or does not belong to this org",
-      code: "INVALID",
-    });
-    expect(prisma.timetableEntry.create).not.toHaveBeenCalled();
-  });
-
-  it("caps endTimeMin at 1440 when task extends past midnight", async () => {
-    vi.mocked(prisma.task.findFirst).mockResolvedValue({
-      id: "task-1",
-      name: "Night task",
-      color: "#000",
-      description: null,
-      durationMin: 120,
-    } as any);
-    vi.mocked(prisma.timetableEntry.create).mockResolvedValue(mockEntry as any);
-
-    // startTimeMin 1380 (23:00) + 120 min = 1500 → should cap to 1440
-    await createTimetableEntryFromInput("org-1", {
-      ...input,
-      startTimeMin: 1380,
-    } as any);
-
-    const createCall = vi.mocked(prisma.timetableEntry.create).mock.calls[0][0];
-    expect((createCall as any).data.endTimeMin).toBeLessThanOrEqual(1440);
-  });
-
-  it("returns INVALID on foreign key violation (P2003)", async () => {
-    vi.mocked(prisma.task.findFirst).mockResolvedValue({
-      id: "task-1",
-      name: "t",
-      color: "#000",
-      description: null,
-      durationMin: 30,
-    } as any);
-    const err = new Prisma.PrismaClientKnownRequestError("FK violation", {
-      code: "P2003",
-      clientVersion: "5.0.0",
-      meta: {},
-    });
-    vi.mocked(prisma.timetableEntry.create).mockRejectedValue(err);
-
-    const result = await createTimetableEntryFromInput("org-1", input as any);
-
-    expect(result).toEqual({
-      ok: false,
-      error: "Invalid taskId: not found or does not belong to this org",
-      code: "INVALID",
-    });
-  });
-});
-
 // ─── createTimetableEntry ─────────────────────────────────────────────────────
 
 describe("createTimetableEntry", () => {
   it("creates entry and returns ok: true", async () => {
     vi.mocked(prisma.organization.findUnique).mockResolvedValue({
+      id: "org-child-a",
+      parentId: "root-org",
       timezone: "UTC",
     } as any);
-    vi.mocked(prisma.task.findFirst).mockResolvedValue({
+    vi.mocked(prisma.task.findUnique).mockResolvedValue({
       id: "task-1",
       name: "Open",
       color: "#F59E0B",
       description: null,
       durationMin: 30,
+      organization: {
+        id: "org-child-b",
+        parentId: "root-org",
+      },
     } as any);
     vi.mocked(prisma.timetableEntry.create).mockResolvedValue(mockEntry as any);
 
@@ -187,11 +111,23 @@ describe("createTimetableEntry", () => {
     });
   });
 
-  it("returns NOT_FOUND when task does not belong to org", async () => {
+  it("returns NOT_FOUND when task is in a different franchise root", async () => {
     vi.mocked(prisma.organization.findUnique).mockResolvedValue({
+      id: "org-a",
+      parentId: null,
       timezone: "UTC",
     } as any);
-    vi.mocked(prisma.task.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.task.findUnique).mockResolvedValue({
+      id: "task-1",
+      name: "Open",
+      color: "#F59E0B",
+      description: null,
+      durationMin: 30,
+      organization: {
+        id: "org-b",
+        parentId: null,
+      },
+    } as any);
 
     const result = await createTimetableEntry(
       "org-1",
@@ -205,6 +141,35 @@ describe("createTimetableEntry", () => {
       error: "Task not found",
       code: "NOT_FOUND",
     });
+  });
+
+  it("allows creation when org and task share the same parentId", async () => {
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({
+      id: "org-child-a",
+      parentId: "root-org",
+      timezone: "UTC",
+    } as any);
+    vi.mocked(prisma.task.findUnique).mockResolvedValue({
+      id: "task-1",
+      name: "Open",
+      color: "#F59E0B",
+      description: null,
+      durationMin: 30,
+      organization: {
+        id: "org-child-b",
+        parentId: "root-org",
+      },
+    } as any);
+    vi.mocked(prisma.timetableEntry.create).mockResolvedValue(mockEntry as any);
+
+    const result = await createTimetableEntry(
+      "org-child-a",
+      "task-1",
+      "2026-04-20",
+      360,
+    );
+
+    expect(result).toEqual({ ok: true, data: mockEntry });
   });
 });
 

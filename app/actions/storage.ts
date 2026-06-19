@@ -90,7 +90,9 @@ export async function getSignedUploadUrl(
 
 /**
  * Saves the storage path returned after a successful upload,
- * replacing any previous image (old file is deleted from storage).
+ * replacing any previous image. Task/item image paths may be shared across
+ * cloned franchise orgs, so old files are only deleted when nothing else
+ * still points at them.
  */
 export async function saveTaskImagePath(
   orgId: string,
@@ -127,7 +129,10 @@ export async function saveTaskImagePath(
     existing.imageUrl !== normalized &&
     !existing.imageUrl.startsWith(`orgs/${orgId}/images/`)
   ) {
-    await deleteStorageFile(existing.imageUrl);
+    const refCount = await prisma.task.count({
+      where: { imageUrl: existing.imageUrl, NOT: { id: taskId } },
+    });
+    if (refCount === 0) await deleteStorageFile(existing.imageUrl);
   }
 
   return { ok: true };
@@ -151,7 +156,10 @@ export async function removeTaskImage(
     select: { imageUrl: true },
   });
   if (task?.imageUrl) {
-    await deleteStorageFile(task.imageUrl);
+    const refCount = await prisma.task.count({
+      where: { imageUrl: task.imageUrl, NOT: { id: taskId } },
+    });
+    if (refCount === 0) await deleteStorageFile(task.imageUrl);
   }
 
   const result = await updateTaskImageUrl(orgId, taskId, null);
@@ -223,7 +231,7 @@ export async function saveToolItemImagePath(
     !existing.imgUrl.startsWith(`orgs/${orgId}/images/`)
   ) {
     const refCount = await prisma.toolItem.count({
-      where: { orgId, imgUrl: existing.imgUrl },
+      where: { imgUrl: existing.imgUrl },
     });
     if (refCount === 0) await deleteStorageFile(existing.imgUrl);
   }
@@ -246,9 +254,9 @@ export async function removeToolItemImage(
     select: { imgUrl: true },
   });
   if (item?.imgUrl) {
-    // Only delete the actual file if no other item in the org shares this path.
+    // Only delete the actual file if no other item anywhere still shares it.
     const refCount = await prisma.toolItem.count({
-      where: { orgId, imgUrl: item.imgUrl, NOT: { id: itemId } },
+      where: { imgUrl: item.imgUrl, NOT: { id: itemId } },
     });
     if (refCount === 0) await deleteStorageFile(item.imgUrl);
   }
@@ -290,7 +298,7 @@ export async function reuseToolItemImageAction(
   await updateToolItemImageUrl(orgId, itemId, normalized);
   if (current?.imgUrl && current.imgUrl !== normalized) {
     const refCount = await prisma.toolItem.count({
-      where: { orgId, imgUrl: current.imgUrl },
+      where: { imgUrl: current.imgUrl, NOT: { id: itemId } },
     });
     if (refCount === 0) await deleteStorageFile(current.imgUrl);
   }

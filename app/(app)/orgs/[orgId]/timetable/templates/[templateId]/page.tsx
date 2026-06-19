@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireOrgPermissionPage } from "@/lib/authz";
 import { getTimetableTemplate } from "@/lib/services/templates";
-import { getTasks } from "@/lib/services/tasks";
+import { getInheritedTasks } from "@/lib/services/tasks";
 import { prisma } from "@/lib/prisma";
 import { toLocalDateStr } from "@/lib/date-utils";
 import { TemplateEditorPageClient } from "./template-editor-page-client";
@@ -39,7 +39,7 @@ export default async function TemplateEditorPage({
       where: { id: orgId },
       select: { openTimeMin: true, closeTimeMin: true, timezone: true },
     }),
-    getTasks(orgId),
+    getInheritedTasks(orgId),
     prisma.membership.findMany({
       where: { orgId },
       select: {

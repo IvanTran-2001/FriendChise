@@ -14,6 +14,11 @@ import {
   utcToLocal,
 } from "@/lib/date-utils";
 
+function getFranchiseRoot(record: { id: string; parentId: string | null }) {
+  // Root orgs use their own id; child orgs inherit the parent's id for cross-org checks.
+  return record.parentId ?? record.id;
+}
+
 /**
  * Returns all templates for the given org, ordered newest-first.
  * Includes the total number of entries on each template via `_count`.
@@ -106,19 +111,38 @@ export async function addTemplateInstance(
   task: { id: string; name: string; durationMin: number };
   assignees: Array<{ id: string; membership: { id: string; botName: string | null; user: { id: string; name: string | null } | null } }>;
 }>> {
-  const [task, template] = await Promise.all([
-    prisma.task.findFirst({
-      where: { id: taskId, orgId },
-      select: { id: true, durationMin: true },
+  const [org, task, template] = await Promise.all([
+    prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { id: true, parentId: true },
+    }),
+    prisma.task.findUnique({
+      where: { id: taskId },
+      select: {
+        id: true,
+        durationMin: true,
+        organization: {
+          select: {
+            id: true,
+            parentId: true,
+          },
+        },
+      },
     }),
     prisma.timetableTemplate.findFirst({
       where: { id: templateId, orgId },
       select: { id: true, cycleLengthDays: true },
     }),
   ]);
+  if (!org) return { ok: false, error: "Org not found", code: "NOT_FOUND" };
   if (!task) return { ok: false, error: "Task not found", code: "NOT_FOUND" };
   if (!template)
     return { ok: false, error: "Template not found", code: "NOT_FOUND" };
+  // Only allow template placement when the destination org and task owner
+  // resolve to the same franchise root.
+  if (getFranchiseRoot(org) !== getFranchiseRoot(task.organization)) {
+    return { ok: false, error: "Task not found", code: "NOT_FOUND" };
+  }
   if (dayIndex < 0 || dayIndex >= template.cycleLengthDays) {
     return {
       ok: false,

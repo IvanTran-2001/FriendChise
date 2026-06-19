@@ -7,14 +7,15 @@
  * carried over.
  *
  * Add new clone functions here as the franchise onboarding flow grows
- * (e.g. cloneTasksFromParent, cloneTimetableSettingsFromParent, etc.).
+ * (e.g. cloneTagsFromParent, cloneToolDataFromParent, cloneTimetableSettingsFromParent, etc.).
  */
 
-import { InviteType } from "@prisma/client";
+import { InviteType, TaskScope } from "@prisma/client";
 import { log } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 import { ROLE_KEYS } from "@/lib/rbac";
 import { recordAudit } from "@/lib/services/audit-log";
+import { DEFAULT_SECTIONS } from "@/lib/services/task-sections";
 import type { ServiceResult } from "./types";
 import { normalizeEmail } from "@/lib/utils";
 
@@ -86,57 +87,270 @@ export async function cloneRolesFromParent(
 }
 
 /**
- * Clones all tasks and their role eligibility from a parent org into a child org.
+ * Clones the parent's tag library into the child org.
+ */
+export async function cloneTagsFromParent(
+  tx: Tx,
+  parentOrgId: string,
+  childOrgId: string,
+) {
+  const parentTags = await tx.tag.findMany({
+    where: { orgId: parentOrgId },
+    orderBy: [{ isDefault: "desc" }, { name: "asc" }],
+    select: { id: true, name: true, color: true, isDefault: true },
+  });
+
+  const clonedTags = await Promise.all(
+    parentTags.map((tag) =>
+      tx.tag.create({
+        data: {
+          orgId: childOrgId,
+          name: tag.name,
+          color: tag.color,
+          isDefault: tag.isDefault,
+        },
+      }),
+    ),
+  );
+
+  const tagIdMap = new Map<string, string>(
+    parentTags.map((tag, index) => [tag.id, clonedTags[index].id]),
+  );
+
+  return { clonedTags, tagIdMap };
+}
+
+/**
+ * Clones the parent's shared task catalog into the child org.
  *
- * What is cloned:
- *   - Every Task (name, description, color, durations, constraints)
- *   - TaskEligibility records — role IDs are remapped via roleIdMap so
- *     eligibility points at the cloned roles, not the parent's.
- *
- * Returns a taskIdMap (parent task ID → child task ID) for use by
- * cloneTemplatesFromParent.
+ * Only GLOBAL tasks are inherited. Private ORG tasks remain local to the
+ * parent. This creates TaskInheritance rows for the child org and copies each
+ * task's section layout as the starting point for the child view.
  */
 export async function cloneTasksFromParent(
   tx: Tx,
   parentOrgId: string,
   childOrgId: string,
-  roleIdMap: Map<string, string>,
 ) {
   const parentTasks = await tx.task.findMany({
-    where: { orgId: parentOrgId },
-    include: { eligibility: { select: { roleId: true } } },
+    where: { orgId: parentOrgId, scope: TaskScope.GLOBAL },
+    select: { id: true },
   });
 
-  const taskIdMap = new Map<string, string>();
+  if (parentTasks.length === 0) {
+    return { inheritedTaskIds: new Set<string>() };
+  }
+
+  await tx.taskInheritance.createMany({
+    data: parentTasks.map((task) => ({ taskId: task.id, orgId: childOrgId })),
+    skipDuplicates: true,
+  });
 
   await Promise.all(
     parentTasks.map(async (task) => {
-      const cloned = await tx.task.create({
-        data: {
-          orgId: childOrgId,
-          name: task.name,
-          description: task.description,
-          color: task.color,
-          durationMin: task.durationMin,
-          minPeople: task.minPeople,
-          maxPeople: task.maxPeople,
-          priority: task.priority,
-          preferredStartTimeMin: task.preferredStartTimeMin,
-          minWaitDays: task.minWaitDays,
-          maxWaitDays: task.maxWaitDays,
-          eligibility: {
-            create: task.eligibility
-              .map(({ roleId }) => roleIdMap.get(roleId))
-              .filter((id): id is string => id !== undefined)
-              .map((roleId) => ({ roleId })),
-          },
-        },
+      const sourceLayouts = await tx.taskSectionLayout.findMany({
+        where: { taskId: task.id, orgId: parentOrgId },
+        orderBy: { position: "asc" },
       });
-      taskIdMap.set(task.id, cloned.id);
+
+      const layouts = sourceLayouts.length > 0 ? sourceLayouts : DEFAULT_SECTIONS;
+
+      await tx.taskSectionLayout.createMany({
+        data: layouts.map((section, index) => ({
+          taskId: task.id,
+          orgId: childOrgId,
+          type: section.type,
+          title: section.title,
+          scope: section.scope,
+          position: section.position ?? index,
+          visible: section.visible,
+        })),
+        skipDuplicates: true,
+      });
     }),
   );
 
-  return { taskIdMap };
+  return { inheritedTaskIds: new Set(parentTasks.map((task) => task.id)) };
+}
+
+/**
+ * Clones the parent's tool catalog into the child org.
+ *
+ * This covers tool items, conversion sets/rates/templates, and item lists.
+ * Checklist state is intentionally not copied because it is operational data.
+ */
+export async function cloneToolDataFromParent(
+  tx: Tx,
+  parentOrgId: string,
+  childOrgId: string,
+) {
+  const parentItems = await tx.toolItem.findMany({
+    where: { orgId: parentOrgId },
+    select: { id: true, name: true, unit: true, imgUrl: true },
+  });
+
+  const clonedItems = await Promise.all(
+    parentItems.map((item) =>
+      tx.toolItem.create({
+        data: {
+          orgId: childOrgId,
+          name: item.name,
+          unit: item.unit,
+          imgUrl: item.imgUrl,
+        },
+      }),
+    ),
+  );
+
+  const toolItemIdMap = new Map<string, string>(
+    parentItems.map((item, index) => [item.id, clonedItems[index].id]),
+  );
+
+  const parentSets = await tx.conversionSet.findMany({
+    where: { orgId: parentOrgId },
+    include: {
+      rates: true,
+      templates: { include: { entries: true } },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  await Promise.all(
+    parentSets.map(async (set) => {
+      const clonedSet = await tx.conversionSet.create({
+        data: { orgId: childOrgId, name: set.name },
+      });
+
+      const rateRows = set.rates
+        .map((rate) => {
+          const fromItemId = toolItemIdMap.get(rate.fromItemId);
+          const toItemId = toolItemIdMap.get(rate.toItemId);
+          if (!fromItemId || !toItemId) return null;
+          return {
+            setId: clonedSet.id,
+            fromItemId,
+            toItemId,
+            fromQty: rate.fromQty,
+            toQty: rate.toQty,
+          };
+        })
+        .filter(
+          (
+            rate,
+          ): rate is {
+            setId: string;
+            fromItemId: string;
+            toItemId: string;
+            fromQty: number;
+            toQty: number;
+          } => rate !== null,
+        );
+
+      if (rateRows.length > 0) {
+        await tx.conversionRate.createMany({ data: rateRows });
+      }
+
+      await Promise.all(
+        set.templates.map(async (template) => {
+          const clonedTemplate = await tx.conversionTemplate.create({
+            data: {
+              setId: clonedSet.id,
+              name: template.name,
+            },
+          });
+
+          const entryRows = template.entries
+            .map((entry) => {
+              const itemId = toolItemIdMap.get(entry.itemId);
+              if (!itemId) return null;
+              return {
+                templateId: clonedTemplate.id,
+                itemId,
+                quantity: entry.quantity,
+                pinnedOutput: entry.pinnedOutput,
+              };
+            })
+            .filter(
+              (
+                entry,
+              ): entry is {
+                templateId: string;
+                itemId: string;
+                quantity: number | null;
+                pinnedOutput: number;
+              } => entry !== null,
+            );
+
+          if (entryRows.length > 0) {
+            await tx.conversionTemplateEntry.createMany({ data: entryRows });
+          }
+        }),
+      );
+    }),
+  );
+
+  const parentLists = await tx.toolItemList.findMany({
+    where: { orgId: parentOrgId },
+    include: {
+      gridConfig: true,
+      entries: {
+        select: { itemId: true, position: true, amount: true },
+        orderBy: [{ position: "asc" }, { id: "asc" }],
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  await Promise.all(
+    parentLists.map(async (list) => {
+      const clonedList = await tx.toolItemList.create({
+        data: {
+          orgId: childOrgId,
+          name: list.name,
+          description: list.description,
+          displayType: list.displayType,
+        },
+      });
+
+      if (list.gridConfig) {
+        await tx.toolItemGridConfig.create({
+          data: {
+            listId: clonedList.id,
+            gridCols: list.gridConfig.gridCols,
+            gridRows: list.gridConfig.gridRows,
+          },
+        });
+      }
+
+      const entryRows = list.entries
+        .map((entry) => {
+          const itemId = toolItemIdMap.get(entry.itemId);
+          if (!itemId) return null;
+          return {
+            listId: clonedList.id,
+            itemId,
+            position: entry.position,
+            amount: entry.amount,
+          };
+        })
+        .filter(
+          (
+            entry,
+          ): entry is {
+            listId: string;
+            itemId: string;
+            position: number;
+            amount: number;
+          } => entry !== null,
+        );
+
+      if (entryRows.length > 0) {
+        await tx.toolItemListEntry.createMany({ data: entryRows });
+      }
+    }),
+  );
+
+  return { clonedItems, toolItemIdMap };
 }
 
 /**
@@ -158,7 +372,7 @@ export async function cloneTemplatesFromParent(
   tx: Tx,
   parentOrgId: string,
   childOrgId: string,
-  taskIdMap: Map<string, string>,
+  inheritedTaskIds: Set<string>,
 ) {
   const parentTemplates = await tx.timetableTemplate.findMany({
     where: { orgId: parentOrgId },
@@ -185,9 +399,9 @@ export async function cloneTemplatesFromParent(
           cycleLengthDays: template.cycleLengthDays,
           entries: {
             create: template.entries
-              .filter((entry) => taskIdMap.has(entry.taskId))
+              .filter((entry) => inheritedTaskIds.has(entry.taskId))
               .map((entry) => ({
-                taskId: taskIdMap.get(entry.taskId)!,
+                taskId: entry.taskId,
                 dayIndex: entry.dayIndex,
                 startTimeMin: entry.startTimeMin,
                 endTimeMin: entry.endTimeMin,

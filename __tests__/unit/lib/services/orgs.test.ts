@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { createOrg } from "@/lib/services/orgs";
+import { createOrg, joinFranchise } from "@/lib/services/orgs";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -10,6 +10,9 @@ vi.mock("@/lib/prisma", () => ({
     permission: { createMany: vi.fn() },
     membership: { create: vi.fn() },
     memberRole: { createMany: vi.fn() },
+    franchiseToken: { findUnique: vi.fn(), update: vi.fn() },
+    user: { findUnique: vi.fn() },
+    invite: { updateMany: vi.fn() },
     auditLog: { create: vi.fn() },
   },
 }));
@@ -18,7 +21,9 @@ vi.mock("@/lib/prisma", () => ({
 // transaction for joinFranchise but not for createOrg.
 vi.mock("@/lib/services/franchise", () => ({
   cloneRolesFromParent: vi.fn(),
+  cloneTagsFromParent: vi.fn(),
   cloneTasksFromParent: vi.fn(),
+  cloneToolDataFromParent: vi.fn(),
   cloneTemplatesFromParent: vi.fn(),
   cloneTimetableSettingsFromParent: vi.fn(),
 }));
@@ -163,5 +168,93 @@ describe("createOrg", () => {
         expect.objectContaining({ roleId: "role-member" }),
       ]),
     });
+  });
+});
+
+// ─── joinFranchise ───────────────────────────────────────────────────────────
+
+describe("joinFranchise", () => {
+  it("clones the parent's shared catalog into the child org", async () => {
+    const mockOrg = { id: "child-org", name: "Parent Org: Alice" };
+    const roleIdMap = new Map([["parent-role", "role-owner"]]);
+    const inheritedTaskIds = new Set(["parent-task"]);
+    const toolItemIdMap = new Map([["parent-item", "item-child"]]);
+    const mockMembership = { id: "mem-1" };
+
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+      fn(prisma),
+    );
+    vi.mocked(prisma.franchiseToken.findUnique).mockResolvedValue({
+      id: "token-1",
+      token: "tok-valid",
+      orgId: "parent-org",
+      invitedEmail: "alice@example.com",
+      usedByOrgId: null,
+      expiresAt: new Date(Date.now() + 60_000),
+      organization: { id: "parent-org", name: "Parent Org", image: null },
+    } as any);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      name: "Alice",
+    } as any);
+    vi.mocked(prisma.organization.create).mockResolvedValue(mockOrg as any);
+    vi.mocked(prisma.franchiseToken.update).mockResolvedValue({} as any);
+    vi.mocked(prisma.invite.updateMany).mockResolvedValue({ count: 1 } as any);
+
+    const franchise = await import("@/lib/services/franchise");
+    vi.mocked(franchise.cloneRolesFromParent).mockResolvedValue({
+      clonedRoles: [{ id: "role-owner", key: "owner" }] as any,
+      roleIdMap,
+      membership: mockMembership as any,
+    } as any);
+    vi.mocked(franchise.cloneTagsFromParent).mockResolvedValue({
+      clonedTags: [],
+    } as any);
+    vi.mocked(franchise.cloneTasksFromParent).mockResolvedValue({
+      inheritedTaskIds,
+    } as any);
+    vi.mocked(franchise.cloneToolDataFromParent).mockResolvedValue({
+      clonedItems: [],
+      toolItemIdMap,
+    } as any);
+    vi.mocked(franchise.cloneTemplatesFromParent).mockResolvedValue({
+      clonedTemplates: [],
+    } as any);
+    vi.mocked(franchise.cloneTimetableSettingsFromParent).mockResolvedValue(
+      null as any,
+    );
+
+    const result = await joinFranchise(
+      "user-1",
+      "alice@example.com",
+      { token: "tok-valid" } as any,
+    );
+
+    expect(result).toMatchObject({ org: mockOrg });
+    expect(franchise.cloneTagsFromParent).toHaveBeenCalledWith(
+      prisma,
+      "parent-org",
+      "child-org",
+    );
+    expect(franchise.cloneTasksFromParent).toHaveBeenCalledWith(
+      prisma,
+      "parent-org",
+      "child-org",
+    );
+    expect(franchise.cloneToolDataFromParent).toHaveBeenCalledWith(
+      prisma,
+      "parent-org",
+      "child-org",
+    );
+    expect(franchise.cloneTemplatesFromParent).toHaveBeenCalledWith(
+      prisma,
+      "parent-org",
+      "child-org",
+      inheritedTaskIds,
+    );
+    expect(franchise.cloneTimetableSettingsFromParent).toHaveBeenCalledWith(
+      prisma,
+      "parent-org",
+      "child-org",
+    );
   });
 });

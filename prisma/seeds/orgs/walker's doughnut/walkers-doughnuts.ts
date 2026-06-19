@@ -9,6 +9,8 @@
 import { PrismaClient, PermissionAction } from "@prisma/client";
 import { ROLE_KEYS } from "@/lib/rbac";
 import { seedDisplayName } from "@/lib/seed-namespace";
+import { connectSeedUsersToOrg } from "../../connect-users";
+import type { Users } from "../../users";
 
 const ALL_OWNER_PERMISSIONS = Object.values(PermissionAction);
 
@@ -790,6 +792,7 @@ export async function seedConversionData(prisma: PrismaClient, orgId: string) {
 export async function seedWalkersDoughnuts(
   prisma: PrismaClient,
   owner: { id: string },
+  users?: Users,
 ) {
   const orgName = seedDisplayName("Walker's Doughnuts");
   const existing = await prisma.organization.findFirst({
@@ -801,7 +804,7 @@ export async function seedWalkersDoughnuts(
       `  ℹ Org already exists (id: ${existing.id}) — upserting roles/permissions/membership and replacing tasks.`,
     );
 
-    const [roleOwner] = await Promise.all([
+    const [roleOwner, roleWorker] = await Promise.all([
       prisma.role.upsert({
         where: { orgId_key: { orgId: existing.id, key: ROLE_KEYS.OWNER } },
         update: {},
@@ -847,6 +850,13 @@ export async function seedWalkersDoughnuts(
       skipDuplicates: true,
     });
 
+    if (users) {
+      await connectSeedUsersToOrg(prisma, existing.id, users, {
+        workingDays: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+        defaultRoleId: roleWorker.id,
+      });
+    }
+
     await prisma.task.deleteMany({ where: { orgId: existing.id } });
     await prisma.task.createMany({
       data: TASKS.map(([name, color, durationMin, description]) => ({
@@ -877,7 +887,7 @@ export async function seedWalkersDoughnuts(
   });
   console.log(`  ✓ Org created (id: ${org.id})`);
 
-  const [roleOwner] = await Promise.all([
+  const [roleOwner, roleWorker] = await Promise.all([
     prisma.role.create({
       data: {
         orgId: org.id,
@@ -916,6 +926,14 @@ export async function seedWalkersDoughnuts(
     data: { membershipId: membership.id, roleId: roleOwner.id },
   });
   console.log("  ✓ Owner membership + role assigned");
+
+  if (users) {
+    await connectSeedUsersToOrg(prisma, org.id, users, {
+      workingDays: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+      defaultRoleId: roleWorker.id,
+    });
+    console.log("  ✓ All seed users connected to org");
+  }
 
   await prisma.task.createMany({
     data: TASKS.map(([name, color, durationMin, description]) => ({
