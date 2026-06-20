@@ -12,5 +12,9 @@ export function SignInResponsiveShell({
 }) {
   const isMobile = useIsMobile();
 
+  if (isMobile === undefined) {
+    return null;
+  }
+
   return isMobile ? mobile : desktop;
 }
