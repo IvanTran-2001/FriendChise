@@ -1,6 +1,8 @@
 "use client";
 
-type GrowthPoint = {
+export type RangeKey = "day" | "7d" | "month" | "6m" | "year" | "lifetime";
+
+export type GrowthPoint = {
   key: string;
   label: string;
   total: number;
@@ -8,25 +10,93 @@ type GrowthPoint = {
 };
 
 type AdminGrowthChartProps = {
+  range: RangeKey;
   points: GrowthPoint[];
-  maxValue: number;
-  totalPath: string;
-  demoPath: string;
-  yTicks: number[];
-  xLabelIndexes: number[];
-  xAxisLabel: string;
 };
 
-export function AdminGrowthChart({
-  points,
-  maxValue,
-  totalPath,
-  demoPath,
-  yTicks,
-  xLabelIndexes,
-  xAxisLabel,
-}: AdminGrowthChartProps) {
+function getXAxisLabel(range: RangeKey) {
+  // Keep the axis title aligned with the semantic range, not the raw bucket count.
+  switch (range) {
+    case "day":
+      return "Hours";
+    case "7d":
+      return "Days";
+    case "month":
+      return "Weeks";
+    case "6m":
+    case "year":
+      return "Months";
+    default:
+      return "Years";
+  }
+}
+
+function getXLabelIndexes(range: RangeKey, pointCount: number): number[] {
+  if (pointCount === 0) return [];
+  const all = Array.from({ length: pointCount }, (_, index) => index);
+
+  // Label density changes per range so the axis stays readable on small screens.
+  switch (range) {
+    case "day":
+      return all.filter((index) => (index + 1) % 4 === 0 || index === pointCount - 1);
+    case "7d":
+    case "month":
+    case "6m":
+    case "year":
+      return all;
+    default: {
+      if (pointCount <= 8) return all;
+      const step = Math.ceil(pointCount / 7);
+      return all.filter((index) => index % step === 0 || index === pointCount - 1);
+    }
+  }
+}
+
+function computeYScale(dataMax: number): { scale: number; ticks: number[] } {
+  // Pick a friendly ceiling so the graph does not feel cramped against the top edge.
+  if (dataMax === 0) return { scale: 5, ticks: [0, 1, 2, 3, 4, 5] };
+  if (dataMax <= 5) {
+    return { scale: dataMax, ticks: Array.from({ length: dataMax + 1 }, (_, index) => index) };
+  }
+
+  const rawStep = dataMax / 4;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  let step = magnitude;
+  const norm = rawStep / magnitude;
+
+  if (norm > 5) step = 10 * magnitude;
+  else if (norm > 2) step = 5 * magnitude;
+  else if (norm > 1) step = 2 * magnitude;
+
+  const scale = Math.ceil(dataMax / step) * step;
+  const ticks: number[] = [];
+  for (let value = 0; value <= scale; value += step) ticks.push(value);
+  return { scale, ticks };
+}
+
+function linePath(points: GrowthPoint[], selector: "total" | "demo", scale: number) {
+  if (points.length === 0) return "";
+  const step = points.length > 1 ? 100 / (points.length - 1) : 0;
+
+  // The SVG uses a 100x40 coordinate space, so we map each bucket onto that grid.
+  return points
+    .map((point, index) => {
+      const x = points.length === 1 ? 50 : index * step;
+      const y = 34 - (point[selector] / scale) * 28;
+      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+    })
+    .join(" ");
+}
+
+export function AdminGrowthChart({ range, points }: AdminGrowthChartProps) {
+  // The chart only renders the already-bucketed points and derives its own scale.
   const hasData = points.length > 0;
+  const dataMax = Math.max(0, ...points.map((point) => Math.max(point.total, point.demo)));
+  const { scale: maxValue, ticks: yTicks } = computeYScale(dataMax);
+  const totalPath = linePath(points, "total", maxValue);
+  const demoPath = linePath(points, "demo", maxValue);
+  const xLabelIndexes = getXLabelIndexes(range, points.length);
+  const xAxisLabel = getXAxisLabel(range);
 
   return (
     <div className="rounded-2xl border border-border/70 bg-linear-to-b from-primary/6 via-background to-background p-3 sm:p-4">
@@ -141,15 +211,15 @@ export function AdminGrowthChart({
             <span className="hidden sm:inline">Selected range</span>
           </div>
           <div className="flex gap-2 text-[10px] leading-tight text-muted-foreground sm:text-xs">
-          {points.map((point, index) => (
-            <div key={point.key} className="min-w-0 flex-1 text-center">
-              {xLabelIndexes.includes(index) ? (
-                <span className="block truncate">{point.label}</span>
-              ) : (
-                <span className="block opacity-0">.</span>
-              )}
-            </div>
-          ))}
+            {points.map((point, index) => (
+              <div key={point.key} className="min-w-0 flex-1 text-center">
+                {xLabelIndexes.includes(index) ? (
+                  <span className="block truncate">{point.label}</span>
+                ) : (
+                  <span className="block opacity-0">.</span>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </div>

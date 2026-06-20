@@ -4,22 +4,16 @@ import { useMemo, useState } from "react";
 import { CalendarRange, LineChart, Users, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdminGrowthChart } from "./admin-growth-chart";
+import { AdminGrowthChart, type GrowthPoint, type RangeKey } from "./admin-growth-chart";
 
 export type UserGrowthRecord = {
   createdAt: string;
   isDemo: boolean;
 };
 
-type RangeKey = "day" | "7d" | "month" | "6m" | "year" | "lifetime";
-type Granularity = "hour" | "day" | "month";
+type Granularity = "hour" | "day" | "month" | "year";
 
-type Bucket = {
-  key: string;
-  label: string;
-  total: number;
-  demo: number;
-};
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const RANGE_OPTIONS: Array<{ key: RangeKey; label: string }> = [
   { key: "day", label: "Last day" },
@@ -49,6 +43,13 @@ function startOfMonth(date: Date) {
   return next;
 }
 
+function startOfYear(date: Date) {
+  const next = new Date(date);
+  next.setMonth(0, 1);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
 function addHours(date: Date, hours: number) {
   const next = new Date(date);
   next.setHours(next.getHours() + hours);
@@ -67,6 +68,12 @@ function addMonths(date: Date, months: number) {
   return next;
 }
 
+function addYears(date: Date, years: number) {
+  const next = new Date(date);
+  next.setFullYear(next.getFullYear() + years);
+  return next;
+}
+
 function bucketKey(date: Date, granularity: Granularity) {
   if (granularity === "hour") {
     return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`;
@@ -74,11 +81,19 @@ function bucketKey(date: Date, granularity: Granularity) {
   if (granularity === "day") {
     return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
   }
-  return `${date.getFullYear()}-${date.getMonth()}`;
+  if (granularity === "month") {
+    return `${date.getFullYear()}-${date.getMonth()}`;
+  }
+  return `${date.getFullYear()}`;
 }
 
-function formatHourLabel(date: Date) {
-  return date.toLocaleTimeString("en-AU", { hour: "numeric" }).replace(/^0/, "");
+function createPoint(key: string, label: string): GrowthPoint {
+  return {
+    key,
+    label,
+    total: 0,
+    demo: 0,
+  };
 }
 
 function formatDayLabel(date: Date) {
@@ -88,174 +103,156 @@ function formatDayLabel(date: Date) {
   });
 }
 
-function formatMonthLabel(date: Date, long = false) {
+function formatMonthLabel(date: Date) {
   return date.toLocaleDateString("en-AU", {
     month: "short",
-    year: long ? "numeric" : undefined,
   });
 }
 
-function getRangeConfig(records: UserGrowthRecord[], range: RangeKey) {
+function formatYearLabel(date: Date) {
+  return date.toLocaleDateString("en-AU", {
+    year: "numeric",
+  });
+}
+
+function buildGrowthPoints(records: UserGrowthRecord[], range: RangeKey): GrowthPoint[] {
   const now = new Date();
-  let granularity: Granularity;
-  let buckets: Bucket[] = [];
 
   if (range === "day") {
-    granularity = "hour";
+    // Day view is hourly: 24 buckets, one per hour in the last 24 hours.
     const start = startOfHour(addHours(now, -23));
-    buckets = Array.from({ length: 24 }, (_, index) => {
+    const points = Array.from({ length: 24 }, (_, index) => {
       const bucketStart = addHours(start, index);
-      return {
-        key: bucketKey(bucketStart, granularity),
-        label: formatHourLabel(bucketStart),
-        total: 0,
-        demo: 0,
-      };
+      return createPoint(bucketKey(bucketStart, "hour"), String(index + 1));
     });
-  } else if (range === "7d") {
-    granularity = "day";
-    const start = startOfDay(addDays(now, -6));
-    buckets = Array.from({ length: 7 }, (_, index) => {
-      const bucketStart = addDays(start, index);
-      return {
-        key: bucketKey(bucketStart, granularity),
-        label: formatDayLabel(bucketStart),
-        total: 0,
-        demo: 0,
-      };
-    });
-  } else if (range === "month") {
-    granularity = "day";
-    const start = startOfDay(addDays(now, -29));
-    buckets = Array.from({ length: 30 }, (_, index) => {
-      const bucketStart = addDays(start, index);
-      return {
-        key: bucketKey(bucketStart, granularity),
-        label: formatDayLabel(bucketStart),
-        total: 0,
-        demo: 0,
-      };
-    });
-  } else if (range === "6m") {
-    granularity = "month";
-    const start = startOfMonth(addMonths(now, -5));
-    buckets = Array.from({ length: 6 }, (_, index) => {
-      const bucketStart = addMonths(start, index);
-      return {
-        key: bucketKey(bucketStart, granularity),
-        label: formatMonthLabel(bucketStart),
-        total: 0,
-        demo: 0,
-      };
-    });
-  } else if (range === "year") {
-    granularity = "month";
-    const start = startOfMonth(addMonths(now, -11));
-    buckets = Array.from({ length: 12 }, (_, index) => {
-      const bucketStart = addMonths(start, index);
-      return {
-        key: bucketKey(bucketStart, granularity),
-        label: formatMonthLabel(bucketStart),
-        total: 0,
-        demo: 0,
-      };
-    });
-  } else {
-    granularity = "month";
-    const firstRecord = records[0];
-    const start = firstRecord ? startOfMonth(new Date(firstRecord.createdAt)) : startOfMonth(now);
-    const current = startOfMonth(now);
-    const cursor = new Date(start);
+    const bucketIndex = new Map<string, number>();
+    points.forEach((point, index) => bucketIndex.set(point.key, index));
 
-    while (cursor <= current) {
-      buckets.push({
-        key: bucketKey(cursor, granularity),
-        label: formatMonthLabel(cursor, false),
-        total: 0,
-        demo: 0,
-      });
-      cursor.setMonth(cursor.getMonth() + 1);
+    for (const record of records) {
+      const createdAt = new Date(record.createdAt);
+      const index = bucketIndex.get(bucketKey(createdAt, "hour"));
+      if (index === undefined) continue;
+      if (record.isDemo) points[index].demo += 1;
+      else points[index].total += 1;
     }
+
+    return points;
   }
 
+  if (range === "7d") {
+    // Week view is daily: seven buckets covering the last seven days.
+    const start = startOfDay(addDays(now, -6));
+    const points = Array.from({ length: 7 }, (_, index) => {
+      const bucketStart = addDays(start, index);
+      return createPoint(bucketKey(bucketStart, "day"), formatDayLabel(bucketStart));
+    });
+    const bucketIndex = new Map<string, number>();
+    points.forEach((point, index) => bucketIndex.set(point.key, index));
+
+    for (const record of records) {
+      const createdAt = new Date(record.createdAt);
+      const index = bucketIndex.get(bucketKey(createdAt, "day"));
+      if (index === undefined) continue;
+      if (record.isDemo) points[index].demo += 1;
+      else points[index].total += 1;
+    }
+
+    return points;
+  }
+
+  if (range === "month") {
+    // Month view is intentionally compressed into four weekly buckets.
+    const start = startOfDay(addDays(now, -27));
+    const points = Array.from({ length: 4 }, (_, index) =>
+      createPoint(`week-${index + 1}`, `W${index + 1}`),
+    );
+
+    for (const record of records) {
+      const createdAt = new Date(record.createdAt);
+      const diffDays = Math.floor((startOfDay(createdAt).getTime() - start.getTime()) / DAY_MS);
+      if (diffDays < 0 || diffDays >= 28) continue;
+      const index = Math.min(3, Math.floor(diffDays / 7));
+      if (record.isDemo) points[index].demo += 1;
+      else points[index].total += 1;
+    }
+
+    return points;
+  }
+
+  if (range === "6m") {
+    // Six-month view uses one bucket per month.
+    const start = startOfMonth(addMonths(now, -5));
+    const points = Array.from({ length: 6 }, (_, index) => {
+      const bucketStart = addMonths(start, index);
+      return createPoint(bucketKey(bucketStart, "month"), String(index + 1));
+    });
+    const bucketIndex = new Map<string, number>();
+    points.forEach((point, index) => bucketIndex.set(point.key, index));
+
+    for (const record of records) {
+      const createdAt = new Date(record.createdAt);
+      const index = bucketIndex.get(bucketKey(createdAt, "month"));
+      if (index === undefined) continue;
+      if (record.isDemo) points[index].demo += 1;
+      else points[index].total += 1;
+    }
+
+    return points;
+  }
+
+  if (range === "year") {
+    // Year view also uses month buckets, but it stretches across all 12 months.
+    const start = startOfMonth(addMonths(now, -11));
+    const points = Array.from({ length: 12 }, (_, index) => {
+      const bucketStart = addMonths(start, index);
+      return createPoint(bucketKey(bucketStart, "month"), formatMonthLabel(bucketStart));
+    });
+    const bucketIndex = new Map<string, number>();
+    points.forEach((point, index) => bucketIndex.set(point.key, index));
+
+    for (const record of records) {
+      const createdAt = new Date(record.createdAt);
+      const index = bucketIndex.get(bucketKey(createdAt, "month"));
+      if (index === undefined) continue;
+      if (record.isDemo) points[index].demo += 1;
+      else points[index].total += 1;
+    }
+
+    return points;
+  }
+
+  // Lifetime view groups by year so the chart stays readable over a long history.
+  const firstRecord = records[0];
+  const start = firstRecord ? startOfYear(new Date(firstRecord.createdAt)) : startOfYear(now);
+  const current = startOfYear(now);
+  const points: GrowthPoint[] = [];
   const bucketIndex = new Map<string, number>();
-  buckets.forEach((bucket, index) => bucketIndex.set(bucket.key, index));
+  let cursor = new Date(start);
+
+  while (cursor <= current) {
+    const point = createPoint(bucketKey(cursor, "year"), formatYearLabel(cursor));
+    bucketIndex.set(point.key, points.length);
+    points.push(point);
+    cursor = addYears(cursor, 1);
+  }
 
   for (const record of records) {
     const createdAt = new Date(record.createdAt);
-    const key = bucketKey(createdAt, granularity);
-    const bucket = bucketIndex.get(key);
-    if (bucket === undefined) continue;
-    buckets[bucket].total += 1;
-    if (record.isDemo) buckets[bucket].demo += 1;
+    const index = bucketIndex.get(bucketKey(createdAt, "year"));
+    if (index === undefined) continue;
+    if (record.isDemo) points[index].demo += 1;
+    else points[index].total += 1;
   }
 
-  return buckets;
-}
-
-// Computes a nice y-axis ceiling and evenly-spaced tick values.
-function computeYScale(dataMax: number): { scale: number; ticks: number[] } {
-  if (dataMax === 0) return { scale: 5, ticks: [0, 1, 2, 3, 4, 5] };
-  if (dataMax <= 5) {
-    return { scale: dataMax, ticks: Array.from({ length: dataMax + 1 }, (_, i) => i) };
-  }
-  const rawStep = dataMax / 4;
-  const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
-  let step = magnitude;
-  const norm = rawStep / magnitude;
-  if (norm > 5) step = 10 * magnitude;
-  else if (norm > 2) step = 5 * magnitude;
-  else if (norm > 1) step = 2 * magnitude;
-  const scale = Math.ceil(dataMax / step) * step;
-  const ticks: number[] = [];
-  for (let v = 0; v <= scale; v += step) ticks.push(v);
-  return { scale, ticks };
-}
-
-// Returns which bucket indexes should show an x-axis label, tuned per range.
-function getXLabelIndexes(range: RangeKey, pointCount: number): number[] {
-  if (pointCount === 0) return [];
-  const all = Array.from({ length: pointCount }, (_, i) => i);
-  switch (range) {
-    case "day":
-      // 24 hour buckets — label every 4 hours
-      return all.filter((i) => i % 4 === 0 || i === pointCount - 1);
-    case "7d":
-      // 7 day buckets — label all
-      return all;
-    case "month":
-      // 30 day buckets — label every 7 days
-      return all.filter((i) => i % 7 === 0 || i === pointCount - 1);
-    case "6m":
-    case "year":
-      // 6 or 12 month buckets — label all
-      return all;
-    default: {
-      // lifetime — cap at ~8 labels
-      if (pointCount <= 8) return all;
-      const step = Math.ceil(pointCount / 7);
-      return all.filter((i) => i % step === 0 || i === pointCount - 1);
-    }
-  }
-}
-
-// Uses the shared chart scale so lines, grid lines, and dots all align.
-function linePath(points: Bucket[], selector: "total" | "demo", scale: number) {
-  if (points.length === 0) return "";
-  const step = points.length > 1 ? 100 / (points.length - 1) : 0;
-  return points
-    .map((point, index) => {
-      const x = points.length === 1 ? 50 : index * step;
-      const y = 34 - (point[selector] / scale) * 28;
-      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
-    })
-    .join(" ");
+  return points;
 }
 
 export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }) {
   const [range, setRange] = useState<RangeKey>("month");
 
-  const points = useMemo(() => getRangeConfig(records, range), [records, range]);
+  const points = useMemo(() => buildGrowthPoints(records, range), [records, range]);
+  // Lifetime summary stays aligned with the chart: demo accounts are excluded.
+  const nonDemoTotal = useMemo(() => records.filter((record) => !record.isDemo).length, [records]);
   const selectedTotals = useMemo(
     () =>
       points.reduce(
@@ -269,12 +266,9 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
     [points],
   );
 
-  const dataMax = Math.max(0, ...points.map((point) => Math.max(point.total, point.demo)));
-  const { scale: chartScale, ticks: yTicks } = useMemo(() => computeYScale(dataMax), [dataMax]);
-  const totalPath = useMemo(() => linePath(points, "total", chartScale), [points, chartScale]);
-  const demoPath = useMemo(() => linePath(points, "demo", chartScale), [points, chartScale]);
+  // This is the count of active non-demo buckets, used for a quick chart summary.
   const activeBuckets = points.filter((point) => point.total > 0);
-  const peakBucket = activeBuckets.reduce<Bucket | null>((peak, point) => {
+  const peakBucket = activeBuckets.reduce<GrowthPoint | null>((peak, point) => {
     if (!peak) return point;
     return point.total > peak.total ? point : peak;
   }, null);
@@ -283,8 +277,6 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
   const previousTotal = totalSeries.length > 1 ? totalSeries[totalSeries.length - 2] ?? 0 : 0;
   const delta = lastTotal - previousTotal;
   const deltaLabel = delta === 0 ? "Flat" : delta > 0 ? `+${delta}` : `${delta}`;
-  const xAxisLabel = range === "day" ? "Hours" : range === "7d" || range === "month" ? "Days" : "Months";
-  const xLabelIndexes = useMemo(() => getXLabelIndexes(range, points.length), [range, points.length]);
 
   return (
     <Card className="overflow-hidden border-border/70 bg-card/90 shadow-sm backdrop-blur-xl">
@@ -295,7 +287,7 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
         </div>
         <CardTitle className="text-2xl sm:text-3xl">New users over time</CardTitle>
         <CardDescription className="max-w-3xl text-sm sm:text-base">
-          Based on account creation dates. Demo accounts are counted separately using the demo email suffix because IP addresses are not stored in the schema.
+          Based on account creation dates. Demo accounts are counted separately and are excluded from the new-user line.
         </CardDescription>
       </CardHeader>
 
@@ -334,7 +326,7 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
               New users
             </div>
             <p className="mt-3 text-3xl font-semibold tracking-tight">{selectedTotals.total}</p>
-            <p className="mt-1 text-sm text-muted-foreground">Joined in the selected range.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Joined in the selected range, excluding demo accounts.</p>
           </div>
 
           <div className="rounded-2xl border border-border/70 bg-background/80 p-4 shadow-sm">
@@ -351,8 +343,8 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
               <CalendarRange className="h-3.5 w-3.5" />
               Lifetime total
             </div>
-            <p className="mt-3 text-3xl font-semibold tracking-tight">{records.length}</p>
-            <p className="mt-1 text-sm text-muted-foreground">All created user accounts.</p>
+            <p className="mt-3 text-3xl font-semibold tracking-tight">{nonDemoTotal}</p>
+            <p className="mt-1 text-sm text-muted-foreground">All non-demo user accounts.</p>
           </div>
         </div>
 
@@ -367,7 +359,7 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
                 <div>
                   <p className="text-sm font-medium text-foreground">Signup trend</p>
                   <p className="text-xs text-muted-foreground">
-                    Left to right is the selected date range. Blue is total signups, amber is demo signups.
+                    Left to right is the selected date range. Blue is non-demo signups, amber is demo signups.
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
@@ -382,15 +374,7 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
                 </div>
               </div>
 
-              <AdminGrowthChart
-                points={points}
-                maxValue={chartScale}
-                totalPath={totalPath}
-                demoPath={demoPath}
-                yTicks={yTicks}
-                xLabelIndexes={xLabelIndexes}
-                xAxisLabel={xAxisLabel}
-              />
+              <AdminGrowthChart range={range} points={points} />
 
               <div className="grid gap-2 sm:grid-cols-3">
                 <div className="rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">

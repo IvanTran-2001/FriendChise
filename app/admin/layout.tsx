@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Shield, MessageSquareMore, PanelLeft } from "lucide-react";
+import { ArrowLeft, LineChart, Shield, MessageSquareMore, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminNavTabs } from "./_components/admin-nav-tabs";
@@ -26,8 +26,8 @@ export default function AdminLayout({
                   Admin panel
                 </h1>
                 <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-                  Development-only admin tools. Feedback and photos are the two
-                  main views for now.
+                  Development-only admin tools. Growth, feedback, and photos
+                  are the main views for now.
                 </p>
               </div>
             </div>
@@ -37,6 +37,12 @@ export default function AdminLayout({
                 <Link href="/">
                   <ArrowLeft className="h-4 w-4" />
                   Back to app
+                </Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/admin/growth">
+                  <LineChart className="h-4 w-4" />
+                  Open growth
                 </Link>
               </Button>
               <Button asChild>
@@ -58,7 +64,7 @@ export default function AdminLayout({
                   Navigation
                 </CardTitle>
                 <CardDescription>
-                  Jump between the admin overview, feedback, and photos.
+                  Jump between the admin overview, growth, feedback, and photos.
                 </CardDescription>
               </CardHeader>
               <CardContent>
