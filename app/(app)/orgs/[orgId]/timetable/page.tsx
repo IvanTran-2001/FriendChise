@@ -166,10 +166,11 @@ export default async function TimetablePage({
   // Filter instances by task eligibility for the selected role
   let filteredInstances = instances;
   if (selectedRoleId) {
+    const inheritedTaskIds = tasks.map((t) => t.id);
     const eligibleTaskIds = new Set(
       (
         await prisma.taskEligibility.findMany({
-          where: { roleId: selectedRoleId, task: { orgId } },
+          where: { roleId: selectedRoleId, taskId: { in: inheritedTaskIds } },
           select: { taskId: true },
         })
       ).map((e) => e.taskId),
@@ -188,10 +189,11 @@ export default async function TimetablePage({
   const selectedTagId =
     rawTagId && filterTags.some((t) => t.id === rawTagId) ? rawTagId : null;
   if (selectedTagId) {
+    const inheritedTaskIds = tasks.map((t) => t.id);
     const taggedTaskIds = new Set(
       (
         await prisma.taskTag.findMany({
-          where: { tagId: selectedTagId, task: { orgId } },
+          where: { tagId: selectedTagId, taskId: { in: inheritedTaskIds } },
           select: { taskId: true },
         })
       ).map((t) => t.taskId),
@@ -224,8 +226,9 @@ export default async function TimetablePage({
 
     // Tasks with NO eligibility rows are visible to everyone.
     // Tasks WITH eligibility rows are only visible if the member has ≥1 matching role.
+    const inheritedTaskIds = tasks.map((t) => t.id);
     const eligibilities = await prisma.taskEligibility.findMany({
-      where: { task: { orgId } },
+      where: { taskId: { in: inheritedTaskIds } },
       select: { taskId: true, roleId: true },
     });
     const taskEligMap = new Map<string, Set<string>>();
