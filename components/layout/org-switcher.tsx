@@ -81,14 +81,14 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
         <Button
           variant="outline"
           size="sm"
-          className="group h-8.5 max-w-44 rounded-full border-border/70 bg-background/85 pl-1 pr-2 text-left shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2"
+          className="group h-8.5 w-44 rounded-full border-border/70 bg-background/85 pl-1 pr-2 text-left shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2"
           disabled={isPending}
         >
           <span className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full bg-muted/70 ring-1 ring-border/70 transition-colors group-hover:bg-muted">
             {activeOrg ? <OrgBadge org={activeOrg} /> : null}
           </span>
           <span className="flex min-w-0 flex-col items-start leading-none">
-            <span className="truncate max-w-28 text-[13px] font-medium sm:max-w-40">
+            <span className="truncate max-w-20 text-[11px] font-medium sm:max-w-28">
               {activeOrg?.name ?? "Select Org"}
             </span>
             <span className="mt-px text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
