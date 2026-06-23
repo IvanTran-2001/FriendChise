@@ -78,7 +78,7 @@ pnpm dev
 
 ## 6. Sign in
 
-Run [localhost:300](http://localhost:3000/).
+Run [localhost:3000](http://localhost:3000/).
 
 1. Click a seeded dev user in the Dev picker.
 2. Use the demo button if you want a fresh isolated demo org.

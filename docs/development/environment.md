@@ -85,4 +85,4 @@ SEED_NAMESPACE=your-name
 - Use `SEED_NAMESPACE=random` for disposable one-off seeds.
 - If you intentionally share a dev database, set `SEED_NAMESPACE` per person or per fork.
 - Set the Supabase storage vars before running the app locally; the UI renders org logos and images through Supabase Storage.
-- See the [Getting Started](/doc/overview/getting-started) page for the quick setup flow.
+- See the [Getting Started](/doc/contributing/getting-started) page for the quick setup flow.

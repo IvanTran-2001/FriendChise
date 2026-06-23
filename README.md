@@ -33,7 +33,7 @@ The full docs now live in the in-app docs site at [friendchise.app/doc](https://
 
 ## Getting Started
 
-Read the setup flow in [docs/overview/getting-started.md](docs/overview/getting-started.md). It covers local Postgres, the required Supabase storage env vars, and the dev commands in order.
+Read the setup flow in [docs/contributing/getting-started.md](docs/contributing/getting-started.md). It covers local Postgres, the required Supabase storage env vars, and the dev commands in order.
 
 ## Contribute
 

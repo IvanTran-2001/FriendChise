@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, isValidElement } from "react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -15,6 +15,10 @@ function toClipboardText(value: React.ReactNode): string {
 
   if (Array.isArray(value)) {
     return value.map(toClipboardText).join("");
+  }
+
+  if (isValidElement(value)) {
+    return toClipboardText((value.props as { children?: React.ReactNode }).children);
   }
 
   return "";
