@@ -24,10 +24,14 @@ function toClipboardText(value: React.ReactNode): string {
   return "";
 }
 
-async function copyText(value: string): Promise<void> {
+async function copyText(value: string): Promise<boolean> {
   if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(value);
-    return;
+    try {
+      await navigator.clipboard.writeText(value);
+      return true;
+    } catch {
+      // Fall through to textarea fallback
+    }
   }
 
   const textarea = document.createElement("textarea");
@@ -37,8 +41,9 @@ async function copyText(value: string): Promise<void> {
   textarea.style.left = "-9999px";
   document.body.appendChild(textarea);
   textarea.select();
-  document.execCommand("copy");
+  const success = document.execCommand("copy");
   document.body.removeChild(textarea);
+  return success;
 }
 
 export function DocCodeBlock({ children }: DocCodeBlockProps) {
@@ -60,8 +65,10 @@ export function DocCodeBlock({ children }: DocCodeBlockProps) {
           variant="outline"
           size="sm"
           onClick={async () => {
-            await copyText(code);
-            setCopied(true);
+            const success = await copyText(code);
+            if (success) {
+              setCopied(true);
+            }
           }}
           className="pointer-events-auto h-8 rounded-full border-border/70 bg-background/90 px-3 text-xs font-medium shadow-sm transition hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background"
           aria-label={copied ? "Copied code block to clipboard" : "Copy code block to clipboard"}

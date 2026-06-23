@@ -18,5 +18,5 @@ This section covers the main system-level docs for FriendChise.
 - [API](/doc/architecture/api)
 - [Project Structure](/doc/architecture/project-structure)
 - [Admin Panel](/doc/architecture/admin-panel)
-- [Feedback System](/doc/architecture/feedbacksystem)
+- [Feedback System](/doc/architecture/feedback-system)
 

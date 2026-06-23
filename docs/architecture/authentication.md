@@ -29,7 +29,7 @@ The sign-in page renders a `DevUserPicker` component — a searchable, scrollabl
 | `app/(auth)/signin/dev-sign-in-action.ts` | Server action; calls `signIn("dev", { email, redirectTo })` |
 | `app/(auth)/signin/try-demo-button.tsx`   | Client component; shows the demo loading state              |
 
-Both flows are registered in `auth.ts`, and the `dev` provider is excluded from production builds via a `process.env.NODE_ENV` guard.
+Both the `demo` and `dev` credential flows are registered in `auth.ts` and excluded from production builds via a `process.env.NODE_ENV` guard.
 
 ### Auth config split
 

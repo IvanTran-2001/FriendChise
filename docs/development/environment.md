@@ -58,6 +58,8 @@ AUTH_GOOGLE_SECRET=    # leave blank to skip Google OAuth in local development
 
 ## Contributor example
 
+Save this configuration as `.env.local` in the repository root:
+
 ```env
 # ===== REQUIRED =====
 

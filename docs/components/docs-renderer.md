@@ -24,7 +24,7 @@ The docs section has its own component system because it combines markdown, navi
 
 - Clicking a docs link uses Next.js client-side navigation, so the browser does not do a full page refresh.
 - The middle article changes for the new route, while the left docs tree stays in the shared docs shell.
-- The sidebar scroll frame follows the active doc by scrolling the active tree item into view on route change.
+- `DocSidebarTree` scrolls the active tree item into view on route change, while `DocSidebarScrollFrame` is merely a wrapper component.
 - That keeps the left sidebar from jumping back to the top while still showing the current page in context.
 
 ## Why it is structured this way
