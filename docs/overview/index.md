@@ -11,7 +11,6 @@ Production deployment: [friendchise.app](https://friendchise.app)
 
 - Website: [friendchise.app](https://friendchise.app)
 - GitHub: [IvanTran-2001/FriendChise](https://github.com/IvanTran-2001/FriendChise)
-- Docs: [friendchise.app/doc](https://friendchise.app/doc)
 - LinkedIn: [FriendChise company page](https://www.linkedin.com/company/friendchise-app/)
 
 Follow FriendChise on LinkedIn for product updates and launch news.
@@ -27,19 +26,6 @@ Follow FriendChise on LinkedIn for product updates and launch news.
 
 Franchise teams often lose consistency as locations scale. FriendChise provides a single operational system so teams can align on standards, execution, and visibility.
 
-## Explore docs
+## Starting
 
-- [Getting Started](/doc/getting-started)
-- [Contributing](/doc/contributing)
-- [Ideas for Contributing](/doc/ideas-for-contribution)
-- [Architecture](/doc/architecture)
-- [Tech Stack](/doc/stack)
-- [Environment Setup](/doc/development/environment)
-- [Local Sign-In](/doc/development/sign-in)
-- [Testing](/doc/development/testing)
-- [Migrations and Seeding](/doc/development/migrations)
-- [Data Models](/doc/database/models)
-- [Enums](/doc/database/enums)
-- [Seed Namespace](/doc/database/seed-namespace)
-- [Quick Start](/doc/development/quick-start)
-- [Support and Community](/doc/support)
+To start, visit [quick-start](/doc/development/quick-start).

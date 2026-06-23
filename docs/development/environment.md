@@ -4,7 +4,7 @@ description: Required variables and local override guidance
 order: 4
 ---
 
-Local development and tests read `.env.local` first, so put your local `DATABASE_URL`, seed namespace, and test overrides there. Keep `.env` for production/deployment settings and `pnpm migrate:prod`.
+Local development and tests read `.env.local` first, so put your local `DATABASE_URL`, seed namespace, and test overrides there. The app can boot without Supabase storage vars, but any page or action that renders or uploads images or logos needs `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY` in `.env.local`. Keep `.env` for production/deployment settings and `pnpm migrate:prod`.
 
 ## Required environment variables
 
@@ -25,7 +25,7 @@ UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 
 # Supabase Storage — file uploads (org logos, task images, feedback screenshots)
-# Get from Supabase dashboard > Settings > API
+# Required when you use storage-backed features. Get these from a Supabase project you control.
 NEXT_PUBLIC_SUPABASE_URL=       # e.g. https://<project-ref>.supabase.co
 SUPABASE_SECRET_KEY=            # Supabase service role key
 ```
@@ -48,17 +48,20 @@ AUTH_GOOGLE_SECRET=    # leave blank to skip Google OAuth in local development
 ```env
 # ===== REQUIRED =====
 
-# Database — create your own Supabase project
-DATABASE_URL=postgresql://postgres:your-password@your-project.pooler.supabase.com:5432/postgres
+# Database — local Postgres snapshot or your own Supabase project
+DATABASE_URL=postgresql://postgres:your-password@localhost:5432/friendchise
 
 # Auth — generated via: npx auth secret
 AUTH_SECRET=your-generated-secret-here
 AUTH_URL=http://localhost:3000
 
-# Supabase — from your project settings
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SECRET_KEY=your-supabase-service-role-key
-SEED_DEV_IDENTIFIERS=your-project.pooler.supabase.com
+
+# Supabase storage — required for uploads and image URLs
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_SECRET_KEY=your-service-role-key
+
+# Shared dev database safety (only needed when you are not using a local DB)
+SEED_DEV_IDENTIFIERS=
 
 # ===== OPTIONAL =====
 
@@ -73,7 +76,7 @@ NEXT_PUBLIC_SENTRY_DSN=
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 
-# Seed namespace (optional, skip if using your own Supabase)
+# Seed namespace (optional, skip if using your own database)
 SEED_NAMESPACE=your-name
 ```
 
@@ -81,4 +84,5 @@ SEED_NAMESPACE=your-name
 
 - Use `SEED_NAMESPACE=random` for disposable one-off seeds.
 - If you intentionally share a dev database, set `SEED_NAMESPACE` per person or per fork.
+- Set the Supabase storage vars before running the app locally; the UI renders org logos and images through Supabase Storage.
 - See the [Getting Started](/doc/overview/getting-started) page for the quick setup flow.

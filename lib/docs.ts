@@ -5,6 +5,7 @@ export type DocNavItem = {
   slug: string;
   title: string;
   description: string;
+  searchText: string;
   relativePath: string;
   fileName: string;
   isIndex: boolean;
@@ -354,11 +355,13 @@ export async function getDocNavItems(): Promise<DocNavItem[]> {
       const title = extractTitle(markdown, displayTitleFromSlug(slug));
       const description =
         extractDescription(markdown) || `Documentation page for ${title}`;
+      const searchText = [title, description, body].join(" ").replace(/\s+/g, " ").trim();
 
       return {
         slug,
         title,
         description,
+        searchText,
         relativePath,
         fileName: fileNameFromRelativePath(relativePath),
         isIndex: path.basename(relativePath).toLowerCase() === "index.md",
