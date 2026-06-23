@@ -4,6 +4,7 @@ import { isValidElement, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { DocNavbar } from "@/app/doc/_components/doc-navbar";
+import { DocCodeBlock } from "@/app/doc/_components/doc-code-block";
 import { DocRightToc } from "@/app/doc/_components/doc-right-toc";
 import { DocSidebarScrollFrame } from "@/app/doc/_components/doc-sidebar-scroll-frame";
 import { DocSidebarTree } from "@/app/doc/_components/doc-sidebar-tree";
@@ -71,7 +72,7 @@ export default async function DocDetailsPage({ params }: DocPageProps) {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <DocNavbar />
-      <main className="mx-auto flex w-full max-w-[1320px] flex-1 min-h-0 px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto flex w-full max-w-330 flex-1 min-h-0 px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid min-h-0 flex-1 gap-8 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)_220px]">
           <aside className="min-h-0 min-w-0">
             <DocSidebarScrollFrame>
@@ -82,7 +83,7 @@ export default async function DocDetailsPage({ params }: DocPageProps) {
             </DocSidebarScrollFrame>
           </aside>
 
-          <article className="min-h-0 min-w-0 overflow-y-auto rounded-2xl border border-border/70 bg-card/90 p-5 shadow-sm break-words sm:p-8">
+          <article className="min-h-0 min-w-0 overflow-y-auto rounded-2xl border border-border/70 bg-card/90 p-5 shadow-sm wrap-break-word sm:p-8">
             <header className="mb-6 border-b border-border/70 pb-4">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 FriendChise Docs
@@ -126,7 +127,7 @@ export default async function DocDetailsPage({ params }: DocPageProps) {
                   );
                 },
                 p: ({ children }) => (
-                  <p className="mb-4 break-words leading-7 text-foreground/95">
+                  <p className="mb-4 wrap-break-word leading-7 text-foreground/95">
                     {children}
                   </p>
                 ),
@@ -141,14 +142,14 @@ export default async function DocDetailsPage({ params }: DocPageProps) {
                   </ol>
                 ),
                 li: ({ children }) => (
-                  <li className="break-words leading-7">{children}</li>
+                  <li className="wrap-break-word leading-7">{children}</li>
                 ),
                 a: ({ href = "", children }) => {
                   const isExternal = /^(https?:|mailto:)/i.test(href);
                   return (
                     <a
                       href={href}
-                      className="break-words font-medium text-primary underline underline-offset-4"
+                      className="wrap-break-word font-medium text-primary underline underline-offset-4"
                       target={isExternal ? "_blank" : undefined}
                       rel={isExternal ? "noreferrer" : undefined}
                     >
@@ -157,28 +158,28 @@ export default async function DocDetailsPage({ params }: DocPageProps) {
                   );
                 },
                 code: ({ children, className }) => {
-                  const isBlock = className?.includes("language-");
-                  if (isBlock) {
-                    return (
-                      <code className="block max-w-full overflow-x-auto rounded-lg border border-border/70 bg-muted/50 p-3 text-sm">
-                        {children}
-                      </code>
-                    );
+                  const isBlockCode = Boolean(className);
+
+                  if (isBlockCode) {
+                    return <code className={className}>{children}</code>;
                   }
+
                   return (
                     <code className="break-all rounded bg-muted px-1.5 py-0.5 text-sm">
                       {children}
                     </code>
                   );
                 },
-                pre: ({ children }) => (
-                  <pre className="mb-4 overflow-x-auto rounded-lg border border-border/70 bg-muted/50 p-3 text-sm">
-                    {children}
-                  </pre>
-                ),
+                pre: ({ children }) => {
+                  const codeElement = children as React.ReactElement<{
+                    children?: ReactNode;
+                  }>;
+
+                  return <DocCodeBlock>{codeElement.props.children}</DocCodeBlock>;
+                },
                 table: ({ children }) => (
                   <div className="mb-6 overflow-x-auto">
-                    <table className="w-full min-w-[720px] border-collapse border border-border/70 text-sm">
+                    <table className="w-full min-w-180 border-collapse border border-border/70 text-sm">
                       {children}
                     </table>
                   </div>

@@ -46,7 +46,7 @@ export function DocNavbar() {
 
         <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
           <Link
-            href="/doc/getting-started"
+            href="/doc/contributing/getting-started"
             className="rounded-full px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
           >
             Getting Started
@@ -58,7 +58,7 @@ export function DocNavbar() {
             Contributing
           </Link>
           <Link
-            href="/doc/support"
+            href="/doc/contributing/support"
             className="rounded-full px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
           >
             Support

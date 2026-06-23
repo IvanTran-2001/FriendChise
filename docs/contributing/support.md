@@ -19,5 +19,5 @@ order: 2
 ## Links
 
 - [Contributing](/doc/contributing)
-- [Getting Started](/doc/overview/getting-started)
+- [Getting Started](/doc/contributing/getting-started)
 - [Overview](/doc/overview)

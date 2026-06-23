@@ -1,7 +1,7 @@
 ---
 title: Contributing
 description: Issue-first workflow and contribution standards
-order: 14
+order: 1.1
 ---
 ## Contribution flow
 

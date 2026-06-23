@@ -1,51 +1,95 @@
 ---
 title: Quick Start
-description: A concise setup path for local development
+description: Exact setup path for contributors
 order: 3
 ---
 
-## For contributors
+## 1. Clone the repo
 
-If you are planning to contribute, start by forking the repo on GitHub, then clone your fork locally.
+Fork the repo first, then clone your fork locally.
 
 ```bash
 git clone https://github.com/<your-username>/FriendChise.git
 cd FriendChise
 ```
 
-If you are just exploring the app locally, you can still clone the repo directly. For real development work, use your own Supabase project so your seed data and migrations stay isolated.
+If you already have the repo open, just use the folder you already cloned.
 
-## Set up Supabase and local env
+## 2. Start a local Postgres database
 
-1. Create a new Supabase project.
-2. Copy the Supabase connection details into `.env.local`.
-3. Set `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `SEED_DEV_IDENTIFIERS` (a comma-separated list of allowed DB hostnames/usernames for seed and cleanup safety checks, e.g., `your-project.pooler.supabase.com`).
-4. Optionally set `SEED_NAMESPACE` if you are sharing a dev database.
+Use Docker if you want the quickest setup. The same Postgres container image works on macOS, Linux, and Windows through Docker Desktop:
+
+```bash
+docker run --name friendchise-postgres \
+	-e POSTGRES_USER=postgres \
+	-e POSTGRES_PASSWORD=postgres \
+	-e POSTGRES_DB=friendchise \
+	-p 5432:5432 \
+	-d postgres:16
+```
+
+If you are on Windows PowerShell or Windows Terminal, use the same command with PowerShell line endings:
+
+```powershell
+docker run --name friendchise-postgres `
+  -e POSTGRES_USER=postgres `
+  -e POSTGRES_PASSWORD=postgres `
+  -e POSTGRES_DB=friendchise `
+  -p 5432:5432 `
+  -d postgres:16
+```
+
+If you already have a local Postgres install, use that instead. The important part is that `DATABASE_URL` points to your local database, not Supabase.
+
+## 3. Create `.env.local`
+
+Copy the local database settings into `.env.local` in the repo root:
+
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/friendchise
+AUTH_SECRET=your-generated-secret-here
+AUTH_URL=http://localhost:3000
+```
+
+Generate `AUTH_SECRET` once if you do not already have one:
+
+```bash
+npx auth secret
+```
+
+## 4. Setup
+
+Run the setup commands in order:
 
 ```bash
 pnpm install
-pnpm prisma migrate deploy
+pnpm prisma migrate dev
 pnpm prisma generate
 pnpm seed
+```
+
+If you already restored a snapshot that has data, `pnpm seed` is still safe to run and will namespace the seed data for your local environment.
+
+## 5. Start the app
+
+```bash
 pnpm dev
 ```
 
-## After cloning
+## 6. Sign in
 
-1. Install dependencies with `pnpm install`.
-2. Apply migrations with `pnpm prisma migrate deploy`.
-3. Generate Prisma Client with `pnpm prisma generate`.
-4. Seed the database with `pnpm seed`.
-5. Start the app with `pnpm dev`.
+Run [localhost:3000](http://localhost:3000/).
 
-## After the app starts
+1. Click a seeded dev user in the Dev picker.
+2. Use the demo button if you want a fresh isolated demo org.
 
-1. Open the sign-in page.
-2. Use a seeded dev user.
-3. Confirm the dashboard loads.
+No app password is required. The data you edit goes into your local Postgres database only.
 
 ## If something fails
 
 - Re-check `.env.local`.
-- Re-run `pnpm seed`.
-- Re-run `pnpm prisma migrate deploy`.
+- Make sure the local Postgres container or service is running.
+- If Docker says port `5432` is already in use, stop the other Postgres service or change the host port before starting the container again.
+- Re-run `pnpm prisma migrate dev` if the schema is out of sync.
+- Re-run `pnpm seed` if you want a fresh local dataset.
+- Post an [issue](https://github.com/IvanTran-2001/FriendChise/issues) if you run into any problems not mentioned here.
