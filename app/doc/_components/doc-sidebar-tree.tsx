@@ -304,6 +304,7 @@ export function DocSidebarTree({ tree, activeSlug }: DocSidebarTreeProps) {
     activeElement?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [activeSlug, normalizedQuery]);
 
+
   const searchResults = useMemo(() => {
     if (!normalizedQuery) return [] as DocSearchResult[];
 

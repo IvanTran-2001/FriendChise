@@ -76,6 +76,7 @@ SUPABASE_SECRET_KEY=your-service-role-key
 
 # Sentry — error tracking / release health
 SENTRY_AUTH_TOKEN=
+NEXT_PUBLIC_SENTRY_DSN=
 
 # Upstash Redis — rate limiting
 UPSTASH_REDIS_REST_URL=
