@@ -7,7 +7,7 @@ order: 7
 ## Prisma workflow
 
 ```bash
-# Create and apply a new migration
+# Create and apply a new migration to developer database
 pnpm prisma migrate dev --name <migration-name>
 
 # Regenerate the Prisma client after schema changes

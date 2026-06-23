@@ -5,25 +5,31 @@ title: Authentication
 order: 18.5
 
 ---
-Authentication is handled by **Auth.js v5 (NextAuth)** with **Google OAuth** as the provider.
+Authentication is handled by **Auth.js v5 (NextAuth)** with **Google OAuth** and **LinkedIn OAuth** as the providers.
 
 - Route: `GET|POST /api/auth/[...nextauth]` (handled automatically by Auth.js)
 - Session strategy: **JWT** (tokens signed with `AUTH_SECRET`, stored in a cookie — no DB reads for session lookup itself; authorization checks like `requireOrgPermission` still query the DB to verify membership on each request)
 - The Prisma adapter stores `User` and `Account` records in Postgres for OAuth account linking
 - The signed-in user's database `id` is mapped from `token.sub` into `session.user.id` so API routes and server actions can look up `Membership` records for authorization
 
-Configure your Google OAuth app at [console.cloud.google.com](https://console.cloud.google.com) and set the redirect URI to `http://localhost:3000/api/auth/callback/google`.
+Configure your OAuth apps and set the redirect URIs to the matching Auth.js callback paths, for example `http://localhost:3000/api/auth/callback/google` and `http://localhost:3000/api/auth/callback/linkedin`.
 
-### Dev Credentials Provider
+### Demo and dev sign-in
 
-In `NODE_ENV === "development"` a second `"dev"` credentials provider is registered that accepts any seeded user email with no password. The sign-in page renders a `DevUserPicker` component — a searchable, scrollable list of the 9 seeded test accounts — so engineers can switch personas without OAuth.
+In `NODE_ENV === "development"`, two credentials flows are registered:
+
+- `demo` — used by the demo button to launch an isolated demo session
+- `dev` — accepts any seeded user email with no password
+
+The sign-in page renders a `DevUserPicker` component — a searchable, scrollable list of the seeded test accounts — and a `TryDemoButton` so engineers can switch seeded users or launch the demo session without OAuth.
 
 | File                                      | Purpose                                                     |
 | ----------------------------------------- | ----------------------------------------------------------- |
 | `app/(auth)/signin/dev-user-picker.tsx`   | Client component; renders the picker UI                     |
 | `app/(auth)/signin/dev-sign-in-action.ts` | Server action; calls `signIn("dev", { email, redirectTo })` |
+| `app/(auth)/signin/try-demo-button.tsx`   | Client component; shows the demo loading state              |
 
-The provider is registered in `auth.ts` and is excluded from production builds via a `process.env.NODE_ENV` guard.
+Both flows are registered in `auth.ts`, and the `dev` provider is excluded from production builds via a `process.env.NODE_ENV` guard.
 
 ### Auth config split
 

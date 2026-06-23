@@ -5,7 +5,13 @@ title: Admin Panel
 order: 18.5
 
 ---
-Route: `/admin/feedback`
+Route: `/admin`
+
+The admin area is split into an overview page plus dedicated growth, feedback, and photos pages.
+
+- The overview page shows feedback counts, a user growth summary, demo user counts, and a link to the growth page.
+- The growth page shows a chart of new users over time, with demo users tracked separately.
+- The feedback page shows all feedback with type badges, user email, org name, timestamp, message, and screenshot thumbnail.
 
 Access is controlled by the `AdminUser` table. To grant admin access, insert a row:
 
@@ -16,4 +22,4 @@ VALUES (gen_random_uuid(), LOWER(TRIM('your@email.com')), now());
 
 Note: Emails are stored in normalized form (trimmed and lowercased) for consistent lookups.
 
-The panel shows all feedback with type badges, user email, org name, timestamp, message, and screenshot thumbnail. Items can be marked reviewed/unreviewed (optimistic UI).
+Items can be marked reviewed/unreviewed (optimistic UI).

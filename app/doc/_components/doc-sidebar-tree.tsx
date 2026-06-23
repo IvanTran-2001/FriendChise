@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   type Dispatch,
@@ -190,6 +191,7 @@ function NavNode({
     return href ? (
       <Link
         href={href}
+        data-doc-sidebar-active={isActive ? "true" : undefined}
         className={`block rounded-md px-2.5 py-2 text-sm transition ${
           isActive
             ? "bg-primary/10 font-medium text-primary"
@@ -199,7 +201,10 @@ function NavNode({
         {node.title}
       </Link>
     ) : (
-      <span className="block rounded-md px-2.5 py-2 text-sm font-medium text-foreground/90">
+      <span
+        className="block rounded-md px-2.5 py-2 text-sm font-medium text-foreground/90"
+        data-doc-sidebar-active={isActive ? "true" : undefined}
+      >
         {node.title}
       </span>
     );
@@ -211,6 +216,7 @@ function NavNode({
         {href ? (
           <Link
             href={href}
+            data-doc-sidebar-active={isActive ? "true" : undefined}
             className={`min-w-0 flex-1 px-2.5 py-2 text-left text-sm transition ${
               isActive
                 ? "bg-primary/10 font-medium text-primary"
@@ -220,7 +226,10 @@ function NavNode({
             <span className="block truncate">{node.title}</span>
           </Link>
         ) : (
-          <span className="min-w-0 flex-1 px-2.5 py-2 text-sm font-medium text-foreground/90">
+          <span
+            className="min-w-0 flex-1 px-2.5 py-2 text-sm font-medium text-foreground/90"
+            data-doc-sidebar-active={isActive ? "true" : undefined}
+          >
             <span className="block truncate">{node.title}</span>
           </span>
         )}
@@ -273,6 +282,7 @@ function NavNode({
 
 export function DocSidebarTree({ tree, activeSlug }: DocSidebarTreeProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const normalizedQuery = normalizeSearchText(searchQuery);
   const initialOpenPaths = useMemo(
     () => new Set(collectOpenPaths(tree, activeSlug)),
     [tree, activeSlug],
@@ -285,7 +295,15 @@ export function DocSidebarTree({ tree, activeSlug }: DocSidebarTreeProps) {
     setOpenPaths(initialOpenPaths);
   }, [initialOpenPaths]);
 
-  const normalizedQuery = normalizeSearchText(searchQuery);
+  useLayoutEffect(() => {
+    if (normalizedQuery) return;
+
+    const activeElement = document.querySelector(
+      '[data-doc-sidebar-active="true"]',
+    ) as HTMLElement | null;
+    activeElement?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [activeSlug, normalizedQuery]);
+
   const searchResults = useMemo(() => {
     if (!normalizedQuery) return [] as DocSearchResult[];
 

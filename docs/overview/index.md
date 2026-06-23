@@ -29,3 +29,7 @@ Franchise teams often lose consistency as locations scale. FriendChise provides 
 ## Starting
 
 To start, visit [quick-start](/doc/development/quick-start).
+
+## Documentation
+
+If you want to write or edit docs, read [Using the Docs](/doc/overview/using-the-docs).

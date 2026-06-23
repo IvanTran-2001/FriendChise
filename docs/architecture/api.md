@@ -5,54 +5,67 @@ title: API
 order: 18.5
 
 ---
-All routes are prefixed with `/api`. Permissions refer to `PermissionAction` enum values.
+The app no longer exposes a broad CRUD REST API. The remaining routes are small helper endpoints used by client components for lazy loading, route-aware UI checks, or test auth.
 
-### Orgs — `/api/orgs`
+## App helper routes
 
-| Method | Path        | Auth      | Description                                                                                               |
-| ------ | ----------- | --------- | --------------------------------------------------------------------------------------------------------- |
-| `POST` | `/api/orgs` | Signed in | Create a new org. Bootstraps Owner + Default Member roles with permissions and adds the creator as Owner. |
+### Parent-owner check
 
-### Org — `/api/orgs/[orgId]`
+Route: `/api/orgs/[orgId]/is-parent-owner`
 
-| Method | Path                                | Auth      | Description                                                |
-| ------ | ----------------------------------- | --------- | ---------------------------------------------------------- |
-| `GET`  | `/api/orgs/[orgId]/is-parent-owner` | Signed in | Returns `{ isParentOwner: boolean }` for the current user. |
+| Method | Auth      | Description |
+| ------ | --------- | ----------- |
+| `GET`  | Signed in | Returns `{ isParentOwner, parentOrgId }` so the sidebar can show the correct franchisor navigation. |
 
-### Memberships — `/api/orgs/[orgId]/memberships`
+### Roster entry loading
 
-| Method   | Path                            | Auth             | Description                                           |
-| -------- | ------------------------------- | ---------------- | ----------------------------------------------------- |
-| `GET`    | `/api/orgs/[orgId]/memberships` | `MANAGE_MEMBERS` | List all members of an org (includes user and roles). |
-| `POST`   | `/api/orgs/[orgId]/memberships` | `MANAGE_MEMBERS` | Add a user to an org by email.                        |
-| `DELETE` | `/api/orgs/[orgId]/memberships` | `MANAGE_MEMBERS` | Remove a user from an org.                            |
+Route: `/api/orgs/[orgId]/roster-entries`
 
-### Tasks — `/api/orgs/[orgId]/tasks`
+| Method | Auth   | Description |
+| ------ | ------ | ----------- |
+| `GET`  | Member | Returns roster entries for the requested weeks. Used by the roster page to fetch missing weeks as the visible window moves. |
 
-| Method   | Path                      | Auth           | Description                           |
-| -------- | ------------------------- | -------------- | ------------------------------------- |
-| `GET`    | `/api/orgs/[orgId]/tasks` | Member         | List all task definitions for an org. |
-| `POST`   | `/api/orgs/[orgId]/tasks` | `MANAGE_TASKS` | Create a new task definition.         |
-| `DELETE` | `/api/orgs/[orgId]/tasks` | `MANAGE_TASKS` | Delete a task definition.             |
+Query params:
 
-### Timetable Entries — `/api/orgs/[orgId]/task-instances`
+- `weeks` - comma-separated ISO week-start dates
+- up to 20 weeks per request
 
-| Method | Path                                                | Auth           | Description                                                                                   |
-| ------ | --------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------- |
-| `GET`  | `/api/orgs/[orgId]/task-instances`                  | Member         | List timetable entries. Supports `?status=` or `?completed=true\|false` (mutually exclusive). |
-| `POST` | `/api/orgs/[orgId]/task-instances`                  | `MANAGE_TASKS` | Create a timetable entry from an existing task definition.                                    |
-| `GET`  | `/api/orgs/[orgId]/task-instances/[taskInstanceId]` | Member         | Get a single timetable entry by ID.                                                           |
+### Paginated tasks
 
-### Timetable Entry Assignees — `/api/orgs/[orgId]/task-instances/[taskInstanceId]/assignees`
+Route: `/api/orgs/[orgId]/tasks/paginated`
 
-| Method   | Path            | Auth               | Description                                                                 |
-| -------- | --------------- | ------------------ | --------------------------------------------------------------------------- |
-| `GET`    | `.../assignees` | Member             | List all assignees for a timetable entry (includes membership, user, role). |
-| `POST`   | `.../assignees` | `MANAGE_TIMETABLE` | Assign a member to a timetable entry.                                       |
-| `DELETE` | `.../assignees` | `MANAGE_TIMETABLE` | Remove a member from a timetable entry.                                     |
+| Method | Auth   | Description |
+| ------ | ------ | ----------- |
+| `GET`  | Member | Returns cursor-based task pages for infinite scroll. Used by the task table when the user scrolls or changes filters/search. |
 
-### Timetable Entry Status — `/api/orgs/[orgId]/task-instances/[taskInstanceId]/status`
+Query params:
 
-| Method  | Path         | Auth               | Description                                                                        |
-| ------- | ------------ | ------------------ | ---------------------------------------------------------------------------------- |
-| `PATCH` | `.../status` | `MANAGE_TIMETABLE` | Update the status of a timetable entry (`TODO`, `IN_PROGRESS`, `DONE`, `SKIPPED`). |
+- `mode` - `list`, `available`, or `shared`
+- `cursor` - cursor from the previous page
+- `limit` - number of items per page
+- `sort` - task sort option
+- `roleId`, `tagId`, `search` - optional filters
+
+The endpoint also resolves signed image URLs for tasks that have images.
+
+## Framework and test routes
+
+### Auth.js
+
+Route: `/api/auth/[...nextauth]`
+
+| Method | Description |
+| ------ | ----------- |
+| `GET` / `POST` | Handled by Auth.js. No custom app logic lives here. |
+
+### Test login
+
+Route: `/api/test/login`
+
+| Method | Auth | Description |
+| ------ | ---- | ----------- |
+| `GET`  | Test-only | Creates a real Auth.js session cookie for Playwright. Only enabled when `TEST_MODE=1`. |
+
+## Removed CRUD surface
+
+The older org, membership, task-definition, and timetable-entry REST routes are no longer present in `app/api`. State changes now happen through server actions or page-specific fetch helpers instead of a broad REST API.
