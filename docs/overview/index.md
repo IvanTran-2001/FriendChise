@@ -22,6 +22,14 @@ Follow FriendChise on LinkedIn for product updates and launch news.
 - Shared tools and conversion utilities
 - Structured collaboration between parent orgs and franchisee orgs
 
+## Problems it solves
+
+Read the [problem space](/doc/overview/problem-space) page for the operational issues FriendChise is built to fix.
+
+## Personas
+
+Read the [personas](/doc/overview/personas) page for the main audiences FriendChise is designed around.
+
 ## Why it matters
 
 Franchise teams often lose consistency as locations scale. FriendChise provides a single operational system so teams can align on standards, execution, and visibility.

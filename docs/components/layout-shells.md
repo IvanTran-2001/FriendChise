@@ -25,6 +25,13 @@ These are the shells that define the app chrome. They are the reason the app fee
 - It uses context so pages can register toolbar content without wiring props through every layout.
 - Its height snaps to the shared 48px grid so the page chrome stays aligned.
 
+## Scroll containment
+
+- `SidebarProvider` uses `h-dvh` and `SidebarInset` uses `overflow-hidden` so the shell stays visually fixed.
+- `<main>` is the actual scroll container.
+- Pages that need a pinned toolbar use `flex flex-col h-full` on the root and `flex-1 overflow-auto` for the scrollable content.
+- Negative horizontal margins on the scrollable area cancel the main padding so lists can run edge-to-edge.
+
 ## Why these shells exist
 
 - They keep the top-level layout stable while pages change underneath.

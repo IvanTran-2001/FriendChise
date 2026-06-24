@@ -17,6 +17,7 @@ This section covers the main system-level docs for FriendChise.
 - [Built-in Tools](/doc/architecture/built-in-tools)
 - [Components](/doc/components)
 - [Authentication](/doc/architecture/authentication)
+- [RBAC](/doc/architecture/rbac)
 - [API](/doc/architecture/api)
 - [Project Structure](/doc/architecture/project-structure)
 - [Admin Panel](/doc/architecture/admin-panel)

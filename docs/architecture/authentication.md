@@ -64,3 +64,7 @@ Each context exposes three guards at increasing strictness:
 | `requireSuperAdmin*()`            | Caller's email must exist in the `AdminUser` table                 |
 
 `requireParentOrgOwner*(orgId)` is also available in `page` and `action` contexts — it requires the caller to be the owner of an org with no `parentId` (i.e. a franchisor).
+
+### RBAC
+
+The full role model, permission flags, and franchisor-only access rules live in [RBAC](/doc/architecture/rbac). Use this page when you need the complete permission matrix rather than the auth plumbing.

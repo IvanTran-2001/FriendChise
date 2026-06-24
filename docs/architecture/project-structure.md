@@ -27,7 +27,7 @@ If you want to get more specific, the hierarchy underneath `app/(app)` usually l
 
 - signed in
 - membership in the org
-- role permission for the action or page
+- role permission for the action or page (see [RBAC](/doc/architecture/rbac))
 - parent-owner access for franchisor-only screens
 
 ## Main areas
