@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useEffect } from "react";
-import { CalendarRange, LineChart, Users, UserRound } from "lucide-react";
+import { useMemo, useEffect, useState } from "react";
+import { CalendarRange, LineChart, Table2, Users, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import { AdminGrowthChart, type GrowthPoint, type RangeKey } from "./admin-growth-chart";
+import { AdminGrowthTable } from "./admin-growth-table";
 
 export type UserGrowthRecord = {
   createdAt: string;
@@ -252,6 +253,7 @@ function buildGrowthPoints(records: GrowthRecord[], range: RangeKey): GrowthPoin
 
 export function AdminUserGrowthCard({ records }: { records: GrowthRecord[] }) {
   const [range, setRange, hydrated] = usePersistedState<RangeKey>("admin-growth-range", "month");
+  const [viewMode, setViewMode] = useState<"chart" | "table">("chart");
 
   // Validate that the restored range is a valid RangeKey value
   const validRangeKeys: RangeKey[] = ["day", "7d", "month", "6m", "year", "lifetime"];
@@ -396,22 +398,58 @@ export function AdminUserGrowthCard({ records }: { records: GrowthRecord[] }) {
                 <div>
                   <p className="text-sm font-medium text-foreground">Growth trend</p>
                   <p className="text-xs text-muted-foreground">
-                    Left to right is the selected date range. Blue is non-demo signups, amber is demo launches.
+                    {viewMode === "chart"
+                      ? "Left to right is the selected date range. Blue is non-demo signups, amber is demo launches."
+                      : "Each row compares the bucket against the previous one in the same time range."}
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                  <span className="inline-flex items-center gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-primary" />
-                    New users
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
-                    Demo launches
-                  </span>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-1 rounded-lg border border-border/60 bg-background/80 p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("chart")}
+                      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                        viewMode === "chart"
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <LineChart className="h-3.5 w-3.5" />
+                      Graph
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("table")}
+                      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                        viewMode === "table"
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Table2 className="h-3.5 w-3.5" />
+                      Table
+                    </button>
+                  </div>
+                  {viewMode === "chart" && (
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="h-2.5 w-2.5 rounded-full bg-primary" />
+                        New users
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                        Demo launches
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <AdminGrowthChart range={validatedRange} points={points} />
+              {viewMode === "chart" ? (
+                <AdminGrowthChart range={validatedRange} points={points} />
+              ) : (
+                <AdminGrowthTable points={points} />
+              )}
 
               <div className="grid gap-2 sm:grid-cols-3">
                 <div className="rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
