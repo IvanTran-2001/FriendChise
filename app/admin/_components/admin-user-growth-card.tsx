@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { CalendarRange, LineChart, Users, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -253,7 +253,18 @@ function buildGrowthPoints(records: GrowthRecord[], range: RangeKey): GrowthPoin
 export function AdminUserGrowthCard({ records }: { records: GrowthRecord[] }) {
   const [range, setRange, hydrated] = usePersistedState<RangeKey>("admin-growth-range", "month");
 
-  const points = useMemo(() => buildGrowthPoints(records, range), [records, range]);
+  // Validate that the restored range is a valid RangeKey value
+  const validRangeKeys: RangeKey[] = ["day", "7d", "month", "6m", "year", "lifetime"];
+  const validatedRange: RangeKey = validRangeKeys.includes(range) ? range : "month";
+
+  // If the restored range is invalid, update it to the default
+  useEffect(() => {
+    if (hydrated && !validRangeKeys.includes(range)) {
+      setRange("month");
+    }
+  }, [hydrated, range, setRange, validRangeKeys]);
+
+  const points = useMemo(() => buildGrowthPoints(records, validatedRange), [records, validatedRange]);
   // Lifetime summary stays aligned with the chart: demo launches are excluded.
   const nonDemoTotal = useMemo(() => records.filter((record) => !record.isDemo).length, [records]);
   const selectedTotals = useMemo(
@@ -324,7 +335,7 @@ export function AdminUserGrowthCard({ records }: { records: GrowthRecord[] }) {
               <Button
                 key={option.key}
                 size="sm"
-                variant={range === option.key ? "default" : "outline"}
+                variant={validatedRange === option.key ? "default" : "outline"}
                 onClick={() => setRange(option.key)}
                 className="rounded-full"
               >
@@ -400,7 +411,7 @@ export function AdminUserGrowthCard({ records }: { records: GrowthRecord[] }) {
                 </div>
               </div>
 
-              <AdminGrowthChart range={range} points={points} />
+              <AdminGrowthChart range={validatedRange} points={points} />
 
               <div className="grid gap-2 sm:grid-cols-3">
                 <div className="rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
