@@ -33,7 +33,7 @@ The full docs now live in the in-app docs site at [friendchise.app/doc](https://
 
 ## Getting Started
 
-Read the setup flow in [docs/contributing/getting-started.md](docs/contributing/getting-started.md). It covers local Postgres, the required Supabase storage env vars, and the dev commands in order.
+Read the setup flow in [friendchise.app/doc/contributing/getting-started](https://friendchise.app/doc/contributing/getting-started). It covers local Postgres, the required Supabase storage env vars, and the dev commands in order.
 
 ## Contribute
 
@@ -41,7 +41,7 @@ If you want to help improve FriendChise:
 
 1. Open an issue first to discuss the idea.
 2. Check [CONTRIBUTING.md](CONTRIBUTING.md).
-3. Read [Ideas for Contributing](/doc/ideas-for-contribution) for examples.
+3. Read [Ideas for Contributing](https://friendchise.app/doc/contributing/ideas-for-contribution) for examples.
 4. Star the repo if you like the project.
 
 ## Support

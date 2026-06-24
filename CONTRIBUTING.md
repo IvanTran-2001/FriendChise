@@ -8,11 +8,11 @@ If this project helps you, please star the repo, follow my work, and share it.
 
 Open a GitHub issue before a PR if the change is larger than a small bug fix. That keeps the work focused and avoids duplicate effort.
 
-If you are looking for ideas, see [Ideas for Contributing](/doc/ideas-for-contribution).
+If you are looking for ideas, see [Ideas for Contributing](https://friendchise.app/doc/contributing/ideas-for-contribution).
 
 ## 2. Use the right setup path
 
-Follow [Quick Start](/doc/development/quick-start). That guide shows the exact local path, including Docker commands for macOS/Linux and Windows:
+Follow [Quick Start](https://friendchise.app/doc/development/quick-start). That guide shows the exact local path, including Docker commands for macOS/Linux and Windows:
 
 - fork and clone the repo
 - start a local Postgres database with Docker or a native install

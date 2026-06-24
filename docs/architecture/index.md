@@ -11,6 +11,7 @@ This section covers the main system-level docs for FriendChise.
 - [Tech Stack](/doc/architecture/stack)
 - [Operations](/doc/architecture/operations)
 - [Image Handling](/doc/architecture/image-handling)
+- [Time Model](/doc/architecture/time-model)
 - [Services and Actions](/doc/architecture/services-and-actions)
 - [Built-in Tools](/doc/architecture/built-in-tools)
 - [Components](/doc/components)
@@ -19,4 +20,3 @@ This section covers the main system-level docs for FriendChise.
 - [Project Structure](/doc/architecture/project-structure)
 - [Admin Panel](/doc/architecture/admin-panel)
 - [Feedback System](/doc/architecture/feedback-system)
-
