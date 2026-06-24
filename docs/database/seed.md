@@ -29,6 +29,7 @@ This page stays deliberately general. The seed files are the source of truth.
 
 - The demo button uses a separate runtime seed flow to build one isolated demo org per visitor.
 - That demo org is pre-seeded with sample data, then reset automatically after use.
+- Each demo launch also writes a persistent analytics record so the admin area can track demo usage without depending on rows that later get cleaned up.
 - This is separate from `pnpm seed`, which builds the shared local/test dataset.
 
 ## Cleanup

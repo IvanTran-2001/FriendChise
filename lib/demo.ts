@@ -462,12 +462,13 @@ const TASKS: TaskDef[] = [
  */
 /**
  * Deletes demo orgs + users older than DEMO_TTL_MS.
+ * Demo-session analytics rows are retained.
  * Org must be deleted before User (no cascade on Organization.ownerId).
  */
 /**
  * Deletes expired demo users + their orgs.
  *
- * Normal mode:     removes sessions older than DEMO_TTL_MS (24 h).
+ * Normal mode:     removes demo users older than DEMO_TTL_MS (24 h).
  * Aggressive mode: removes sessions older than DEMO_JWT_TTL_MS (1 hour, the JWT lifetime)
  *                  — triggered when the global task count nears the soft cap.
  *                  The cutoff is bounded to ≥ DEMO_JWT_TTL_MS so a session is never
@@ -548,6 +549,13 @@ export async function prepareDemoSession(): Promise<{
     });
 
     const orgId = await seedDemoOrg(demoUser.id, tx);
+    await tx.demoSession.create({
+      data: {
+        userId: demoUser.id,
+        orgId,
+        expiresAt: new Date(Date.now() + DEMO_TTL_MS),
+      },
+    });
     return { userId: demoUser.id, orgId };
   }, { timeout: 60_000, isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 

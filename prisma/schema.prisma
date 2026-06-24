@@ -120,6 +120,30 @@ model VerificationToken {
 }
 
 // ─────────────────────────────────────
+// DEMO SESSION ANALYTICS
+// Persistent record of each demo launch so admin metrics do not depend on
+// the short-lived demo user/org rows that are cleaned up later.
+// ─────────────────────────────────────
+
+model DemoSession {
+  id        String   @id @default(cuid())
+
+  userId    String?
+  user      User?         @relation("DemoSessionUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  orgId     String?
+  organization Organization? @relation("DemoSessionOrg", fields: [orgId], references: [id], onDelete: SetNull)
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([orgId])
+  @@index([createdAt])
+  @@index([expiresAt])
+}
+
+// ─────────────────────────────────────
 // 1. USER
 // ─────────────────────────────────────
 
@@ -144,6 +168,7 @@ model User {
 
   accounts      Account[]
   sessions      Session[]
+  demoSessions  DemoSession[] @relation("DemoSessionUser")
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -197,6 +222,7 @@ model Organization {
   sectionLayouts      TaskSectionLayout[]
   taskComments        TaskComment[]
   orgImages           OrgImage[]
+  demoSessions       DemoSession[] @relation("DemoSessionOrg")
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

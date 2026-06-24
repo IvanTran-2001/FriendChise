@@ -25,7 +25,7 @@ import {
 export default async function AdminHomePage() {
   await requireSuperAdminPage();
 
-  const [feedback, users] = await Promise.all([
+  const [feedback, users, demoLaunchesResult] = await Promise.all([
     getAllFeedback(),
     prisma.user.findMany({
       select: {
@@ -36,12 +36,17 @@ export default async function AdminHomePage() {
         createdAt: "asc",
       },
     }),
+    prisma.$queryRaw<{ count: number }[]>`
+      SELECT COUNT(*)::int AS count
+      FROM "DemoSession"
+    `,
   ]);
+  const demoLaunches = demoLaunchesResult[0]?.count ?? 0;
   const unreviewed = feedback.filter((item) => !item.reviewed);
   const issues = feedback.filter((item) => item.type === FeedbackType.ISSUE);
   const ideas = feedback.filter((item) => item.type === FeedbackType.IDEA);
-  const demoUsers = users.filter((user) => isDemoEmail(user.email)).length;
-  const latestSignup = users.at(-1)?.createdAt;
+  const nonDemoUsers = users.filter((user) => !isDemoEmail(user.email));
+  const latestSignup = nonDemoUsers.at(-1)?.createdAt;
   const latestSignupLabel = latestSignup
     ? latestSignup.toLocaleDateString("en-AU", {
         month: "short",
@@ -111,22 +116,22 @@ export default async function AdminHomePage() {
               <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
                 Total users
               </p>
-              <p className="mt-3 text-3xl font-semibold tracking-tight">{users.length}</p>
-              <p className="mt-1 text-sm text-muted-foreground">All created accounts.</p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight">{nonDemoUsers.length}</p>
+              <p className="mt-1 text-sm text-muted-foreground">All non-demo accounts.</p>
             </div>
             <div className="rounded-2xl border border-border/70 bg-background/80 p-4 shadow-sm">
               <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                Demo users
+                Demo launches
               </p>
-              <p className="mt-3 text-3xl font-semibold tracking-tight">{demoUsers}</p>
-              <p className="mt-1 text-sm text-muted-foreground">Counted by demo email suffix.</p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight">{demoLaunches}</p>
+              <p className="mt-1 text-sm text-muted-foreground">Counted from persistent demo-session records.</p>
             </div>
             <div className="rounded-2xl border border-border/70 bg-background/80 p-4 shadow-sm">
               <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
                 Latest signup
               </p>
               <p className="mt-3 text-2xl font-semibold tracking-tight">{latestSignupLabel}</p>
-              <p className="mt-1 text-sm text-muted-foreground">Newest account creation date.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Newest non-demo account creation date.</p>
             </div>
             <Button asChild className="w-full justify-between sm:col-span-3">
               <Link href="/admin/growth">

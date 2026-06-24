@@ -1,15 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { CalendarRange, LineChart, Users, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 import { AdminGrowthChart, type GrowthPoint, type RangeKey } from "./admin-growth-chart";
 
 export type UserGrowthRecord = {
   createdAt: string;
   isDemo: boolean;
 };
+
+export type GrowthRecord = UserGrowthRecord;
 
 type Granularity = "hour" | "day" | "month" | "year";
 
@@ -115,7 +118,7 @@ function formatYearLabel(date: Date) {
   });
 }
 
-function buildGrowthPoints(records: UserGrowthRecord[], range: RangeKey): GrowthPoint[] {
+function buildGrowthPoints(records: GrowthRecord[], range: RangeKey): GrowthPoint[] {
   const now = new Date();
 
   if (range === "day") {
@@ -247,11 +250,11 @@ function buildGrowthPoints(records: UserGrowthRecord[], range: RangeKey): Growth
   return points;
 }
 
-export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }) {
-  const [range, setRange] = useState<RangeKey>("month");
+export function AdminUserGrowthCard({ records }: { records: GrowthRecord[] }) {
+  const [range, setRange, hydrated] = usePersistedState<RangeKey>("admin-growth-range", "month");
 
   const points = useMemo(() => buildGrowthPoints(records, range), [records, range]);
-  // Lifetime summary stays aligned with the chart: demo accounts are excluded.
+  // Lifetime summary stays aligned with the chart: demo launches are excluded.
   const nonDemoTotal = useMemo(() => records.filter((record) => !record.isDemo).length, [records]);
   const selectedTotals = useMemo(
     () =>
@@ -278,6 +281,29 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
   const delta = lastTotal - previousTotal;
   const deltaLabel = delta === 0 ? "Flat" : delta > 0 ? `+${delta}` : `${delta}`;
 
+  if (!hydrated) {
+    return (
+      <Card className="overflow-hidden border-border/70 bg-card/90 shadow-sm backdrop-blur-xl">
+        <CardHeader className="gap-3 border-b border-border/60 bg-muted/30">
+          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+            <LineChart className="h-3.5 w-3.5" />
+            User growth
+          </div>
+          <CardTitle className="text-2xl sm:text-3xl">New users and demo launches</CardTitle>
+          <CardDescription className="max-w-3xl text-sm sm:text-base">
+            Restoring your saved chart range...
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="p-4 sm:p-5">
+          <div className="flex min-h-56 items-center justify-center rounded-2xl border border-dashed border-border/70 text-sm text-muted-foreground">
+            Loading saved range
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="overflow-hidden border-border/70 bg-card/90 shadow-sm backdrop-blur-xl">
       <CardHeader className="gap-3 border-b border-border/60 bg-muted/30">
@@ -285,9 +311,9 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
           <LineChart className="h-3.5 w-3.5" />
           User growth
         </div>
-        <CardTitle className="text-2xl sm:text-3xl">New users over time</CardTitle>
+        <CardTitle className="text-2xl sm:text-3xl">New users and demo launches</CardTitle>
         <CardDescription className="max-w-3xl text-sm sm:text-base">
-          Based on account creation dates. Demo accounts are counted separately and are excluded from the new-user line.
+          Based on account creation dates and demo-session launch times. Demo launches are tracked separately from user accounts.
         </CardDescription>
       </CardHeader>
 
@@ -326,22 +352,22 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
               New users
             </div>
             <p className="mt-3 text-3xl font-semibold tracking-tight">{selectedTotals.total}</p>
-            <p className="mt-1 text-sm text-muted-foreground">Joined in the selected range, excluding demo accounts.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Joined in the selected range, excluding demo launches.</p>
           </div>
 
           <div className="rounded-2xl border border-border/70 bg-background/80 p-4 shadow-sm">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
               <UserRound className="h-3.5 w-3.5" />
-              Demo users
+              Demo launches
             </div>
             <p className="mt-3 text-3xl font-semibold tracking-tight">{selectedTotals.demo}</p>
-            <p className="mt-1 text-sm text-muted-foreground">Demo signups in the selected range.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Demo launches in the selected range.</p>
           </div>
 
           <div className="rounded-2xl border border-border/70 bg-background/80 p-4 shadow-sm">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
               <CalendarRange className="h-3.5 w-3.5" />
-              Lifetime total
+              Lifetime non-demo users
             </div>
             <p className="mt-3 text-3xl font-semibold tracking-tight">{nonDemoTotal}</p>
             <p className="mt-1 text-sm text-muted-foreground">All non-demo user accounts.</p>
@@ -351,15 +377,15 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
         <div className="rounded-3xl border border-border/70 bg-background/90 p-4 shadow-sm">
           {points.length === 0 ? (
             <div className="flex min-h-56 items-center justify-center rounded-2xl border border-dashed border-border/70 text-sm text-muted-foreground">
-              No user signups yet.
+              No growth data yet.
             </div>
           ) : (
             <div className="space-y-4">
               <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
                 <div>
-                  <p className="text-sm font-medium text-foreground">Signup trend</p>
+                  <p className="text-sm font-medium text-foreground">Growth trend</p>
                   <p className="text-xs text-muted-foreground">
-                    Left to right is the selected date range. Blue is non-demo signups, amber is demo signups.
+                    Left to right is the selected date range. Blue is non-demo signups, amber is demo launches.
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
@@ -369,7 +395,7 @@ export function AdminUserGrowthCard({ records }: { records: UserGrowthRecord[] }
                   </span>
                   <span className="inline-flex items-center gap-1.5">
                     <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
-                    Demo users
+                    Demo launches
                   </span>
                 </div>
               </div>

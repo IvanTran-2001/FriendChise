@@ -115,7 +115,7 @@ export function AdminGrowthChart({ range, points }: AdminGrowthChartProps) {
             );
           })}
           <span className="absolute bottom-0 right-0 pr-1 text-right uppercase tracking-[0.16em] text-[9px] text-muted-foreground/80">
-            Signups
+            Activity
           </span>
         </div>
 
