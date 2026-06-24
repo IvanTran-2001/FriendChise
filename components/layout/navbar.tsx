@@ -186,8 +186,9 @@ export const NavBar = async () => {
                     <Link href="/admin">Admin panel</Link>
                   </DropdownMenuItem>
                 )}
-                {/* TODO: restore <DropdownMenuItem asChild><Link href="/profile">Profile</Link></DropdownMenuItem> when profile page is implemented */}
-                <DropdownMenuItem disabled>Profile</DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/profile">Profile</Link>
+                </DropdownMenuItem>
                 {/* TODO: restore <DropdownMenuItem asChild><Link href="/settings/account">Account Settings</Link></DropdownMenuItem> when account settings page is implemented */}
                 <DropdownMenuItem disabled>Account Settings</DropdownMenuItem>
                 <DropdownMenuSeparator />
