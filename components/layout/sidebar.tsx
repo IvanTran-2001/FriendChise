@@ -262,11 +262,10 @@ export function AppSidebar() {
                 />
                 <SidebarNavItem
                   variant="app"
-                  title="Help"
-                  url="/help"
+                  title="Docs"
+                  url="/doc"
                   icon={HelpCircle}
                   isActive={false}
-                  disabled
                 />
               </>
             )}

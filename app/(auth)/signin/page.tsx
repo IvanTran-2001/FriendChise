@@ -478,6 +478,12 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
             </p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <Link
+                href="/doc"
+                className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
+              >
+                Docs
+              </Link>
+              <Link
                 href="/privacy"
                 className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
               >

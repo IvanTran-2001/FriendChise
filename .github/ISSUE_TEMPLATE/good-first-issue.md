@@ -1,7 +1,7 @@
 ---
 name: 🟢 Good First Issue
 about: Contributor-friendly task with setup notes, requirements, and submission checklist
-title: "[Good First Issue] Add CSS Flexbox & Grid Interactive Visual Generator to Dev Utilities Sandbox"
+title: "🟢 [Good First Issue] Add CSS Flexbox & Grid Interactive Visual Generator to Dev Utilities Sandbox"
 labels: good first issue, enhancement
 ---
 
