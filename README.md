@@ -33,6 +33,8 @@ If you want to help build something meaningful in FriendChise:
 
 Dedicated doc at [friendchise.app/doc](https://friendchise.app/doc). Should have everything needed for the project.
 
+If something is missing from the doc related to the project, post a discussion and ask questions or you can post an issue/PR if you believe it belongs in the doc.
+
 ## Tech Stack
 
 - Next.js 16.1.6, TypeScript, React 19
