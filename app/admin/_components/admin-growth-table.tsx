@@ -1,6 +1,6 @@
 "use client";
 
-import type { GrowthPoint } from "./admin-growth-chart";
+import type { GrowthPoint, RangeKey } from "./admin-growth-chart";
 import { Table2 } from "lucide-react";
 
 function formatDelta(current: number, previous: number): { label: string; className: string } {
@@ -12,10 +12,31 @@ function formatDelta(current: number, previous: number): { label: string; classN
 
 type AdminGrowthTableProps = {
   points: GrowthPoint[];
+  range: RangeKey;
 };
 
-export function AdminGrowthTable({ points }: AdminGrowthTableProps) {
-  if (points.length === 0) {
+function groupDayPoints(points: GrowthPoint[]) {
+  const buckets: GrowthPoint[] = [];
+
+  for (let index = 0; index < points.length; index += 4) {
+    const slice = points.slice(index, index + 4);
+    if (slice.length === 0) continue;
+
+    buckets.push({
+      key: slice[0].key,
+      label: `${index}-${Math.min(index + 4, 24)}`,
+      total: slice.reduce((sum, point) => sum + point.total, 0),
+      demo: slice.reduce((sum, point) => sum + point.demo, 0),
+    });
+  }
+
+  return buckets;
+}
+
+export function AdminGrowthTable({ points, range }: AdminGrowthTableProps) {
+  const displayPoints = range === "day" ? groupDayPoints(points) : points;
+
+  if (displayPoints.length === 0) {
     return (
       <div className="flex min-h-56 items-center justify-center rounded-2xl border border-dashed border-border/70 text-sm text-muted-foreground">
         No growth data yet.
@@ -52,8 +73,8 @@ export function AdminGrowthTable({ points }: AdminGrowthTableProps) {
           </tr>
         </thead>
         <tbody className="divide-y divide-border/50">
-          {points.map((point, index) => {
-            const prev = index > 0 ? points[index - 1] : null;
+          {displayPoints.map((point, index) => {
+            const prev = index > 0 ? displayPoints[index - 1] : null;
             const userDelta = prev ? formatDelta(point.total, prev.total) : null;
             const demoDelta = prev ? formatDelta(point.demo, prev.demo) : null;
 

@@ -14,6 +14,8 @@ type AdminGrowthChartProps = {
   points: GrowthPoint[];
 };
 
+const DAY_AXIS_TICKS = [0, 4, 8, 12, 16, 20, 24];
+
 function getXAxisLabel(range: RangeKey) {
   // Keep the axis title aligned with the semantic range, not the raw bucket count.
   switch (range) {
@@ -97,6 +99,7 @@ export function AdminGrowthChart({ range, points }: AdminGrowthChartProps) {
   const demoPath = linePath(points, "demo", maxValue);
   const xLabelIndexes = getXLabelIndexes(range, points.length);
   const xAxisLabel = getXAxisLabel(range);
+  const isDayRange = range === "day";
 
   return (
     <div className="rounded-2xl border border-border/70 bg-linear-to-b from-primary/6 via-background to-background p-3 sm:p-4">
@@ -210,16 +213,37 @@ export function AdminGrowthChart({ range, points }: AdminGrowthChartProps) {
             <span>{xAxisLabel}</span>
             <span className="hidden sm:inline">Selected range</span>
           </div>
-          <div className="flex gap-2 text-[10px] leading-tight text-muted-foreground sm:text-xs">
-            {points.map((point, index) => (
-              <div key={point.key} className="min-w-0 flex-1 text-center">
-                {xLabelIndexes.includes(index) ? (
-                  <span className="block truncate">{point.label}</span>
-                ) : (
-                  <span className="block opacity-0">.</span>
-                )}
+          <div className="relative h-4 text-[10px] leading-tight text-muted-foreground sm:text-xs">
+            {isDayRange ? (
+              DAY_AXIS_TICKS.map((hour) => {
+                const isStart = hour === 0;
+                const isEnd = hour === 24;
+                return (
+                  <span
+                    key={hour}
+                    className="absolute top-0 block whitespace-nowrap tabular-nums"
+                    style={{
+                      left: `${(hour / 24) * 100}%`,
+                      transform: isStart ? "translateX(0)" : isEnd ? "translateX(-100%)" : "translateX(-50%)",
+                    }}
+                  >
+                    {hour}
+                  </span>
+                );
+              })
+            ) : (
+              <div className="flex gap-2">
+                {points.map((point, index) => (
+                  <div key={point.key} className="min-w-0 flex-1 text-center">
+                    {xLabelIndexes.includes(index) ? (
+                      <span className="block truncate">{point.label}</span>
+                    ) : (
+                      <span className="block opacity-0">.</span>
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

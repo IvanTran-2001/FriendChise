@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useCallback, useSyncExternalStore } from "react";
 import { CalendarRange, LineChart, Table2, Users, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +27,62 @@ const RANGE_OPTIONS: Array<{ key: RangeKey; label: string }> = [
   { key: "year", label: "Year" },
   { key: "lifetime", label: "Lifetime" },
 ];
+
+const VALID_RANGE_KEYS: RangeKey[] = ["day", "7d", "month", "6m", "year", "lifetime"];
+const VIEW_MODE_STORAGE_KEY = "admin-growth-view-mode";
+const VIEW_MODE_EVENT_NAME = `persisted-state-change:${VIEW_MODE_STORAGE_KEY}`;
+
+function useAdminGrowthViewMode() {
+  const viewMode = useSyncExternalStore(
+    (onStoreChange) => {
+      if (typeof window === "undefined") return () => {};
+
+      const onCustomChange = () => onStoreChange();
+      const onStorageChange = (event: StorageEvent) => {
+        if (event.key === VIEW_MODE_STORAGE_KEY) onStoreChange();
+      };
+
+      window.addEventListener(VIEW_MODE_EVENT_NAME, onCustomChange as EventListener);
+      window.addEventListener("storage", onStorageChange as EventListener);
+      return () => {
+        window.removeEventListener(VIEW_MODE_EVENT_NAME, onCustomChange as EventListener);
+        window.removeEventListener("storage", onStorageChange as EventListener);
+      };
+    },
+    () => {
+      if (typeof window === "undefined") return "chart";
+
+      try {
+        const storedViewMode = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+        if (storedViewMode === "chart" || storedViewMode === "table") {
+          return storedViewMode;
+        }
+      } catch {
+        // Ignore storage errors
+      }
+
+      return "chart";
+    },
+    () => "chart",
+  ) as "chart" | "table";
+
+  const setViewMode = useCallback(
+    (nextViewMode: "chart" | "table" | ((current: "chart" | "table") => "chart" | "table")) => {
+      const resolvedViewMode =
+        typeof nextViewMode === "function" ? nextViewMode(viewMode) : nextViewMode;
+
+      try {
+        window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, resolvedViewMode);
+        window.dispatchEvent(new CustomEvent(VIEW_MODE_EVENT_NAME));
+      } catch {
+        // Ignore storage errors
+      }
+    },
+    [viewMode],
+  );
+
+  return [viewMode, setViewMode] as const;
+}
 
 function startOfDay(date: Date) {
   const next = new Date(date);
@@ -144,7 +200,6 @@ function buildGrowthPoints(records: GrowthRecord[], range: RangeKey): GrowthPoin
   }
 
   if (range === "7d") {
-    // Week view is daily: seven buckets covering the last seven days.
     const start = startOfDay(addDays(now, -6));
     const points = Array.from({ length: 7 }, (_, index) => {
       const bucketStart = addDays(start, index);
@@ -252,19 +307,18 @@ function buildGrowthPoints(records: GrowthRecord[], range: RangeKey): GrowthPoin
 }
 
 export function AdminUserGrowthCard({ records }: { records: GrowthRecord[] }) {
-  const [range, setRange, hydrated] = usePersistedState<RangeKey>("admin-growth-range", "month");
-  const [viewMode, setViewMode] = useState<"chart" | "table">("chart");
+  const [range, setRange, rangeHydrated] = usePersistedState<RangeKey>("admin-growth-range", "month");
+  const [viewMode, setViewMode] = useAdminGrowthViewMode();
 
   // Validate that the restored range is a valid RangeKey value
-  const validRangeKeys: RangeKey[] = ["day", "7d", "month", "6m", "year", "lifetime"];
-  const validatedRange: RangeKey = validRangeKeys.includes(range) ? range : "month";
+  const validatedRange: RangeKey = VALID_RANGE_KEYS.includes(range) ? range : "month";
 
   // If the restored range is invalid, update it to the default
   useEffect(() => {
-    if (hydrated && !validRangeKeys.includes(range)) {
+    if (rangeHydrated && !VALID_RANGE_KEYS.includes(range)) {
       setRange("month");
     }
-  }, [hydrated, range, setRange, validRangeKeys]);
+  }, [rangeHydrated, range, setRange]);
 
   const points = useMemo(() => buildGrowthPoints(records, validatedRange), [records, validatedRange]);
   // Lifetime summary stays aligned with the chart: demo launches are excluded.
@@ -294,7 +348,7 @@ export function AdminUserGrowthCard({ records }: { records: GrowthRecord[] }) {
   const delta = lastTotal - previousTotal;
   const deltaLabel = delta === 0 ? "Flat" : delta > 0 ? `+${delta}` : `${delta}`;
 
-  if (!hydrated) {
+  if (!rangeHydrated) {
     return (
       <Card className="overflow-hidden border-border/70 bg-card/90 shadow-sm backdrop-blur-xl">
         <CardHeader className="gap-3 border-b border-border/60 bg-muted/30">
@@ -408,6 +462,7 @@ export function AdminUserGrowthCard({ records }: { records: GrowthRecord[] }) {
                     <button
                       type="button"
                       onClick={() => setViewMode("chart")}
+                      aria-pressed={viewMode === "chart"}
                       className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
                         viewMode === "chart"
                           ? "bg-primary text-primary-foreground shadow-xs"
@@ -420,6 +475,7 @@ export function AdminUserGrowthCard({ records }: { records: GrowthRecord[] }) {
                     <button
                       type="button"
                       onClick={() => setViewMode("table")}
+                      aria-pressed={viewMode === "table"}
                       className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
                         viewMode === "table"
                           ? "bg-primary text-primary-foreground shadow-xs"
@@ -448,23 +504,8 @@ export function AdminUserGrowthCard({ records }: { records: GrowthRecord[] }) {
               {viewMode === "chart" ? (
                 <AdminGrowthChart range={validatedRange} points={points} />
               ) : (
-                <AdminGrowthTable points={points} />
+                <AdminGrowthTable range={validatedRange} points={points} />
               )}
-
-              <div className="grid gap-2 sm:grid-cols-3">
-                <div className="rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                  <p className="font-medium text-foreground">Active buckets</p>
-                  <p className="mt-1">{activeBuckets.length} with at least one signup.</p>
-                </div>
-                <div className="rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                  <p className="font-medium text-foreground">Highest bucket</p>
-                  <p className="mt-1">{peakBucket ? `${peakBucket.label} · ${peakBucket.total}` : "No signups"}</p>
-                </div>
-                <div className="rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                  <p className="font-medium text-foreground">Demo share</p>
-                  <p className="mt-1">{selectedTotals.total > 0 ? `${Math.round((selectedTotals.demo / (selectedTotals.total + selectedTotals.demo)) * 100)}%` : "0%"}</p>
-                </div>
-              </div>
             </div>
           )}
         </div>
