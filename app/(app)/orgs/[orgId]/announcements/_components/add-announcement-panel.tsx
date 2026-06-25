@@ -80,6 +80,13 @@ export function AddAnnouncementPanel({
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
+    const expiresAtRaw = formData.get("expiresAt");
+    if (expiresAtRaw && typeof expiresAtRaw === "string" && expiresAtRaw.trim()) {
+      const localDate = new Date(expiresAtRaw);
+      if (!Number.isNaN(localDate.getTime())) {
+        formData.set("expiresAt", localDate.toISOString());
+      }
+    }
     startTransition(() => dispatch(formData));
   }
 
@@ -88,9 +95,9 @@ export function AddAnnouncementPanel({
   const scopeValue = (announcement?.scope ?? "ORG") as AnnouncementScope;
   const expiresAtValue = announcement?.expiresAt
     ? formatDateTimeLocal(announcement.expiresAt)
-    : mode === "edit"
+    : mode === "create"
       ? getDefaultExpiresAtValue()
-      : getDefaultExpiresAtValue();
+      : "";
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5 p-4">

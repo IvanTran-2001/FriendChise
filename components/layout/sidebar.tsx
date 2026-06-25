@@ -267,7 +267,7 @@ export function AppSidebar() {
                   title="Docs"
                   url="/doc"
                   icon={HelpCircle}
-                  isActive={false}
+                  isActive={isActiveItem("/doc")}
                 />
               </>
             )}

@@ -34,9 +34,12 @@ export async function createAnnouncementAction(
   const scope =
     scopeValue === "GLOBAL" ? "GLOBAL" : "ORG";
 
-  const expiresAt = expiresAtValue ? new Date(expiresAtValue) : undefined;
-  if (expiresAt && Number.isNaN(expiresAt.getTime())) {
-    return { ok: false, error: "Expiration date is invalid." };
+  let expiresAt: Date | undefined = undefined;
+  if (expiresAtValue) {
+    expiresAt = new Date(expiresAtValue);
+    if (Number.isNaN(expiresAt.getTime())) {
+      return { ok: false, error: "Expiration date is invalid." };
+    }
   }
 
   const result = await createAnnouncement(
@@ -77,9 +80,12 @@ export async function updateAnnouncementAction(
 
   const scope = scopeValue === "GLOBAL" ? "GLOBAL" : "ORG";
 
-  const expiresAt = expiresAtValue ? new Date(expiresAtValue) : undefined;
-  if (expiresAt && Number.isNaN(expiresAt.getTime())) {
-    return { ok: false, error: "Expiration date is invalid." };
+  let expiresAt: Date | undefined = undefined;
+  if (expiresAtValue) {
+    expiresAt = new Date(expiresAtValue);
+    if (Number.isNaN(expiresAt.getTime())) {
+      return { ok: false, error: "Expiration date is invalid." };
+    }
   }
 
   const result = await updateAnnouncement(
@@ -139,5 +145,6 @@ export async function extendAnnouncementExpiryAction(
 
   revalidatePath(`/orgs/${orgId}/announcements`);
   revalidatePath(`/orgs/${orgId}/announcements/${announcementId}`);
+  revalidatePath(`/orgs/${orgId}`);
   return { ok: true };
 }

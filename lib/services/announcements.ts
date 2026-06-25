@@ -100,7 +100,9 @@ export async function updateAnnouncement(
   actorId?: string | null,
   actorEmail?: string | null,
 ): Promise<ServiceResult<AnnouncementRow>> {
-  const existing = await getAnnouncementById(orgId, announcementId);
+  const existing = await prisma.announcement.findUnique({
+    where: { id: announcementId, orgId },
+  });
   if (!existing) {
     return {
       ok: false,
@@ -144,7 +146,9 @@ export async function deleteAnnouncement(
   actorId?: string | null,
   actorEmail?: string | null,
 ): Promise<ServiceResult<null>> {
-  const existing = await getAnnouncementById(orgId, announcementId);
+  const existing = await prisma.announcement.findUnique({
+    where: { id: announcementId, orgId },
+  });
   if (!existing) {
     return {
       ok: false,
@@ -174,7 +178,9 @@ export async function extendAnnouncementExpiry(
   actorId?: string | null,
   actorEmail?: string | null,
 ): Promise<ServiceResult<AnnouncementRow>> {
-  const existing = await getAnnouncementById(orgId, announcementId);
+  const existing = await prisma.announcement.findUnique({
+    where: { id: announcementId, orgId },
+  });
   if (!existing) {
     return {
       ok: false,

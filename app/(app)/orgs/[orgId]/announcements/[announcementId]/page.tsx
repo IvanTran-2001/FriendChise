@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AnnouncementScope } from "@prisma/client";
 import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
@@ -60,9 +61,9 @@ export default async function AnnouncementPage({
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
         <div className="flex items-center justify-between gap-3 px-1">
           <Button variant="outline" size="sm" asChild>
-            <a href={`/orgs/${orgId}/announcements${order === "oldest" ? "?order=oldest" : ""}`}>
+            <Link href={`/orgs/${orgId}/announcements${order === "oldest" ? "?order=oldest" : ""}`}>
               Back to announcements
-            </a>
+            </Link>
           </Button>
           <span className="text-xs text-muted-foreground">
             Posted {formatDateTime(announcement.createdAt)}
