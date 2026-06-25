@@ -30,7 +30,6 @@ export function AnnouncementSidebarContent({
 
   return (
     <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
-
       <div className="px-3 pt-2.5 pb-3 border-t border-border">
         <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
           Order
