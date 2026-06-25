@@ -15,26 +15,8 @@ type AdminGrowthTableProps = {
   range: RangeKey;
 };
 
-function groupDayPoints(points: GrowthPoint[]) {
-  const buckets: GrowthPoint[] = [];
-
-  for (let index = 0; index < points.length; index += 4) {
-    const slice = points.slice(index, index + 4);
-    if (slice.length === 0) continue;
-
-    buckets.push({
-      key: slice[0].key,
-      label: `${index}-${Math.min(index + 4, 24)}`,
-      total: slice.reduce((sum, point) => sum + point.total, 0),
-      demo: slice.reduce((sum, point) => sum + point.demo, 0),
-    });
-  }
-
-  return buckets;
-}
-
 export function AdminGrowthTable({ points, range }: AdminGrowthTableProps) {
-  const displayPoints = range === "day" ? groupDayPoints(points) : points;
+  const displayPoints = points;
 
   if (displayPoints.length === 0) {
     return (

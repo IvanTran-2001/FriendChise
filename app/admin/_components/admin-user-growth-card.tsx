@@ -175,28 +175,47 @@ function formatYearLabel(date: Date) {
   });
 }
 
+function aggregateDayPointsTo4Hours(hourlyPoints: GrowthPoint[]): GrowthPoint[] {
+  const buckets: GrowthPoint[] = [];
+
+  for (let index = 0; index < hourlyPoints.length; index += 4) {
+    const slice = hourlyPoints.slice(index, index + 4);
+    if (slice.length === 0) continue;
+
+    buckets.push({
+      key: slice[0].key,
+      label: `${index}-${Math.min(index + 4, 24)}`,
+      total: slice.reduce((sum, point) => sum + point.total, 0),
+      demo: slice.reduce((sum, point) => sum + point.demo, 0),
+    });
+  }
+
+  return buckets;
+}
+
 function buildGrowthPoints(records: GrowthRecord[], range: RangeKey): GrowthPoint[] {
   const now = new Date();
 
   if (range === "day") {
-    // Day view is hourly: 24 buckets, one per hour in the last 24 hours.
-    const start = startOfHour(addHours(now, -23));
-    const points = Array.from({ length: 24 }, (_, index) => {
+    // Day view: first generate hourly buckets aligned to midnight boundaries (0-23 hours).
+    const start = startOfDay(now);
+    const hourlyPoints = Array.from({ length: 24 }, (_, index) => {
       const bucketStart = addHours(start, index);
-      return createPoint(bucketKey(bucketStart, "hour"), String(index + 1));
+      return createPoint(bucketKey(bucketStart, "hour"), String(index));
     });
     const bucketIndex = new Map<string, number>();
-    points.forEach((point, index) => bucketIndex.set(point.key, index));
+    hourlyPoints.forEach((point, index) => bucketIndex.set(point.key, index));
 
     for (const record of records) {
       const createdAt = new Date(record.createdAt);
       const index = bucketIndex.get(bucketKey(createdAt, "hour"));
       if (index === undefined) continue;
-      if (record.isDemo) points[index].demo += 1;
-      else points[index].total += 1;
+      if (record.isDemo) hourlyPoints[index].demo += 1;
+      else hourlyPoints[index].total += 1;
     }
 
-    return points;
+    // Aggregate hourly buckets into 4-hour periods so all views use the same data.
+    return aggregateDayPointsTo4Hours(hourlyPoints);
   }
 
   if (range === "7d") {
