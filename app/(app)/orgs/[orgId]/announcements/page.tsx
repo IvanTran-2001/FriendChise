@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
-import { requireOrgOwnerPage } from "@/lib/authz";
+import { requireUserPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { getAnnouncementsPage } from "@/lib/services/announcements";
 import { AnnouncementSidebarContent, type AnnouncementOrder } from "./_components/announcement-sidebar-content";
@@ -25,21 +25,24 @@ export default async function AnnouncementsPage({
     : rawSearchParams.page;
   const order: AnnouncementOrder = rawOrder === "oldest" ? "oldest" : "newest";
   const page = Math.max(1, Number.parseInt(rawPage ?? "1", 10) || 1);
-  // Announcements are owner-only because edits, deletes, and expiry changes
-  // are exposed directly from the list UI.
-  await requireOrgOwnerPage(orgId);
-
-  const [org, announcements] = await Promise.all([
-    prisma.organization.findUnique({
-      where: { id: orgId },
-      select: { id: true, ownerId: true, name: true },
-    }),
-    getAnnouncementsPage(orgId, { page, pageSize: PAGE_SIZE, order }),
-  ]);
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { id: true, ownerId: true, name: true },
+  });
 
   if (!org) notFound();
 
-  const canManage = true;
+  // Any signed-in user can read the feed; only the org owner gets edit controls.
+  const { userId } = await requireUserPage();
+
+  const announcements = await getAnnouncementsPage(orgId, {
+    page,
+    pageSize: PAGE_SIZE,
+    order,
+  });
+
+  // The owner check only drives the UI affordances, not page access.
+  const canManage = org.ownerId === userId;
 
   return (
     <>

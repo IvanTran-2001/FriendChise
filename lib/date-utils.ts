@@ -130,6 +130,58 @@ export function localToUTC(
 }
 
 /**
+ * Converts a local date-time string (YYYY-MM-DDTHH:mm[:ss]) in `tz` to UTC.
+ *
+ * This is useful for `datetime-local` inputs, which do not include an offset.
+ * The helper treats the input as a wall-clock time in the provided timezone and
+ * returns the corresponding UTC timestamp.
+ */
+export function localDateTimeToUTC(localDateTime: string, tz: string): number {
+  const [datePart, timePart] = localDateTime.split("T");
+  if (!datePart || !timePart) return Number.NaN;
+
+  const [y, m, d] = datePart.split("-").map(Number);
+  const [hourPart = "0", minutePart = "0", secondPart = "0"] = timePart.split(":");
+  const hour = Number(hourPart);
+  const minute = Number(minutePart);
+  const second = Number(secondPart);
+
+  let utcMs = Date.UTC(y, m - 1, d, hour, minute, second, 0);
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  });
+
+  // Iterate a few times to converge on the correct UTC instant across DST offsets.
+  for (let i = 0; i < 3; i += 1) {
+    const parts = Object.fromEntries(
+      formatter.formatToParts(new Date(utcMs)).map((p) => [p.type, p.value]),
+    );
+    const localAsUtc = Date.UTC(
+      Number(parts.year),
+      Number(parts.month) - 1,
+      Number(parts.day),
+      Number(parts.hour),
+      Number(parts.minute),
+      Number(parts.second),
+      0,
+    );
+    const desiredAsUtc = Date.UTC(y, m - 1, d, hour, minute, second, 0);
+    const delta = localAsUtc - desiredAsUtc;
+    if (delta === 0) break;
+    utcMs -= delta;
+  }
+
+  return utcMs;
+}
+
+/**
  * Converts UTC storage values back to a local date string and local start minute
  * for display in the given org timezone.
  *

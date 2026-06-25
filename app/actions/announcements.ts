@@ -1,6 +1,8 @@
 "use server";
 
 import { requireOrgOwnerAction } from "@/lib/authz";
+import { localDateTimeToUTC } from "@/lib/date-utils";
+import { prisma } from "@/lib/prisma";
 import {
   createAnnouncement,
   deleteAnnouncement,
@@ -14,6 +16,23 @@ export type AnnouncementMutationState =
   | { ok: false; error: string }
   | null;
 
+function parseAnnouncementExpiry(
+  expiresAtValue: string,
+  orgTimezone: string,
+): Date | undefined {
+  const value = expiresAtValue.trim();
+  if (!value) return undefined;
+
+  // Prefer ISO timestamps from the client; fall back to org-local wall-clock parsing.
+  const hasTimezoneOffset = /(?:Z|[+-]\d\d(?::?\d\d)?)$/.test(value);
+  const utcMs = hasTimezoneOffset
+    ? new Date(value).getTime()
+    : localDateTimeToUTC(value, orgTimezone);
+
+  if (Number.isNaN(utcMs)) return undefined;
+  return new Date(utcMs);
+}
+
 export async function createAnnouncementAction(
   orgId: string,
   _prev: AnnouncementMutationState,
@@ -26,6 +45,11 @@ export async function createAnnouncementAction(
   const description = String(formData.get("description") ?? "").trim();
   const scopeValue = String(formData.get("scope") ?? "ORG").trim();
   const expiresAtValue = String(formData.get("expiresAt") ?? "").trim();
+  // Use the org timezone as the reference when a raw datetime-local value arrives.
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { timezone: true },
+  });
 
   if (!title) return { ok: false, error: "Announcement title is required." };
   if (!description)
@@ -34,12 +58,12 @@ export async function createAnnouncementAction(
   const scope =
     scopeValue === "GLOBAL" ? "GLOBAL" : "ORG";
 
-  let expiresAt: Date | undefined = undefined;
-  if (expiresAtValue) {
-    expiresAt = new Date(expiresAtValue);
-    if (Number.isNaN(expiresAt.getTime())) {
-      return { ok: false, error: "Expiration date is invalid." };
-    }
+  const expiresAt = parseAnnouncementExpiry(
+    expiresAtValue,
+    org?.timezone ?? "Australia/Sydney",
+  );
+  if (expiresAtValue && !expiresAt) {
+    return { ok: false, error: "Expiration date is invalid." };
   }
 
   const result = await createAnnouncement(
@@ -73,6 +97,10 @@ export async function updateAnnouncementAction(
   const description = String(formData.get("description") ?? "").trim();
   const scopeValue = String(formData.get("scope") ?? "ORG").trim();
   const expiresAtValue = String(formData.get("expiresAt") ?? "").trim();
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { timezone: true },
+  });
 
   if (!title) return { ok: false, error: "Announcement title is required." };
   if (!description)
@@ -80,12 +108,12 @@ export async function updateAnnouncementAction(
 
   const scope = scopeValue === "GLOBAL" ? "GLOBAL" : "ORG";
 
-  let expiresAt: Date | undefined = undefined;
-  if (expiresAtValue) {
-    expiresAt = new Date(expiresAtValue);
-    if (Number.isNaN(expiresAt.getTime())) {
-      return { ok: false, error: "Expiration date is invalid." };
-    }
+  const expiresAt = parseAnnouncementExpiry(
+    expiresAtValue,
+    org?.timezone ?? "Australia/Sydney",
+  );
+  if (expiresAtValue && !expiresAt) {
+    return { ok: false, error: "Expiration date is invalid." };
   }
 
   const result = await updateAnnouncement(
