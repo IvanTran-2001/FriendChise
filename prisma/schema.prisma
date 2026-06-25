@@ -41,6 +41,11 @@ enum SectionScope {
   GLOBAL // section is shared / visible across the franchise network
 }
 
+enum AnnouncementScope {
+  ORG
+  GLOBAL
+}
+
 enum PermissionAction {
   MANAGE_MEMBERS
   MANAGE_ROLES
@@ -212,6 +217,7 @@ model Organization {
   rosterTemplates     RosterTemplate[]
   franchiseTokens     FranchiseToken[]
   invites             Invite[]
+  announcements       Announcement[]
   auditLogs           AuditLog[]
   toolItems           ToolItem[]
   toolItemLists       ToolItemList[]
@@ -756,6 +762,30 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ANNOUNCEMENTS
+// Franchise-wide or org-scoped posts shown to users from the UI.
+// Read state is intentionally client-side for now.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Announcement {
+  id          String   @id @default(cuid())
+
+  orgId       String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  scope       AnnouncementScope @default(ORG)
+  title       String
+  description String
+  expiresAt   DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([orgId])
+  @@index([expiresAt])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

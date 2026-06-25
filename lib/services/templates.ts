@@ -6,6 +6,7 @@ import { log } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { recordAudit } from "@/lib/services/audit-log";
+import { isSameFranchise } from "@/lib/services/franchise-root";
 import type { ServiceResult } from "./types";
 import {
   localMidnightUTC,
@@ -13,11 +14,6 @@ import {
   localToUTC,
   utcToLocal,
 } from "@/lib/date-utils";
-
-function getFranchiseRoot(record: { id: string; parentId: string | null }) {
-  // Root orgs use their own id; child orgs inherit the parent's id for cross-org checks.
-  return record.parentId ?? record.id;
-}
 
 /**
  * Returns all templates for the given org, ordered newest-first.
@@ -140,7 +136,7 @@ export async function addTemplateInstance(
     return { ok: false, error: "Template not found", code: "NOT_FOUND" };
   // Only allow template placement when the destination org and task owner
   // resolve to the same franchise root.
-  if (getFranchiseRoot(org) !== getFranchiseRoot(task.organization)) {
+  if (!isSameFranchise(org, task.organization)) {
     return { ok: false, error: "Task not found", code: "NOT_FOUND" };
   }
   if (dayIndex < 0 || dayIndex >= template.cycleLengthDays) {

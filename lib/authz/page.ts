@@ -6,6 +6,7 @@ import {
   getOrgMembership,
   isAdminUser,
   isParentOrgOwner,
+  isOrgOwner,
   memberHasPermission,
 } from "./_shared";
 
@@ -111,4 +112,15 @@ export async function requireSuperAdminPage({
   if (!user) redirect("/signin");
   if (!(await isAdminUser(user.email))) redirect(redirectTo);
   return { userId: user.id };
+}
+
+/** Requires the caller to be the owner of the given org. */
+export async function requireOrgOwnerPage(
+  orgId: string,
+  { redirectTo }: { redirectTo?: string } = {},
+): Promise<{ userId: string }> {
+  const userId = await getAuthUserId();
+  if (!userId) redirect("/signin");
+  if (!(await isOrgOwner(orgId, userId))) redirect(redirectTo ?? `/orgs/${orgId}`);
+  return { userId };
 }

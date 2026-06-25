@@ -14,11 +14,16 @@ const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
 });
 
+const cachedPrisma = globalForPrisma.prisma;
+const shouldRefreshCachedClient =
+  !!cachedPrisma && !("announcement" in cachedPrisma);
+
 export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    adapter,
-    log: process.env.NODE_ENV === "test" ? ["warn"] : ["error", "warn"],
-  });
+  shouldRefreshCachedClient || !cachedPrisma
+    ? new PrismaClient({
+        adapter,
+        log: process.env.NODE_ENV === "test" ? ["warn"] : ["error", "warn"],
+      })
+    : cachedPrisma;
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;

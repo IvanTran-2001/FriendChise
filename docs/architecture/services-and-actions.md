@@ -31,6 +31,12 @@ FriendChise splits write flows into two layers on purpose.
 - Put "what should happen" in a service.
 - Put "who is allowed to do it" and "what does the UI need next" in an action.
 
+## Ownership-gated pages
+
+- Some page surfaces are intentionally owner-only even before the action layer runs.
+- The announcements list page follows this pattern: `requireOrgOwnerPage()` gates the route, and the list UI exposes owner-only edit, delete, and expiry actions.
+- Use this pattern when the page contains direct mutation controls that should never be visible to non-owners.
+
 ## Examples
 
 - `createTaskAction` parses `FormData`, validates it, checks permissions, then calls `createTask`.

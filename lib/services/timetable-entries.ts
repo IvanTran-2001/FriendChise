@@ -17,6 +17,7 @@ import { log } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 import { Prisma, EntryStatus } from "@prisma/client";
 import { recordAudit } from "@/lib/services/audit-log";
+import { isSameFranchise } from "@/lib/services/franchise-root";
 import type { ServiceResult } from "./types";
 import {
   localMidnightUTC,
@@ -30,11 +31,6 @@ export type ListTimetableEntriesOptions = {
   status?: EntryStatus;
   completed?: boolean;
 };
-
-function getFranchiseRoot(record: { id: string; parentId: string | null }) {
-  // Root orgs use their own id; child orgs inherit the parent's id for cross-org checks.
-  return record.parentId ?? record.id;
-}
 
 /**
  * Lists timetable entries for an org with optional status filtering.
@@ -258,7 +254,7 @@ export async function createTimetableEntry(
 
   // Only allow timetable placement when the destination org and task owner
   // resolve to the same franchise root.
-  if (getFranchiseRoot(org) !== getFranchiseRoot(task.organization)) {
+  if (!isSameFranchise(org, task.organization)) {
     return { ok: false, error: "Task not found", code: "NOT_FOUND" };
   }
 

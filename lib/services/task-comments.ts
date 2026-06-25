@@ -10,6 +10,7 @@
  */
 import { VoteType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { isSameFranchise } from "@/lib/services/franchise-root";
 import type { ServiceResult } from "./types";
 import type { AddCommentInput, EditCommentInput } from "@/lib/validators/task-comment";
 
@@ -73,9 +74,7 @@ export async function canUserCommentOnTask(
   ]);
   if (!task || !userOrg) return false;
 
-  const taskRoot = task.organization.parentId ?? task.organization.id;
-  const userRoot = userOrg.parentId ?? userOrg.id;
-  return taskRoot === userRoot;
+  return isSameFranchise(task.organization, userOrg);
 }
 
 // ─── Queries ──────────────────────────────────────────────────────────────────

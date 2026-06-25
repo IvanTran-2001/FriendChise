@@ -14,6 +14,7 @@ This section covers the main system-level docs for FriendChise.
 - [Image Handling](/doc/architecture/image-handling)
 - [Time Model](/doc/architecture/time-model)
 - [Services and Actions](/doc/architecture/services-and-actions)
+- [Announcements](/doc/architecture/announcements)
 - [Built-in Tools](/doc/architecture/built-in-tools)
 - [Components](/doc/components)
 - [Authentication](/doc/architecture/authentication)

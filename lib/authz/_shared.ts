@@ -59,6 +59,18 @@ export async function isAdminUser(email: string | null): Promise<boolean> {
   return admin !== null;
 }
 
+/** Returns true if the user is the owner of the given org. */
+export async function isOrgOwner(
+  orgId: string,
+  userId: string,
+): Promise<boolean> {
+  const org = await prisma.organization.findFirst({
+    where: { id: orgId, ownerId: userId },
+    select: { id: true },
+  });
+  return org !== null;
+}
+
 /** Returns true if the membership's role(s) grant the given permission. */
 export async function memberHasPermission(
   membershipId: string,

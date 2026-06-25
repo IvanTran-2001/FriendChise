@@ -13,8 +13,6 @@ git clone https://github.com/<your-username>/FriendChise.git
 cd FriendChise
 ```
 
-If you already have the repo open, just use the folder you already cloned.
-
 ## 2. Start a local Postgres database
 
 Use Docker if you want the quickest setup. The same Postgres container image works on macOS, Linux, and Windows through Docker Desktop:

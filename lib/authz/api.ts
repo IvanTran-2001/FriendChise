@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { PermissionAction } from "@prisma/client";
 import { log } from "@/lib/observability";
-import { getAuthUser, getOrgMembership, memberHasPermission } from "./_shared";
+import {
+  getAuthUser,
+  getOrgMembership,
+  isOrgOwner,
+  memberHasPermission,
+} from "./_shared";
 
 /**
  * Auth guard helpers for API route handlers.
@@ -26,6 +31,18 @@ const permissionDenied = () =>
 export async function requireUser() {
   const user = await getAuthUser();
   if (!user) return { ok: false as const, response: unauthorized() };
+  return { ok: true as const, userId: user.id, userEmail: user.email };
+}
+
+/** Requires the caller to be the owner of the given org. */
+export async function requireOrgOwner(orgId: string) {
+  const user = await getAuthUser();
+  if (!user) return { ok: false as const, response: unauthorized() };
+
+  if (!(await isOrgOwner(orgId, user.id))) {
+    return { ok: false as const, response: forbidden() };
+  }
+
   return { ok: true as const, userId: user.id, userEmail: user.email };
 }
 

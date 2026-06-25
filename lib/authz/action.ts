@@ -5,6 +5,7 @@ import {
   getOrgMembership,
   isAdminUser,
   isParentOrgOwner,
+  isOrgOwner,
   memberHasPermission,
 } from "./_shared";
 
@@ -41,6 +42,14 @@ export async function requireSuperAdminAction() {
   if (!user) return { ok: false as const };
   if (!(await isAdminUser(user.email))) return { ok: false as const };
   return { ok: true as const, userId: user.id };
+}
+
+/** Requires the caller to be the owner of the given org. */
+export async function requireOrgOwnerAction(orgId: string) {
+  const user = await getAuthUser();
+  if (!user) return { ok: false as const };
+  if (!(await isOrgOwner(orgId, user.id))) return { ok: false as const };
+  return { ok: true as const, userId: user.id, userEmail: user.email };
 }
 
 /** Requires the caller to be signed in and a member of the org. */
