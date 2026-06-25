@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useEffect } from "react";
-import { CalendarRange, LineChart, Users, UserRound } from "lucide-react";
+import { useMemo, useEffect, useCallback, useSyncExternalStore } from "react";
+import { CalendarRange, LineChart, Table2, Users, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import { AdminGrowthChart, type GrowthPoint, type RangeKey } from "./admin-growth-chart";
+import { AdminGrowthTable } from "./admin-growth-table";
 
 export type UserGrowthRecord = {
   createdAt: string;
@@ -26,6 +27,62 @@ const RANGE_OPTIONS: Array<{ key: RangeKey; label: string }> = [
   { key: "year", label: "Year" },
   { key: "lifetime", label: "Lifetime" },
 ];
+
+const VALID_RANGE_KEYS: RangeKey[] = ["day", "7d", "month", "6m", "year", "lifetime"];
+const VIEW_MODE_STORAGE_KEY = "admin-growth-view-mode";
+const VIEW_MODE_EVENT_NAME = `persisted-state-change:${VIEW_MODE_STORAGE_KEY}`;
+
+function useAdminGrowthViewMode() {
+  const viewMode = useSyncExternalStore(
+    (onStoreChange) => {
+      if (typeof window === "undefined") return () => {};
+
+      const onCustomChange = () => onStoreChange();
+      const onStorageChange = (event: StorageEvent) => {
+        if (event.key === VIEW_MODE_STORAGE_KEY) onStoreChange();
+      };
+
+      window.addEventListener(VIEW_MODE_EVENT_NAME, onCustomChange as EventListener);
+      window.addEventListener("storage", onStorageChange as EventListener);
+      return () => {
+        window.removeEventListener(VIEW_MODE_EVENT_NAME, onCustomChange as EventListener);
+        window.removeEventListener("storage", onStorageChange as EventListener);
+      };
+    },
+    () => {
+      if (typeof window === "undefined") return "chart";
+
+      try {
+        const storedViewMode = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+        if (storedViewMode === "chart" || storedViewMode === "table") {
+          return storedViewMode;
+        }
+      } catch {
+        // Ignore storage errors
+      }
+
+      return "chart";
+    },
+    () => "chart",
+  ) as "chart" | "table";
+
+  const setViewMode = useCallback(
+    (nextViewMode: "chart" | "table" | ((current: "chart" | "table") => "chart" | "table")) => {
+      const resolvedViewMode =
+        typeof nextViewMode === "function" ? nextViewMode(viewMode) : nextViewMode;
+
+      try {
+        window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, resolvedViewMode);
+        window.dispatchEvent(new CustomEvent(VIEW_MODE_EVENT_NAME));
+      } catch {
+        // Ignore storage errors
+      }
+    },
+    [viewMode],
+  );
+
+  return [viewMode, setViewMode] as const;
+}
 
 function startOfDay(date: Date) {
   const next = new Date(date);
@@ -118,32 +175,50 @@ function formatYearLabel(date: Date) {
   });
 }
 
+function aggregateDayPointsTo4Hours(hourlyPoints: GrowthPoint[]): GrowthPoint[] {
+  const buckets: GrowthPoint[] = [];
+
+  for (let index = 0; index < hourlyPoints.length; index += 4) {
+    const slice = hourlyPoints.slice(index, index + 4);
+    if (slice.length === 0) continue;
+
+    buckets.push({
+      key: slice[0].key,
+      label: `${index}-${Math.min(index + 4, 24)}`,
+      total: slice.reduce((sum, point) => sum + point.total, 0),
+      demo: slice.reduce((sum, point) => sum + point.demo, 0),
+    });
+  }
+
+  return buckets;
+}
+
 function buildGrowthPoints(records: GrowthRecord[], range: RangeKey): GrowthPoint[] {
   const now = new Date();
 
   if (range === "day") {
-    // Day view is hourly: 24 buckets, one per hour in the last 24 hours.
-    const start = startOfHour(addHours(now, -23));
-    const points = Array.from({ length: 24 }, (_, index) => {
+    // Day view: first generate hourly buckets aligned to midnight boundaries (0-23 hours).
+    const start = startOfDay(now);
+    const hourlyPoints = Array.from({ length: 24 }, (_, index) => {
       const bucketStart = addHours(start, index);
-      return createPoint(bucketKey(bucketStart, "hour"), String(index + 1));
+      return createPoint(bucketKey(bucketStart, "hour"), String(index));
     });
     const bucketIndex = new Map<string, number>();
-    points.forEach((point, index) => bucketIndex.set(point.key, index));
+    hourlyPoints.forEach((point, index) => bucketIndex.set(point.key, index));
 
     for (const record of records) {
       const createdAt = new Date(record.createdAt);
       const index = bucketIndex.get(bucketKey(createdAt, "hour"));
       if (index === undefined) continue;
-      if (record.isDemo) points[index].demo += 1;
-      else points[index].total += 1;
+      if (record.isDemo) hourlyPoints[index].demo += 1;
+      else hourlyPoints[index].total += 1;
     }
 
-    return points;
+    // Aggregate hourly buckets into 4-hour periods so all views use the same data.
+    return aggregateDayPointsTo4Hours(hourlyPoints);
   }
 
   if (range === "7d") {
-    // Week view is daily: seven buckets covering the last seven days.
     const start = startOfDay(addDays(now, -6));
     const points = Array.from({ length: 7 }, (_, index) => {
       const bucketStart = addDays(start, index);
@@ -251,18 +326,18 @@ function buildGrowthPoints(records: GrowthRecord[], range: RangeKey): GrowthPoin
 }
 
 export function AdminUserGrowthCard({ records }: { records: GrowthRecord[] }) {
-  const [range, setRange, hydrated] = usePersistedState<RangeKey>("admin-growth-range", "month");
+  const [range, setRange, rangeHydrated] = usePersistedState<RangeKey>("admin-growth-range", "month");
+  const [viewMode, setViewMode] = useAdminGrowthViewMode();
 
   // Validate that the restored range is a valid RangeKey value
-  const validRangeKeys: RangeKey[] = ["day", "7d", "month", "6m", "year", "lifetime"];
-  const validatedRange: RangeKey = validRangeKeys.includes(range) ? range : "month";
+  const validatedRange: RangeKey = VALID_RANGE_KEYS.includes(range) ? range : "month";
 
   // If the restored range is invalid, update it to the default
   useEffect(() => {
-    if (hydrated && !validRangeKeys.includes(range)) {
+    if (rangeHydrated && !VALID_RANGE_KEYS.includes(range)) {
       setRange("month");
     }
-  }, [hydrated, range, setRange, validRangeKeys]);
+  }, [rangeHydrated, range, setRange]);
 
   const points = useMemo(() => buildGrowthPoints(records, validatedRange), [records, validatedRange]);
   // Lifetime summary stays aligned with the chart: demo launches are excluded.
@@ -292,7 +367,7 @@ export function AdminUserGrowthCard({ records }: { records: GrowthRecord[] }) {
   const delta = lastTotal - previousTotal;
   const deltaLabel = delta === 0 ? "Flat" : delta > 0 ? `+${delta}` : `${delta}`;
 
-  if (!hydrated) {
+  if (!rangeHydrated) {
     return (
       <Card className="overflow-hidden border-border/70 bg-card/90 shadow-sm backdrop-blur-xl">
         <CardHeader className="gap-3 border-b border-border/60 bg-muted/30">
@@ -396,37 +471,60 @@ export function AdminUserGrowthCard({ records }: { records: GrowthRecord[] }) {
                 <div>
                   <p className="text-sm font-medium text-foreground">Growth trend</p>
                   <p className="text-xs text-muted-foreground">
-                    Left to right is the selected date range. Blue is non-demo signups, amber is demo launches.
+                    {viewMode === "chart"
+                      ? "Left to right is the selected date range. Blue is non-demo signups, amber is demo launches."
+                      : "Each row compares the bucket against the previous one in the same time range."}
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                  <span className="inline-flex items-center gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-primary" />
-                    New users
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
-                    Demo launches
-                  </span>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-1 rounded-lg border border-border/60 bg-background/80 p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("chart")}
+                      aria-pressed={viewMode === "chart"}
+                      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                        viewMode === "chart"
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <LineChart className="h-3.5 w-3.5" />
+                      Graph
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("table")}
+                      aria-pressed={viewMode === "table"}
+                      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                        viewMode === "table"
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Table2 className="h-3.5 w-3.5" />
+                      Table
+                    </button>
+                  </div>
+                  {viewMode === "chart" && (
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="h-2.5 w-2.5 rounded-full bg-primary" />
+                        New users
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                        Demo launches
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <AdminGrowthChart range={validatedRange} points={points} />
-
-              <div className="grid gap-2 sm:grid-cols-3">
-                <div className="rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                  <p className="font-medium text-foreground">Active buckets</p>
-                  <p className="mt-1">{activeBuckets.length} with at least one signup.</p>
-                </div>
-                <div className="rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                  <p className="font-medium text-foreground">Highest bucket</p>
-                  <p className="mt-1">{peakBucket ? `${peakBucket.label} · ${peakBucket.total}` : "No signups"}</p>
-                </div>
-                <div className="rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                  <p className="font-medium text-foreground">Demo share</p>
-                  <p className="mt-1">{selectedTotals.total > 0 ? `${Math.round((selectedTotals.demo / (selectedTotals.total + selectedTotals.demo)) * 100)}%` : "0%"}</p>
-                </div>
-              </div>
+              {viewMode === "chart" ? (
+                <AdminGrowthChart range={validatedRange} points={points} />
+              ) : (
+                <AdminGrowthTable range={validatedRange} points={points} />
+              )}
             </div>
           )}
         </div>
