@@ -113,7 +113,7 @@ export function PageSidebarSlot() {
         <div className="hidden md:block relative w-0 shrink-0">
           <button
             onClick={() => setCollapsed(false)}
-            className="absolute top-0 left-0 z-10 flex items-center justify-center w-12 h-12 rounded-none bg-sidebar border-r border-b border-border text-primary hover:bg-primary/8 transition-colors cursor-pointer"
+            className="absolute top-0 left-0 z-10 flex items-center justify-center w-12 h-12 rounded-none bg-sidebar border-r border-b border-border text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60 transition-colors cursor-pointer"
             aria-label="Expand sidebar"
           >
             <PanelLeftOpen className="h-5 w-5" />
@@ -127,7 +127,7 @@ export function PageSidebarSlot() {
             {titleEl}
             <button
               onClick={() => setCollapsed(true)}
-              className="w-12 h-12 shrink-0 flex items-center justify-center rounded-none border-l border-border text-primary hover:bg-primary/8 transition-colors cursor-pointer"
+              className="w-12 h-12 shrink-0 flex items-center justify-center rounded-none border-l border-border text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60 transition-colors cursor-pointer"
               aria-label="Collapse sidebar"
             >
               <PanelLeftClose className="h-5 w-5" />
@@ -148,7 +148,7 @@ export function PageSidebarSlot() {
             {titleEl}
             <button
               onClick={() => setOpen(false)}
-              className="w-12 h-12 shrink-0 flex items-center justify-center rounded-none border-l border-border text-muted-foreground hover:bg-muted transition-colors"
+              className="w-12 h-12 shrink-0 flex items-center justify-center rounded-none border-l border-border text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60 transition-colors"
               aria-label="Close"
             >
               <X className="h-4 w-4" />

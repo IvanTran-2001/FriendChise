@@ -52,7 +52,7 @@ export function MobileSidebarTrigger() {
       onClick={() => setOpen(!open)}
       aria-label={open ? "Close menu" : "Open menu"}
       aria-expanded={open}
-      className="md:hidden flex items-center justify-center h-9 w-9 rounded-full border border-border/70 bg-background/85 text-foreground/70 shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background hover:text-foreground hover:shadow-md"
+      className="md:hidden flex items-center justify-center h-9 w-9 rounded-full border border-border/70 bg-background/85 text-foreground/70 shadow-sm transition-colors duration-150 hover:border-border hover:bg-muted/60 hover:text-foreground"
     >
       <Menu className="h-5 w-5" />
     </button>

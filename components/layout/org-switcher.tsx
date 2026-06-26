@@ -81,7 +81,7 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
         <Button
           variant="outline"
           size="sm"
-          className="group h-8.5 w-44 rounded-full border-border/70 bg-background/85 pl-1 pr-2 text-left shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2"
+          className="group h-8.5 w-44 rounded-full border-border/70 bg-background/85 pl-1 pr-2 text-left shadow-sm transition-colors duration-150 hover:border-border hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2"
           disabled={isPending}
         >
           <span className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full bg-muted/70 ring-1 ring-border/70 transition-colors group-hover:bg-muted">

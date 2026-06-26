@@ -162,7 +162,7 @@ export function ActionSidebarSlot() {
             </SheetTitle>
             <button
               onClick={close}
-              className="w-10 h-10 shrink-0 rounded-md flex items-center justify-center text-primary hover:bg-primary/8 transition-colors cursor-pointer"
+              className="w-10 h-10 shrink-0 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60 transition-colors cursor-pointer"
               aria-label="Close panel"
             >
               <X className="h-5 w-5" />
@@ -190,7 +190,7 @@ export function ActionSidebarSlot() {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        className="absolute left-0 inset-y-0 w-1 z-20 cursor-col-resize group hover:bg-primary/30 active:bg-primary/50 transition-colors"
+        className="absolute left-0 inset-y-0 w-1 z-20 cursor-col-resize group hover:bg-border active:bg-primary/30 transition-colors"
         aria-hidden
       />
 
@@ -203,7 +203,7 @@ export function ActionSidebarSlot() {
         </span>
         <button
           onClick={close}
-          className="w-12 h-12 shrink-0 rounded-none border-l border-border flex items-center justify-center text-primary hover:bg-primary/8 transition-colors cursor-pointer"
+          className="w-12 h-12 shrink-0 rounded-none border-l border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60 transition-colors cursor-pointer"
           aria-label="Close panel"
         >
           <X className="h-5 w-5" />

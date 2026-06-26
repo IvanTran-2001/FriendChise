@@ -13,7 +13,6 @@ html,
 body {
   overflow: hidden;
   height: 100%;
-  font-weight: 700;
 }
 
 @theme inline {
@@ -59,17 +58,6 @@ body {
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
-  /* Shift the entire font-weight scale up slightly so all utilities
-     (font-normal, font-medium, etc.) render a bit heavier. */
-  --font-weight-thin: 700;
-  --font-weight-extralight: 700;
-  --font-weight-light: 700;
-  --font-weight-normal: 700;
-  --font-weight-medium: 700;
-  --font-weight-semibold: 700;
-  --font-weight-bold: 700;
-  --font-weight-extrabold: 700;
-  --font-weight-black: 700;
 }
 
 :root {
@@ -108,8 +96,8 @@ body {
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
 
-  /* Border radius — tighter for a clean business feel */
-  --radius: 0;
+  /* Border radius — subtle rounding for a clean, Jira-like feel */
+  --radius: 0.375rem;
 
   /* Sidebar — clean white */
   --sidebar: oklch(1 0 0);

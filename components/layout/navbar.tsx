@@ -101,7 +101,7 @@ export const NavBar = async () => {
           <Button
             variant="ghost"
             asChild
-            className="hidden md:flex h-9 shrink-0 items-center rounded-full border border-border/70 bg-background/85 px-2 pl-1.25 pr-2.5 text-foreground shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2"
+            className="hidden md:flex h-9 shrink-0 items-center rounded-full border border-border/70 bg-background/85 px-2 pl-1.25 pr-2.5 text-foreground shadow-sm transition-colors duration-150 hover:border-border hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2"
           >
             <Link href="/" aria-label="Go to home" className="flex items-center gap-1.5">
               <Logo />
@@ -154,7 +154,7 @@ export const NavBar = async () => {
                   variant="ghost"
                   size="icon"
                   aria-label="Open user menu"
-                  className="h-9 w-9 rounded-full border border-border/70 bg-background/85 p-0 shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background hover:shadow-md"
+                  className="h-9 w-9 rounded-full border border-border/70 bg-background/85 p-0 shadow-sm transition-colors duration-150 hover:border-border hover:bg-muted/60"
                 >
                   <div className="h-7 w-7 rounded-full bg-primary overflow-hidden flex items-center justify-center">
                     {user.image ? (
