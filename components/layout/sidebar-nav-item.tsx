@@ -91,7 +91,14 @@ export function SidebarNavItem({
     "group relative mx-2 my-0.5 flex h-9 items-center gap-2.5 rounded-md px-3 text-[13px] font-medium transition-colors duration-150 before:absolute before:left-2.5 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-transparent before:transition-colors";
   const inner = (
     <>
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/60 transition-colors duration-150 group-hover:text-sidebar-foreground">
+      <span
+        className={cn(
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors duration-150",
+          isActive
+            ? "text-current"
+            : "text-sidebar-foreground/60 group-hover:text-sidebar-foreground",
+        )}
+      >
         <Icon className="h-4 w-4" />
       </span>
       <span className="truncate">{title}</span>
