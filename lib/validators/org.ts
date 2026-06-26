@@ -56,7 +56,14 @@ const scheduleFields = {
  * `title` becomes the org's display name.
  */
 export const createOrgSchema = z
-  .object({ title: z.string().trim().min(1).max(200), ...scheduleFields })
+  .object({
+    title: z
+      .string()
+      .trim()
+      .min(1, "Organization name is required")
+      .max(100, "Organization name must be 100 characters or less"),
+    ...scheduleFields,
+  })
   .refine(refineSchedule, scheduleRefinementOpts);
 
 export type CreateOrgInput = z.infer<typeof createOrgSchema>;
