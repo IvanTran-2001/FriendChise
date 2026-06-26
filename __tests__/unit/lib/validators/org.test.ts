@@ -51,13 +51,13 @@ describe("createOrgSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects title longer than 200 characters", () => {
-    const result = createOrgSchema.safeParse({ title: "A".repeat(201) });
+  it("rejects title longer than 100 characters", () => {
+    const result = createOrgSchema.safeParse({ title: "A".repeat(101) });
     expect(result.success).toBe(false);
   });
 
-  it("accepts title of exactly 200 characters", () => {
-    const result = createOrgSchema.safeParse({ title: "A".repeat(200) });
+  it("accepts title of exactly 100 characters", () => {
+    const result = createOrgSchema.safeParse({ title: "A".repeat(100) });
     expect(result.success).toBe(true);
   });
 

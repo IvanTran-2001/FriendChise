@@ -186,6 +186,11 @@ export default function NewOrgPage({
         setLoading(false);
         return;
       }
+      if (trimmedTitle.length > 100) {
+        setError("Organization name must be 100 characters or less");
+        setLoading(false);
+        return;
+      }
       const result = await createOrg({
         title: trimmedTitle,
         ...buildSchedulePayload(schedule),
@@ -221,6 +226,7 @@ export default function NewOrgPage({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
+              maxLength={100}
             />
           </div>
 
