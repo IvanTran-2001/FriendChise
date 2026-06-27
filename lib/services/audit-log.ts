@@ -110,9 +110,27 @@ export async function recordAudit(
  * Returns the audit log for an org, newest-first.
  * `limit` defaults to 100 — callers can paginate by adjusting this.
  */
-export async function getAuditLogs(orgId: string, limit = 100) {
+export async function getAuditLogs(
+  orgId: string = "",
+  { search, date, limit = 100 }: { search?: string; date?: string; limit?: number } = {}
+) {
   return prisma.auditLog.findMany({
-    where: { orgId },
+    where: {
+      ...(orgId && { orgId }),
+      ...(search && {
+        OR: [
+          { action: { contains: search, mode: "insensitive" } },
+          { actorEmail: { contains: search, mode: "insensitive" } },
+          { targetType: { contains: search, mode: "insensitive" } },
+        ],
+      }),
+      ...(date && {
+        createdAt: {
+          gte: new Date(date),
+          lt: new Date(new Date(date).getTime() + 24 * 60 * 60 * 1000),
+        },
+      }),
+    },
     orderBy: { createdAt: "desc" },
     take: limit,
   });
