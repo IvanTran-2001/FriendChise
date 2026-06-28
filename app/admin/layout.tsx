@@ -55,7 +55,7 @@ export default function AdminLayout({
           </div>
         </header>
 
-        <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <div className="flex min-h-0 flex-1 gap-6 lg:flex-row lg:flex-nowrap">
           <aside className="space-y-4">
             <Card className="border-border/70 bg-card/90 shadow-sm backdrop-blur-xl">
               <CardHeader className="gap-2">
@@ -83,7 +83,7 @@ export default function AdminLayout({
             </Card>
           </aside>
 
-          <main className="pb-2">
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col pb-2">
             {children}
           </main>
         </div>

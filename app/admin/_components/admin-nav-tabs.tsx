@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, LayoutDashboard, LineChart, MessageSquareMore } from "lucide-react";
+import { ImageIcon, LayoutDashboard, LineChart, MessageSquareMore, ScrollText } from "lucide-react";
 
 type AdminNavItem = {
   href: string;
@@ -34,6 +34,12 @@ const NAV_ITEMS: AdminNavItem[] = [
     href: "/admin/photos",
     label: "Photos",
     icon: ImageIcon,
+    exact: false,
+  },
+  {
+    href: "/admin/logs",
+    label: "Logs",
+    icon: ScrollText,
     exact: false,
   },
 ];
