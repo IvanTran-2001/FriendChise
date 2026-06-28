@@ -83,7 +83,7 @@ export default function AdminLayout({
             </Card>
           </aside>
 
-          <main className="pb-2">
+          <main className="flex min-h-0 flex-col pb-2">
             {children}
           </main>
         </div>
