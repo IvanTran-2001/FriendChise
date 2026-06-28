@@ -350,13 +350,13 @@ export function OrgImagePicker({
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-4 gap-2 max-h-72 overflow-y-auto pr-1">
+                <div className="grid grid-cols-3 gap-3 max-h-80 overflow-y-auto pr-1">
                   {filtered.map((img) => (
                     <button
                       key={img.id}
                       type="button"
                       onClick={() => handleLibrarySelect(img)}
-                      className="group relative aspect-square rounded-md overflow-hidden border border-border hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                      className="group relative w-24 h-24 rounded-md overflow-hidden border border-border hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
                       title={img.name ?? undefined}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
