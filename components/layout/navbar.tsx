@@ -103,7 +103,11 @@ export const NavBar = async () => {
             asChild
             className="hidden md:flex h-9 shrink-0 items-center rounded-full border border-border/70 bg-background/85 px-2 pl-1.25 pr-2.5 text-foreground shadow-sm transition-colors duration-150 hover:border-border hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2"
           >
-            <Link href="/" aria-label="Go to home" className="flex items-center gap-1.5">
+            <Link
+              href="/"
+              aria-label="Go to home"
+              className="flex items-center gap-1.5"
+            >
               <Logo />
               <span className="hidden xl:flex flex-col items-start leading-none">
                 <span className="text-[13px] font-semibold tracking-tight text-foreground/90">
@@ -175,9 +179,13 @@ export const NavBar = async () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="px-2 py-1.5">
-                  <p className="text-sm font-medium leading-none truncate">{user.name ?? "Profile"}</p>
+                  <p className="text-sm font-medium leading-none truncate">
+                    {user.name ?? "Profile"}
+                  </p>
                   {user.email && (
-                    <p className="text-xs text-muted-foreground mt-1 truncate">{user.email}</p>
+                    <p className="text-xs text-muted-foreground mt-1 truncate">
+                      {user.email}
+                    </p>
                   )}
                 </div>
                 <DropdownMenuSeparator />
@@ -191,6 +199,9 @@ export const NavBar = async () => {
                 </DropdownMenuItem>
                 {/* TODO: restore <DropdownMenuItem asChild><Link href="/settings/account">Account Settings</Link></DropdownMenuItem> when account settings page is implemented */}
                 <DropdownMenuItem disabled>Account Settings</DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/doc/overview">Docs</Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {/* Sign out uses a server action so no client JS is needed */}
                 <form
