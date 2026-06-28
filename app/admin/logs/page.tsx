@@ -5,12 +5,14 @@ import { redirect } from "next/navigation";
 export default async function LogsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; date?: string }>;
+  searchParams: Promise<{ search?: string | string[]; date?: string | string[] }>;
 }) {
   const session = await auth();
   if (!session?.user) redirect("/signin");
 
-  const { search, date } = await searchParams;
+  const params = await searchParams;
+  const search = Array.isArray(params.search) ? params.search[0] : params.search;
+  const date = Array.isArray(params.date) ? params.date[0] : params.date;
 
   const logs = await getAuditLogs("", { search, date });
 
@@ -25,18 +27,24 @@ export default async function LogsPage({
 
       <div className="flex min-h-0 flex-1 flex-col p-6">
         <form action="/admin/logs" className="mb-6 flex flex-col gap-2 sm:flex-row">
-          <input
-            name="search"
-            defaultValue={search}
-            placeholder="Search by action, email..."
-            className="min-w-0 flex-1 rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-sm shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
-          />
-          <input
-            name="date"
-            type="date"
-            defaultValue={date}
-            className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-sm shadow-sm outline-none transition focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
-          />
+          <label className="min-w-0 flex-1">
+            <span className="sr-only">Search by action, email</span>
+            <input
+              name="search"
+              defaultValue={search}
+              placeholder="Search by action, email..."
+              className="w-full rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-sm shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
+            />
+          </label>
+          <label>
+            <span className="sr-only">Filter by date</span>
+            <input
+              name="date"
+              type="date"
+              defaultValue={date}
+              className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-sm shadow-sm outline-none transition focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
+            />
+          </label>
           <button
             type="submit"
             className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition hover:opacity-90"

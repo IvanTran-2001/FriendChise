@@ -114,10 +114,30 @@ export async function getAuditLogs(
   orgId: string = "",
   { search, date, limit = 100 }: { search?: string; date?: string; limit?: number } = {}
 ) {
-  const parsedDate =
-    typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)
-      ? new Date(`${date}T00:00:00.000Z`)
-      : undefined;
+  let parsedDate: Date | undefined;
+  if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    const [yearStr, monthStr, dayStr] = date.split("-");
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+    const day = parseInt(dayStr, 10);
+
+    // Validate that year/month/day are valid calendar values
+    if (
+      year >= 1000 && year <= 9999 &&
+      month >= 1 && month <= 12 &&
+      day >= 1 && day <= 31
+    ) {
+      const candidate = new Date(`${date}T00:00:00.000Z`);
+      // Verify the date didn't roll over (e.g., Feb 31 -> Mar 3)
+      if (
+        candidate.getUTCFullYear() === year &&
+        candidate.getUTCMonth() === month - 1 &&
+        candidate.getUTCDate() === day
+      ) {
+        parsedDate = candidate;
+      }
+    }
+  }
 
   return prisma.auditLog.findMany({
     where: {

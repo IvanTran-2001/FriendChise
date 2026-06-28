@@ -116,7 +116,7 @@ describe("getAuditLogs", () => {
 
   it("honours the limit parameter", async () => {
     const org = await getSeedOrg();
-    const logs = await getAuditLogs(org.id, 1);
+    const logs = await getAuditLogs(org.id, { limit: 1 });
     expect(logs.length).toBeLessThanOrEqual(1);
   });
 });
