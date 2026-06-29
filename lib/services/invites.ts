@@ -357,6 +357,7 @@ export async function acceptMemberInvite(
   userId: string,
   actorEmail?: string | null,
 ): Promise<ServiceResult<null>> {
+  await syncExpiredInvitesForUser(userId);
   const invite = await prisma.invite.findUnique({ where: { id: inviteId } });
   if (
     !invite ||
@@ -480,6 +481,7 @@ export async function acceptBotSlotInvite(
   userId: string,
   actorEmail?: string | null,
 ): Promise<ServiceResult<null>> {
+  await syncExpiredInvitesForUser(userId);
   const invite = await prisma.invite.findUnique({ where: { id: inviteId } });
   if (
     !invite ||

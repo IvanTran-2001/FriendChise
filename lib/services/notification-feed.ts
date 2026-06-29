@@ -92,8 +92,8 @@ export async function getNotificationFeedForUser(
   options: { view?: "all" | "unseen" } = {},
 ): Promise<NotificationFeedPage> {
   const { view = "all" } = options;
-  const currentPage = Math.max(1, Math.floor(page));
-  const limit = currentPage * pageSize;
+  const requestedPage = Math.max(1, Math.floor(page));
+  const limit = requestedPage * pageSize;
 
   const [invitePage, notificationPage, announcementPage] =
     await Promise.all([
@@ -108,13 +108,14 @@ export async function getNotificationFeedForUser(
   const mergedFeed = buildFeedItems(invites, notifications, announcements);
   const totalCount = invitePage.total + notificationPage.total + announcementPage.totalCount;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const currentPage = Math.min(requestedPage, totalPages);
   const start = (currentPage - 1) * pageSize;
 
   return {
     items: mergedFeed.slice(start, start + pageSize),
     totalCount,
     totalPages,
-    page: Math.min(currentPage, totalPages),
+    page: currentPage,
     pageSize,
   };
 }

@@ -367,7 +367,6 @@ export async function getPaginatedAnnouncementHistoryForUser(
     };
   }
 
-  const skip = (page - 1) * pageSize;
   const historyWhere =
     view === "seen"
       ? {
@@ -392,34 +391,32 @@ export async function getPaginatedAnnouncementHistoryForUser(
             ],
           }
         : where;
-  const [rows, totalCount] = await Promise.all([
-    prisma.announcement.findMany({
-      where: historyWhere,
-      orderBy: { createdAt: "desc" },
-      skip,
-      take: pageSize,
-      select: {
-        id: true,
-        orgId: true,
-        scope: true,
-        title: true,
-        description: true,
-        expiresAt: true,
-        createdAt: true,
-        updatedAt: true,
-        reads: {
-          where: { userId },
-          take: 1,
-          select: { seenAt: true },
-        },
-        organization: { select: { name: true } },
-      },
-    }),
-    prisma.announcement.count({ where: historyWhere }),
-  ]);
-
+  const totalCount = await prisma.announcement.count({ where: historyWhere });
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const currentPage = Math.min(Math.max(1, Math.floor(page)), totalPages);
+  const skip = (currentPage - 1) * pageSize;
+  const rows = await prisma.announcement.findMany({
+    where: historyWhere,
+    orderBy: { createdAt: "desc" },
+    skip,
+    take: pageSize,
+    select: {
+      id: true,
+      orgId: true,
+      scope: true,
+      title: true,
+      description: true,
+      expiresAt: true,
+      createdAt: true,
+      updatedAt: true,
+      reads: {
+        where: { userId },
+        take: 1,
+        select: { seenAt: true },
+      },
+      organization: { select: { name: true } },
+    },
+  });
 
   return {
     items: rows.map((row) => ({
@@ -448,6 +445,16 @@ export async function markAnnouncementSeen(
   userId: string,
   announcementId: string,
 ): Promise<void> {
+  const { orgIds, franchiseRootIds } = await getVisibleAnnouncementOrgScope(userId);
+  const where = buildVisibleAnnouncementWhereForUser(orgIds, franchiseRootIds, new Date());
+  if (!where) return;
+
+  const announcement = await prisma.announcement.findFirst({
+    where: { id: announcementId, AND: where.AND },
+    select: { id: true },
+  });
+  if (!announcement) return;
+
   const announcementReads = prisma as typeof prisma & {
     announcementRead: {
       upsert: (args: unknown) => Promise<unknown>;

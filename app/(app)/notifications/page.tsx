@@ -24,8 +24,8 @@ export default async function NotificationsPage({ searchParams }: PageProps) {
   // Keep the page on a valid, deterministic slice even when the query string is missing or invalid.
   const page = typeof pageStr === "string" ? parseInt(pageStr, 10) : 1;
   const validPage = isNaN(page) || page < 1 ? 1 : page;
-  // Default the history page to unseen items so the first view highlights new activity.
-  const view = viewParam === "all" ? "all" : "unseen";
+  // Default the history page to all items so the first view shows the full history.
+  const view = viewParam === "unseen" ? "unseen" : "all";
   const limit = 10;
 
   // Load the current page and the shared unseen badge count in parallel.

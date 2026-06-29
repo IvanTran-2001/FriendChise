@@ -494,7 +494,7 @@ export async function createFranchiseToken(
   await prisma.$transaction(async (tx) => {
     const franchiseToken = await tx.franchiseToken.create({
       data: { orgId, invitedEmail: trimmed, expiresAt },
-      select: { token: true },
+      select: { token: true, expiresAt: true },
     });
 
     // Each token send should create a distinct invite so repeated sends show up as separate notifications.
@@ -506,6 +506,7 @@ export async function createFranchiseToken(
         type: InviteType.FRANCHISE,
         orgName: org?.name ?? "",
         inviterName: inviter?.name ?? null,
+        expiresAt: franchiseToken.expiresAt,
         metadata: { token: franchiseToken.token },
       },
     });

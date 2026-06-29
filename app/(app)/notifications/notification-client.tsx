@@ -213,17 +213,8 @@ function AnnouncementCard({
 
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={handleSeen}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          handleSeen();
-        }
-      }}
       className={cn(
-        "relative flex gap-3 px-4 py-3.5 transition-colors hover:bg-muted/40",
+        "relative flex gap-3 px-4 py-3.5 transition-colors",
         !isSeen && "bg-primary/3",
       )}
     >
@@ -267,10 +258,7 @@ function AnnouncementCard({
             type="button"
             size="icon"
             variant={isSeen ? "ghost" : "outline"}
-            onClick={(event) => {
-              event.stopPropagation();
-              handleSeen();
-            }}
+            onClick={handleSeen}
             disabled={isPending}
             aria-label={isSeen ? "Already seen" : "Mark as seen"}
             className={cn("h-7 w-7 shrink-0 rounded-full", isSeen && "text-primary")}

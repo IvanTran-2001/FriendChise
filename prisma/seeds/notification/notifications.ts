@@ -23,7 +23,7 @@ export async function seedNotifications(
   const notifications = Array.from({ length: 30 }, (_, index) => ({
     userId: users.owner.id,
     message: `${orgName} invited ${maindevName} to join as a franchisee. ${NOTIFICATION_MESSAGES[index % NOTIFICATION_MESSAGES.length]}`,
-    seenAt: index < 10 ? new Date(now - index * 60 * 60 * 1000) : null,
+    seenAt: index < 10 ? null : new Date(now - index * 60 * 60 * 1000),
     createdAt: new Date(now - index * 12 * 60 * 60 * 1000),
   }));
 
