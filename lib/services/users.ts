@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { convertMembershipToBot } from "@/lib/services/bots";
 
 /**
  * Deletes the current user's account after confirming their display name or email.
@@ -8,10 +9,20 @@ export async function deleteUserAccount(
   userId: string,
   confirmText: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { name: true, email: true },
-  });
+  const [user, ownedOrgs, memberships] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true },
+    }),
+    prisma.organization.findMany({
+      where: { ownerId: userId },
+      select: { id: true },
+    }),
+    prisma.membership.findMany({
+      where: { userId },
+      select: { id: true, orgId: true },
+    }),
+  ]);
 
   if (!user) {
     return { ok: false, error: "User not found" };
@@ -22,24 +33,29 @@ export async function deleteUserAccount(
     return { ok: false, error: "Confirmation text does not match" };
   }
 
+  const ownedOrgIds = new Set(ownedOrgs.map((org) => org.id));
   try {
-    const ownedOrgs = await prisma.organization.findMany({
-      where: { ownerId: userId },
-      select: { id: true },
-    });
-    const ownedOrgIds = ownedOrgs.map((org) => org.id);
-
     await prisma.$transaction(async (tx) => {
-      if (ownedOrgIds.length > 0) {
+      if (ownedOrgIds.size > 0) {
+        const ownedOrgIdList = [...ownedOrgIds];
+
         await tx.organization.updateMany({
-          where: { parentId: { in: ownedOrgIds } },
+          where: { id: { in: ownedOrgIdList } },
+          data: { ownerId: null },
+        });
+
+        await tx.organization.updateMany({
+          where: { parentId: { in: ownedOrgIdList } },
           data: { parentId: null },
         });
-
-        await tx.organization.deleteMany({
-          where: { id: { in: ownedOrgIds } },
-        });
       }
+
+      const botName = user.name ?? user.email;
+      await Promise.all(
+        memberships.map((membership) =>
+          convertMembershipToBot(tx, membership.id, botName),
+        ),
+      );
 
       await tx.user.delete({
         where: { id: userId },

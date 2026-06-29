@@ -190,8 +190,8 @@ model Organization {
   name          String
   image         String?
 
-  ownerId       String
-  owner         User     @relation("OrgOwner", fields: [ownerId], references: [id])
+  ownerId       String?
+  owner         User?    @relation("OrgOwner", fields: [ownerId], references: [id], onDelete: SetNull)
 
   // Franchise hierarchy
   parentId      String?

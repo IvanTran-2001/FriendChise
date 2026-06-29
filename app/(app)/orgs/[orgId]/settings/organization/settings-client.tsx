@@ -50,7 +50,7 @@ interface TransferableMember {
 interface OrgData {
   id: string;
   name: string;
-  ownerId: string;
+  ownerId: string | null;
   parentId: string | null;
   address: string | null;
   timezone: string;

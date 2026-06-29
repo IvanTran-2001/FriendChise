@@ -35,7 +35,7 @@ type Franchisee = {
   name: string;
   address: string | null;
   createdAt: Date;
-  owner: { id: string; name: string | null; email: string | null };
+  owner: { id: string; name: string | null; email: string | null } | null;
 };
 
 type Token = {
@@ -393,7 +393,7 @@ export function FranchiseeClient({
                       <div className="flex flex-col gap-1">
                         <span>{franchisee.name}</span>
                         <span className="sm:hidden text-xs text-muted-foreground">
-                          {franchisee.owner.name ?? franchisee.owner.email ?? "—"}
+                          {franchisee.owner?.name ?? franchisee.owner?.email ?? "Orphaned org"}
                           {franchisee.address ? ` · ${franchisee.address}` : ""}
                         </span>
                       </div>
@@ -402,7 +402,7 @@ export function FranchiseeClient({
                       {franchisee.address ?? "—"}
                     </td>
                     <td className="hidden px-5 py-4 sm:table-cell">
-                      {franchisee.owner.name ?? franchisee.owner.email ?? "—"}
+                      {franchisee.owner?.name ?? franchisee.owner?.email ?? "Orphaned org"}
                     </td>
                     <td className="hidden px-5 py-4 text-muted-foreground sm:table-cell">
                       {formatDate(franchisee.createdAt)}
