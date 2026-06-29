@@ -7,7 +7,7 @@
  * and navigates to the selected org's root page on selection.
  */
 import { useRouter, usePathname } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -79,7 +79,13 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [recentOrgId, setRecentOrgId] = useState<string | null>(() => getRecentOrgId());
+  const [recentOrgId, setRecentOrgId] = useState<string | null>(null);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setRecentOrgId(getRecentOrgId());
+    });
+  }, []);
 
   // Derive active org from the current URL e.g. /orgs/[orgId]/...
   const activeOrgId = pathname.match(/^\/orgs\/([^\/]+)/)?.[1];
