@@ -1,73 +1,55 @@
-# Connect Dev Sign-In UI to Seeded Users
+## What Changed
 
-## Problem
+- **Supabase Storage Helpers**: Added `moveStorageFile` and `copyStorageFile` in [supabase-storage.ts](file:///e:/Ketan/FriendChise/lib/supabase-storage.ts) using the Supabase REST API endpoints `/storage/v1/object/move` and `/storage/v1/object/copy`.
+- **Sanitization & Renaming Services**: Created filename sanitization and renaming helpers in [images.ts](file:///e:/Ketan/FriendChise/lib/services/images.ts):
+  - `sanitizeFilename()` handles accents/diacritics normalization, lowercases, replaces non-alphanumeric chars (including emojis) with hyphens, and falls back to `"image"` if empty.
+  - `renameTaskImageIfNeeded()` and `renameToolItemImageIfNeeded()` compare the current image path to the expected sanitized path (`orgs/{orgId}/tasks/{taskId}/{name}.{ext}` and `orgs/{orgId}/items/{itemId}/{name}.{ext}`).
+  - Resolves shared vs unique images: copies in storage if the image is shared by other records (to avoid breaking references), and moves/renames (with database library path updates) if unique.
+- **Save & Update Hooks**:
+  - Integrated hooks in `saveTaskImagePath` and `saveToolItemImagePath` in [storage.ts](file:///e:/Ketan/FriendChise/app/actions/storage.ts) to rename images on save.
+  - Integrated hooks in `updateTaskAction` and `updateToolItemAction` to rename files if the parent task/item name is modified. All triggers are non-blocking and run inside try/catch blocks.
+- **Migration Script**: Created `scripts/seeds/rename-images.ts` to backfill existing records in the database and storage.
+- **Unit Tests**: Created a new test suite [images-rename.test.ts](file:///e:/Ketan/FriendChise/__tests__/unit/lib/services/images-rename.test.ts) covering name sanitization and copy/move branch logic.
 
-Dev sign-in was disconnected from the seeded users system:
+## Why
 
-- The dev user picker had hardcoded emails without namespaces (e.g., `owner@example.test`)
-- Test helpers and E2E setup used `resolveSeedEmail()` with env var fallbacks instead of constants
-- Seeded data couldn't be accessed consistently across local dev, tests, and UI
-- Contributors had to manually figure out which email to use
+This allows task and item images in Supabase Storage to be organized descriptively rather than using generic UUIDs or library paths.
 
-## Solution
+Closes #211
 
-Introduced a single source of truth for seeded users and wired it through the entire dev flow:
+## Type
 
-### 1. Central Seeded Users Constant (`lib/seeded-users.ts`)
+- [ ] 🐛 Bug fix
+- [x] ✨ Enhancement / Feature
+- [ ] 🔧 Refactor
+- [ ] 📝 Documentation
+- [ ] 🎨 UI / Styling
 
-Exports `SEEDED_USERS` object with all 9 seeded identities and their namespaced emails/display names using `seedEmail()` from the seed namespace system. Similar to how `authConfig` centralizes auth configuration.
+## How to Test
 
-```typescript
-import { SEEDED_USERS } from "@/lib/seeded-users";
-const email = SEEDED_USERS.owner.email; // owner+namespace@example.test
-```
+1. Run unit tests to verify backend logic: `vitest run __tests__/unit/lib/services/images-rename.test.ts` or `pnpm test`.
+2. Boot up the local dev server (`pnpm dev`).
+3. Create/edit a Task or Tool Item, upload an image, and save. Verify in Supabase storage that the image is named after the sanitized name (e.g. `orgs/{orgId}/tasks/{taskId}/deep-clean-fryer.png`).
+4. Rename the Task or Tool Item and click Save. Verify the image in storage has been moved/renamed to match the updated name.
+5. Try the migration seed script: `npx tsx scripts/seeds/rename-images.ts`.
 
-### 2. Test Integration
+## Screenshots / Recordings
 
-Updated test files to reference `SEEDED_USERS` instead of env var fallbacks:
+_No UI changes were introduced. This is a backend and storage-level file renaming enhancement. Examples of before/after storage paths are shown below:_
 
-- `__tests__/e2e/auth.setup.ts`: Uses `SEEDED_USERS.riley` for E2E auth
-- `__tests__/integration/helpers.ts`: Uses `SEEDED_USERS.casey` for integration tests
+- **Before (Task Image)**: `orgs/org_abc123/images/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d.png`
+- **After (Task Image)**: `orgs/org_abc123/tasks/task_xyz789/deep-clean-fryer-9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d.png`
+- **Before (Item Image)**: `orgs/org_abc123/images/f3c5f2b8-1a4c-4e8f-9a1b-3c4b5d6e7f8a.jpg`
+- **After (Item Image)**: `orgs/org_abc123/items/item_xyz789/glazed-donut-f3c5f2b8-1a4c-4e8f-9a1b-3c4b5d6e7f8a.jpg`
 
-This ensures tests always use the exact same identities that were seeded, preventing mismatches.
+## Checklist
 
-### 3. Dev Sign-In Flow (`app/(auth)/signin/*`)
+- [x] Tested on desktop (Chrome)
+- [ ] Tested on mobile (iPhone Safari)
+- [x] No lint errors (`pnpm lint`)
+- [x] Build passes (`pnpm build`)
+- [ ] Smoke test updated (if applicable)
 
-Connected UI to seeded data:
+## Smoke Test Issues Resolved
 
-- `get-dev-users.ts`: Server function that builds the user list from `SEEDED_USERS`
-- `dev-user-picker.tsx`: Now accepts `users` as a prop (follows React best practices for testability)
-- `page.tsx`: Calls `getDevUsers()` and passes to picker
-
-The picker now displays seeded users with correct namespaced emails and roles, all generated from a single source.
-
-## Code Standards Applied
-
-- **Centralized configuration**: Patterns similar to `auth.config.ts` (single config file, exported constants)
-- **Type safety**: Exported `SeededUserId` type for type-safe user references
-- **Server functions**: `get-dev-users.ts` runs on server only (avoids exposing logic to client unnecessarily)
-- **Reusable utilities**: Leveraged existing `seedEmail()` and `seedDisplayName()` from seed-namespace system
-- **Documentation**: Clear JSDoc comments explaining purpose and usage
-- **No duplication**: Removed hardcoded user list; users now defined once and referenced everywhere
-
-## Testing
-
-- ✅ TypeScript: No errors
-- ✅ E2E tests: 22 passed, 1 skipped
-- ✅ Prettier: Code formatted
-- ✅ Integration: Tests use `SEEDED_USERS.casey` successfully
-
-## Documentation Updated
-
-- `CONTRIBUTING.md`: Updated sign-in instructions to reflect searchable user picker
-- `README.md`: Reflected in local dev section
-
-## Files Changed
-
-- **New**: `lib/seeded-users.ts`, `app/(auth)/signin/get-dev-users.ts`
-- **Modified**:
-  - `app/(auth)/signin/dev-user-picker.tsx` (accepts users prop)
-  - `app/(auth)/signin/page.tsx` (calls getDevUsers)
-  - `__tests__/e2e/auth.setup.ts` (uses SEEDED_USERS)
-  - `__tests__/integration/helpers.ts` (uses SEEDED_USERS)
-  - `CONTRIBUTING.md` (updated docs)
+- [ ] #
