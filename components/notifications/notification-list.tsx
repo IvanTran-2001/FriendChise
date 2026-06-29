@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Bell, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationCard } from "./notification-card";
@@ -88,10 +89,14 @@ export function NotificationList({
 
       {/* Footer */}
       <div className="border-t px-4 py-2.5">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Link 
+          href="/notifications" 
+          onClick={onAction}
+          className="flex items-center justify-center w-full gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors py-1"
+        >
           <History className="size-3" />
-          History
-        </div>
+          View all history
+        </Link>
       </div>
     </div>
   );

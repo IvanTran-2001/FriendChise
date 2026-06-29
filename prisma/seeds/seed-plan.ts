@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { seedConversionData } from "./orgs/walker's doughnut/walkers-doughnuts";
 import { registerEmptyOrgSeeds } from "./dummies/empty-orgs";
 import { registerInviteSeeds } from "./notification/invites";
+import { registerNotificationSeeds } from "./notification/notifications";
 import { registerDonutShopASeeds, seedDonutShopA } from "./orgs/donut-shop-a/donut-shop-a";
 import { registerSeedUsers, type Users } from "./users";
 
@@ -43,6 +44,7 @@ export function registerSeedModules(plan: SeedPlan) {
   });
   registerEmptyOrgSeeds(plan);
   registerInviteSeeds(plan);
+  registerNotificationSeeds(plan);
 }
 
 export function buildSeedPlan(): SeedPlan {

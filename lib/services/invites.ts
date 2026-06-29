@@ -106,6 +106,33 @@ export async function getNotificationsForUser(
 }
 
 /**
+ * Returns paginated in-app notifications for a user.
+ */
+export async function getPaginatedNotificationsForUser(
+  userId: string,
+  page: number,
+  limit: number = 10,
+): Promise<{ items: NotificationItem[]; total: number; totalPages: number }> {
+  const skip = (page - 1) * limit;
+  const [items, total] = await Promise.all([
+    prisma.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+      select: { id: true, message: true, seenAt: true, createdAt: true },
+    }),
+    prisma.notification.count({ where: { userId } }),
+  ]);
+
+  return {
+    items,
+    total,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
+/**
  * Returns the count of unseen notifications for a user.
  */
 export async function getUnseenNotificationCount(
