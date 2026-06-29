@@ -79,6 +79,7 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [recentOrgId, setRecentOrgId] = useState<string | null>(() => getRecentOrgId());
 
   // Derive active org from the current URL e.g. /orgs/[orgId]/...
   const activeOrgId = pathname.match(/^\/orgs\/([^\/]+)/)?.[1];
@@ -86,13 +87,12 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
 
   // Sort orgs so the most recently selected one appears at the top.
   const sortedOrgs = useMemo(() => {
-    const recentId = getRecentOrgId();
-    if (!recentId) return orgs;
-    const idx = orgs.findIndex((o) => o.id === recentId);
+    if (!recentOrgId) return orgs;
+    const idx = orgs.findIndex((o) => o.id === recentOrgId);
     if (idx < 1) return orgs; // already first or not found
     // Move the recent org to front, keep the rest in order
     return [orgs[idx], ...orgs.slice(0, idx), ...orgs.slice(idx + 1)];
-  }, [orgs]);
+  }, [orgs, recentOrgId]);
 
   const filteredOrgs = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -179,6 +179,7 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
                     <DropdownMenuItem
                       key={org.id}
                       onSelect={() => {
+                        setRecentOrgId(org.id);
                         saveRecentOrg(org.id);
                         startTransition(() => router.push(`/orgs/${org.id}`));
                       }}
