@@ -9,20 +9,10 @@ export async function deleteUserAccount(
   userId: string,
   confirmText: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const [user, ownedOrgs, memberships] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { name: true, email: true },
-    }),
-    prisma.organization.findMany({
-      where: { ownerId: userId },
-      select: { id: true },
-    }),
-    prisma.membership.findMany({
-      where: { userId },
-      select: { id: true, orgId: true },
-    }),
-  ]);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { name: true, email: true },
+  });
 
   if (!user) {
     return { ok: false, error: "User not found" };
@@ -33,20 +23,26 @@ export async function deleteUserAccount(
     return { ok: false, error: "Confirmation text does not match" };
   }
 
-  const ownedOrgIds = new Set(ownedOrgs.map((org) => org.id));
   try {
     await prisma.$transaction(async (tx) => {
+      const [ownedOrgs, memberships] = await Promise.all([
+        tx.organization.findMany({
+          where: { ownerId: userId },
+          select: { id: true },
+        }),
+        tx.membership.findMany({
+          where: { userId },
+          select: { id: true, orgId: true },
+        }),
+      ]);
+
+      const ownedOrgIds = new Set(ownedOrgs.map((org) => org.id));
       if (ownedOrgIds.size > 0) {
         const ownedOrgIdList = [...ownedOrgIds];
 
         await tx.organization.updateMany({
           where: { id: { in: ownedOrgIdList } },
           data: { ownerId: null },
-        });
-
-        await tx.organization.updateMany({
-          where: { parentId: { in: ownedOrgIdList } },
-          data: { parentId: null },
         });
       }
 
