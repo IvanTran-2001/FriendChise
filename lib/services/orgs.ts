@@ -264,7 +264,11 @@ export async function joinFranchise(
         status: "PENDING",
         metadata: { path: ["token"], equals: token.token },
       },
-      data: { status: "ACCEPTED", acceptedAt: new Date() },
+      data: {
+        status: "ACCEPTED",
+        acceptedAt: new Date(),
+        seenAt: new Date(),
+      },
     });
 
       await recordAudit(

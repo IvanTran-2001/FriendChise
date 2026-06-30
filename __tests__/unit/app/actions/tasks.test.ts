@@ -27,6 +27,10 @@ vi.mock("@/lib/services/tasks", () => ({
   removeTaskEligibility: vi.fn(),
   setTaskEligibilities: vi.fn(),
 }));
+vi.mock("@/lib/services/images", () => ({
+  renameTaskImageIfNeeded: vi.fn(),
+  renameToolItemImageIfNeeded: vi.fn(),
+}));
 
 import {
   requireOrgPermissionAction,

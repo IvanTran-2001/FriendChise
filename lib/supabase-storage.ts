@@ -171,6 +171,61 @@ export async function deleteStorageFile(storagePath: string): Promise<void> {
   });
 }
 
+/**
+ * Moves/renames a file in the private storage bucket.
+ */
+export async function moveStorageFile(
+  sourcePath: string,
+  destinationPath: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const { url, key } = getConfig();
+  const res = await fetch(`${url}/storage/v1/object/move`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      bucketId: BUCKET,
+      sourceKey: sourcePath,
+      destinationKey: destinationPath,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => res.statusText);
+    return { ok: false, error: `Storage move error: ${body}` };
+  }
+  return { ok: true };
+}
+
+/**
+ * Copies a file in the private storage bucket.
+ */
+export async function copyStorageFile(
+  sourcePath: string,
+  destinationPath: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const { url, key } = getConfig();
+  const res = await fetch(`${url}/storage/v1/object/copy`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      bucketId: BUCKET,
+      sourceKey: sourcePath,
+      destinationKey: destinationPath,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => res.statusText);
+    return { ok: false, error: `Storage copy error: ${body}` };
+  }
+  return { ok: true };
+}
+
+
 // ─── Public bucket helpers ────────────────────────────────────────────────────
 
 /**

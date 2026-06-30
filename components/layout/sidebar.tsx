@@ -33,6 +33,8 @@ import {
   Tag,
   ChevronLeft,
   Megaphone,
+  User,
+  Palette,
 } from "lucide-react";
 import {
   MobileSidebarCtx,
@@ -196,6 +198,7 @@ export function AppSidebar() {
 
   const isSettingsRoute =
     !!orgId && pathname.startsWith(`/orgs/${orgId}/settings`);
+  const isAccountSettingsRoute = pathname.startsWith("/settings");
   const settingsItems = orgId ? getSettingsItems(orgId) : [];
 
   const isActiveItem = (url: string) => {
@@ -204,6 +207,49 @@ export function AppSidebar() {
   };
 
   const navContent = () => {
+    // ── Account Settings mode ────────────────────────────────────────────────
+    if (isAccountSettingsRoute) {
+      return (
+        <>
+          {/* Back button */}
+          <Link
+            href="/"
+            className="flex items-center h-12 shrink-0 gap-3 px-3 text-sm font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors border-b border-sidebar-border"
+          >
+            <ChevronLeft className="h-4 w-4 shrink-0" />
+            <span className="whitespace-nowrap overflow-hidden">Back</span>
+          </Link>
+          <div className="flex-1 overflow-y-auto overflow-x-hidden">
+            <div className="flex flex-col">
+              <SidebarNavItem
+                variant="app"
+                title="Account"
+                url="/settings/account"
+                icon={User}
+                isActive={pathname === "/settings/account"}
+              />
+              <SidebarNavItem
+                variant="app"
+                title="Orgs"
+                url="/settings/organizations"
+                icon={Building2}
+                isActive={false}
+                disabled={true}
+              />
+              <SidebarNavItem
+                variant="app"
+                title="Theme"
+                url="/settings/theme"
+                icon={Palette}
+                isActive={false}
+                disabled={true}
+              />
+            </div>
+          </div>
+        </>
+      );
+    }
+
     // ── Settings mode ──────────────────────────────────────────────────────
     if (isSettingsRoute && orgId) {
       return (

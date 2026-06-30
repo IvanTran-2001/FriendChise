@@ -37,8 +37,10 @@ export function createSeedPlan(): SeedPlan {
 }
 
 export function registerSeedModules(plan: SeedPlan) {
+  // Register seed modules in dependency order so users and orgs exist before any related activity seeds run.
   registerSeedUsers(plan);
   registerDonutShopASeeds(plan);
+  // Conversion data depends on the seeded org, so it runs after the org seed finishes.
   plan.afterOrg.push(async (prisma, _users, donutShopA) => {
     await seedConversionData(prisma, donutShopA.org.id);
   });

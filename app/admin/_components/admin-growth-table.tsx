@@ -15,7 +15,7 @@ type AdminGrowthTableProps = {
   range: RangeKey;
 };
 
-export function AdminGrowthTable({ points, range }: AdminGrowthTableProps) {
+export function AdminGrowthTable({ points }: AdminGrowthTableProps) {
   const displayPoints = points;
 
   if (displayPoints.length === 0) {

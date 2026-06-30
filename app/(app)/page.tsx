@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { OrgNotFoundToast } from "./org-not-found-toast";
 import { RecentOrgBanner } from "./recent-org-banner";
 import { HubInviteSection } from "./hub-invite-section";
-import { getInvitesForUser } from "@/lib/services/invites";
+import { getPaginatedInvitesForUser } from "@/lib/services/invites";
 
 // ─── Org card ─────────────────────────────────────────────────────────────────
 
@@ -180,7 +180,7 @@ export default async function HubPage({
   const { orgNotFound } = await searchParams;
   const { userId } = await requireUserPage();
 
-  const [memberships, allInvites] = await Promise.all([
+  const [memberships, invitePage] = await Promise.all([
     prisma.membership.findMany({
       where: { userId },
       include: {
@@ -194,10 +194,10 @@ export default async function HubPage({
       },
       orderBy: { joinedAt: "asc" },
     }),
-    getInvitesForUser(userId),
+    getPaginatedInvitesForUser(userId, 1, 50),
   ]);
 
-  const pendingInvites = allInvites.filter((i) => i.status === "PENDING");
+  const pendingInvites = invitePage.items.filter((i) => i.status === "PENDING");
 
   const orgs: OrgEntry[] = memberships.map((m) => ({
     id: m.organization.id,

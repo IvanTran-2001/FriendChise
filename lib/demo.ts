@@ -29,6 +29,23 @@ export const DEMO_JWT_TTL_MS = 1 * 60 * 60 * 1000; // 1 hour
 const DEMO_GLOBAL_TASK_SOFT_CAP = 1480; // trigger aggressive cleanup at this threshold (80% of hard cap = 1480 / 1850 ≈ 80%)
 const DEMO_GLOBAL_TASK_HARD_CAP = DEMO_MAX_CONCURRENT * 37; // hard reject new sessions above this threshold (200 * 37 / 4 = 1850)
 
+let demoProvisionChain: Promise<void> = Promise.resolve();
+
+async function withDemoProvisionLock<T>(action: () => Promise<T>): Promise<T> {
+  const previous = demoProvisionChain;
+  let release!: () => void;
+  demoProvisionChain = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  await previous;
+  try {
+    return await action();
+  } finally {
+    release();
+  }
+}
+
 /** Per-entity limits enforced inside active demo sessions. */
 export const DEMO_LIMITS = {
   PER_ORG_TASKS: 200,  // max tasks a single demo org can hold
@@ -503,8 +520,8 @@ export async function prepareDemoSession(): Promise<{
 
   // Serialize demo provisioning so concurrent sign-ins cannot race the
   // capacity checks.
-  const result = await prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('friendchise-demo-session'))`;
+  const result = await withDemoProvisionLock(async () => {
+    return prisma.$transaction(async (tx) => {
 
     // Check global task count. If near the soft cap, run aggressive cleanup
     // (removes sessions whose JWT has expired, i.e. older than DEMO_JWT_TTL_MS)
@@ -558,6 +575,7 @@ export async function prepareDemoSession(): Promise<{
     });
     return { userId: demoUser.id, orgId };
   }, { timeout: 60_000, isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  });
 
   return result;
 }

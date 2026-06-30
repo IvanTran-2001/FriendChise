@@ -25,6 +25,19 @@ export type AnnouncementRow = {
   updatedAt: Date;
 };
 
+export type AnnouncementFeedItem = AnnouncementRow & {
+  orgName: string;
+  seenAt: Date | null;
+};
+
+export type AnnouncementFeedPage = {
+  items: AnnouncementFeedItem[];
+  totalCount: number;
+  totalPages: number;
+  page: number;
+  pageSize: number;
+};
+
 export type CreateAnnouncementInput = {
   title: string;
   description: string;
@@ -32,6 +45,13 @@ export type CreateAnnouncementInput = {
   expiresAt?: Date | null;
 };
 
+type AnnouncementReadRow = {
+  seenAt: Date;
+};
+
+/**
+ * Builds the org-level visibility filter for announcement list queries.
+ */
 function buildVisibleAnnouncementWhere(
   orgId: string,
   franchiseRootId: string,
@@ -59,6 +79,63 @@ function buildVisibleAnnouncementWhere(
   };
 }
 
+/**
+ * Returns the set of orgs and franchise roots a user can see announcements for.
+ */
+async function getVisibleAnnouncementOrgScope(userId: string) {
+  const orgs = await prisma.organization.findMany({
+    where: {
+      OR: [{ ownerId: userId }, { memberships: { some: { userId } } }],
+    },
+    select: { id: true, parentId: true },
+  });
+
+  return {
+    orgIds: [...new Set(orgs.map((org) => org.id).filter(Boolean))],
+    franchiseRootIds: [...new Set(orgs.map((org) => org.parentId ?? org.id).filter(Boolean))],
+  };
+}
+
+/**
+ * Builds the announcement visibility filter for a user's cross-org feed.
+ */
+function buildVisibleAnnouncementWhereForUser(
+  orgIds: string[],
+  franchiseRootIds: string[],
+  now: Date,
+): Prisma.AnnouncementWhereInput | null {
+  const scopes: Prisma.AnnouncementWhereInput[] = [];
+
+  if (orgIds.length > 0) {
+    scopes.push({
+      scope: AnnouncementScope.ORG,
+      orgId: { in: orgIds },
+    });
+  }
+
+  if (franchiseRootIds.length > 0) {
+    scopes.push({
+      scope: AnnouncementScope.GLOBAL,
+      OR: [
+        { orgId: { in: franchiseRootIds } },
+        { organization: { parentId: { in: franchiseRootIds } } },
+      ],
+    });
+  }
+
+  if (scopes.length === 0) return null;
+
+  return {
+    AND: [
+      { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
+      { OR: scopes },
+    ],
+  };
+}
+
+/**
+ * Creates a new announcement for an org and records an audit entry.
+ */
 export async function createAnnouncement(
   orgId: string,
   data: CreateAnnouncementInput,
@@ -93,6 +170,9 @@ export async function createAnnouncement(
   return { ok: true, data: announcement };
 }
 
+/**
+ * Updates an existing announcement for an org and records an audit entry.
+ */
 export async function updateAnnouncement(
   orgId: string,
   announcementId: string,
@@ -140,6 +220,9 @@ export async function updateAnnouncement(
   return { ok: true, data: announcement };
 }
 
+/**
+ * Deletes an announcement after verifying ownership and records an audit entry.
+ */
 export async function deleteAnnouncement(
   orgId: string,
   announcementId: string,
@@ -172,6 +255,9 @@ export async function deleteAnnouncement(
   return { ok: true, data: null };
 }
 
+/**
+ * Extends an announcement's expiry by one day and records an audit entry.
+ */
 export async function extendAnnouncementExpiry(
   orgId: string,
   announcementId: string,
@@ -214,15 +300,9 @@ export async function extendAnnouncementExpiry(
   return { ok: true, data: announcement };
 }
 
-export async function getAnnouncements(orgId: string, limit = 50) {
-  const page = await getAnnouncementsPage(orgId, {
-    page: 1,
-    pageSize: limit,
-    order: "newest",
-  });
-  return page.announcements;
-}
-
+/**
+ * Returns a paginated list of announcements visible within an org.
+ */
 export async function getAnnouncementsPage(
   orgId: string,
   {
@@ -265,19 +345,161 @@ export async function getAnnouncementsPage(
   return { announcements, totalCount, totalPages, page: currentPage, pageSize };
 }
 
-export async function getAnnouncementsOrdered(
-  orgId: string,
-  limit = 50,
-  order: AnnouncementOrder = "newest",
-) {
-  const pageResult = await getAnnouncementsPage(orgId, {
-    page: 1,
-    pageSize: limit,
-    order,
+/**
+ * Returns a paginated list of announcements visible to a user.
+ */
+export async function getPaginatedAnnouncementHistoryForUser(
+  userId: string,
+  page: number,
+  pageSize: number = 10,
+  options: { view?: "all" | "seen" | "unseen" } = {},
+): Promise<AnnouncementFeedPage> {
+  const { view = "all" } = options;
+  const { orgIds, franchiseRootIds } = await getVisibleAnnouncementOrgScope(userId);
+  const where = buildVisibleAnnouncementWhereForUser(orgIds, franchiseRootIds, new Date());
+  if (!where) {
+    return {
+      items: [],
+      totalCount: 0,
+      totalPages: 1,
+      page: 1,
+      pageSize,
+    };
+  }
+
+  const historyWhere =
+    view === "seen"
+      ? {
+          AND: [
+            where,
+            {
+              reads: {
+                some: { userId },
+              },
+            },
+          ],
+        }
+      : view === "unseen"
+        ? {
+            AND: [
+              where,
+              {
+                reads: {
+                  none: { userId },
+                },
+              },
+            ],
+          }
+        : where;
+  const totalCount = await prisma.announcement.count({ where: historyWhere });
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const currentPage = Math.min(Math.max(1, Math.floor(page)), totalPages);
+  const skip = (currentPage - 1) * pageSize;
+  const rows = await prisma.announcement.findMany({
+    where: historyWhere,
+    orderBy: { createdAt: "desc" },
+    skip,
+    take: pageSize,
+    select: {
+      id: true,
+      orgId: true,
+      scope: true,
+      title: true,
+      description: true,
+      expiresAt: true,
+      createdAt: true,
+      updatedAt: true,
+      reads: {
+        where: { userId },
+        take: 1,
+        select: { seenAt: true },
+      },
+      organization: { select: { name: true } },
+    },
   });
-  return pageResult.announcements;
+
+  return {
+    items: rows.map((row) => ({
+      id: row.id,
+      orgId: row.orgId,
+      orgName: row.organization.name,
+      scope: row.scope,
+      title: row.title,
+      description: row.description,
+      expiresAt: row.expiresAt,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      seenAt: (row.reads[0] as AnnouncementReadRow | undefined)?.seenAt ?? null,
+    })),
+    totalCount,
+    totalPages,
+    page: currentPage,
+    pageSize,
+  };
 }
 
+/**
+ * Marks one announcement as seen for the current user.
+ */
+export async function markAnnouncementSeen(
+  userId: string,
+  announcementId: string,
+): Promise<void> {
+  const { orgIds, franchiseRootIds } = await getVisibleAnnouncementOrgScope(userId);
+  const where = buildVisibleAnnouncementWhereForUser(orgIds, franchiseRootIds, new Date());
+  if (!where) return;
+
+  const announcement = await prisma.announcement.findFirst({
+    where: { id: announcementId, AND: where.AND },
+    select: { id: true },
+  });
+  if (!announcement) return;
+
+  const announcementReads = prisma as typeof prisma & {
+    announcementRead: {
+      upsert: (args: unknown) => Promise<unknown>;
+    };
+  };
+
+  await announcementReads.announcementRead.upsert({
+    where: {
+      userId_announcementId: {
+        userId,
+        announcementId,
+      },
+    },
+    create: {
+      userId,
+      announcementId,
+      seenAt: new Date(),
+    },
+    update: {
+      seenAt: new Date(),
+    },
+  });
+}
+
+/**
+ * Returns the count of announcements the user has not seen yet.
+ */
+export async function getUnseenAnnouncementCount(userId: string): Promise<number> {
+  const { orgIds, franchiseRootIds } = await getVisibleAnnouncementOrgScope(userId);
+  const where = buildVisibleAnnouncementWhereForUser(orgIds, franchiseRootIds, new Date());
+  if (!where) return 0;
+
+  return prisma.announcement.count({
+    where: {
+      ...where,
+      reads: {
+        none: { userId },
+      },
+    },
+  });
+}
+
+/**
+ * Returns a single announcement if it is visible in the requested org scope.
+ */
 export async function getAnnouncementById(
   orgId: string,
   announcementId: string,

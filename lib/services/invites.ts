@@ -1,5 +1,5 @@
 import { log } from "@/lib/observability";
-import { InviteType } from "@prisma/client";
+import { InviteType, Prisma } from "@prisma/client";
 import { ROLE_KEYS } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/services/audit-log";
@@ -8,11 +8,12 @@ import type { ServiceResult } from "./types";
 export type InviteItem = {
   id: string;
   type: "MEMBER" | "FRANCHISE";
-  status: "PENDING" | "ACCEPTED" | "DECLINED";
+  status: "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED";
   orgId: string;
   orgName: string;
   inviterName: string | null;
   seenAt: Date | null;
+  expiresAt: Date | null;
   createdAt: Date;
   acceptedAt: Date | null;
   declinedAt: Date | null;
@@ -26,62 +27,95 @@ export type NotificationItem = {
   createdAt: Date;
 };
 
-/**
- * Returns all invites visible in the notification panel for a user:
- * - All PENDING invites (always shown)
- * - ACCEPTED / DECLINED invites within 7 days of being handled
- *   (so resolved notifications fade away naturally)
- */
-export async function getInvitesForUser(userId: string): Promise<InviteItem[]> {
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+const inviteHistorySelect = {
+  id: true,
+  type: true,
+  status: true,
+  orgId: true,
+  orgName: true,
+  inviterName: true,
+  seenAt: true,
+  expiresAt: true,
+  createdAt: true,
+  acceptedAt: true,
+  declinedAt: true,
+  metadata: true,
+} as const;
 
-  const invites = await prisma.invite.findMany({
+async function syncExpiredInvitesForUser(userId: string): Promise<void> {
+  const expiredInvites = await prisma.invite.findMany({
     where: {
       recipientId: userId,
-      OR: [
-        { status: "PENDING" },
-        { status: "ACCEPTED", acceptedAt: { gte: sevenDaysAgo } },
-        { status: "DECLINED", declinedAt: { gte: sevenDaysAgo } },
-      ],
+      status: "PENDING",
+      expiresAt: { lt: new Date() },
     },
-    orderBy: { createdAt: "desc" },
     select: {
       id: true,
-      type: true,
-      status: true,
-      orgId: true,
       orgName: true,
-      inviterName: true,
-      seenAt: true,
-      createdAt: true,
-      acceptedAt: true,
-      declinedAt: true,
-      metadata: true,
     },
   });
 
-  return invites as InviteItem[];
+  for (const invite of expiredInvites) {
+    const updated = await prisma.invite.updateMany({
+      where: {
+        id: invite.id,
+        recipientId: userId,
+        status: "PENDING",
+      },
+      data: {
+        status: "EXPIRED",
+        seenAt: new Date(),
+      },
+    });
+
+    if (updated.count === 0) continue;
+
+    await prisma.notification.create({
+      data: {
+        userId,
+        message: `Your invite to ${invite.orgName} expired.`,
+      },
+    });
+  }
 }
 
 /**
- * Returns the count of unseen (unread) invites for a user.
- * Used for the notification badge on the bell icon.
- * Applies the same visibility filter as getInvitesForUser.
+ * Returns paginated invite history for a user.
+ * This is not time-bounded; use it for history pages and mixed feeds.
  */
-export async function getUnseenInviteCount(userId: string): Promise<number> {
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+export async function getPaginatedInvitesForUser(
+  userId: string,
+  page: number,
+  limit: number = 10,
+  options: { view?: "all" | "unseen" } = {},
+): Promise<{ items: InviteItem[]; total: number; totalPages: number }> {
+  await syncExpiredInvitesForUser(userId);
+  const { view = "all" } = options;
+  const skip = (page - 1) * limit;
+  const where: Prisma.InviteWhereInput =
+    view === "unseen"
+        ? {
+            recipientId: userId,
+            status: "PENDING",
+            seenAt: null,
+          }
+        : { recipientId: userId };
+  const [items, total] = await Promise.all([
+    prisma.invite.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+      select: inviteHistorySelect,
+    }),
+    prisma.invite.count({ where }),
+  ]);
 
-  return prisma.invite.count({
-    where: {
-      recipientId: userId,
-      seenAt: null,
-      OR: [
-        { status: "PENDING" },
-        { status: "ACCEPTED", acceptedAt: { gte: sevenDaysAgo } },
-        { status: "DECLINED", declinedAt: { gte: sevenDaysAgo } },
-      ],
-    },
-  });
+  return {
+    items: items as InviteItem[],
+    total,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 export async function markInvitesSeen(userId: string): Promise<void> {
@@ -91,17 +125,14 @@ export async function markInvitesSeen(userId: string): Promise<void> {
   });
 }
 
-/**
- * Returns in-app notifications for a user (newest first), limited to 30.
- */
-export async function getNotificationsForUser(
-  userId: string,
-): Promise<NotificationItem[]> {
-  return prisma.notification.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    take: 30,
-    select: { id: true, message: true, seenAt: true, createdAt: true },
+export async function markInviteSeen(inviteId: string, userId: string): Promise<void> {
+  await prisma.invite.updateMany({
+    where: {
+      id: inviteId,
+      recipientId: userId,
+      seenAt: null,
+    },
+    data: { seenAt: new Date() },
   });
 }
 
@@ -112,17 +143,23 @@ export async function getPaginatedNotificationsForUser(
   userId: string,
   page: number,
   limit: number = 10,
+  options: { view?: "all" | "unseen" } = {},
 ): Promise<{ items: NotificationItem[]; total: number; totalPages: number }> {
+  const { view = "all" } = options;
   const skip = (page - 1) * limit;
+  const where =
+    view === "unseen"
+        ? { userId, seenAt: null }
+        : { userId };
   const [items, total] = await Promise.all([
     prisma.notification.findMany({
-      where: { userId },
+      where,
       orderBy: { createdAt: "desc" },
       skip,
       take: limit,
       select: { id: true, message: true, seenAt: true, createdAt: true },
     }),
-    prisma.notification.count({ where: { userId } }),
+    prisma.notification.count({ where }),
   ]);
 
   return {
@@ -140,6 +177,16 @@ export async function getUnseenNotificationCount(
 ): Promise<number> {
   return prisma.notification.count({
     where: { userId, seenAt: null },
+  });
+}
+
+/**
+ * Returns the count of unseen invites for a user.
+ */
+export async function getUnseenInviteCount(userId: string): Promise<number> {
+  await syncExpiredInvitesForUser(userId);
+  return prisma.invite.count({
+    where: { recipientId: userId, status: "PENDING", seenAt: null },
   });
 }
 
@@ -310,6 +357,7 @@ export async function acceptMemberInvite(
   userId: string,
   actorEmail?: string | null,
 ): Promise<ServiceResult<null>> {
+  await syncExpiredInvitesForUser(userId);
   const invite = await prisma.invite.findUnique({ where: { id: inviteId } });
   if (
     !invite ||
@@ -318,6 +366,9 @@ export async function acceptMemberInvite(
   )
     return { ok: false, error: "Invite not found", code: "NOT_FOUND" };
   if (invite.status !== "PENDING") {
+    if (invite.status === "EXPIRED") {
+      return { ok: false, error: "This invite has expired", code: "INVALID" };
+    }
     log.warn("Conflict: invite no longer pending", {
       inviteId,
       userId,
@@ -340,7 +391,11 @@ export async function acceptMemberInvite(
     await prisma.$transaction(async (tx) => {
       const updated = await tx.invite.updateMany({
         where: { id: inviteId, status: "PENDING" },
-        data: { status: "ACCEPTED", acceptedAt: new Date() },
+        data: {
+          status: "ACCEPTED",
+          acceptedAt: new Date(),
+          seenAt: new Date(),
+        },
       });
       if (updated.count === 0) throw new Error("ALREADY_HANDLED");
 
@@ -399,7 +454,6 @@ export async function acceptMemberInvite(
     throw e;
   }
 
-  await notifyInviteAccepted(invite, userId);
   log.info("Member invite accepted", {
     inviteId,
     userId,
@@ -427,6 +481,7 @@ export async function acceptBotSlotInvite(
   userId: string,
   actorEmail?: string | null,
 ): Promise<ServiceResult<null>> {
+  await syncExpiredInvitesForUser(userId);
   const invite = await prisma.invite.findUnique({ where: { id: inviteId } });
   if (
     !invite ||
@@ -435,6 +490,9 @@ export async function acceptBotSlotInvite(
   )
     return { ok: false, error: "Invite not found", code: "NOT_FOUND" };
   if (invite.status !== "PENDING") {
+    if (invite.status === "EXPIRED") {
+      return { ok: false, error: "This invite has expired", code: "INVALID" };
+    }
     log.warn("Conflict: bot-slot invite no longer pending", {
       inviteId,
       userId,
@@ -461,7 +519,11 @@ export async function acceptBotSlotInvite(
     await prisma.$transaction(async (tx) => {
       const updated = await tx.invite.updateMany({
         where: { id: inviteId, status: "PENDING" },
-        data: { status: "ACCEPTED", acceptedAt: new Date() },
+        data: {
+          status: "ACCEPTED",
+          acceptedAt: new Date(),
+          seenAt: new Date(),
+        },
       });
       if (updated.count === 0) throw new Error("ALREADY_HANDLED");
 
@@ -539,7 +601,6 @@ export async function acceptBotSlotInvite(
     throw e;
   }
 
-  await notifyInviteAccepted(invite, userId);
   log.info("Bot-slot invite accepted", {
     inviteId,
     userId,
@@ -571,7 +632,7 @@ export async function declineBotSlotInvite(
       type: InviteType.MEMBER,
       status: "PENDING",
     },
-    data: { status: "DECLINED", declinedAt: new Date() },
+    data: { status: "DECLINED", declinedAt: new Date(), seenAt: new Date() },
   });
 
   if (updated.count === 0)
@@ -583,31 +644,6 @@ export async function declineBotSlotInvite(
 
   log.info("Bot-slot invite declined", { inviteId, userId });
   return { ok: true, data: null };
-}
-
-/** Shared helper: notify the inviter that their invite was accepted. */
-async function notifyInviteAccepted(
-  invite: { invitedById: string | null; orgName: string },
-  acceptingUserId: string,
-): Promise<void> {
-  if (!invite.invitedById) return;
-  try {
-    const acceptingUser = await prisma.user.findUnique({
-      where: { id: acceptingUserId },
-      select: { name: true },
-    });
-    await prisma.notification.create({
-      data: {
-        userId: invite.invitedById,
-        message: `${acceptingUser?.name ?? "Someone"} accepted your invitation to ${invite.orgName}.`,
-      },
-    });
-  } catch (error) {
-    log.error("Failed to create notification for invite acceptance", {
-      error,
-      acceptingUserId,
-    });
-  }
 }
 
 /**
@@ -671,7 +707,7 @@ export async function declineFranchiseInvite(
     await prisma.$transaction(async (tx) => {
       const updated = await tx.invite.updateMany({
         where: { id: inviteId, status: "PENDING" },
-        data: { status: "DECLINED", declinedAt: new Date() },
+        data: { status: "DECLINED", declinedAt: new Date(), seenAt: new Date() },
       });
 
       if (updated.count === 0) {
@@ -706,5 +742,6 @@ export async function declineFranchiseInvite(
     userId,
     orgId: invite.orgId,
   });
+
   return { ok: true, data: null };
 }

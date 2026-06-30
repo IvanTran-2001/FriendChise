@@ -473,7 +473,7 @@ export async function createFranchiseToken(
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
-  const [org, inviter, existingInvite] = await Promise.all([
+  const [org, inviter] = await Promise.all([
     prisma.organization.findUnique({
       where: { id: orgId },
       select: { name: true },
@@ -481,15 +481,6 @@ export async function createFranchiseToken(
     prisma.user.findUnique({
       where: { id: inviterId },
       select: { name: true },
-    }),
-    prisma.invite.findFirst({
-      where: {
-        orgId,
-        recipientId: user.id,
-        type: InviteType.FRANCHISE,
-        status: "PENDING",
-      },
-      select: { id: true },
     }),
   ]);
 
@@ -503,27 +494,22 @@ export async function createFranchiseToken(
   await prisma.$transaction(async (tx) => {
     const franchiseToken = await tx.franchiseToken.create({
       data: { orgId, invitedEmail: trimmed, expiresAt },
-      select: { token: true },
+      select: { token: true, expiresAt: true },
     });
 
-    if (existingInvite) {
-      await tx.invite.update({
-        where: { id: existingInvite.id },
-        data: { metadata: { token: franchiseToken.token } },
-      });
-    } else {
-      await tx.invite.create({
-        data: {
-          orgId,
-          invitedById: inviterId,
-          recipientId: user.id,
-          type: InviteType.FRANCHISE,
-          orgName: org?.name ?? "",
-          inviterName: inviter?.name ?? null,
-          metadata: { token: franchiseToken.token },
-        },
-      });
-    }
+    // Each token send should create a distinct invite so repeated sends show up as separate notifications.
+    await tx.invite.create({
+      data: {
+        orgId,
+        invitedById: inviterId,
+        recipientId: user.id,
+        type: InviteType.FRANCHISE,
+        orgName: org?.name ?? "",
+        inviterName: inviter?.name ?? null,
+        expiresAt: franchiseToken.expiresAt,
+        metadata: { token: franchiseToken.token },
+      },
+    });
   });
 
   log.info("Franchise token created", {

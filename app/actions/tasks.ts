@@ -74,6 +74,7 @@ import {
   createTag,
 } from "@/lib/services/tags";
 import { saveTaskImagePath } from "@/app/actions/storage";
+import { renameTaskImageIfNeeded } from "@/lib/services/images";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validators/task";
 import { checkDemoLimit } from "@/lib/demo";
 import { revalidatePath } from "next/cache";
@@ -306,6 +307,13 @@ export async function updateTaskAction(
     authz.userEmail,
   );
   if (!result.ok) return { ok: false, errors: { _: [result.error] } };
+
+  // Try to rename the task image if the task name has changed
+  try {
+    await renameTaskImageIfNeeded(taskOrgId, taskId);
+  } catch (err) {
+    console.error("Failed to rename task image in updateTaskAction:", err);
+  }
 
   // When the edit form includes deferred tag/role lists, apply them atomically.
   if (formData.get("tagsSubmitted") === "1") {

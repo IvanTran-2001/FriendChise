@@ -31,7 +31,13 @@ import {
 import { updateTaskImageUrl } from "@/lib/services/tasks";
 import { updateToolItemImageUrl } from "@/lib/services/tools";
 import { updateOrgImage } from "@/lib/services/orgs";
-import { getOrgImages, addOrgImage, deleteOrgImage } from "@/lib/services/images";
+import {
+  getOrgImages,
+  addOrgImage,
+  deleteOrgImage,
+  renameTaskImageIfNeeded,
+  renameToolItemImageIfNeeded,
+} from "@/lib/services/images";
 import { prisma } from "@/lib/prisma";
 import { isDemoEmail } from "@/lib/demo";
 
@@ -122,6 +128,13 @@ export async function saveTaskImagePath(
   // Persist the new path first
   const result = await updateTaskImageUrl(orgId, taskId, normalized);
   if (!result.ok) return { ok: false, error: result.error };
+
+  // Try to rename the image file to match the task name (runs after successful DB write)
+  try {
+    await renameTaskImageIfNeeded(orgId, taskId);
+  } catch (err) {
+    console.error(`Failed to rename task image after saving:`, err);
+  }
 
   // Only delete the old file if it was task-specific (not a shared library image)
   if (
@@ -223,6 +236,13 @@ export async function saveToolItemImagePath(
   });
 
   await updateToolItemImageUrl(orgId, itemId, normalized);
+
+  // Try to rename the image file to match the item name (runs after successful DB write)
+  try {
+    await renameToolItemImageIfNeeded(orgId, itemId);
+  } catch (err) {
+    console.error(`Failed to rename tool item image after saving:`, err);
+  }
 
   // Only delete the old file if it was item-specific (not a shared library image)
   if (

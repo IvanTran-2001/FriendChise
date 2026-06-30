@@ -16,6 +16,7 @@ import { revalidatePath } from "next/cache";
 import { PermissionAction, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireOrgPermissionAction } from "@/lib/authz";
+import { renameToolItemImageIfNeeded } from "@/lib/services/images";
 import {
   createConversionSetWithDefault,
   deleteConversionSet,
@@ -205,6 +206,12 @@ export async function updateToolItemAction(
 
   try {
     await updateToolItem(orgId, id, trimmedName, trimmedUnit);
+    // Try to rename the tool item image if the item name has changed
+    try {
+      await renameToolItemImageIfNeeded(orgId, id);
+    } catch (renameErr) {
+      console.error("Failed to rename tool item image in updateToolItemAction:", renameErr);
+    }
     revalidatePath(`/orgs/${orgId}/tools/conversion`);
     return { ok: true as const };
   } catch (err: unknown) {

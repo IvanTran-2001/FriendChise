@@ -2,7 +2,7 @@
 name: 🟡 Intermediate
 about: Contributor-friendly task with setup notes, requirements, and submission checklist
 title: "🟡 [Intermediate] Add a Logs sidebar to the admin panel"
-labels: enhancement
+labels: enhancement, Intermediate, help wanted, UI
 ---
 
 # 🟡 Intermediate: Add a Logs sidebar to the admin panel

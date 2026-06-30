@@ -248,6 +248,9 @@ describe("memberToBot", () => {
   };
 
   beforeEach(() => {
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+      fn(prisma),
+    );
     vi.mocked(prisma.organization.findUnique).mockResolvedValue({
       ownerId: "owner-99",
     } as any);

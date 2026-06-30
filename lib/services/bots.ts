@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma, InviteType } from "@prisma/client";
 import { recordAudit } from "@/lib/services/audit-log";
 import type { ServiceResult } from "./types";
+import type { Tx } from "./franchise";
 import type {
   MemberToBotInput,
   BotToMemberInput,
@@ -25,6 +26,18 @@ const botSelect = {
 } as const;
 
 type BotMembership = Prisma.MembershipGetPayload<{ select: typeof botSelect }>;
+
+export async function convertMembershipToBot(
+  tx: Tx,
+  membershipId: string,
+  botName: string,
+): Promise<BotMembership> {
+  return tx.membership.update({
+    where: { id: membershipId },
+    data: { userId: null, botName },
+    select: botSelect,
+  });
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // createBot
@@ -210,11 +223,9 @@ export async function memberToBot(
   const botName =
     overrideName ?? membership.user?.name ?? "Unnamed Placeholder";
 
-  const updated = await prisma.membership.update({
-    where: { id: membership.id },
-    data: { userId: null, botName },
-    select: botSelect,
-  });
+  const updated = await prisma.$transaction((tx) =>
+    convertMembershipToBot(tx, membership.id, botName),
+  );
 
   log.info("Member converted to bot", { orgId, membershipId });
   recordAudit({

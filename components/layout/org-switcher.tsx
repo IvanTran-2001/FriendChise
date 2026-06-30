@@ -7,7 +7,7 @@
  * and navigates to the selected org's root page on selection.
  */
 import { useRouter, usePathname } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -53,21 +53,58 @@ function OrgBadge({ org }: { org: Org }) {
   );
 }
 
+const RECENT_ORG_KEY = "recentOrgId";
+
+// Save the selected org id to localStorage so it appears at the top next time.
+function saveRecentOrg(orgId: string) {
+  try {
+    localStorage.setItem(RECENT_ORG_KEY, orgId);
+  } catch {
+    // localStorage may be unavailable (incognito, SSR mock, etc.)
+  }
+}
+
+// Read the previously selected org id from localStorage.
+function getRecentOrgId(): string | null {
+  try {
+    return localStorage.getItem(RECENT_ORG_KEY);
+  } catch {
+    return null;
+  }
+}
+
 export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [recentOrgId, setRecentOrgId] = useState<string | null>(null);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setRecentOrgId(getRecentOrgId());
+    });
+  }, []);
 
   // Derive active org from the current URL e.g. /orgs/[orgId]/...
   const activeOrgId = pathname.match(/^\/orgs\/([^\/]+)/)?.[1];
   const activeOrg = orgs.find((o) => o.id === activeOrgId);
+
+  // Sort orgs so the most recently selected one appears at the top.
+  const sortedOrgs = useMemo(() => {
+    if (!recentOrgId) return orgs;
+    const idx = orgs.findIndex((o) => o.id === recentOrgId);
+    if (idx < 1) return orgs; // already first or not found
+    // Move the recent org to front, keep the rest in order
+    return [orgs[idx], ...orgs.slice(0, idx), ...orgs.slice(idx + 1)];
+  }, [orgs, recentOrgId]);
+
   const filteredOrgs = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return orgs;
-    return orgs.filter((org) => org.name.toLowerCase().includes(query));
-  }, [orgs, search]);
+    if (!query) return sortedOrgs;
+    return sortedOrgs.filter((org) => org.name.toLowerCase().includes(query));
+  }, [sortedOrgs, search]);
 
   return (
     <DropdownMenu
@@ -147,9 +184,11 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
                   return (
                     <DropdownMenuItem
                       key={org.id}
-                      onSelect={() =>
-                        startTransition(() => router.push(`/orgs/${org.id}`))
-                      }
+                      onSelect={() => {
+                        setRecentOrgId(org.id);
+                        saveRecentOrg(org.id);
+                        startTransition(() => router.push(`/orgs/${org.id}`));
+                      }}
                       className={cn(
                         "group mb-1 gap-2 rounded-2xl px-2.5 py-2.5 transition-all last:mb-0",
                         isActive

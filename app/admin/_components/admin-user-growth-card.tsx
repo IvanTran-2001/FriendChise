@@ -90,12 +90,6 @@ function startOfDay(date: Date) {
   return next;
 }
 
-function startOfHour(date: Date) {
-  const next = new Date(date);
-  next.setMinutes(0, 0, 0);
-  return next;
-}
-
 function startOfMonth(date: Date) {
   const next = new Date(date);
   next.setDate(1);

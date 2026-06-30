@@ -26,7 +26,10 @@ import {
   declineFranchiseInvite,
 } from "@/lib/services/invites";
 
-/** Marks all unseen invites and notifications for the current user as seen. */
+/**
+ * TODO: remove this auto-mark helper once we add an explicit seen/unseen toggle.
+ * Marks all unseen invites and notifications for the current user as seen.
+ */
 export async function markInvitesSeenAction(): Promise<void> {
   const session = await auth();
   if (!session?.user?.id) return;
@@ -34,6 +37,16 @@ export async function markInvitesSeenAction(): Promise<void> {
     markInvitesSeen(session.user.id),
     markNotificationsSeen(session.user.id),
   ]);
+}
+
+/**
+ * TODO: remove this auto-mark helper once we add an explicit seen/unseen toggle.
+ * Marks all unseen notifications for the current user as seen.
+ */
+export async function markNotificationsSeenAction(): Promise<void> {
+  const session = await auth();
+  if (!session?.user?.id) return;
+  await markNotificationsSeen(session.user.id);
 }
 
 /**

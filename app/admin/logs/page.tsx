@@ -1,14 +1,12 @@
-import { auth } from "@/auth";
+import { requireSuperAdminPage } from "@/lib/authz";
 import { getAuditLogs } from "@/lib/services/audit-log";
-import { redirect } from "next/navigation";
 
 export default async function LogsPage({
   searchParams,
 }: {
   searchParams: Promise<{ search?: string | string[]; date?: string | string[] }>;
 }) {
-  const session = await auth();
-  if (!session?.user) redirect("/signin");
+  await requireSuperAdminPage();
 
   const params = await searchParams;
   const search = Array.isArray(params.search) ? params.search[0] : params.search;

@@ -118,12 +118,18 @@ export function InviteCard({
           <span
             className={cn(
               "text-xs font-medium",
-              invite.status === "ACCEPTED"
+              invite.status === "EXPIRED"
+                ? "text-amber-600 dark:text-amber-400"
+                : invite.status === "ACCEPTED"
                 ? "text-emerald-600 dark:text-emerald-400"
                 : "text-muted-foreground",
             )}
           >
-            {invite.status === "ACCEPTED" ? "Accepted" : "Declined"}
+            {invite.status === "ACCEPTED"
+              ? "Accepted"
+              : invite.status === "EXPIRED"
+                ? "Expired"
+                : "Declined"}
           </span>
         ) : (
           <div className="flex items-center gap-1.5 pt-0.5">

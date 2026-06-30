@@ -14,6 +14,7 @@ enum InviteStatus {
   PENDING
   ACCEPTED
   DECLINED
+  EXPIRED
 }
 
 enum InviteType {
@@ -164,6 +165,7 @@ model User {
   sentInvites               Invite[]       @relation("SentInvites")
   receivedInvites           Invite[]       @relation("ReceivedInvites")
   receivedNotifications     Notification[] @relation("ReceivedNotifications")
+  announcementReads         AnnouncementRead[]
   auditLogs                 AuditLog[]
 
   feedback            Feedback[]
@@ -188,8 +190,8 @@ model Organization {
   name          String
   image         String?
 
-  ownerId       String
-  owner         User     @relation("OrgOwner", fields: [ownerId], references: [id])
+  ownerId       String?
+  owner         User?    @relation("OrgOwner", fields: [ownerId], references: [id], onDelete: SetNull)
 
   // Franchise hierarchy
   parentId      String?
@@ -781,11 +783,34 @@ model Announcement {
   description String
   expiresAt   DateTime?
 
+  reads       AnnouncementRead[]
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([orgId])
   @@index([expiresAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ANNOUNCEMENT READS
+// Per-user read receipts for announcements shown in the notification surfaces.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AnnouncementRead {
+  id             String   @id @default(cuid())
+
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  announcementId String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  seenAt         DateTime @default(now())
+
+  @@unique([userId, announcementId])
+  @@index([userId])
+  @@index([announcementId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

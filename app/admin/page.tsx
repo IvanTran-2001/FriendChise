@@ -36,12 +36,9 @@ export default async function AdminHomePage() {
         createdAt: "asc",
       },
     }),
-    prisma.$queryRaw<{ count: number }[]>`
-      SELECT COUNT(*)::int AS count
-      FROM "DemoSession"
-    `,
+    prisma.demoSession.count(),
   ]);
-  const demoLaunches = demoLaunchesResult[0]?.count ?? 0;
+  const demoLaunches = demoLaunchesResult;
   const unreviewed = feedback.filter((item) => !item.reviewed);
   const issues = feedback.filter((item) => item.type === FeedbackType.ISSUE);
   const ideas = feedback.filter((item) => item.type === FeedbackType.IDEA);

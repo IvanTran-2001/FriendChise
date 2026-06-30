@@ -24,12 +24,7 @@ import { MobileSidebarTrigger } from "@/components/layout/sidebar";
 import { Logo } from "@/components/layout/logo";
 import { NotificationPanel } from "@/components/notifications";
 import { FeedbackButton } from "@/components/layout/feedback-button";
-import {
-  getInvitesForUser,
-  getUnseenInviteCount,
-  getNotificationsForUser,
-  getUnseenNotificationCount,
-} from "@/lib/services/invites";
+import { getNotificationFeedForUser } from "@/lib/services/notification-feed";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +44,7 @@ export const NavBar = async () => {
   // Fetch the current session — user is null when signed out
   const session = await auth();
   const user = session?.user;
+  const limit = 7;
 
   // Fetch all orgs the current user is a member of, sorted alphabetically.
   // Used to populate the OrgSwitcher dropdown.
@@ -76,17 +72,22 @@ export const NavBar = async () => {
         })
     : [];
 
-  const [invites, unseenCount, notifications, unseenNotifCount] = user?.id
+
+  const [allNotificationFeed, unseenNotificationFeed] = user?.id
     ? await Promise.all([
-        getInvitesForUser(user.id),
-        getUnseenInviteCount(user.id),
-        getNotificationsForUser(user.id),
-        getUnseenNotificationCount(user.id),
+        getNotificationFeedForUser(user.id, 1, limit),
+        getNotificationFeedForUser(user.id, 1, limit, { view: "unseen" }),
       ]).catch((error) => {
-        console.error("Failed to load invites for navbar", error);
-        return [[], 0, [], 0] as [never[], number, never[], number];
+        console.error("Failed to load notifications for navbar", error);
+        return [
+          { items: [], totalCount: 0, totalPages: 1, page: 1, pageSize: 0 },
+          { items: [], totalCount: 0, totalPages: 1, page: 1, pageSize: 0 },
+        ] as [
+          { items: never[]; totalCount: number; totalPages: number; page: number; pageSize: number },
+          { items: never[]; totalCount: number; totalPages: number; page: number; pageSize: number },
+        ];
       })
-    : [[], 0, [], 0];
+    : [{ items: [], totalCount: 0, totalPages: 1, page: 1, pageSize: 0 }, { items: [], totalCount: 0, totalPages: 1, page: 1, pageSize: 0 }];
 
   const canAccessAdmin = user?.email ? await isAdminUser(user.email) : false;
 
@@ -144,9 +145,9 @@ export const NavBar = async () => {
           <FeedbackButton />
           {/* Notification bell */}
           <NotificationPanel
-            invites={invites}
-            unseenCount={unseenCount + unseenNotifCount}
-            notifications={notifications}
+            items={allNotificationFeed.items}
+            unseenItems={unseenNotificationFeed.items}
+            unseenCount={unseenNotificationFeed.totalCount}
           />
 
           {/* User avatar — only rendered when a user is signed in */}
@@ -197,8 +198,9 @@ export const NavBar = async () => {
                 <DropdownMenuItem asChild>
                   <Link href="/profile">Profile</Link>
                 </DropdownMenuItem>
-                {/* TODO: restore <DropdownMenuItem asChild><Link href="/settings/account">Account Settings</Link></DropdownMenuItem> when account settings page is implemented */}
-                <DropdownMenuItem disabled>Account Settings</DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/settings/account">Account Settings</Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/doc/overview">Docs</Link>
                 </DropdownMenuItem>

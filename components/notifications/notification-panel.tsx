@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Bell } from "lucide-react";
 import { useRouter } from "next/navigation";
+import type { ComponentProps } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -17,18 +18,17 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { markInvitesSeenAction } from "@/app/actions/invites";
 import { NotificationList } from "./notification-list";
-import type { InviteItem, NotificationItem } from "@/lib/services/invites";
+import type { NotificationFeedItem } from "@/lib/services/notification-feed";
 
 export function NotificationPanel({
-  invites,
+  items,
+  unseenItems,
   unseenCount,
-  notifications,
 }: {
-  invites: InviteItem[];
+  items: NotificationFeedItem[];
+  unseenItems: NotificationFeedItem[];
   unseenCount: number;
-  notifications: NotificationItem[];
 }) {
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
@@ -36,16 +36,24 @@ export function NotificationPanel({
 
   async function handleOpen(next: boolean) {
     setOpen(next);
-    if (next && unseenCount > 0) {
-      await markInvitesSeenAction();
-      router.refresh();
-    }
   }
 
   function handleAction() {
     setOpen(false);
     router.refresh();
   }
+
+  function handleSeen() {
+    router.refresh();
+  }
+
+  const notificationListProps: ComponentProps<typeof NotificationList> = {
+    allItems: items,
+    unseenItems,
+    unseenCount,
+    onAction: handleAction,
+    onSeen: handleSeen,
+  };
 
   const BellButton = (
     <Button
@@ -73,11 +81,7 @@ export function NotificationPanel({
           </SheetHeader>
           {/* Drag handle */}
           <div className="w-10 h-1 rounded-full bg-muted-foreground/20 mx-auto mt-3 mb-0 shrink-0" />
-          <NotificationList
-            invites={invites}
-            notifications={notifications}
-            onAction={handleAction}
-          />
+          <NotificationList {...notificationListProps} />
         </SheetContent>
       </Sheet>
     );
@@ -91,11 +95,7 @@ export function NotificationPanel({
         sideOffset={8}
         className="w-95 h-120 p-0 flex flex-col overflow-hidden shadow-xl"
       >
-        <NotificationList
-          invites={invites}
-          notifications={notifications}
-          onAction={handleAction}
-        />
+        <NotificationList {...notificationListProps} />
       </PopoverContent>
     </Popover>
   );
