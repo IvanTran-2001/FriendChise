@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition, useMemo } from "react";
+import { useEffect, useRef, useState, useTransition, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, Plus, ChevronRight, GripVertical, Layers, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -51,6 +52,10 @@ export interface CalendarViewProps {
   todayStr: string;
   canManage: boolean;
   availableTasks?: ClientTask[];
+  taskColors: Record<
+    string,
+    { color: string | null; roleColor: string | null; tagColor: string | null }
+  >;
   memberships?: ClientMembership[];
   /** Called whenever the visible column count changes. */
   onVisibleRangeChange?: (
@@ -232,6 +237,7 @@ export function CalendarView({
   todayStr,
   canManage,
   availableTasks,
+  taskColors,
   memberships,
   onVisibleRangeChange,
   userId,
@@ -348,25 +354,37 @@ export function CalendarView({
     }
   }, [activeTitle]);
 
-  // Precompute a map for fast lookups of the server-provided roleColor.
-  const taskRoleColorMap = useMemo(
-    () =>
-      new Map<string, string | null>(
-        (availableTasks ?? []).map((t) => [t.id, t.roleColor ?? null] as [string, string | null]),
-      ),
-    [availableTasks],
+  const [colorFilter] = usePersistedState<"task" | "role" | "tag">(
+    "friendchise-color-filter",
+    "task",
   );
 
-  // Consistent color helpers: prefer the server-selected `roleColor` from
-  // `availableTasks`, then the instance snapshot `taskColor`, then fallbacks.
-  const getTaskColor = (inst: ClientTimetableInstance) => {
-    const fromTasks = taskRoleColorMap.get(inst.taskId);
-    return fromTasks ?? inst.taskColor ?? "#9ca3af";
-  };
-  const getTaskColorMaybe = (inst: ClientTimetableInstance) => {
-    const fromTasks = taskRoleColorMap.get(inst.taskId);
-    return fromTasks ?? inst.taskColor ?? undefined;
-  };
+  // Consistent color helpers: dynamic lookup based on selected colorFilter
+  const getTaskColor = useCallback((inst: ClientTimetableInstance) => {
+    const entry = taskColors[inst.taskId];
+    let color: string | null = null;
+    if (colorFilter === "role") {
+      color = entry?.roleColor ?? null;
+    } else if (colorFilter === "tag") {
+      color = entry?.tagColor ?? null;
+    } else if (colorFilter === "task") {
+      color = entry?.color ?? null;
+    }
+    return color ?? inst.taskColor ?? "#9ca3af";
+  }, [colorFilter, taskColors]);
+
+  const getTaskColorMaybe = useCallback((inst: ClientTimetableInstance) => {
+    const entry = taskColors[inst.taskId];
+    let color: string | null = null;
+    if (colorFilter === "role") {
+      color = entry?.roleColor ?? null;
+    } else if (colorFilter === "tag") {
+      color = entry?.tagColor ?? null;
+    } else if (colorFilter === "task") {
+      color = entry?.color ?? null;
+    }
+    return color ?? inst.taskColor ?? undefined;
+  }, [colorFilter, taskColors]);
 
   function openEditSidebar(
     inst: ClientTimetableInstance,
@@ -377,6 +395,7 @@ export function CalendarView({
       <CalendarEditSidebarContent
         key={inst.id}
         instance={inst}
+        taskColor={getTaskColor(inst)}
         memberships={memberships ?? []}
         orgId={orgId}
         canManage={canManage}

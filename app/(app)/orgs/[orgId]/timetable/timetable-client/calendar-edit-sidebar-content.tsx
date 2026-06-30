@@ -48,6 +48,7 @@ import type { ClientTimetableInstance, ClientMembership } from "./types";
 
 type Props = {
   instance: ClientTimetableInstance;
+  taskColor?: string;
   memberships: ClientMembership[];
   orgId: string;
   canManage: boolean;
@@ -73,6 +74,7 @@ const STATUS_CONFIG: Record<
 
 export function CalendarEditSidebarContent({
   instance,
+  taskColor,
   memberships,
   orgId,
   canManage,
@@ -263,7 +265,7 @@ export function CalendarEditSidebarContent({
           <div
             className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 border"
             style={{
-              borderLeftColor: instance.taskColor ?? "#9ca3af",
+              borderLeftColor: taskColor ?? instance.taskColor ?? "#9ca3af",
               borderLeftWidth: 3,
             }}
           >
