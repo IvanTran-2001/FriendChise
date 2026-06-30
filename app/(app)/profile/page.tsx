@@ -13,12 +13,12 @@ export default async function ProfilePage() {
 
   if (!user) return null;
 
-  const [upvotes, downvotes] = await Promise.all([
+  const [upvotesReceived, downvotesReceived] = await Promise.all([
     prisma.taskCommentVote.count({
-      where: { userId: user.id, type: "UPVOTE" },
+      where: { type: "UPVOTE", comment: { authorId: user.id } },
     }),
     prisma.taskCommentVote.count({
-      where: { userId: user.id, type: "DOWNVOTE" },
+      where: { type: "DOWNVOTE", comment: { authorId: user.id } },
     }),
   ]);
 
@@ -71,13 +71,13 @@ export default async function ProfilePage() {
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Upvotes
                     </p>
-                    <p className="text-sm font-medium mt-0.5">{upvotes}</p>
+                    <p className="text-sm font-medium mt-0.5">{upvotesReceived}</p>
                   </div>
                   <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Downvotes
                   </p>
-                  <p className="text-sm font-medium mt-0.5">{downvotes}</p>
+                  <p className="text-sm font-medium mt-0.5">{downvotesReceived}</p>
                   </div>
                 </div>
             </div>
