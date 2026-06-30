@@ -69,7 +69,7 @@ export function ItemListsSidebarContent({ orgId, canManage, view, onCreateList }
             onClick={onCreateList}
           >
             <Plus className="h-4 w-4" />
-            New List
+            New Set
           </Button>
         </div>
       )}
