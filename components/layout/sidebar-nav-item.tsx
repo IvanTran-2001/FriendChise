@@ -55,7 +55,7 @@ export function SidebarNavItem({
       setDynamicHref(url);
     } else {
       const savedPath = localStorage.getItem(storageKey);
-       
+       // eslint-disable-next-line react-hooks/set-state-in-effect
       setDynamicHref(savedPath || url);
     }
   }, [isActive, pathname, url, disabled]);
