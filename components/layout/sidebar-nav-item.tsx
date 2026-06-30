@@ -16,6 +16,8 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { ComponentType, MouseEvent } from "react";
+import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 export type SidebarNavItemProps = {
   title: string;
@@ -39,10 +41,28 @@ export function SidebarNavItem({
   onClick,
 }: SidebarNavItemProps) {
   // Active — clean left accent bar + very subtle fill (Jira-style)
+  const pathname = usePathname();
+  const [dynamicHref, setDynamicHref] = useState(url);
+
+  useEffect(() => {
+    if (disabled) return;
+
+    const storageKey = `friendchise-nav-url-${url}`;
+
+    if (isActive) {
+      localStorage.setItem(storageKey, pathname);
+      setDynamicHref(url);
+    } else {
+      const savedPath = localStorage.getItem(storageKey);
+      setDynamicHref(savedPath || url);
+    }
+  }, [isActive, pathname, url, disabled]);
+
   const appActive =
     "bg-sidebar-primary/10 text-primary font-semibold before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:rounded-r-full before:bg-primary";
   const pageActive =
     "bg-sidebar-primary/10 text-primary font-semibold before:absolute before:left-2.5 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-primary";
+  
 
   if (variant === "app") {
     const base =
@@ -70,7 +90,7 @@ export function SidebarNavItem({
       );
     return (
       <Link
-        href={url}
+        href={dynamicHref}
         onClick={onClick}
         className={cn(
           base,
@@ -121,7 +141,7 @@ export function SidebarNavItem({
   }
   return (
     <Link
-      href={url}
+      href={dynamicHref}
       onClick={onClick}
       className={cn(
         base,
