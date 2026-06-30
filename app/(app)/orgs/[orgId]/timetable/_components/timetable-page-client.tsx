@@ -30,6 +30,10 @@ interface TimetablePageClientProps {
   templates: TemplateOption[];
   userId?: string;
   tasks?: SharedTask[];
+  taskColors: Record<
+    string,
+    { color: string | null; roleColor: string | null; tagColor: string | null }
+  >;
   memberships?: ClientMembership[];
   isModeExplicit: boolean;
   isSpanExplicit: boolean;
@@ -54,6 +58,7 @@ export function TimetablePageClient({
   templates,
   userId,
   tasks,
+  taskColors,
   memberships,
   isModeExplicit,
   isSpanExplicit,
@@ -104,6 +109,7 @@ export function TimetablePageClient({
         canManage={canManage}
         userId={userId}
         availableTasks={tasks}
+        taskColors={taskColors}
         memberships={memberships}
       />
     </>

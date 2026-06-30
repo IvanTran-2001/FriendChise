@@ -11,6 +11,7 @@ import type { ClientTemplateInstance, ClientMembership } from "../template-edito
 
 interface CalendarEditSidebarContentProps {
   instance: ClientTemplateInstance;
+  taskColor?: string;
   memberships: ClientMembership[];
   orgId: string;
   onClose: () => void;
@@ -22,6 +23,7 @@ interface CalendarEditSidebarContentProps {
 
 export function CalendarEditSidebarContent({
   instance,
+  taskColor,
   memberships,
   orgId,
   onClose,
@@ -117,7 +119,7 @@ export function CalendarEditSidebarContent({
         {/* Task meta */}
         <div
           className="rounded-lg border bg-card px-3 py-2.5 flex items-center gap-2.5"
-          style={{ borderLeftWidth: 3, borderLeftColor: instance.taskColor ?? "#9ca3af" }}
+          style={{ borderLeftWidth: 3, borderLeftColor: taskColor ?? instance.taskColor ?? "#9ca3af" }}
         >
           <span className="font-semibold text-sm truncate">{instance.task.name}</span>
         </div>

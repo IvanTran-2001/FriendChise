@@ -6,6 +6,7 @@ import { CalendarDays, ExternalLink } from "lucide-react";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { useSupportsHover } from "@/hooks/use-hover-capability";
 import { cn } from "@/lib/utils";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 import { groupBy, minTo12h } from "../../../_shared/grid-utils";
 import { AddTemplateTaskPanel } from "../_components/add-template-task-panel";
 import { CalendarEditSidebarContent } from "./calendar-edit-sidebar-content";
@@ -19,6 +20,10 @@ interface SimpleViewProps {
   orgId: string;
   templateId: string;
   availableTasks?: ClientTask[];
+  taskColors: Record<
+    string,
+    { color: string | null; roleColor: string | null; tagColor: string | null }
+  >;
 }
 
 export function TemplateSimpleView({
@@ -29,12 +34,31 @@ export function TemplateSimpleView({
   orgId,
   templateId,
   availableTasks,
+  taskColors,
 }: SimpleViewProps) {
   const router = useRouter();
   const supportsHover = useSupportsHover();
   const actionSidebar = useActionSidebar();
   const [highlightedDay, setHighlightedDay] = useState<string | null>(null);
   const clearHighlight = useCallback(() => setHighlightedDay(null), []);
+
+  const [colorFilter] = usePersistedState<"task" | "role" | "tag">(
+    "friendchise-color-filter",
+    "task",
+  );
+
+  const getTaskColor = useCallback((inst: ClientTemplateInstance) => {
+    const entry = taskColors[inst.task.id];
+    let color: string | null = null;
+    if (colorFilter === "role") {
+      color = entry?.roleColor ?? null;
+    } else if (colorFilter === "tag") {
+      color = entry?.tagColor ?? null;
+    } else if (colorFilter === "task") {
+      color = entry?.color ?? null;
+    }
+    return color ?? inst.taskColor ?? "#94a3b8";
+  }, [colorFilter, taskColors]);
 
   const byDate = groupBy(instances, (inst) => String(inst.dayIndex));
 
@@ -158,6 +182,7 @@ export function TemplateSimpleView({
                         <CalendarEditSidebarContent
                           key={inst.id}
                           instance={inst}
+                          taskColor={getTaskColor(inst)}
                           memberships={memberships}
                           orgId={orgId}
                           onClose={() => actionSidebar.close()}
@@ -175,6 +200,7 @@ export function TemplateSimpleView({
                           <CalendarEditSidebarContent
                             key={inst.id}
                             instance={inst}
+                            taskColor={getTaskColor(inst)}
                             memberships={memberships}
                             orgId={orgId}
                             onClose={() => actionSidebar.close()}
@@ -183,7 +209,7 @@ export function TemplateSimpleView({
                       }
                     }}
                   >
-                    <div className="w-1 self-stretch rounded-full shrink-0" style={{ backgroundColor: inst.taskColor ?? "#94a3b8" }} />
+                    <div className="w-1 self-stretch rounded-full shrink-0" style={{ backgroundColor: getTaskColor(inst) }} />
                     <span className="text-xs text-muted-foreground font-mono w-14 shrink-0 tabular-nums">{minTo12h(inst.startTimeMin)}</span>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium block truncate">{inst.task.name}</div>

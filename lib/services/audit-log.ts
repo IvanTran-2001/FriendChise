@@ -107,12 +107,62 @@ export async function recordAudit(
 }
 
 /**
+ * Returns the total count of audit logs for an org, with optional filters.
+ */
+export async function getAuditLogsCount(
+  orgId: string = "",
+  { search, date }: { search?: string; date?: string } = {}
+) {
+  let parsedDate: Date | undefined;
+  if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    const [yearStr, monthStr, dayStr] = date.split("-");
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+    const day = parseInt(dayStr, 10);
+
+    if (
+      year >= 1000 && year <= 9999 &&
+      month >= 1 && month <= 12 &&
+      day >= 1 && day <= 31
+    ) {
+      const candidate = new Date(`${date}T00:00:00.000Z`);
+      if (
+        candidate.getUTCFullYear() === year &&
+        candidate.getUTCMonth() === month - 1 &&
+        candidate.getUTCDate() === day
+      ) {
+        parsedDate = candidate;
+      }
+    }
+  }
+
+  return prisma.auditLog.count({
+    where: {
+      ...(orgId && { orgId }),
+      ...(search && {
+        OR: [
+          { action: { contains: search, mode: "insensitive" } },
+          { actorEmail: { contains: search, mode: "insensitive" } },
+          { targetType: { contains: search, mode: "insensitive" } },
+        ],
+      }),
+      ...(parsedDate && !Number.isNaN(parsedDate.valueOf()) && {
+        createdAt: {
+          gte: parsedDate,
+          lt: new Date(parsedDate.getTime() + 24 * 60 * 60 * 1000),
+        },
+      }),
+    },
+  });
+}
+
+/**
  * Returns the audit log for an org, newest-first.
- * `limit` defaults to 100 — callers can paginate by adjusting this.
+ * `limit` defaults to 50 — callers can paginate by adjusting this.
  */
 export async function getAuditLogs(
   orgId: string = "",
-  { search, date, limit = 100 }: { search?: string; date?: string; limit?: number } = {}
+  { search, date, limit = 50, page = 1 }: { search?: string; date?: string; limit?: number; page?: number } = {}
 ) {
   let parsedDate: Date | undefined;
   if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -158,5 +208,6 @@ export async function getAuditLogs(
     },
     orderBy: { createdAt: "desc" },
     take: limit,
+    skip: (page - 1) * limit,
   });
 }

@@ -16,6 +16,10 @@ interface TemplateEditorPageClientProps {
   templateDays: number;
   instances: ClientTemplateInstance[];
   availableTasks: ClientTask[];
+  taskColors: Record<
+    string,
+    { color: string | null; roleColor: string | null; tagColor: string | null }
+  >;
   memberships: ClientMembership[];
   todayStr: string;
   openTimeMin: number;
@@ -34,6 +38,7 @@ export function TemplateEditorPageClient({
   templateDays,
   instances,
   availableTasks,
+  taskColors,
   memberships,
   todayStr,
   openTimeMin,
@@ -76,6 +81,7 @@ export function TemplateEditorPageClient({
         templateDays={templateDays}
         instances={instances}
         availableTasks={availableTasks}
+        taskColors={taskColors}
         memberships={memberships}
         todayStr={todayStr}
         openTimeMin={openTimeMin}

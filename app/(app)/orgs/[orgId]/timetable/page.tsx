@@ -262,6 +262,24 @@ export default async function TimetablePage({
     taskColor: taskRoleColorMap.get(inst.taskId) ?? null,
   }));
 
+  const taskColors: Record<
+    string,
+    { color: string | null; roleColor: string | null; tagColor: string | null }
+  > = {};
+  for (const t of tasks) {
+    const displayRole = selectedRoleId
+      ? t.eligibility.find((e) => e.role.id === selectedRoleId)?.role
+      : t.eligibility[0]?.role;
+    const displayTag = selectedTagId
+      ? t.tags.find((tt) => tt.tag.id === selectedTagId)?.tag
+      : t.tags[0]?.tag;
+    taskColors[t.id] = {
+      color: t.color ?? null,
+      roleColor: displayRole?.color ?? null,
+      tagColor: displayTag?.color ?? null,
+    };
+  }
+
   const isFiltersExplicit = !!(urlRoleId || urlTagId);
   const templateOptions = templates.map((t) => ({
     id: t.id,
@@ -308,6 +326,7 @@ export default async function TimetablePage({
         templates={templateOptions}
         userId={userId}
         tasks={availableTasks}
+        taskColors={taskColors}
         memberships={clientMemberships}
         isModeExplicit={isModeExplicit}
         isSpanExplicit={isSpanExplicit}

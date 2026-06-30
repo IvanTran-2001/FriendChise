@@ -79,6 +79,10 @@ interface TimetableClientProps {
   tagId?: string | null;
   canManage?: boolean;
   availableTasks?: ClientTask[];
+  taskColors: Record<
+    string,
+    { color: string | null; roleColor: string | null; tagColor: string | null }
+  >;
   memberships?: ClientMembership[];
   /** Current user's ID — forwarded to CalendarView for per-user warning suppression. */
   userId?: string;
@@ -100,6 +104,7 @@ export function TimetableClient({
   tagId,
   canManage = false,
   availableTasks,
+  taskColors,
   memberships,
   userId,
   children,
@@ -266,6 +271,7 @@ export function TimetableClient({
             todayStr={todayStr}
             canManage={canManage}
             availableTasks={availableTasks}
+            taskColors={taskColors}
             memberships={memberships}
             userId={userId}
             onVisibleRangeChange={(count) => setNavColCount(count)}
@@ -284,6 +290,7 @@ export function TimetableClient({
             memberships={memberships}
             orgId={orgId}
             tasks={availableTasks}
+            taskColors={taskColors}
           />
         )}
       </div>
