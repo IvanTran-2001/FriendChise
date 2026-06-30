@@ -47,16 +47,20 @@ export function SidebarNavItem({
   useEffect(() => {
     if (disabled) return;
 
-    const storageKey = `friendchise-nav-url-${url}`;
+    const isToolsMenu = url.endsWith("/tools");
 
-    if (isActive) {
-      localStorage.setItem(storageKey, pathname);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setDynamicHref(url);
+    if (isToolsMenu) {
+      const storageKey = `friendchise-nav-url-${url}`;
+
+      if (isActive) {
+        localStorage.setItem(storageKey, pathname);
+        setDynamicHref(url);
+      } else {
+        const savedPath = localStorage.getItem(storageKey);
+        setDynamicHref(savedPath || url);
+      }
     } else {
-      const savedPath = localStorage.getItem(storageKey);
-       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setDynamicHref(savedPath || url);
+      setDynamicHref(url);
     }
   }, [isActive, pathname, url, disabled]);
 
