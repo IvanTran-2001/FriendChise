@@ -36,7 +36,6 @@ export function AnnouncementSidebarContent({
         </p>
         {/* Everyone can change sort order, but only owners get the actions block. */}
         <SegmentedControl
-          className="w-full"
           options={[
             { label: "Newest", value: "newest" },
             { label: "Oldest", value: "oldest" },
