@@ -14,8 +14,7 @@
  * `GlobalSidebarProvider` / `useMobileSidebar` from mobile-sidebar-context.
  */
 import { useState, useEffect, useContext } from "react";
-import Link from "next/link";
-import { useParams, usePathname } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -154,6 +153,7 @@ function getSettingsItems(orgId: string): NavItem[] {
 export function AppSidebar() {
   const { orgId } = useParams<{ orgId?: string }>();
   const pathname = usePathname();
+  const router = useRouter();
   const { open, setOpen } = useContext(MobileSidebarCtx);
 
   // Close the mobile overlay on navigation
