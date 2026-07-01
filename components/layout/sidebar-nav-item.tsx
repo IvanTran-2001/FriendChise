@@ -16,7 +16,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { ComponentType, MouseEvent } from "react";
-import { useState, useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 
 export type SidebarNavItemProps = {
@@ -31,6 +31,68 @@ export type SidebarNavItemProps = {
   onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
 };
 
+function useRememberedNavHref({
+  url,
+  isActive,
+  pathname,
+  disabled,
+}: {
+  url: string;
+  isActive: boolean;
+  pathname: string;
+  disabled?: boolean;
+}) {
+  const isToolsMenu = url.endsWith("/tools");
+  const storageKey = isToolsMenu ? `friendchise-nav-url-${url}` : null;
+
+  const subscribe = (onStoreChange: () => void) => {
+    if (!storageKey || typeof window === "undefined") return () => {};
+
+    const eventName = `persisted-state-change:${storageKey}`;
+    const onCustomChange = () => onStoreChange();
+    const onStorageChange = (event: StorageEvent) => {
+      if (event.key === storageKey) onStoreChange();
+    };
+
+    window.addEventListener(eventName, onCustomChange as EventListener);
+    window.addEventListener("storage", onStorageChange as EventListener);
+
+    return () => {
+      window.removeEventListener(eventName, onCustomChange as EventListener);
+      window.removeEventListener("storage", onStorageChange as EventListener);
+    };
+  };
+
+  const getSnapshot = () => {
+    if (disabled || !storageKey) return url;
+    if (isActive) return url;
+    if (typeof window === "undefined") return url;
+
+    try {
+      return localStorage.getItem(storageKey) || url;
+    } catch {
+      return url;
+    }
+  };
+
+  const getServerSnapshot = () => url;
+
+  const href = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+
+  useEffect(() => {
+    if (!storageKey || disabled || typeof window === "undefined" || !isActive) return;
+
+    try {
+      localStorage.setItem(storageKey, pathname);
+      window.dispatchEvent(new CustomEvent(`persisted-state-change:${storageKey}`));
+    } catch {
+      // Ignore storage errors.
+    }
+  }, [disabled, isActive, pathname, storageKey]);
+
+  return href;
+}
+
 export function SidebarNavItem({
   title,
   url,
@@ -42,27 +104,7 @@ export function SidebarNavItem({
 }: SidebarNavItemProps) {
   // Active — clean left accent bar + very subtle fill (Jira-style)
   const pathname = usePathname();
-  const [dynamicHref, setDynamicHref] = useState(url);
-
-  useEffect(() => {
-    if (disabled) return;
-
-    const isToolsMenu = url.endsWith("/tools");
-
-    if (isToolsMenu) {
-      const storageKey = `friendchise-nav-url-${url}`;
-
-      if (isActive) {
-        localStorage.setItem(storageKey, pathname);
-        setDynamicHref(url);
-      } else {
-        const savedPath = localStorage.getItem(storageKey);
-        setDynamicHref(savedPath || url);
-      }
-    } else {
-      setDynamicHref(url);
-    }
-  }, [isActive, pathname, url, disabled]);
+  const dynamicHref = useRememberedNavHref({ url, isActive, pathname, disabled });
 
   const appActive =
     "bg-sidebar-primary/10 text-primary font-semibold before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:rounded-r-full before:bg-primary";
