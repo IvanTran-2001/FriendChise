@@ -13,6 +13,7 @@
  * Exports `MobileSidebarTrigger` (hamburger button for NavBar) and re-exports
  * `GlobalSidebarProvider` / `useMobileSidebar` from mobile-sidebar-context.
  */
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useContext } from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
@@ -212,13 +213,13 @@ export function AppSidebar() {
       return (
         <>
           {/* Back button */}
-          <Link
-            href="/"
+          <button
+            onClick={() => router.push("/")}
             className="flex items-center h-12 shrink-0 gap-3 px-3 text-sm font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors border-b border-sidebar-border"
           >
             <ChevronLeft className="h-4 w-4 shrink-0" />
             <span className="whitespace-nowrap overflow-hidden">Back</span>
-          </Link>
+          </button>
           <div className="flex-1 overflow-y-auto overflow-x-hidden">
             <div className="flex flex-col">
               <SidebarNavItem
@@ -255,13 +256,13 @@ export function AppSidebar() {
       return (
         <>
           {/* Back button */}
-          <Link
-            href={`/orgs/${orgId}`}
+          <button
+            onClick={() => router.push(`/orgs/${orgId}`)}
             className="flex items-center h-12 shrink-0 gap-3 px-3 text-sm font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors border-b border-sidebar-border"
           >
             <ChevronLeft className="h-4 w-4 shrink-0" />
             <span className="whitespace-nowrap overflow-hidden">Back</span>
-          </Link>
+          </button>
           <div className="flex-1 overflow-y-auto overflow-x-hidden">
             <div className="flex flex-col">
               {settingsItems.map((item) => (
