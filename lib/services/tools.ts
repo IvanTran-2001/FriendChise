@@ -328,15 +328,14 @@ export async function toggleChecklistEntry(listEntryId: string): Promise<{ check
   return { checked: true };
 }
 
-/** Creates a new ToolItemList for an org. */
+/** Creates a new ToolItemList for an org. New lists always default to GRID display. */
 export async function createToolItemList(
   orgId: string,
   name: string,
-  displayType: import("@prisma/client").ListDisplayType,
   description?: string,
 ) {
   return prisma.toolItemList.create({
-    data: { orgId, name, displayType, description: description ?? null },
+    data: { orgId, name, displayType: "GRID", description: description ?? null },
     select: {
       id: true,
       name: true,
