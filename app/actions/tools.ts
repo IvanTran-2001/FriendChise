@@ -811,7 +811,7 @@ export async function createToolItemListAction(
     return { ok: true as const, list };
   } catch (err: unknown) {
     const mappedError = mapPrismaError(err, {
-      P2002: "A list with that name already exists.",
+      P2002: "A set with that name already exists.",
     });
     return {
       ok: false as const,

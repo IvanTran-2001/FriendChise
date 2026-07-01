@@ -156,8 +156,8 @@ export function ItemListsClient({
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
           <Input
-            aria-label="Search lists"
-            placeholder="Search lists…"
+            aria-label="Search sets"
+            placeholder="Search sets…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8 h-7"
@@ -171,10 +171,10 @@ export function ItemListsClient({
             <div className="flex items-end justify-between gap-3 px-1">
               <div>
                 <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Recent lists
+                  Recent sets
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Jump back into the lists you opened recently.
+                  Jump back into the sets you opened recently.
                 </p>
               </div>
             </div>
@@ -194,7 +194,7 @@ export function ItemListsClient({
                       </div>
                       <div className="min-w-0">
                         <h3 className="truncate text-sm font-semibold">{item.name}</h3>
-                        <p className="mt-1 text-xs text-muted-foreground">Open list</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Open set</p>
                       </div>
                     </div>
                     <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
@@ -209,10 +209,10 @@ export function ItemListsClient({
           <div className="flex items-center justify-center border rounded-lg py-24">
             <div className="flex flex-col items-center gap-3 text-center">
               <List className="h-10 w-10 text-muted-foreground/40" />
-              <p className="text-2xl font-semibold">No lists yet</p>
+              <p className="text-2xl font-semibold">No sets yet</p>
               {canManage && (
                 <p className="text-sm text-muted-foreground">
-                  Create a list to organise items for a job or station.
+                  Create a set to organise items for a job or station.
                 </p>
               )}
             </div>
@@ -220,7 +220,7 @@ export function ItemListsClient({
         ) : filtered.length === 0 ? (
           <div className="flex items-center justify-center border rounded-lg py-16">
             <p className="text-sm text-muted-foreground">
-              No lists match &ldquo;{search}&rdquo;
+              No sets match &ldquo;{search}&rdquo;
             </p>
           </div>
         ) : view === "card" ? (
@@ -369,7 +369,7 @@ function ListMenu({
           onClick={(e) => e.stopPropagation()}
         >
           <MoreHorizontal className="h-4 w-4" />
-          <span className="sr-only">List actions</span>
+          <span className="sr-only">Set actions</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
@@ -421,7 +421,7 @@ function InlineEditForm({
         }}
         onBlur={onCommit}
         className="h-7 text-sm font-medium"
-        placeholder="List name"
+        placeholder="Set name"
       />
       <Input
         value={editing.description}

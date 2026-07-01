@@ -61,7 +61,7 @@ export function CreateListPanel({ orgId, onCreated, onClose }: CreateListPanelPr
         displayType === "GRID" ? gridRows : undefined,
       );
       if (!result.ok) {
-        toast.error("error" in result ? result.error : "Failed to create list.");
+        toast.error("error" in result ? result.error : "Failed to create set.");
         return;
       }
       toast.success(`"${name.trim()}" created.`);
@@ -161,7 +161,7 @@ export function CreateListPanel({ orgId, onCreated, onClose }: CreateListPanelPr
         disabled={isPending || !name.trim()}
         className="w-full"
       >
-        {isPending ? "Creating…" : "Create List"}
+        {isPending ? "Creating…" : "Create Set"}
       </Button>
     </form>
   );
