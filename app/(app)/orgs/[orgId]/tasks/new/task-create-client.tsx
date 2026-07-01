@@ -69,11 +69,71 @@ function draftStorageKey(orgId: string) {
   return `task-create-draft:${orgId}`;
 }
 
+function isStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) && value.every((item) => typeof item === "string")
+  );
+}
+
 function readStoredDraft(orgId: string): Partial<TaskCreateDraft> | null {
   try {
     const raw = window.localStorage.getItem(draftStorageKey(orgId));
     if (!raw) return null;
-    return JSON.parse(raw) as Partial<TaskCreateDraft>;
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+      return null;
+
+    const draft = parsed as Record<string, unknown>;
+    const color = typeof draft.color === "string" ? draft.color : undefined;
+    const title = typeof draft.title === "string" ? draft.title : undefined;
+    const description =
+      typeof draft.description === "string" ? draft.description : undefined;
+    const imageStoragePath =
+      typeof draft.imageStoragePath === "string"
+        ? draft.imageStoragePath
+        : undefined;
+    const imageSignedUrl =
+      typeof draft.imageSignedUrl === "string"
+        ? draft.imageSignedUrl
+        : undefined;
+    const durationMin =
+      typeof draft.durationMin === "number" &&
+      Number.isFinite(draft.durationMin)
+        ? draft.durationMin
+        : undefined;
+    const preferredStartTimeMin =
+      typeof draft.preferredStartTimeMin === "number" &&
+      Number.isFinite(draft.preferredStartTimeMin)
+        ? draft.preferredStartTimeMin
+        : draft.preferredStartTimeMin === null
+          ? null
+          : undefined;
+    const peopleRequired =
+      typeof draft.peopleRequired === "number" &&
+      Number.isFinite(draft.peopleRequired)
+        ? draft.peopleRequired
+        : undefined;
+    const minWaitDays =
+      typeof draft.minWaitDays === "string" ? draft.minWaitDays : undefined;
+    const maxWaitDays =
+      typeof draft.maxWaitDays === "string" ? draft.maxWaitDays : undefined;
+    const tagIds = isStringArray(draft.tagIds) ? draft.tagIds : [];
+    const roleIds = isStringArray(draft.roleIds) ? draft.roleIds : [];
+
+    return {
+      ...(color !== undefined ? { color } : {}),
+      ...(title !== undefined ? { title } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(imageStoragePath !== undefined ? { imageStoragePath } : {}),
+      ...(imageSignedUrl !== undefined ? { imageSignedUrl } : {}),
+      ...(durationMin !== undefined ? { durationMin } : {}),
+      ...(preferredStartTimeMin !== undefined ? { preferredStartTimeMin } : {}),
+      ...(peopleRequired !== undefined ? { peopleRequired } : {}),
+      ...(minWaitDays !== undefined ? { minWaitDays } : {}),
+      ...(maxWaitDays !== undefined ? { maxWaitDays } : {}),
+      tagIds,
+      roleIds,
+    };
   } catch {
     return null;
   }

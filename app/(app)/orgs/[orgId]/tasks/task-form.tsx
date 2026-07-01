@@ -12,7 +12,8 @@
  *   mode="edit"   — submits updateTaskAction (stays on page, shows toast)
  *
  * Eligibility is managed live via addEligibilityAction / removeEligibilityAction.
- * In create mode, eligibility can only be set after the task exists (edit page).
+ * In create mode, selected roles are kept locally and submitted as hidden
+ * roleIds fields; in edit mode, eligibility changes still persist immediately.
  */
 
 import { useActionState, useEffect, useTransition, useState } from "react";
