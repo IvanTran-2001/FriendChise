@@ -7,7 +7,7 @@
  * and navigates to the selected org's root page on selection.
  */
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,36 @@ import {
 import { cn } from "@/lib/utils";
 
 type Org = { id: string; name: string; image: string | null };
+
+function MarqueeTitle({ title, isActive }: { title: string; isActive?: boolean }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const text = textRef.current;
+    if (container && text) {
+      setIsOverflowing(text.scrollWidth > container.clientWidth);
+    }
+  }, [title]);
+
+  return (
+    <div ref={containerRef} className="w-full overflow-hidden whitespace-nowrap">
+      <span
+        ref={textRef}
+        className={cn(
+          "inline-block pr-4 text-sm text-foreground",
+          isActive ? "font-semibold" : "font-medium",
+          isOverflowing && "animate-[marquee_10s_linear_infinite]"
+        )}
+      >
+        {title}
+        {isOverflowing && `\u00A0\u00A0\u00A0\u00A0${title}`}
+      </span>
+    </div>
+  );
+}
 
 /** Returns a stable hue (0–359) based on the org id string. */
 function orgHue(id: string): number {
@@ -200,14 +230,7 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
                         <OrgBadge org={org} />
                       </span>
                       <span className="flex min-w-0 flex-1 flex-col">
-                        <span
-                          className={cn(
-                            "truncate text-sm",
-                            isActive && "font-semibold",
-                          )}
-                        >
-                          {org.name}
-                        </span>
+                        <MarqueeTitle title={org.name} isActive={isActive} />
                         <span className="truncate text-[11px] text-muted-foreground">
                           {isActive ? "Current organization" : "Tap to switch"}
                         </span>
