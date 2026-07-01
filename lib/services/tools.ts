@@ -12,6 +12,9 @@
  *   ToolItem (org-scoped, shared across all sets)
  */
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
+
+type ToolItemListClient = Pick<Prisma.TransactionClient, "toolItemList">;
 
 // ─── ConversionSet ────────────────────────────────────────────────────────────
 
@@ -332,9 +335,10 @@ export async function toggleChecklistEntry(listEntryId: string): Promise<{ check
 export async function createToolItemList(
   orgId: string,
   name: string,
+  client: ToolItemListClient = prisma,
   description?: string,
 ) {
-  return prisma.toolItemList.create({
+  return client.toolItemList.create({
     data: { orgId, name, displayType: "GRID", description: description ?? null },
     select: {
       id: true,

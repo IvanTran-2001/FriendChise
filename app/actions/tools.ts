@@ -792,18 +792,22 @@ export async function createToolItemListAction(
   const trimmed = name.trim();
   if (!trimmed) return { ok: false as const, error: "Name is required." };
 
+  const normalizedGridCols = Number.isFinite(gridCols) ? gridCols : 4;
+  const normalizedGridRows = Number.isFinite(gridRows) ? gridRows : 4;
+
   try {
     // New lists always default to GRID display.
-    const list = await createToolItemList(orgId, trimmed);
-    await import("@/lib/prisma").then(({ prisma }) =>
-      prisma.toolItemGridConfig.create({
+    const list = await prisma.$transaction(async (tx) => {
+      const createdList = await createToolItemList(orgId, trimmed, tx);
+      await tx.toolItemGridConfig.create({
         data: {
-          listId: list.id,
-          gridCols: gridCols ?? 4,
-          gridRows: gridRows ?? 4,
+          listId: createdList.id,
+          gridCols: normalizedGridCols,
+          gridRows: normalizedGridRows,
         },
-      }),
-    );
+      });
+      return createdList;
+    });
     revalidatePath(`/orgs/${orgId}/tools/item-list/lists`);
     return { ok: true as const, list };
   } catch (err: unknown) {

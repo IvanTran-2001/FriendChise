@@ -28,6 +28,18 @@ export function CreateListPanel({ orgId, onCreated, onClose }: CreateListPanelPr
   const [gridRows, setGridRows] = useState(4);
   const [isPending, startTransition] = useTransition();
 
+  function handleGridColsChange(value: string) {
+    const parsed = Number(value);
+    if (Number.isNaN(parsed)) return;
+    setGridCols(Math.max(1, Math.min(12, parsed)));
+  }
+
+  function handleGridRowsChange(value: string) {
+    const parsed = Number(value);
+    if (Number.isNaN(parsed)) return;
+    setGridRows(Math.max(1, Math.min(20, parsed)));
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     startTransition(async () => {
@@ -82,7 +94,7 @@ export function CreateListPanel({ orgId, onCreated, onClose }: CreateListPanelPr
               min={1}
               max={12}
               value={gridCols}
-              onChange={(e) => setGridCols(Math.max(1, Math.min(12, Number(e.target.value))))}
+              onChange={(e) => handleGridColsChange(e.target.value)}
               disabled={isPending}
             />
           </div>
@@ -96,7 +108,7 @@ export function CreateListPanel({ orgId, onCreated, onClose }: CreateListPanelPr
               min={1}
               max={20}
               value={gridRows}
-              onChange={(e) => setGridRows(Math.max(1, Math.min(20, Number(e.target.value))))}
+              onChange={(e) => handleGridRowsChange(e.target.value)}
               disabled={isPending}
             />
           </div>
