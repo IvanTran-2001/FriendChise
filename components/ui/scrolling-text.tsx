@@ -2,13 +2,12 @@
 
 /**
  * Renders text that behaves like a normal ellipsis-truncated label, but
- * smoothly auto-scrolls right-to-left when the text overflows its container
- * and is currently visible (e.g. inside an open, scrollable dropdown).
+ * smoothly auto-scrolls right-to-left when the text overflows its container.
  */
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
 
-const PIXELS_PER_SECOND = 35;
+const PIXELS_PER_SECOND = 18;
 const MIN_DURATION_SECONDS = 3;
 
 function subscribeReducedMotion(onChange: () => void) {
@@ -37,7 +36,6 @@ export function ScrollingText({
   const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
   const [overflow, setOverflow] = useState(0);
-  const [visible, setVisible] = useState(true);
   const reducedMotion = useSyncExternalStore(
     subscribeReducedMotion,
     getReducedMotion,
@@ -62,20 +60,7 @@ export function ScrollingText({
     return () => observer.disconnect();
   }, [text]);
 
-  // Only animate while the item is actually scrolled into view.
-  useEffect(() => {
-    if (overflow === 0) return;
-    const container = containerRef.current;
-    if (!container) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setVisible(entry.isIntersecting),
-      { threshold: 0.6 },
-    );
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, [overflow]);
-
-  const shouldScroll = overflow > 0 && visible && !reducedMotion;
+  const shouldScroll = overflow > 0 && !reducedMotion;
   const duration = Math.max(MIN_DURATION_SECONDS, overflow / PIXELS_PER_SECOND);
 
   return (
@@ -85,7 +70,10 @@ export function ScrollingText({
     >
       <span
         ref={textRef}
-        className={cn(shouldScroll ? "inline-block whitespace-nowrap" : "block truncate", className)}
+        className={cn(
+          shouldScroll ? "inline-block whitespace-nowrap" : "block truncate",
+          className,
+        )}
         style={
           shouldScroll
             ? ({

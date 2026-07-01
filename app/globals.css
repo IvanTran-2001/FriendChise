@@ -185,14 +185,12 @@ body {
 }
 
 /* Used by ScrollingText to continuously auto-scroll overflowing labels
-   right-to-left: hold, scroll left, then snap back to the start and repeat. */
+   right-to-left. */
 @keyframes scrolling-text {
-  0%,
-  8% {
+  from {
     transform: translateX(0);
   }
-  92%,
-  100% {
+  to {
     transform: translateX(var(--scrolling-text-distance));
   }
 }
