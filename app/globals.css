@@ -184,19 +184,16 @@ body {
   }
 }
 
-/* Used by ScrollingText to auto-scroll overflowing labels right-to-left. */
+/* Used by ScrollingText to continuously auto-scroll overflowing labels
+   right-to-left: hold, scroll left, then snap back to the start and repeat. */
 @keyframes scrolling-text {
   0%,
-  10% {
+  8% {
     transform: translateX(0);
   }
-  45%,
-  55% {
-    transform: translateX(var(--scrolling-text-distance));
-  }
-  90%,
+  92%,
   100% {
-    transform: translateX(0);
+    transform: translateX(var(--scrolling-text-distance));
   }
 }
 

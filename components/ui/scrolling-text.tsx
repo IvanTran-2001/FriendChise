@@ -89,7 +89,7 @@ export function ScrollingText({
         style={
           shouldScroll
             ? ({
-                animation: `scrolling-text ${duration}s ease-in-out infinite`,
+                animation: `scrolling-text ${duration}s linear infinite`,
                 "--scrolling-text-distance": `-${overflow}px`,
               } as React.CSSProperties)
             : undefined

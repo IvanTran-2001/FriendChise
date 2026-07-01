@@ -126,9 +126,11 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
             {activeOrg ? <OrgBadge org={activeOrg} /> : null}
           </span>
           <span className="flex min-w-0 flex-col items-start leading-none">
-            <span className="truncate max-w-20 text-[11px] font-medium sm:max-w-28">
-              {activeOrg?.name ?? "Select Org"}
-            </span>
+            <ScrollingText
+              text={activeOrg?.name ?? "Select Org"}
+              containerClassName="max-w-20 sm:max-w-28"
+              className="text-[11px] font-medium"
+            />
             <span className="mt-px text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
               Organization
             </span>
