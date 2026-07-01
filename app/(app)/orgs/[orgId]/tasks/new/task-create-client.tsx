@@ -1,24 +1,83 @@
 "use client";
 
-import { useEffect, useState, useTransition, useActionState } from "react";
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Clock, Users, AlarmClock, RefreshCw, ImagePlus, Trash2 } from "lucide-react";
+import {
+  Clock,
+  Users,
+  AlarmClock,
+  RefreshCw,
+  ImagePlus,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ColorPicker, randomColor } from "@/components/ui/color-picker";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
-import { BackButton } from "@/components/layout/back-button";
 import { createTaskAction } from "@/app/actions/tasks";
 import type { CreateTaskFormState } from "@/app/actions/tasks";
 import { TagPanel, EligibilityPanel } from "../task-form";
 import type { Role, Tag } from "../task-form";
 import { TaskEditorFrame } from "@/app/(app)/orgs/[orgId]/tasks/_components/task-editor-frame";
 import { OrgImagePicker } from "@/components/ui/org-image-picker";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const SIDEBAR_LABEL_CLASS =
   "text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5";
 const SIDEBAR_INPUT_CLASS = "h-9 text-sm";
+
+type TaskCreateDraft = {
+  title: string;
+  description: string;
+  color: string;
+  imageStoragePath: string;
+  imageSignedUrl: string;
+  durationMin: number;
+  preferredStartTimeMin: number | null;
+  peopleRequired: number;
+  minWaitDays: string;
+  maxWaitDays: string;
+  tagIds: string[];
+  roleIds: string[];
+};
+
+function normalizeWaitDays(value: string) {
+  const trimmed = value.trim();
+  if (trimmed === "") return "1";
+  return String(Number(trimmed));
+}
+
+function draftStorageKey(orgId: string) {
+  return `task-create-draft:${orgId}`;
+}
+
+function readStoredDraft(orgId: string): Partial<TaskCreateDraft> | null {
+  try {
+    const raw = window.localStorage.getItem(draftStorageKey(orgId));
+    if (!raw) return null;
+    return JSON.parse(raw) as Partial<TaskCreateDraft>;
+  } catch {
+    return null;
+  }
+}
 
 function DurationPicker({
   defaultValueMin,
@@ -78,7 +137,9 @@ function DurationPicker({
           </option>
         ))}
       </select>
-      <span className="text-xs text-muted-foreground">{totalMin} min total</span>
+      <span className="text-xs text-muted-foreground">
+        {totalMin} min total
+      </span>
     </div>
   );
 }
@@ -95,7 +156,9 @@ function StartTimePicker({
   onChangeMinutes: (min: number | null) => void;
 }) {
   const toHHMM = (min: number) => {
-    const hours = Math.floor(min / 60).toString().padStart(2, "0");
+    const hours = Math.floor(min / 60)
+      .toString()
+      .padStart(2, "0");
     const minutes = (min % 60).toString().padStart(2, "0");
     return `${hours}:${minutes}`;
   };
@@ -106,7 +169,11 @@ function StartTimePicker({
   const valueMin = value
     ? value
         .split(":")
-        .reduce((hours, minutes, index) => hours + Number(minutes) * (index === 0 ? 60 : 1), 0)
+        .reduce(
+          (hours, minutes, index) =>
+            hours + Number(minutes) * (index === 0 ? 60 : 1),
+          0,
+        )
     : "";
 
   useEffect(() => {
@@ -340,27 +407,136 @@ export function TaskCreateClient({
   allTags: Tag[];
 }) {
   const router = useRouter();
-  const [color, setColor] = useState(() => randomColor());
-  // Keep markdown in React state so sidebar-driven rerenders can't drop it
-  // before FormData is assembled on submit.
-  const [description, setDescription] = useState("");
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const [initialColor] = useState(() => randomColor());
+  const storedDraft = useMemo(() => readStoredDraft(orgId), [orgId]);
+  const [title, setTitle] = useState(() => storedDraft?.title ?? "");
+  const [color, setColor] = useState(() => storedDraft?.color ?? initialColor);
+  const [description, setDescription] = useState(
+    () => storedDraft?.description ?? "",
+  );
   const [selectedImage, setSelectedImage] = useState<{
     storagePath: string;
     signedUrl: string;
-  } | null>(null);
-  const [durationMin, setDurationMin] = useState(30);
-  const [startTimeMin, setStartTimeMin] = useState<number | null>(null);
-  const [peopleRequired, setPeopleRequired] = useState(1);
-  const [minWaitDays, setMinWaitDays] = useState("1");
-  const [maxWaitDays, setMaxWaitDays] = useState("1");
+  } | null>(() => {
+    const storagePath = storedDraft?.imageStoragePath ?? "";
+    if (!storagePath) return null;
+    return {
+      storagePath,
+      signedUrl: storedDraft?.imageSignedUrl ?? "",
+    };
+  });
+  const [durationMin, setDurationMin] = useState(
+    () => storedDraft?.durationMin ?? 30,
+  );
+  const [startTimeMin, setStartTimeMin] = useState<number | null>(
+    () => storedDraft?.preferredStartTimeMin ?? null,
+  );
+  const [peopleRequired, setPeopleRequired] = useState(
+    () => storedDraft?.peopleRequired ?? 1,
+  );
+  const [minWaitDays, setMinWaitDays] = useState(
+    () => storedDraft?.minWaitDays ?? "1",
+  );
+  const [maxWaitDays, setMaxWaitDays] = useState(
+    () => storedDraft?.maxWaitDays ?? "1",
+  );
+  const [selectedTags, setSelectedTags] = useState<Tag[]>(() => {
+    const tagIds = new Set(storedDraft?.tagIds ?? []);
+    return allTags.filter((tag) => tagIds.has(tag.id));
+  });
+  const [selectedRoles, setSelectedRoles] = useState<Role[]>(() => {
+    const roleIds = new Set(storedDraft?.roleIds ?? []);
+    return allRoles.filter((role) => roleIds.has(role.id));
+  });
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const [navTarget, setNavTarget] = useState(`/orgs/${orgId}/tasks`);
   const [state, dispatch, pending] = useActionState<
     CreateTaskFormState,
     FormData
-  >(
-    createTaskAction.bind(null, orgId),
-    null,
-  );
+  >(createTaskAction.bind(null, orgId), null);
   const [, startTransition] = useTransition();
+
+  const clearDraft = useCallback(() => {
+    try {
+      window.localStorage.removeItem(draftStorageKey(orgId));
+    } catch {
+      // Ignore storage failures.
+    }
+  }, [orgId]);
+
+  const resetForm = useCallback(() => {
+    setTitle("");
+    setColor(initialColor);
+    setDescription("");
+    setSelectedImage(null);
+    setDurationMin(30);
+    setStartTimeMin(null);
+    setPeopleRequired(1);
+    setMinWaitDays("1");
+    setMaxWaitDays("1");
+    setSelectedTags([]);
+    setSelectedRoles([]);
+  }, [initialColor]);
+
+  const draftSnapshot = useMemo<TaskCreateDraft>(
+    () => ({
+      title,
+      description,
+      color,
+      imageStoragePath: selectedImage?.storagePath ?? "",
+      imageSignedUrl: selectedImage?.signedUrl ?? "",
+      durationMin,
+      preferredStartTimeMin: startTimeMin,
+      peopleRequired,
+      minWaitDays: normalizeWaitDays(minWaitDays),
+      maxWaitDays: normalizeWaitDays(maxWaitDays),
+      tagIds: selectedTags.map((tag) => tag.id),
+      roleIds: selectedRoles.map((role) => role.id),
+    }),
+    [
+      color,
+      description,
+      durationMin,
+      maxWaitDays,
+      minWaitDays,
+      peopleRequired,
+      selectedImage,
+      selectedRoles,
+      selectedTags,
+      startTimeMin,
+      title,
+    ],
+  );
+
+  const isDraftPristine =
+    title === "" &&
+    description === "" &&
+    color === initialColor &&
+    selectedImage === null &&
+    durationMin === 30 &&
+    startTimeMin === null &&
+    peopleRequired === 1 &&
+    normalizeWaitDays(minWaitDays) === "1" &&
+    normalizeWaitDays(maxWaitDays) === "1" &&
+    selectedTags.length === 0 &&
+    selectedRoles.length === 0;
+  const isDirty = !isDraftPristine;
+
+  useEffect(() => {
+    try {
+      if (isDraftPristine) {
+        window.localStorage.removeItem(draftStorageKey(orgId));
+      } else {
+        window.localStorage.setItem(
+          draftStorageKey(orgId),
+          JSON.stringify(draftSnapshot),
+        );
+      }
+    } catch {
+      // Ignore storage failures.
+    }
+  }, [draftSnapshot, isDraftPristine, orgId]);
 
   useEffect(() => {
     if (!state || state.ok) return;
@@ -372,13 +548,43 @@ export function TaskCreateClient({
     toast.error(messages || "Something went wrong");
   }, [state]);
 
+  useEffect(() => {
+    if (!state || !state.ok) return;
+    clearDraft();
+    toast.success("Task created.");
+    router.push(`/orgs/${orgId}/tasks`);
+  }, [state, clearDraft, orgId, router]);
+
+  useEffect(() => {
+    const handler = (event: BeforeUnloadEvent) => {
+      if (isDirty) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
   const err = (field: string): string | null =>
-    state && !state.ok ? state.errors[field]?.[0] ?? null : null;
+    state && !state.ok ? (state.errors[field]?.[0] ?? null) : null;
+
+  const attemptLeave = useCallback(
+    (href: string) => {
+      if (isDirty) {
+        setNavTarget(href);
+        setDiscardOpen(true);
+      } else {
+        router.push(href);
+      }
+    },
+    [isDirty, router],
+  );
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    // Source the description from state instead of the editor's hidden input.
+    formData.set("title", title);
     formData.set("description", description);
     formData.set("durationMin", String(durationMin));
     formData.set("minWaitDays", normalizeWaitDays(minWaitDays));
@@ -387,28 +593,66 @@ export function TaskCreateClient({
       "preferredStartTimeMin",
       startTimeMin == null ? "" : String(startTimeMin),
     );
+    formData.set("peopleRequired", String(peopleRequired));
     startTransition(() => dispatch(formData));
   };
 
-  const handleImageSelect = (storagePath: string, signedUrl: string) => {
-    setSelectedImage({ storagePath, signedUrl });
+  const confirmPost = () => {
+    setDiscardOpen(false);
+    formRef.current?.requestSubmit();
   };
 
-  const normalizeWaitDays = (value: string) => {
-    const trimmed = value.trim();
-    if (trimmed === "") return "1";
-    return String(Number(trimmed));
+  const confirmEditLater = () => {
+    setDiscardOpen(false);
+    router.push(navTarget);
+  };
+
+  const confirmClearEverything = () => {
+    clearDraft();
+    resetForm();
+    setDiscardOpen(false);
+    router.push(navTarget);
   };
 
   return (
-    <TaskEditorFrame
+    <>
+      <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved task draft</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have a task draft that has not been posted yet. Choose how to
+              leave this page.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep editing</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmEditLater}>
+              Edit later
+            </AlertDialogAction>
+            <AlertDialogAction
+              className="border-transparent bg-destructive/10 text-destructive hover:bg-destructive/20"
+              onClick={confirmClearEverything}
+            >
+              Clear everything
+            </AlertDialogAction>
+            <AlertDialogAction onClick={confirmPost}>
+              Post task
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <TaskEditorFrame
         sidebarContent={
           <SidebarFields
             orgId={orgId}
             color={color}
             onColorChange={setColor}
             selectedImage={selectedImage}
-            onImageSelect={handleImageSelect}
+            onImageSelect={(storagePath, signedUrl) =>
+              setSelectedImage({ storagePath, signedUrl })
+            }
             onImageClear={() => setSelectedImage(null)}
             durationMin={durationMin}
             onDurationChange={setDurationMin}
@@ -424,18 +668,19 @@ export function TaskCreateClient({
         }
         toolbarContent={
           <>
-            <BackButton
-              fallbackHref={`/orgs/${orgId}/tasks`}
+            <button
+              type="button"
+              onClick={() => attemptLeave(`/orgs/${orgId}/tasks`)}
               className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               ← Tasks
-            </BackButton>
+            </button>
             <div className="ml-auto flex items-center gap-2">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => router.push(`/orgs/${orgId}/tasks`)}
+                onClick={() => attemptLeave(`/orgs/${orgId}/tasks`)}
               >
                 Cancel
               </Button>
@@ -445,81 +690,115 @@ export function TaskCreateClient({
                 size="sm"
                 disabled={pending}
               >
-                {pending ? "Creating…" : "Create Task"}
+                {pending ? "Posting…" : "Post task"}
               </Button>
             </div>
           </>
         }
       >
         <form
+          ref={formRef}
           id="task-create-form"
           onSubmit={handleSubmit}
           className="flex flex-col gap-6"
         >
-        <input
-          type="hidden"
-          name="imageStoragePath"
-          value={selectedImage?.storagePath ?? ""}
-        />
-        <input type="hidden" name="color" value={color} />
-        <input type="hidden" name="durationMin" value={durationMin} />
-        <input type="hidden" name="preferredStartTimeMin" value={startTimeMin ?? ""} />
-        <input type="hidden" name="peopleRequired" value={peopleRequired} />
-        <input type="hidden" name="minWaitDays" value={normalizeWaitDays(minWaitDays)} />
-        <input type="hidden" name="maxWaitDays" value={normalizeWaitDays(maxWaitDays)} />
+          <input
+            type="hidden"
+            name="imageStoragePath"
+            value={selectedImage?.storagePath ?? ""}
+          />
+          <input type="hidden" name="color" value={color} />
+          <input type="hidden" name="durationMin" value={durationMin} />
+          <input
+            type="hidden"
+            name="preferredStartTimeMin"
+            value={startTimeMin ?? ""}
+          />
+          <input type="hidden" name="peopleRequired" value={peopleRequired} />
+          <input
+            type="hidden"
+            name="minWaitDays"
+            value={normalizeWaitDays(minWaitDays)}
+          />
+          <input
+            type="hidden"
+            name="maxWaitDays"
+            value={normalizeWaitDays(maxWaitDays)}
+          />
 
-        {err("_") && <p role="alert" className="text-sm text-destructive">{err("_")}</p>}
+          {err("_") && (
+            <p role="alert" className="text-sm text-destructive">
+              {err("_")}
+            </p>
+          )}
 
-        <div className="flex flex-col gap-6 rounded-xl border bg-card p-5">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="title" className="text-sm font-medium">
-              Title <span className="text-destructive">*</span>
-            </label>
-            <Input
-              id="title"
-              name="title"
-              type="text"
-              required
-              placeholder="e.g. Deep clean kitchen"
-              aria-invalid={!!err("title")}
-              aria-describedby={err("title") ? "title-error" : undefined}
-            />
-            {err("title") && (
-              <p id="title-error" className="text-xs text-destructive">
-                {err("title")}
-              </p>
-            )}
+          <div className="flex flex-col gap-6 rounded-xl border bg-card p-5">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="title" className="text-sm font-medium">
+                Title <span className="text-destructive">*</span>
+              </label>
+              <Input
+                id="title"
+                name="title"
+                type="text"
+                required
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="e.g. Deep clean kitchen"
+                aria-invalid={!!err("title")}
+                aria-describedby={err("title") ? "title-error" : undefined}
+              />
+              {err("title") && (
+                <p id="title-error" className="text-xs text-destructive">
+                  {err("title")}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="description" className="text-sm font-medium">
+                Description
+              </label>
+              <RichTextEditor
+                key={orgId}
+                name="description"
+                defaultValue={description}
+                placeholder="Add details, steps, or notes…"
+                minHeightClass="min-h-80"
+                ariaLabel="Description"
+                onChange={setDescription}
+                ariaInvalid={!!err("description")}
+                ariaDescribedBy={
+                  err("description") ? "description-error" : undefined
+                }
+              />
+              {err("description") && (
+                <p id="description-error" className="text-xs text-destructive">
+                  {err("description")}
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-xl border bg-card p-5">
+              <TagPanel
+                mode="create"
+                allTags={allTags}
+                selectedTags={selectedTags}
+                onSelectedTagsChange={setSelectedTags}
+              />
+            </div>
+
+            <div className="rounded-xl border bg-card p-5">
+              <EligibilityPanel
+                mode="create"
+                allRoles={allRoles}
+                selectedRoles={selectedRoles}
+                onSelectedRolesChange={setSelectedRoles}
+              />
+            </div>
           </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="description" className="text-sm font-medium">
-              Description
-            </label>
-            <RichTextEditor
-              name="description"
-              placeholder="Add details, steps, or notes…"
-              minHeightClass="min-h-80"
-              ariaLabel="Description"
-              onChange={setDescription}
-              ariaInvalid={!!err("description")}
-              ariaDescribedBy={err("description") ? "description-error" : undefined}
-            />
-            {err("description") && (
-              <p id="description-error" className="text-xs text-destructive">
-                {err("description")}
-              </p>
-            )}
-          </div>
-
-          <div className="rounded-xl border bg-card p-5">
-            <TagPanel mode="create" allTags={allTags} />
-          </div>
-
-          <div className="rounded-xl border bg-card p-5">
-            <EligibilityPanel mode="create" allRoles={allRoles} />
-          </div>
-        </div>
         </form>
       </TaskEditorFrame>
+    </>
   );
 }

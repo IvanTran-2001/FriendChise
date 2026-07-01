@@ -78,7 +78,6 @@ import { renameTaskImageIfNeeded } from "@/lib/services/images";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validators/task";
 import { checkDemoLimit } from "@/lib/demo";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 /** Parses numeric and string fields from a task FormData submission. */
 function parseTaskFormData(formData: FormData) {
@@ -108,7 +107,7 @@ function parseTaskFormData(formData: FormData) {
 
 export type CreateTaskFormState =
   | { ok: false; errors: Record<string, string[]> }
-  | { ok: true }
+  | { ok: true; taskId: string }
   | null;
 
 /**
@@ -118,7 +117,7 @@ export type CreateTaskFormState =
  * Parses raw `FormData` (all values are strings from the browser) converting
  * numeric fields before Zod validation. Eligibility role IDs are taken from
  * repeated `"roleIds"` entries on the form. On success, revalidates the task
- * list and redirects there.
+ * list and returns the created task id so the client can navigate.
  */
 export async function createTaskAction(
   orgId: string,
@@ -191,7 +190,7 @@ export async function createTaskAction(
     await setTaskTags(orgId, task.id, tagIds);
   }
   revalidatePath(`/orgs/${orgId}/tasks`);
-  redirect(`/orgs/${orgId}/tasks`);
+  return { ok: true, taskId: task.id };
 }
 
 /**

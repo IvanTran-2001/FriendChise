@@ -8,19 +8,14 @@
  *   Bottom — role eligibility panel (searchable dropdown + current list)
  *
  * Props:
- *   mode="create" — submits createTaskAction (redirects on success)
+ *   mode="create" — submits createTaskAction and navigates on success
  *   mode="edit"   — submits updateTaskAction (stays on page, shows toast)
  *
  * Eligibility is managed live via addEligibilityAction / removeEligibilityAction.
  * In create mode, eligibility can only be set after the task exists (edit page).
  */
 
-import {
-  useActionState,
-  useEffect,
-  useTransition,
-  useState,
-} from "react";
+import { useActionState, useEffect, useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -137,7 +132,8 @@ export function ImageUploadPanel({
       toast.error(result.error);
       return;
     }
-    if (previewUrl && previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
+    if (previewUrl && previewUrl.startsWith("blob:"))
+      URL.revokeObjectURL(previewUrl);
     setPreviewUrl(signedUrl);
     toast.success("Image saved.");
   }
@@ -178,7 +174,12 @@ export function ImageUploadPanel({
               disabled={isPending}
               onSelect={handleSelect}
               trigger={
-                <Button type="button" variant="outline" size="sm" disabled={isPending}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isPending}
+                >
                   Replace
                 </Button>
               }
@@ -201,7 +202,13 @@ export function ImageUploadPanel({
             disabled={isPending}
             onSelect={handleSelect}
             trigger={
-              <Button type="button" variant="outline" size="sm" className="w-fit" disabled={isPending}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-fit"
+                disabled={isPending}
+              >
                 Upload photo
               </Button>
             }
@@ -251,7 +258,12 @@ export function ImageUploadPanel({
                 disabled={isPending}
                 onSelect={handleSelect}
                 trigger={
-                  <Button type="button" variant="outline" size="sm" disabled={isPending}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isPending}
+                  >
                     Replace
                   </Button>
                 }
@@ -275,7 +287,13 @@ export function ImageUploadPanel({
                 disabled={isPending}
                 onSelect={handleSelect}
                 trigger={
-                  <Button type="button" variant="outline" size="sm" className="w-fit" disabled={isPending}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-fit"
+                    disabled={isPending}
+                  >
                     Upload photo
                   </Button>
                 }
@@ -310,7 +328,12 @@ export function ImageUploadPanel({
               disabled={isPending}
               onSelect={handleSelect}
               trigger={
-                <Button type="button" variant="outline" size="sm" disabled={isPending}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isPending}
+                >
                   Replace
                 </Button>
               }
@@ -334,7 +357,13 @@ export function ImageUploadPanel({
           disabled={isPending}
           onSelect={handleSelect}
           trigger={
-            <Button type="button" variant="outline" size="sm" className="w-fit" disabled={isPending}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-fit"
+              disabled={isPending}
+            >
               Upload photo
             </Button>
           }
@@ -352,7 +381,12 @@ export function ImageUploadPanel({
 //              typing a new name shows "Create 'X'" which creates + attaches.
 
 export type TagPanelProps =
-  | { mode: "create"; allTags: Tag[] }
+  | {
+      mode: "create";
+      allTags: Tag[];
+      selectedTags: Tag[];
+      onSelectedTagsChange: (tags: Tag[]) => void;
+    }
   | {
       mode: "edit";
       orgId: string;
@@ -365,8 +399,9 @@ export function TagPanel(props: TagPanelProps) {
   const isEdit = props.mode === "edit";
   const [tags, setTags] = useState<Tag[]>(isEdit ? props.taskTags : []);
   const [isPending, startTransition] = useTransition();
+  const selectedTags = isEdit ? tags : props.selectedTags;
 
-  const tagIds = new Set(tags.map((t) => t.id));
+  const tagIds = new Set(selectedTags.map((t) => t.id));
   const availableItems = props.allTags.filter((t) => !tagIds.has(t.id));
 
   const add = (item: ComboboxItem) => {
@@ -379,7 +414,7 @@ export function TagPanel(props: TagPanelProps) {
         else toast.error(res.error);
       });
     } else {
-      setTags((prev) => [...prev, tag]);
+      props.onSelectedTagsChange([...selectedTags, tag]);
     }
   };
 
@@ -400,7 +435,7 @@ export function TagPanel(props: TagPanelProps) {
         else toast.error(res.error);
       });
     } else {
-      setTags((prev) => prev.filter((t) => t.id !== tagId));
+      props.onSelectedTagsChange(selectedTags.filter((t) => t.id !== tagId));
     }
   };
 
@@ -410,7 +445,7 @@ export function TagPanel(props: TagPanelProps) {
 
       {/* Hidden inputs for create mode — picked up by FormData on submit */}
       {!isEdit &&
-        tags.map((tag) => (
+        selectedTags.map((tag) => (
           <input key={tag.id} type="hidden" name="tagIds" value={tag.id} />
         ))}
 
@@ -425,9 +460,9 @@ export function TagPanel(props: TagPanelProps) {
       />
 
       {/* Current tag chips */}
-      {tags.length > 0 && (
+      {selectedTags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {tags.map((tag) => (
+          {selectedTags.map((tag) => (
             <span
               key={tag.id}
               className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs"
@@ -462,7 +497,12 @@ export function TagPanel(props: TagPanelProps) {
 // edit mode:   same UI but add/remove fire server actions immediately.
 
 export type EligibilityPanelProps =
-  | { mode: "create"; allRoles: Role[] }
+  | {
+      mode: "create";
+      allRoles: Role[];
+      selectedRoles: Role[];
+      onSelectedRolesChange: (roles: Role[]) => void;
+    }
   | {
       mode: "edit";
       orgId: string;
@@ -486,8 +526,9 @@ export function EligibilityPanel(props: EligibilityPanelProps) {
   const isEdit = props.mode === "edit";
   const [roles, setRoles] = useState<Role[]>(isEdit ? props.eligibleRoles : []);
   const [isPending, startTransition] = useTransition();
+  const selectedRoles = isEdit ? roles : props.selectedRoles;
 
-  const roleIds = new Set(roles.map((r) => r.id));
+  const roleIds = new Set(selectedRoles.map((r) => r.id));
   const availableItems = props.allRoles.filter((r) => !roleIds.has(r.id));
 
   const add = (item: ComboboxItem) => {
@@ -504,7 +545,7 @@ export function EligibilityPanel(props: EligibilityPanelProps) {
         else toast.error(res.error);
       });
     } else {
-      setRoles((prev) => [...prev, role]);
+      props.onSelectedRolesChange([...selectedRoles, role]);
     }
   };
 
@@ -520,7 +561,7 @@ export function EligibilityPanel(props: EligibilityPanelProps) {
         else toast.error(res.error);
       });
     } else {
-      setRoles((prev) => prev.filter((r) => r.id !== roleId));
+      props.onSelectedRolesChange(selectedRoles.filter((r) => r.id !== roleId));
     }
   };
 
@@ -530,7 +571,7 @@ export function EligibilityPanel(props: EligibilityPanelProps) {
 
       {/* Hidden inputs for create mode — picked up by FormData on submit */}
       {!isEdit &&
-        roles.map((role) => (
+        selectedRoles.map((role) => (
           <input key={role.id} type="hidden" name="roleIds" value={role.id} />
         ))}
 
@@ -544,11 +585,11 @@ export function EligibilityPanel(props: EligibilityPanelProps) {
       />
 
       {/* Current role chips */}
-      {roles.length === 0 ? (
+      {selectedRoles.length === 0 ? (
         <p className="text-xs text-muted-foreground">All roles eligible</p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
-          {roles.map((role) => (
+          {selectedRoles.map((role) => (
             <span
               key={role.id}
               className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs"
@@ -709,6 +750,8 @@ export function TaskForm(props: TaskFormProps) {
   const dv = isEdit ? props.defaultValues : null;
 
   const [color, setColor] = useState(() => dv?.color ?? "#808080");
+  const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
+  const [selectedRoles, setSelectedRoles] = useState<Role[]>([]);
 
   useEffect(() => {
     if (!isEdit && !dv?.color) {
@@ -749,6 +792,9 @@ export function TaskForm(props: TaskFormProps) {
     } else if (isEdit) {
       toast.success("Task saved.");
       router.push(`/orgs/${props.orgId}/tasks/${props.taskId}`);
+    } else {
+      toast.success("Task created.");
+      router.push(`/orgs/${props.orgId}/tasks`);
     }
   }, [state, isEdit, router, props]);
 
@@ -957,7 +1003,12 @@ export function TaskForm(props: TaskFormProps) {
             taskTags={props.taskTags}
           />
         ) : (
-          <TagPanel mode="create" allTags={props.allTags} />
+          <TagPanel
+            mode="create"
+            allTags={props.allTags}
+            selectedTags={selectedTags}
+            onSelectedTagsChange={setSelectedTags}
+          />
         )}
       </div>
 
@@ -983,7 +1034,12 @@ export function TaskForm(props: TaskFormProps) {
             eligibleRoles={props.eligibleRoles}
           />
         ) : (
-          <EligibilityPanel mode="create" allRoles={props.allRoles} />
+          <EligibilityPanel
+            mode="create"
+            allRoles={props.allRoles}
+            selectedRoles={selectedRoles}
+            onSelectedRolesChange={setSelectedRoles}
+          />
         )}
       </div>
 
