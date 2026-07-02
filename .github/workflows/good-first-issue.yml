@@ -1,6 +1,8 @@
 name: Good First Issue Follow-up
 
 on:
+  issues:
+    types: [opened]
   issue_comment:
     types: [created]
 
@@ -8,6 +10,54 @@ permissions:
   issues: write
 
 jobs:
+  welcome:
+    if: >-
+      github.event_name == 'issues' &&
+      github.event.action == 'opened' &&
+      contains(github.event.issue.labels.*.name, 'good first issue')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Post first-time contributor notice
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const marker = '<!-- good-first-issue-welcome -->';
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                per_page: 100,
+              },
+            );
+
+            const alreadyCommented = comments.some((existingComment) =>
+              existingComment.body?.includes(marker),
+            );
+
+            if (alreadyCommented) {
+              core.info(`Welcome comment already exists for issue #${issue.number}.`);
+              return;
+            }
+
+            const firstTimeContributor = ['FIRST_TIMER', 'FIRST_TIME_CONTRIBUTOR'].includes(
+              issue.author_association,
+            );
+
+            const intro = firstTimeContributor
+              ? `Thanks for opening this as a first-time contributor!`
+              : `This issue is intended for first-time contributors only.`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: `${marker}\n\n${intro}\n\nIf you're a first-time contributor and want to claim this issue, comment with \`I want to take this\`. If claimed by a first-time contributor, it may be auto-assigned.`,
+            });
+
   claim:
     if: >-
       github.event_name == 'issue_comment' &&
@@ -23,13 +73,29 @@ jobs:
             const issue = context.payload.issue;
             const comment = context.payload.comment;
             const claimant = comment.user.login;
+            const claimantAssociation = comment.author_association;
             const body = comment.body.toLowerCase().trim();
             const marker = '<!-- good-first-issue-claim -->';
             const claimPhrases = ['i want to take this'];
+            const firstTimeContributorRoles = ['FIRST_TIMER', 'FIRST_TIME_CONTRIBUTOR'];
 
             const matched = claimPhrases.some((phrase) => body.includes(phrase));
             if (!matched) {
               core.info('No claim phrase found in the comment.');
+              return;
+            }
+
+            if (!firstTimeContributorRoles.includes(claimantAssociation)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `Hi @${claimant}, this good first issue is reserved for first-time contributors only, so it cannot be auto-assigned for this claim.`,
+              });
+
+              core.info(
+                `@${claimant} is not a first-time contributor (${claimantAssociation}); skipping auto-assignment.`,
+              );
               return;
             }
 
