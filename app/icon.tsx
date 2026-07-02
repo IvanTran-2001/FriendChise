@@ -28,23 +28,13 @@ export default async function Icon() {
         background: "#f4f8ff",
         boxSizing: "border-box",
         overflow: "hidden",
+        backgroundImage: `url(${imageDataUrl})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        transform: "scale(1.5)",
       }}
-    >
-      <img
-        src={imageDataUrl}
-        alt={LOGO_ALT_TEXT}
-        width={32}
-        height={32}
-        style={{
-          width: 32,
-          height: 32,
-          objectFit: "cover",
-          objectPosition: "center center",
-          transform: "scale(1.5)",
-        }}
-      >
-      </img>
-    </div>,
+      aria-label={LOGO_ALT_TEXT}
+    />,
     { ...size },
   );
 }
