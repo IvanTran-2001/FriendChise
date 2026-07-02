@@ -26,6 +26,7 @@ vi.mock("@/lib/services/tasks", () => ({
   addTaskEligibility: vi.fn(),
   removeTaskEligibility: vi.fn(),
   setTaskEligibilities: vi.fn(),
+  setTaskToolLinks: vi.fn(),
 }));
 vi.mock("@/lib/services/images", () => ({
   renameTaskImageIfNeeded: vi.fn(),

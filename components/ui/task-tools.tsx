@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 export type TaskToolSelection = {
   toolPath: string;
-  toolLabel: string;
+  toolLabel: string | null;
 };
 
 type TaskToolKind = "conversion" | "item-list" | "roster" | "unknown";
@@ -70,6 +70,8 @@ export function getTaskToolKind(toolPath: string): TaskToolKind {
 }
 
 export function taskToolHref(orgId: string, toolPath: string) {
+  // Reject protocol-relative URLs (e.g., //evil.com)
+  if (toolPath.startsWith("//")) return `/orgs/${orgId}/tools`;
   if (toolPath.startsWith("/")) return toolPath;
   return `/orgs/${orgId}/tools/${toolPath}`;
 }
@@ -101,7 +103,7 @@ export function TaskToolButton({
         >
           <Icon className="h-4 w-4" />
         </span>
-        <span className="min-w-0 flex-1 truncate">{tool.toolLabel}</span>
+        <span className="min-w-0 flex-1 truncate">{tool.toolLabel ?? "Tool"}</span>
       </Link>
     </Button>
   );

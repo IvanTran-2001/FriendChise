@@ -190,7 +190,8 @@ export async function createTaskAction(
 
     const toolPaths = formData
       .getAll("toolPaths")
-      .filter((v): v is string => typeof v === "string");
+      .filter((v): v is string => typeof v === "string")
+      .filter((path) => !path.startsWith("//"));
     const toolLabels = formData
       .getAll("toolLabels")
       .filter((v): v is string => typeof v === "string");
@@ -358,7 +359,8 @@ export async function updateTaskAction(
 
   const toolPaths = formData
     .getAll("toolPaths")
-    .filter((v): v is string => typeof v === "string");
+    .filter((v): v is string => typeof v === "string")
+    .filter((path) => !path.startsWith("//"));
   const toolLabels = formData
     .getAll("toolLabels")
     .filter((v): v is string => typeof v === "string");

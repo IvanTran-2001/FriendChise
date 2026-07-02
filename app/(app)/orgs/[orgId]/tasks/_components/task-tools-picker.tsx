@@ -197,7 +197,7 @@ export function TaskToolsPicker({
               key={tool.toolPath}
               className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs"
             >
-              {tool.toolLabel}
+              {tool.toolLabel ?? "Tool"}
               <button
                 type="button"
                 className="ml-0.5 hover:text-destructive transition-colors leading-none"
@@ -206,7 +206,7 @@ export function TaskToolsPicker({
                     selectedTools.filter((selected) => selected.toolPath !== tool.toolPath),
                   )
                 }
-                aria-label={`Remove ${tool.toolLabel}`}
+                aria-label={`Remove ${tool.toolLabel ?? "Tool"}`}
               >
                 ×
               </button>

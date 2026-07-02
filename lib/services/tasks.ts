@@ -99,23 +99,25 @@ export async function createTask(
 /**
  * Replaces all tool links for a task with the provided set.
  * Intended for create/edit flows that submit the current selection in full.
+ * Atomic: wrapped in a transaction so the delete is rolled back if the insert fails.
  */
 export async function setTaskToolLinks(
   orgId: string,
   taskId: string,
   tools: TaskToolLinkInput[],
 ) {
-  await prisma.taskToolLink.deleteMany({ where: { orgId, taskId } });
-  if (tools.length === 0) return;
-
-  await prisma.taskToolLink.createMany({
-    data: tools.map((tool) => ({
-      orgId,
-      taskId,
-      toolPath: tool.toolPath,
-      toolLabel: tool.toolLabel ?? null,
-    })),
-  });
+  await prisma.$transaction([
+    prisma.taskToolLink.deleteMany({ where: { orgId, taskId } }),
+    prisma.taskToolLink.createMany({
+      data: tools.map((tool) => ({
+        orgId,
+        taskId,
+        toolPath: tool.toolPath,
+        toolLabel: tool.toolLabel ?? null,
+      })),
+      skipDuplicates: true,
+    }),
+  ]);
 }
 
 /**

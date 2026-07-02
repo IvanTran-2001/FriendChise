@@ -40,7 +40,7 @@ const EditTaskPage = async ({
   const taskTags = task.tags.map((t) => t.tag);
   const taskTools = task.taskToolLinks.map((tool) => ({
     toolPath: tool.toolPath,
-    toolLabel: tool.toolLabel ?? "Tool",
+    toolLabel: tool.toolLabel ?? null,
   }));
 
   return (

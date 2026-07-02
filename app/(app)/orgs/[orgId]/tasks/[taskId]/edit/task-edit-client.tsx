@@ -513,7 +513,7 @@ export function TaskEditClient({
             key={`${tool.toolPath}-label`}
             type="hidden"
             name="toolLabels"
-            value={tool.toolLabel}
+            value={tool.toolLabel ?? ""}
           />
         ))}
 
