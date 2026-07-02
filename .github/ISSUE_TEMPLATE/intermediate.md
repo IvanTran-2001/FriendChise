@@ -1,8 +1,8 @@
 ---
 name: 🟡 Intermediate
 about: Contributor-friendly task with setup notes, requirements, and submission checklist
-title: "🟡 [Intermediate] Add a Logs sidebar to the admin panel"
-labels: enhancement, Intermediate, help wanted, UI
+title: "🟡 [Good First Issue] Add a Logs sidebar to the admin panel"
+labels: enhancement, Intermediate, help wanted, UI, good first issue
 ---
 
 # 🟡 Intermediate: Add a Logs sidebar to the admin panel

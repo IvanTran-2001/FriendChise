@@ -1,6 +1,10 @@
+import { headers } from "next/headers";
+import { decode } from "next-auth/jwt";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { PermissionAction } from "@prisma/client";
+
+const MOBILE_TOKEN_COOKIE_NAME = "friendchise.mobile-session-token";
 
 /** Returns the authenticated user's id and email, or null if not signed in. */
 export async function getAuthUser(): Promise<{
@@ -10,8 +14,24 @@ export async function getAuthUser(): Promise<{
   const session = await auth();
   const id = session?.user?.id as string | undefined;
   const email = (session?.user?.email as string | undefined) ?? null;
-  if (!id) return null;
-  return { id, email };
+
+  if (id) return { id, email };
+
+  const authorization = (await headers()).get("authorization");
+  if (!authorization?.startsWith("Bearer ")) return null;
+
+  const rawToken = authorization.slice(7);
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) return null;
+
+  const decoded = await decode({
+    token: rawToken,
+    secret,
+    salt: MOBILE_TOKEN_COOKIE_NAME,
+  });
+
+  if (!decoded?.sub) return null;
+  return { id: decoded.sub, email: (decoded.email as string | undefined) ?? null };
 }
 
 /** Returns the authenticated user's id, or null if not signed in. */

@@ -24,10 +24,15 @@ import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/services/audit-log";
 import {
   copySectionLayout,
-  createDefaultSectionLayouts,
+  DEFAULT_SECTIONS,
 } from "@/lib/services/task-sections";
 import type { ServiceResult } from "./types";
 import type { CreateTaskInput, UpdateTaskInput } from "@/lib/validators/task";
+
+export type TaskToolLinkInput = {
+  toolPath: string;
+  toolLabel?: string | null;
+};
 
 /**
  * Creates a new task for the given org using validated input.
@@ -40,21 +45,39 @@ export async function createTask(
   actorEmail?: string | null,
   actorName?: string | null,
 ) {
-  const task = await prisma.task.create({
-    data: {
-      orgId,
-      name: data.title,
-      color: data.color,
-      description: data.description ?? null,
-      durationMin: data.durationMin,
-      preferredStartTimeMin: data.preferredStartTimeMin ?? null,
-      minPeople: data.peopleRequired ?? 1,
-      minWaitDays: data.minWaitDays ?? null,
-      maxWaitDays: data.maxWaitDays ?? null,
-      createdById: actorId ?? null,
-      createdByName: actorName ?? null,
-    },
+  const task = await prisma.$transaction(async (tx) => {
+    const created = await tx.task.create({
+      data: {
+        orgId,
+        name: data.title,
+        color: data.color,
+        description: data.description ?? null,
+        durationMin: data.durationMin,
+        preferredStartTimeMin: data.preferredStartTimeMin ?? null,
+        minPeople: data.peopleRequired ?? 1,
+        minWaitDays: data.minWaitDays ?? null,
+        maxWaitDays: data.maxWaitDays ?? null,
+        createdById: actorId ?? null,
+        createdByName: actorName ?? null,
+      },
+    });
+
+    await tx.taskSectionLayout.createMany({
+      data: DEFAULT_SECTIONS.map((section) => ({
+        taskId: created.id,
+        orgId,
+        ...section,
+      })),
+      skipDuplicates: true,
+    });
+
+    await tx.taskInheritance.create({
+      data: { taskId: created.id, orgId },
+    });
+
+    return created;
   });
+
   log.info("Task created", { orgId, taskId: task.id });
   recordAudit({
     orgId,
@@ -70,13 +93,29 @@ export async function createTask(
       durationMin: task.durationMin,
     },
   });
-  // Seed default section layout rows for the owning org.
-  await createDefaultSectionLayouts(task.id, orgId);
-  // The creating org automatically inherits its own task.
-  await prisma.taskInheritance.create({
-    data: { taskId: task.id, orgId },
-  });
   return task;
+}
+
+/**
+ * Replaces all tool links for a task with the provided set.
+ * Intended for create/edit flows that submit the current selection in full.
+ */
+export async function setTaskToolLinks(
+  orgId: string,
+  taskId: string,
+  tools: TaskToolLinkInput[],
+) {
+  await prisma.taskToolLink.deleteMany({ where: { orgId, taskId } });
+  if (tools.length === 0) return;
+
+  await prisma.taskToolLink.createMany({
+    data: tools.map((tool) => ({
+      orgId,
+      taskId,
+      toolPath: tool.toolPath,
+      toolLabel: tool.toolLabel ?? null,
+    })),
+  });
 }
 
 /**
@@ -141,6 +180,12 @@ const taskInclude = {
   tags: {
     select: {
       tag: { select: { id: true, name: true, color: true } },
+    },
+  },
+  taskToolLinks: {
+    select: {
+      toolPath: true,
+      toolLabel: true,
     },
   },
   _count: { select: { inheritedBy: true } },

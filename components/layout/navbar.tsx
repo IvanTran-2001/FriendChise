@@ -198,12 +198,8 @@ export const NavBar = async () => {
                 <DropdownMenuItem asChild>
                   <Link href="/profile">Profile</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/settings/account">Account Settings</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/doc/overview">Docs</Link>
-                </DropdownMenuItem>
+                {/* TODO: restore <DropdownMenuItem asChild><Link href="/settings/account">Account Settings</Link></DropdownMenuItem> when account settings page is implemented */}
+                <DropdownMenuItem disabled>Account Settings</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {/* Sign out uses a server action so no client JS is needed */}
                 <form
