@@ -1,23 +1,23 @@
 ---
-name: 🟢 Good First Issue
-about: First-time-contributor-only task with setup notes, requirements, and submission checklist
-title: "🟢 [Good First Issue] First-time contributors only"
+name: 🟢 Good Issue
+about: Contributor-friendly task with setup notes, requirements, and submission checklist
+title: "🟢 [Good Issue]"
 labels: good first issue, enhancement, help wanted, Beginner Friendly, UI
 ---
 
-# 🟢 Good First Issue: First-time contributors only
+# 🟢 Good Issue
 **Time:** ~30-45 minutes
 
 **Difficulty:** Beginner
 
-**Skill Level:** First-time contributors only
+**Skill Level:** Any contributor
 
-This issue is intended for first-time contributors only. If you are not a first-time contributor, please choose a different issue.
+This issue is open to any contributor. Claim it by commenting with `I want to take this`.
 
 ## ⭐ Before You Start
 If you enjoy the project, please consider starring the repository. Every star helps support future development and encourages more open-source contributions.
 If you need setup help, start here: https://friendchise.app/doc/development/quick-start
-To claim this issue, comment with `I want to take this`. If claimed by a first-time contributor, it may be auto-assigned.
+To claim this issue, comment with `I want to take this`.
 
 ---
 
@@ -26,7 +26,6 @@ To claim this issue, comment with `I want to take this`. If claimed by a first-t
 
 ## 🎯 Requirements
 
-- Must be a first-time contributor.
 - Follow the task description below.
 - Keep the change small and focused.
 - Match the existing project style and patterns.
@@ -39,8 +38,8 @@ To claim this issue, comment with `I want to take this`. If claimed by a first-t
 | --- | --- |
 | Difficulty | Beginner |
 | Time | ~30-45 minutes |
-| Focus | Small task, first-time contributor friendly |
-| Good For | First-time contributors |
+| Focus | Small task, contributor friendly |
+| Good For | Any contributor |
 
 ## 💡 Note
 <!-- Add likely files, links, or extra guidance here -->
