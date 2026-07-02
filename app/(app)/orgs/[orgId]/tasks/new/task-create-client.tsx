@@ -74,7 +74,8 @@ function isTaskToolSelectionArray(value: unknown): value is TaskToolSelection[] 
         typeof item === "object" &&
         !Array.isArray(item) &&
         typeof (item as { toolPath?: unknown }).toolPath === "string" &&
-        typeof (item as { toolLabel?: unknown }).toolLabel === "string",
+        ((item as { toolLabel?: unknown }).toolLabel === null ||
+          typeof (item as { toolLabel?: unknown }).toolLabel === "string"),
     )
   );
 }

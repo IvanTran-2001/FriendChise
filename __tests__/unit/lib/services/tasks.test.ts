@@ -11,6 +11,14 @@ import {
   setTaskEligibilities,
 } from "@/lib/services/tasks";
 
+const txMocks = vi.hoisted(() => ({
+  taskCreate: vi.fn(),
+  taskSectionLayoutCreateMany: vi.fn(),
+  taskInheritanceCreate: vi.fn(),
+  taskToolLinkDeleteMany: vi.fn(),
+  taskToolLinkCreateMany: vi.fn(),
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     task: {
@@ -32,7 +40,29 @@ vi.mock("@/lib/prisma", () => ({
     taskSectionLayout: {
       createMany: vi.fn(),
     },
-    $transaction: vi.fn((ops: unknown[]) => Promise.all(ops)),
+    $transaction: vi.fn((ops: unknown[] | ((tx: unknown) => unknown)) => {
+      if (typeof ops === "function") {
+        return Promise.resolve(
+          ops({
+            task: {
+              create: txMocks.taskCreate,
+            },
+            taskSectionLayout: {
+              createMany: txMocks.taskSectionLayoutCreateMany,
+            },
+            taskInheritance: {
+              create: txMocks.taskInheritanceCreate,
+            },
+            taskToolLink: {
+              deleteMany: txMocks.taskToolLinkDeleteMany,
+              createMany: txMocks.taskToolLinkCreateMany,
+            },
+          }),
+        );
+      }
+
+      return Promise.all(ops);
+    }),
     taskInheritance: {
       create: vi.fn(),
     },
@@ -66,6 +96,7 @@ const mockTask = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  txMocks.taskCreate.mockResolvedValue(mockTask as any);
 });
 
 // ─── createTask ─────────────────────────────────────────────────────────────
@@ -84,7 +115,7 @@ describe("createTask", () => {
     const result = await createTask("org-1", input as any);
 
     expect(result).toBe(mockTask);
-    expect(prisma.task.create).toHaveBeenCalledWith({
+    expect(txMocks.taskCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         orgId: "org-1",
         name: "Open shop checklist",
@@ -111,7 +142,7 @@ describe("createTask", () => {
       maxWaitDays: 7,
     } as any);
 
-    expect(prisma.task.create).toHaveBeenCalledWith({
+    expect(txMocks.taskCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         description: "A description",
         preferredStartTimeMin: 480,

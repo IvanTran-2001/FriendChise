@@ -106,6 +106,12 @@ function parseTaskFormData(formData: FormData) {
   };
 }
 
+function normalizeToolLabel(value: FormDataEntryValue | null): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
+}
+
 export type CreateTaskFormState =
   | { ok: false; errors: Record<string, string[]> }
   | { ok: true; taskId: string }
@@ -200,7 +206,7 @@ export async function createTaskAction(
       task.id,
       toolPaths.map((toolPath, index) => ({
         toolPath,
-        toolLabel: toolLabels[index] ?? null,
+        toolLabel: normalizeToolLabel(toolLabels[index] ?? null),
       })),
     );
   } catch (error) {
@@ -369,7 +375,7 @@ export async function updateTaskAction(
     taskId,
     toolPaths.map((toolPath, index) => ({
       toolPath,
-      toolLabel: toolLabels[index] ?? null,
+      toolLabel: normalizeToolLabel(toolLabels[index] ?? null),
     })),
   );
 

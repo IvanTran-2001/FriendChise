@@ -5,10 +5,10 @@ title: "🟡 [Good First Issue] Add a Logs sidebar to the admin panel"
 labels: enhancement, Intermediate, help wanted, UI, good first issue
 ---
 
-# 🟡 Intermediate: Add a Logs sidebar to the admin panel
+# 🟡 Good First Issue: Add a Logs sidebar to the admin panel
 **Time:** ~1-2 hours
 
-**Difficulty:** Intermediate
+**Difficulty:** Good First Issue
 
 **Skill Level:** Contributors comfortable with admin UI and data filtering
 
@@ -50,7 +50,7 @@ Admins should be able to:
 ## 🚀 Quick Info
 | Category | Details |
 | --- | --- |
-| Difficulty | Intermediate |
+| Difficulty | Good First Issue |
 | Time | ~1-2 hours |
 | Focus | Admin UI, filtering, logs |
 | Tech | React, Next.js, Prisma |

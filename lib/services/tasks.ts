@@ -106,9 +106,9 @@ export async function setTaskToolLinks(
   taskId: string,
   tools: TaskToolLinkInput[],
 ) {
-  await prisma.$transaction([
-    prisma.taskToolLink.deleteMany({ where: { orgId, taskId } }),
-    prisma.taskToolLink.createMany({
+  await prisma.$transaction(async (tx) => {
+    await tx.taskToolLink.deleteMany({ where: { orgId, taskId } });
+    await tx.taskToolLink.createMany({
       data: tools.map((tool) => ({
         orgId,
         taskId,
@@ -116,8 +116,8 @@ export async function setTaskToolLinks(
         toolLabel: tool.toolLabel ?? null,
       })),
       skipDuplicates: true,
-    }),
-  ]);
+    });
+  });
 }
 
 /**

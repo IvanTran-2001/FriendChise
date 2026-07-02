@@ -158,11 +158,10 @@ export function TaskEditSidebarContent({
                 max={50}
                 value={peopleRequired}
                 onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === "") return;
-                  const num = Number(val);
-                  if (isNaN(num)) return;
-                  onPeopleChange(Math.max(1, Math.min(50, num)));
+                  const value = e.currentTarget.valueAsNumber;
+                  onPeopleChange(
+                    Number.isFinite(value) ? Math.min(50, Math.max(1, value)) : 1,
+                  );
                 }}
                 className={SIDEBAR_INPUT_CLASS}
                 aria-label="people required"
