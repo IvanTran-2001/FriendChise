@@ -91,6 +91,24 @@ export async function isOrgOwner(
   return org !== null;
 }
 
+/** Returns true if the user owns the org or its parent org. */
+export async function isOrgOwnerOrParentOrgOwner(
+  orgId: string,
+  userId: string,
+): Promise<boolean> {
+  const org = await prisma.organization.findFirst({
+    where: { id: orgId },
+    select: {
+      ownerId: true,
+      parent: { select: { ownerId: true } },
+    },
+  });
+
+  if (!org) return false;
+
+  return org.ownerId === userId || org.parent?.ownerId === userId;
+}
+
 /** Returns true if the membership's role(s) grant the given permission. */
 export async function memberHasPermission(
   membershipId: string,
