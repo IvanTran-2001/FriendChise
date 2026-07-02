@@ -61,6 +61,7 @@ import {
   addTaskEligibility,
   removeTaskEligibility,
   setTaskEligibilities,
+  setTaskToolLinks,
 } from "@/lib/services/tasks";
 import {
   getSectionLayout,
@@ -103,6 +104,12 @@ function parseTaskFormData(formData: FormData) {
     minWaitDays: bothEmpty ? 0 : minWaitDaysRaw,
     maxWaitDays: bothEmpty ? 0 : maxWaitDaysRaw,
   };
+}
+
+function normalizeToolLabel(value: FormDataEntryValue | null): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
 }
 
 export type CreateTaskFormState =
@@ -160,35 +167,63 @@ export async function createTaskAction(
     authz.userEmail,
     creatorName ?? null,
   );
-  const imageStoragePath = formData.get("imageStoragePath");
-  if (typeof imageStoragePath === "string" && imageStoragePath.trim()) {
-    const imageResult = await saveTaskImagePath(
+  try {
+    const imageStoragePath = formData.get("imageStoragePath");
+    if (typeof imageStoragePath === "string" && imageStoragePath.trim()) {
+      const imageResult = await saveTaskImagePath(
+        orgId,
+        task.id,
+        imageStoragePath,
+      );
+      if (!imageResult.ok) {
+        throw new Error(imageResult.error);
+      }
+    }
+
+    const roleIds = formData
+      .getAll("roleIds")
+      .filter((v): v is string => typeof v === "string");
+    if (roleIds.length > 0) {
+      await setTaskEligibilities(orgId, task.id, roleIds);
+    }
+
+    const tagIds = formData
+      .getAll("tagIds")
+      .filter((v): v is string => typeof v === "string");
+    if (tagIds.length > 0) {
+      await setTaskTags(orgId, task.id, tagIds);
+    }
+
+    const toolPaths = formData
+      .getAll("toolPaths")
+      .filter((v): v is string => typeof v === "string")
+      .filter((path) => !path.startsWith("//"));
+    const toolLabels = formData
+      .getAll("toolLabels")
+      .filter((v): v is string => typeof v === "string");
+    await setTaskToolLinks(
       orgId,
       task.id,
-      imageStoragePath,
+      toolPaths.map((toolPath, index) => ({
+        toolPath,
+        toolLabel: normalizeToolLabel(toolLabels[index] ?? null),
+      })),
     );
-    if (!imageResult.ok) {
-      // Rollback: delete the partially-created task
-      try {
-        await deleteTask(orgId, task.id, authz.userId, authz.userEmail);
-      } catch (deleteErr) {
-        console.error("Failed to rollback task creation:", deleteErr);
-      }
-      return { ok: false, errors: { _: [imageResult.error] } };
+  } catch (error) {
+    try {
+      await deleteTask(orgId, task.id, authz.userId, authz.userEmail);
+    } catch (deleteErr) {
+      console.error("Failed to rollback task creation:", deleteErr);
     }
+
+    return {
+      ok: false,
+      errors: {
+        _: [error instanceof Error ? error.message : "Failed to create task."],
+      },
+    };
   }
-  const roleIds = formData
-    .getAll("roleIds")
-    .filter((v): v is string => typeof v === "string");
-  if (roleIds.length > 0) {
-    await setTaskEligibilities(orgId, task.id, roleIds);
-  }
-  const tagIds = formData
-    .getAll("tagIds")
-    .filter((v): v is string => typeof v === "string");
-  if (tagIds.length > 0) {
-    await setTaskTags(orgId, task.id, tagIds);
-  }
+
   revalidatePath(`/orgs/${orgId}/tasks`);
   return { ok: true, taskId: task.id };
 }
@@ -327,6 +362,22 @@ export async function updateTaskAction(
       .filter((v): v is string => typeof v === "string");
     await setTaskEligibilities(taskOrgId, taskId, roleIds);
   }
+
+  const toolPaths = formData
+    .getAll("toolPaths")
+    .filter((v): v is string => typeof v === "string")
+    .filter((path) => !path.startsWith("//"));
+  const toolLabels = formData
+    .getAll("toolLabels")
+    .filter((v): v is string => typeof v === "string");
+  await setTaskToolLinks(
+    taskOrgId,
+    taskId,
+    toolPaths.map((toolPath, index) => ({
+      toolPath,
+      toolLabel: normalizeToolLabel(toolLabels[index] ?? null),
+    })),
+  );
 
   revalidatePath(`/orgs/${orgId}/tasks`);
   revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);

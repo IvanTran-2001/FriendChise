@@ -11,24 +11,17 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import {
-  Clock,
-  Users,
-  AlarmClock,
-  RefreshCw,
-  ImagePlus,
-  Trash2,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ColorPicker, randomColor } from "@/components/ui/color-picker";
+import { randomColor } from "@/components/ui/color-picker";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { createTaskAction } from "@/app/actions/tasks";
 import type { CreateTaskFormState } from "@/app/actions/tasks";
-import { TagPanel, EligibilityPanel } from "../task-form";
-import type { Role, Tag } from "../task-form";
-import { TaskEditorFrame } from "@/app/(app)/orgs/[orgId]/tasks/_components/task-editor-frame";
-import { OrgImagePicker } from "@/components/ui/org-image-picker";
+import { TagPanel, EligibilityPanel } from "../task-panels";
+import type { Role, Tag } from "../task-panels";
+import type { TaskToolSelection } from "../_components/task-tools-picker";
+import { TaskSidebarContent } from "./_components/task-sidebar-content";
+import { TaskEditorShell } from "@/app/(app)/orgs/[orgId]/tasks/_components/task-editor-shell";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,10 +32,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-const SIDEBAR_LABEL_CLASS =
-  "text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5";
-const SIDEBAR_INPUT_CLASS = "h-9 text-sm";
 
 type TaskCreateDraft = {
   title: string;
@@ -57,6 +46,7 @@ type TaskCreateDraft = {
   maxWaitDays: string;
   tagIds: string[];
   roleIds: string[];
+  toolLinks: TaskToolSelection[];
 };
 
 function normalizeWaitDays(value: string) {
@@ -72,6 +62,21 @@ function draftStorageKey(orgId: string) {
 function isStringArray(value: unknown): value is string[] {
   return (
     Array.isArray(value) && value.every((item) => typeof item === "string")
+  );
+}
+
+function isTaskToolSelectionArray(value: unknown): value is TaskToolSelection[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (item) =>
+        item &&
+        typeof item === "object" &&
+        !Array.isArray(item) &&
+        typeof (item as { toolPath?: unknown }).toolPath === "string" &&
+        ((item as { toolLabel?: unknown }).toolLabel === null ||
+          typeof (item as { toolLabel?: unknown }).toolLabel === "string"),
+    )
   );
 }
 
@@ -119,6 +124,9 @@ function readStoredDraft(orgId: string): Partial<TaskCreateDraft> | null {
       typeof draft.maxWaitDays === "string" ? draft.maxWaitDays : undefined;
     const tagIds = isStringArray(draft.tagIds) ? draft.tagIds : [];
     const roleIds = isStringArray(draft.roleIds) ? draft.roleIds : [];
+    const toolLinks = isTaskToolSelectionArray(draft.toolLinks)
+      ? draft.toolLinks
+      : [];
 
     return {
       ...(color !== undefined ? { color } : {}),
@@ -133,328 +141,11 @@ function readStoredDraft(orgId: string): Partial<TaskCreateDraft> | null {
       ...(maxWaitDays !== undefined ? { maxWaitDays } : {}),
       tagIds,
       roleIds,
+      toolLinks,
     };
   } catch {
     return null;
   }
-}
-
-function DurationPicker({
-  defaultValueMin,
-  name,
-  error,
-  onChange,
-}: {
-  defaultValueMin: number;
-  name: string;
-  error: string | null;
-  onChange: (value: number) => void;
-}) {
-  const [hours, setHours] = useState(Math.floor(defaultValueMin / 60));
-  const [minutes, setMinutes] = useState(() => {
-    const rawMinutes = defaultValueMin % 60;
-    const snapped = Math.round(rawMinutes / 5) * 5;
-    return Math.max(0, Math.min(55, snapped));
-  });
-  const totalMin = hours * 60 + minutes;
-
-  return (
-    <div className="flex items-center gap-2">
-      <select
-        id={name}
-        value={hours}
-        onChange={(e) => {
-          const nextHours = Number(e.target.value);
-          setHours(nextHours);
-          onChange(nextHours * 60 + minutes);
-        }}
-        className="h-9 rounded-md border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
-        aria-label="Hours"
-        aria-invalid={!!error}
-        aria-describedby={error ? `${name}-error` : undefined}
-      >
-        {Array.from({ length: 24 }, (_, i) => (
-          <option key={i} value={i}>
-            {i}h
-          </option>
-        ))}
-      </select>
-      <select
-        value={minutes}
-        onChange={(e) => {
-          const nextMinutes = Number(e.target.value);
-          setMinutes(nextMinutes);
-          onChange(hours * 60 + nextMinutes);
-        }}
-        className="h-9 rounded-md border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
-        aria-label="Minutes"
-        aria-invalid={!!error}
-        aria-describedby={error ? `${name}-error` : undefined}
-      >
-        {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
-          <option key={m} value={m}>
-            {m}m
-          </option>
-        ))}
-      </select>
-      <span className="text-xs text-muted-foreground">
-        {totalMin} min total
-      </span>
-    </div>
-  );
-}
-
-function StartTimePicker({
-  defaultValueMin,
-  name,
-  error,
-  onChangeMinutes,
-}: {
-  defaultValueMin: number | null;
-  name: string;
-  error: string | null;
-  onChangeMinutes: (min: number | null) => void;
-}) {
-  const toHHMM = (min: number) => {
-    const hours = Math.floor(min / 60)
-      .toString()
-      .padStart(2, "0");
-    const minutes = (min % 60).toString().padStart(2, "0");
-    return `${hours}:${minutes}`;
-  };
-
-  const [value, setValue] = useState(
-    defaultValueMin != null ? toHHMM(defaultValueMin) : "",
-  );
-  const valueMin = value
-    ? value
-        .split(":")
-        .reduce(
-          (hours, minutes, index) =>
-            hours + Number(minutes) * (index === 0 ? 60 : 1),
-          0,
-        )
-    : "";
-
-  useEffect(() => {
-    onChangeMinutes(valueMin ? Number(valueMin) : null);
-  }, [valueMin, onChangeMinutes]);
-
-  return (
-    <>
-      <input type="hidden" name={name} value={valueMin} />
-      <Input
-        id={name}
-        type="time"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        aria-invalid={!!error}
-        aria-describedby={error ? `${name}-error` : undefined}
-        className="w-40"
-      />
-    </>
-  );
-}
-
-function SidebarFields({
-  orgId,
-  color,
-  onColorChange,
-  selectedImage,
-  onImageSelect,
-  onImageClear,
-  durationMin,
-  onDurationChange,
-  startTimeMin,
-  onStartTimeChange,
-  peopleRequired,
-  onPeopleChange,
-  minWaitDays,
-  onMinWaitDaysChange,
-  maxWaitDays,
-  onMaxWaitDaysChange,
-}: {
-  orgId: string;
-  color: string;
-  onColorChange: (value: string) => void;
-  selectedImage: { storagePath: string; signedUrl: string } | null;
-  onImageSelect: (storagePath: string, signedUrl: string) => void;
-  onImageClear: () => void;
-  durationMin: number;
-  onDurationChange: (value: number) => void;
-  startTimeMin: number | null;
-  onStartTimeChange: (value: number | null) => void;
-  peopleRequired: number;
-  onPeopleChange: (value: number) => void;
-  minWaitDays: string;
-  onMinWaitDaysChange: (value: string) => void;
-  maxWaitDays: string;
-  onMaxWaitDaysChange: (value: string) => void;
-}) {
-  const fieldClass = "flex flex-col gap-1.5";
-
-  return (
-    <div className="flex flex-col gap-5 p-4 pt-3">
-      <div className={fieldClass}>
-        <span className={SIDEBAR_LABEL_CLASS}>Photo</span>
-        <div className="flex flex-col gap-3 rounded-md border bg-card p-3">
-          <div className="overflow-hidden rounded-md border border-dashed border-border/70 bg-muted/20">
-            {selectedImage?.signedUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={selectedImage.signedUrl}
-                alt="Selected task photo"
-                className="aspect-square w-full object-cover"
-              />
-            ) : (
-              <div className="flex aspect-square w-full items-center justify-center text-muted-foreground">
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-background">
-                    <ImagePlus className="h-5 w-5" />
-                  </div>
-                  <p className="text-xs">No photo selected yet</p>
-                </div>
-              </div>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Upload now and the image will be linked when you create the task.
-          </p>
-          <div className="flex items-center gap-2">
-            {selectedImage?.signedUrl ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onImageClear}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Remove
-              </Button>
-            ) : null}
-            <OrgImagePicker
-              orgId={orgId}
-              config={{ aspect: 1, outputWidth: 600, outputHeight: 600 }}
-              onSelect={onImageSelect}
-              trigger={
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1.5 px-3 text-xs"
-                >
-                  <ImagePlus className="h-3 w-3" />
-                  {selectedImage?.signedUrl ? "Replace" : "Add photo"}
-                </Button>
-              }
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className={fieldClass}>
-        <span className={SIDEBAR_LABEL_CLASS}>Color</span>
-        <div className="flex items-center gap-2">
-          <ColorPicker value={color} onChange={onColorChange} />
-          <span className="font-mono text-xs text-muted-foreground">
-            {color.toUpperCase()}
-          </span>
-        </div>
-      </div>
-
-      <div className={fieldClass}>
-        <span className={SIDEBAR_LABEL_CLASS}>
-          <Clock className="h-3.5 w-3.5" />
-          Duration
-        </span>
-        <DurationPicker
-          defaultValueMin={durationMin}
-          name="durationMin"
-          error={null}
-          onChange={onDurationChange}
-        />
-        <span className="text-xs text-muted-foreground">
-          {durationMin} min total
-        </span>
-      </div>
-
-      <div className={fieldClass}>
-        <span className={SIDEBAR_LABEL_CLASS}>
-          <AlarmClock className="h-3.5 w-3.5" />
-          Preferred start
-        </span>
-        <StartTimePicker
-          defaultValueMin={startTimeMin}
-          name="preferredStartTimeMin"
-          error={null}
-          onChangeMinutes={onStartTimeChange}
-        />
-        {startTimeMin != null && (
-          <button
-            type="button"
-            className="text-left text-xs text-muted-foreground transition-colors hover:text-destructive"
-            onClick={() => onStartTimeChange(null)}
-          >
-            Clear
-          </button>
-        )}
-      </div>
-
-      <div className={fieldClass}>
-        <span className={SIDEBAR_LABEL_CLASS}>
-          <Users className="h-3.5 w-3.5" />
-          People required
-        </span>
-        <Input
-          type="number"
-          min={1}
-          max={50}
-          value={peopleRequired}
-          onChange={(e) => onPeopleChange(Number(e.target.value))}
-          className={SIDEBAR_INPUT_CLASS}
-          aria-label="people required"
-        />
-      </div>
-
-      <div className={fieldClass}>
-        <span className={SIDEBAR_LABEL_CLASS}>
-          <RefreshCw className="h-3.5 w-3.5" />
-          Wait days
-        </span>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">Min</span>
-            <Input
-              type="number"
-              min={0}
-              max={3650}
-              placeholder="e.g. 7"
-              value={minWaitDays}
-              onChange={(e) => onMinWaitDaysChange(e.target.value)}
-              className={SIDEBAR_INPUT_CLASS}
-              aria-label="Min wait days"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">Max</span>
-            <Input
-              type="number"
-              min={0}
-              max={3650}
-              placeholder="e.g. 14"
-              value={maxWaitDays}
-              onChange={(e) => onMaxWaitDaysChange(e.target.value)}
-              className={SIDEBAR_INPUT_CLASS}
-              aria-label="Max wait days"
-            />
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          At least one of min or max is required.
-        </p>
-      </div>
-    </div>
-  );
 }
 
 export function TaskCreateClient({
@@ -509,6 +200,9 @@ export function TaskCreateClient({
     const roleIds = new Set(storedDraft?.roleIds ?? []);
     return allRoles.filter((role) => roleIds.has(role.id));
   });
+  const [selectedTools, setSelectedTools] = useState<TaskToolSelection[]>(() =>
+    isTaskToolSelectionArray(storedDraft?.toolLinks) ? storedDraft.toolLinks : [],
+  );
   const [discardOpen, setDiscardOpen] = useState(false);
   const [navTarget, setNavTarget] = useState(`/orgs/${orgId}/tasks`);
   const [state, dispatch, pending] = useActionState<
@@ -537,6 +231,7 @@ export function TaskCreateClient({
     setMaxWaitDays("1");
     setSelectedTags([]);
     setSelectedRoles([]);
+    setSelectedTools([]);
   }, [initialColor]);
 
   const draftSnapshot = useMemo<TaskCreateDraft>(
@@ -553,6 +248,7 @@ export function TaskCreateClient({
       maxWaitDays: normalizeWaitDays(maxWaitDays),
       tagIds: selectedTags.map((tag) => tag.id),
       roleIds: selectedRoles.map((role) => role.id),
+      toolLinks: selectedTools,
     }),
     [
       color,
@@ -564,6 +260,7 @@ export function TaskCreateClient({
       selectedImage,
       selectedRoles,
       selectedTags,
+      selectedTools,
       startTimeMin,
       title,
     ],
@@ -580,7 +277,8 @@ export function TaskCreateClient({
     normalizeWaitDays(minWaitDays) === "1" &&
     normalizeWaitDays(maxWaitDays) === "1" &&
     selectedTags.length === 0 &&
-    selectedRoles.length === 0;
+    selectedRoles.length === 0 &&
+    selectedTools.length === 0;
   const isDirty = !isDraftPristine;
 
   useEffect(() => {
@@ -703,9 +401,9 @@ export function TaskCreateClient({
         </AlertDialogContent>
       </AlertDialog>
 
-      <TaskEditorFrame
+      <TaskEditorShell
         sidebarContent={
-          <SidebarFields
+          <TaskSidebarContent
             orgId={orgId}
             color={color}
             onColorChange={setColor}
@@ -724,6 +422,8 @@ export function TaskCreateClient({
             onMinWaitDaysChange={setMinWaitDays}
             maxWaitDays={maxWaitDays}
             onMaxWaitDaysChange={setMaxWaitDays}
+            selectedTools={selectedTools}
+            onSelectedToolsChange={setSelectedTools}
           />
         }
         toolbarContent={
@@ -785,6 +485,17 @@ export function TaskCreateClient({
             name="maxWaitDays"
             value={normalizeWaitDays(maxWaitDays)}
           />
+          {selectedTools.map((tool) => (
+            <input key={tool.toolPath} type="hidden" name="toolPaths" value={tool.toolPath} />
+          ))}
+          {selectedTools.map((tool) => (
+            <input
+              key={`${tool.toolPath}-label`}
+              type="hidden"
+              name="toolLabels"
+              value={tool.toolLabel ?? ""}
+            />
+          ))}
 
           {err("_") && (
             <p role="alert" className="text-sm text-destructive">
@@ -858,7 +569,7 @@ export function TaskCreateClient({
             </div>
           </div>
         </form>
-      </TaskEditorFrame>
+      </TaskEditorShell>
     </>
   );
 }
