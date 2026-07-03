@@ -377,10 +377,27 @@ export function TaskTable({
               <p className="text-2xl font-semibold text-foreground">
                 {search ? "No tasks match your search" : "No tasks yet"}
               </p>
+              {search && canManageTasks && (
+                  <div
+                    role="listbox"
+                    className="w-full max-w-xs overflow-hidden rounded-md border bg-popover shadow-sm">
+                      <a
+                      href={`/orgs/${orgId}/tasks/new?title=${encodeURIComponent(search.trim())}`}
+                      role="option"
+                      aria-selected="true"
+                      className="flex items-center gap-2 px-3 py-2.5 text-sm text-foreground hover:bg-accent focus:bg-accent focus:outline-none"
+                      >
+                      <Plus className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="truncate">
+                        Create <span className="font-medium">"{search.trim()}"</span>
+                      </span>
+                    </a>
+                  </div>
+                )}
               {!search && canManageTasks && (
                 <a
-                  href={`/orgs/${orgId}/tasks/new`}
-                  className="text-sm text-primary hover:underline"
+                href={`/orgs/${orgId}/tasks/new`}
+                className="text-sm text-primary hover:underline"
                 >
                   Create your first task
                 </a>

@@ -334,10 +334,12 @@ export function TaskCreateClient({
   orgId,
   allRoles,
   allTags,
+  initialSearch,
 }: {
   orgId: string;
   allRoles: Role[];
   allTags: Tag[];
+  initialSearch?:string;
 }) {
   const router = useRouter();
   const [color, setColor] = useState(() => randomColor());
@@ -480,6 +482,7 @@ export function TaskCreateClient({
               name="title"
               type="text"
               required
+              defaultValue={initialSearch ?? ""}
               placeholder="e.g. Deep clean kitchen"
               aria-invalid={!!err("title")}
               aria-describedby={err("title") ? "title-error" : undefined}

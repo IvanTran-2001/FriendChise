@@ -12,11 +12,13 @@ import { getOrgTags } from "@/lib/services/tags";
 import { TaskCreateClient } from "./task-create-client";
 
 const NewTaskPage = async ({
-  params,
+  params, searchParams,
 }: {
   params: Promise<{ orgId: string }>;
+  searchParams: Promise<{title?:string}>;
 }) => {
   const { orgId } = await params;
+  const { title } = await searchParams;  
 
   await requireOrgPermissionPage(orgId, PermissionAction.MANAGE_TASKS);
 
@@ -26,7 +28,7 @@ const NewTaskPage = async ({
   ]);
 
   return (
-    <TaskCreateClient orgId={orgId} allRoles={allRoles} allTags={allTags} />
+    <TaskCreateClient orgId={orgId} allRoles={allRoles} allTags={allTags} initialSearch={title} />
   );
 };
 
