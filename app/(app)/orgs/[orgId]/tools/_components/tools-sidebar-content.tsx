@@ -13,7 +13,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
-import { ArrowLeftRight, List, Users } from "lucide-react";
+import { ArrowLeftRight, List, Users, Calculator } from "lucide-react";
 import { SearchInput } from "@/components/ui/search-input";
 import { cn } from "@/lib/utils";
 
@@ -55,6 +55,15 @@ const PLACEHOLDER_TOOLS: ToolItem[] = [
     accent: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
     iconTone: "ring-amber-500/15 text-amber-700 dark:text-amber-300",
     activeBar: "bg-amber-500",
+  },
+  {
+    id: "calculator",
+    name: "Calculator",
+    icon: Calculator,
+    description: "Calculate item prices",
+    accent: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
+    iconTone: "ring-indigo-500/15 text-indigo-700 dark:text-indigo-300",
+    activeBar: "bg-indigo-500",
   },
 ];
 

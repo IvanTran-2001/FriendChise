@@ -13,7 +13,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeftRight, ArrowRight, LayoutList, List, Users } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, LayoutList, List, Users, Calculator } from "lucide-react";
 
 const TOOLS = [
   {
@@ -36,6 +36,13 @@ const TOOLS = [
     icon: Users,
     description: "Manage team rosters and schedules",
     accent: "bg-amber-500/10 text-amber-700 ring-amber-500/15 dark:text-amber-300",
+  },
+  {
+    id: "calculator",
+    name: "Calculator",
+    icon: Calculator,
+    description: "Calculate item prices",
+    accent: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
   },
 ];
 
@@ -236,7 +243,11 @@ export function ToolsClient({
                         ? "bg-emerald-500/70"
                         : tool.id === "conversion"
                           ? "bg-sky-500/70"
-                          : "bg-amber-500/70"
+                          : tool.id === "roster"
+                            ? "bg-amber-500/70"
+                            : tool.id === "calculator"
+                              ? "bg-indigo-500/70"
+                              : "bg-indigo-500/70"
                     }`}
                   />
                   <div className="flex h-full flex-col gap-4">
