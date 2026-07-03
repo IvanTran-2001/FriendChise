@@ -82,6 +82,17 @@ function getOrgItems(orgId: string): NavItem[] {
     { title: "Tasks", url: `/orgs/${orgId}/tasks`, icon: ListTodo },
     { title: "Tools", url: `/orgs/${orgId}/tools`, icon: Wrench },
     { title: "Members", url: `/orgs/${orgId}/memberships`, icon: Users },
+    {
+      title: "Notification",
+      url: "/notifications",
+      icon: Bell,
+    },
+    {
+      title: "Help",
+      url: "/help",
+      icon: HelpCircle,
+      disabled: true,
+    },
   ];
 }
 
@@ -301,6 +312,7 @@ export function AppSidebar() {
                   icon={LayoutDashboard}
                   isActive={pathname === "/"}
                 />
+
                 <SidebarNavItem
                   variant="app"
                   title="Org"
@@ -308,6 +320,24 @@ export function AppSidebar() {
                   icon={Building2}
                   isActive={isActiveItem("/orgs")}
                 />
+
+                <SidebarNavItem
+                  variant="app"
+                  title="Notification"
+                  url="/notifications"
+                  icon={Bell}
+                  isActive={isActiveItem("/notifications")}
+                />
+
+                <SidebarNavItem
+                  variant="app"
+                  title="Help"
+                  url="/help"
+                  icon={HelpCircle}
+                  disabled
+                  isActive={false}
+                />
+
                 <SidebarNavItem
                   variant="app"
                   title="Docs"
@@ -340,11 +370,7 @@ export function AppSidebar() {
   return (
     <>
       {/* ── Desktop: fixed width, compact when a page sidebar is present ── */}
-      <div
-        className={cn(
-          "hidden md:block relative shrink-0 w-12",
-        )}
-      >
+      <div className={cn("hidden md:block relative shrink-0 w-12")}>
         <div
           className={cn(
             "absolute inset-y-0 left-0 z-30 flex flex-col bg-sidebar border-r border-sidebar-border overflow-hidden w-12",
