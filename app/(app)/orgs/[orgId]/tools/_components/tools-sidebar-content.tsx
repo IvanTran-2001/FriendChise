@@ -13,9 +13,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
-import { ArrowLeftRight, List, Users, Calculator } from "lucide-react";
+import { ArrowLeftRight, List, Users, Calculator, Star } from "lucide-react";
 import { SearchInput } from "@/components/ui/search-input";
 import { cn } from "@/lib/utils";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 
 // Placeholder tool list — replace with DB-driven data once the Tool model exists
 type ToolItem = {
@@ -70,6 +71,10 @@ const PLACEHOLDER_TOOLS: ToolItem[] = [
 export function ToolsSidebarContent({ orgId }: { orgId: string }) {
   const pathname = usePathname();
   const [search, setSearch] = useState("");
+  const [favoriteIds, , hydrated] = usePersistedState<string[]>(
+    `toolhub-favorites-${orgId}`,
+    [],
+  );
 
   const filtered = PLACEHOLDER_TOOLS.filter((t) =>
     t.name.toLowerCase().includes(search.toLowerCase()),
@@ -127,8 +132,11 @@ export function ToolsSidebarContent({ orgId }: { orgId: string }) {
                 </span>
 
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium text-sidebar-foreground">
-                    {tool.name}
+                  <span className="flex items-center gap-1.5 font-medium text-sidebar-foreground">
+                    <span className="truncate">{tool.name}</span>
+                    {hydrated && favoriteIds.includes(tool.id) && (
+                      <Star className="h-3.5 w-3.5 fill-current text-amber-500 shrink-0" />
+                    )}
                   </span>
                   <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
                     {tool.description}
