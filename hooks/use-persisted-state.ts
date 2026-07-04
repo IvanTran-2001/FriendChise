@@ -12,6 +12,7 @@ import { useState, useEffect, useRef } from "react";
 export function usePersistedState<T>(
   key: string,
   initialValue: T,
+  options?: { broadcast?: boolean },
 ): [T, React.Dispatch<React.SetStateAction<T>>, boolean] {
   // Initialize with initialValue to avoid SSR hydration mismatch
   const [state, setState] = useState<T>(initialValue);
@@ -73,11 +74,13 @@ export function usePersistedState<T>(
     try {
       localStorage.setItem(key, serialized);
       lastSerializedRef.current = serialized;
-      window.dispatchEvent(new CustomEvent(`persisted-state-change:${key}`));
+      if (options?.broadcast !== false) {
+        window.dispatchEvent(new CustomEvent(`persisted-state-change:${key}`));
+      }
     } catch {
       // Ignore quota exceeded / private browsing errors
     }
-  }, [key, state]);
+  }, [key, options?.broadcast, state]);
 
   return [state, setState, hydrated];
 }
