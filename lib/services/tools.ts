@@ -12,6 +12,9 @@
  *   ToolItem (org-scoped, shared across all sets)
  */
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
+
+type ToolItemListClient = Pick<Prisma.TransactionClient, "toolItemList">;
 
 // ─── ConversionSet ────────────────────────────────────────────────────────────
 
@@ -328,15 +331,15 @@ export async function toggleChecklistEntry(listEntryId: string): Promise<{ check
   return { checked: true };
 }
 
-/** Creates a new ToolItemList for an org. */
+/** Creates a new ToolItemList for an org. New lists always default to GRID display. */
 export async function createToolItemList(
   orgId: string,
   name: string,
-  displayType: import("@prisma/client").ListDisplayType,
+  client: ToolItemListClient = prisma,
   description?: string,
 ) {
-  return prisma.toolItemList.create({
-    data: { orgId, name, displayType, description: description ?? null },
+  return client.toolItemList.create({
+    data: { orgId, name, displayType: "GRID", description: description ?? null },
     select: {
       id: true,
       name: true,

@@ -45,7 +45,7 @@ export function ItemListsPageClient({
   function handleCreate() {
     const k = ++keyRef.current;
     open(
-      "New List",
+      "New Set",
       <CreateListPanel
         key={k}
         orgId={orgId}

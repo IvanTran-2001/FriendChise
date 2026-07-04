@@ -23,6 +23,7 @@ import { TimetableViewPicker } from "./timetable-view-picker";
 import { useTimetableZoom, MIN_HOUR_HEIGHT, MAX_HOUR_HEIGHT } from "../_shared/timetable-zoom-context";
 import { TimetableActions } from "./timetable-actions";
 import { TagFilterButton } from "@/components/ui/tag-filter-button";
+import { ColorFilterButton } from "./color-filter-button";
 import { type TemplateOption } from "./apply-template-dialog";
 import type { SharedTask } from "../_shared/types";
 
@@ -261,6 +262,7 @@ export function TimetableSidebarContent({
               }}
             />
           )}
+          <ColorFilterButton />
         </div>
       </div>
 

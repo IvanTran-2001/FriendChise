@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ListPlus, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TimetableViewPicker } from "../../../_components/timetable-view-picker";
+import { ColorFilterButton } from "../../../_components/color-filter-button";
 import { useTimetableZoom, MIN_HOUR_HEIGHT, MAX_HOUR_HEIGHT } from "../../../_shared/timetable-zoom-context";
 import { AddTemplateTaskPanel } from "./add-template-task-panel";
 import { updateTemplateDaysAction } from "@/app/actions/templates";
@@ -24,6 +25,8 @@ interface TemplateEditorSidebarContentProps {
   onModeChange: (mode: "calendar" | "simple") => void;
   onSpanChange: (span: "day" | "week") => void;
   availableTasks: SharedTask[];
+  colorFilter?: "task" | "role" | "tag";
+  onColorFilterChange?: (value: "task" | "role" | "tag") => void;
 }
 
 function ZoomSlider() {
@@ -60,6 +63,8 @@ export function TemplateEditorSidebarContent({
   onModeChange,
   onSpanChange,
   availableTasks,
+  colorFilter,
+  onColorFilterChange,
 }: TemplateEditorSidebarContentProps) {
   const router = useRouter();
   const [isPending, startT] = useTransition();
@@ -97,7 +102,17 @@ export function TemplateEditorSidebarContent({
 
   return (
     <div className="flex flex-col flex-1 overflow-y-auto">
-      <div className="px-3 pt-3 pb-3">
+      {/* Filters section */}
+      <div className="px-3 pt-3 pb-2">
+        <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
+          Filters
+        </p>
+        <div className="flex flex-col gap-2">
+          <ColorFilterButton value={colorFilter} onChange={onColorFilterChange} />
+        </div>
+      </div>
+
+      <div className="px-3 pt-2.5 pb-3 border-t border-border">
         <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
           View
         </p>

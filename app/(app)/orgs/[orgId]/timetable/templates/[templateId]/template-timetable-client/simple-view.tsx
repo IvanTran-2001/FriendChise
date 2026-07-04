@@ -19,6 +19,11 @@ interface SimpleViewProps {
   orgId: string;
   templateId: string;
   availableTasks?: ClientTask[];
+  taskColors: Record<
+    string,
+    { color: string | null; roleColor: string | null; tagColor: string | null }
+  >;
+  colorFilter: "task" | "role" | "tag";
 }
 
 export function TemplateSimpleView({
@@ -29,12 +34,27 @@ export function TemplateSimpleView({
   orgId,
   templateId,
   availableTasks,
+  taskColors,
+  colorFilter,
 }: SimpleViewProps) {
   const router = useRouter();
   const supportsHover = useSupportsHover();
   const actionSidebar = useActionSidebar();
   const [highlightedDay, setHighlightedDay] = useState<string | null>(null);
   const clearHighlight = useCallback(() => setHighlightedDay(null), []);
+
+  const getTaskColor = useCallback((inst: ClientTemplateInstance) => {
+    const entry = taskColors[inst.task.id];
+    let color: string | null = null;
+    if (colorFilter === "role") {
+      color = entry?.roleColor ?? null;
+    } else if (colorFilter === "tag") {
+      color = entry?.tagColor ?? null;
+    } else if (colorFilter === "task") {
+      color = entry?.color ?? null;
+    }
+    return color ?? inst.taskColor ?? "#94a3b8";
+  }, [colorFilter, taskColors]);
 
   const byDate = groupBy(instances, (inst) => String(inst.dayIndex));
 
@@ -158,6 +178,7 @@ export function TemplateSimpleView({
                         <CalendarEditSidebarContent
                           key={inst.id}
                           instance={inst}
+                          taskColor={getTaskColor(inst)}
                           memberships={memberships}
                           orgId={orgId}
                           onClose={() => actionSidebar.close()}
@@ -175,6 +196,7 @@ export function TemplateSimpleView({
                           <CalendarEditSidebarContent
                             key={inst.id}
                             instance={inst}
+                            taskColor={getTaskColor(inst)}
                             memberships={memberships}
                             orgId={orgId}
                             onClose={() => actionSidebar.close()}
@@ -183,7 +205,7 @@ export function TemplateSimpleView({
                       }
                     }}
                   >
-                    <div className="w-1 self-stretch rounded-full shrink-0" style={{ backgroundColor: inst.taskColor ?? "#94a3b8" }} />
+                    <div className="w-1 self-stretch rounded-full shrink-0" style={{ backgroundColor: getTaskColor(inst) }} />
                     <span className="text-xs text-muted-foreground font-mono w-14 shrink-0 tabular-nums">{minTo12h(inst.startTimeMin)}</span>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium block truncate">{inst.task.name}</div>

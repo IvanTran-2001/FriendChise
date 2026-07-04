@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
-import { PermissionAction } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireOrgPermissionPage } from "@/lib/authz";
-import { OrgSettingsClient } from "./settings-client";
+import { requireOrgOwnerOrParentOrgOwnerPage } from "@/lib/authz";
+import { OrgSettingsClient } from "./organization-client";
 import { TIMEZONES } from "@/lib/timezones";
 
 export default async function OrgSettingsOrganizationPage({
@@ -12,10 +11,7 @@ export default async function OrgSettingsOrganizationPage({
 }) {
   const { orgId } = await params;
 
-  const { userId } = await requireOrgPermissionPage(
-    orgId,
-    PermissionAction.MANAGE_SETTINGS,
-  );
+  const { userId } = await requireOrgOwnerOrParentOrgOwnerPage(orgId);
 
   const org = await prisma.organization.findUnique({
     where: { id: orgId },

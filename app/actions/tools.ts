@@ -780,7 +780,6 @@ export async function applyListToTemplateAction(
 export async function createToolItemListAction(
   orgId: string,
   name: string,
-  displayType: import("@prisma/client").ListDisplayType,
   gridCols?: number,
   gridRows?: number,
 ) {
@@ -793,25 +792,27 @@ export async function createToolItemListAction(
   const trimmed = name.trim();
   if (!trimmed) return { ok: false as const, error: "Name is required." };
 
+  const normalizedGridCols = Number.isFinite(gridCols) ? gridCols : 4;
+  const normalizedGridRows = Number.isFinite(gridRows) ? gridRows : 4;
+
   try {
-    const list = await createToolItemList(orgId, trimmed, displayType);
-    // Always create grid config for GRID lists
-    if (displayType === "GRID") {
-      await import("@/lib/prisma").then(({ prisma }) =>
-        prisma.toolItemGridConfig.create({
-          data: {
-            listId: list.id,
-            gridCols: gridCols ?? 4,
-            gridRows: gridRows ?? 4,
-          },
-        }),
-      );
-    }
+    // New lists always default to GRID display.
+    const list = await prisma.$transaction(async (tx) => {
+      const createdList = await createToolItemList(orgId, trimmed, tx);
+      await tx.toolItemGridConfig.create({
+        data: {
+          listId: createdList.id,
+          gridCols: normalizedGridCols,
+          gridRows: normalizedGridRows,
+        },
+      });
+      return createdList;
+    });
     revalidatePath(`/orgs/${orgId}/tools/item-list/lists`);
     return { ok: true as const, list };
   } catch (err: unknown) {
     const mappedError = mapPrismaError(err, {
-      P2002: "A list with that name already exists.",
+      P2002: "A set with that name already exists.",
     });
     return {
       ok: false as const,

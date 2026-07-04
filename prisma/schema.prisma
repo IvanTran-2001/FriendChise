@@ -210,6 +210,7 @@ model Organization {
   memberships         Membership[]
   roles               Role[]
   tasks               Task[]
+  taskToolLinks       TaskToolLink[]
   tags                Tag[]
   timetableEntries    TimetableEntry[]
   timetableSettings   TimetableSettings?
@@ -392,6 +393,7 @@ model Task {
 
   eligibility           TaskEligibility[]
   tags                  TaskTag[]
+  taskToolLinks         TaskToolLink[]
   timetableEntries      TimetableEntry[]
   timetableTemplateEntries TimetableTemplateEntry[]
   inheritedBy           TaskInheritance[]
@@ -462,6 +464,33 @@ model TaskTag {
 
   @@id([taskId, tagId])
   @@index([tagId])
+}
+
+// ─────────────────────────────────────
+// TASK TOOL LINK
+// Generic link from a task to any tool route.
+// Example toolPath values:
+//   conversion/<setId>
+//   roster/<boardId>/<templateId>
+//   item-list/<listId>
+// ─────────────────────────────────────
+
+model TaskToolLink {
+  id         String   @id @default(cuid())
+  orgId      String
+  taskId     String
+  toolPath   String
+  toolLabel  String?
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  task         Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([taskId, toolPath])
+  @@index([orgId])
+  @@index([taskId])
 }
 
 // ─────────────────────────────────────

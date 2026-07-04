@@ -1,5 +1,6 @@
 import { log } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
+import { getRandomColor } from "@/lib/org-color";
 import { recordAudit } from "@/lib/services/audit-log";
 import type { ServiceResult } from "./types";
 
@@ -40,7 +41,7 @@ export async function createTag(
       data: {
         orgId,
         name: data.name,
-        color: data.color ?? "#6B7280",
+        color: data.color ?? getRandomColor(),
       },
     });
   } catch (e: unknown) {

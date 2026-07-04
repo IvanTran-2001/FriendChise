@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 import { TemplateEditorSidebarContent } from "./_components/template-editor-sidebar-content";
 import {
   TemplateEditorClient,
@@ -16,6 +17,10 @@ interface TemplateEditorPageClientProps {
   templateDays: number;
   instances: ClientTemplateInstance[];
   availableTasks: ClientTask[];
+  taskColors: Record<
+    string,
+    { color: string | null; roleColor: string | null; tagColor: string | null }
+  >;
   memberships: ClientMembership[];
   todayStr: string;
   openTimeMin: number;
@@ -34,6 +39,7 @@ export function TemplateEditorPageClient({
   templateDays,
   instances,
   availableTasks,
+  taskColors,
   memberships,
   todayStr,
   openTimeMin,
@@ -47,6 +53,10 @@ export function TemplateEditorPageClient({
 }: TemplateEditorPageClientProps) {
   const [mode, setMode] = useState<"calendar" | "simple">(initialMode);
   const [span, setSpan] = useState<"day" | "week">(initialSpan);
+  const [colorFilter, setColorFilter] = usePersistedState<"task" | "role" | "tag">(
+    "friendchise-color-filter",
+    "task",
+  );
 
   return (
     <>
@@ -65,6 +75,8 @@ export function TemplateEditorPageClient({
             onModeChange={setMode}
             onSpanChange={setSpan}
             availableTasks={availableTasks}
+            colorFilter={colorFilter}
+            onColorFilterChange={setColorFilter}
           />
         }
       />
@@ -76,12 +88,14 @@ export function TemplateEditorPageClient({
         templateDays={templateDays}
         instances={instances}
         availableTasks={availableTasks}
+        taskColors={taskColors}
         memberships={memberships}
         todayStr={todayStr}
         openTimeMin={openTimeMin}
         closeTimeMin={closeTimeMin}
         mode={mode}
         span={span}
+        colorFilter={colorFilter}
         fillHeight
       />
     </>

@@ -9,6 +9,7 @@ import { useSupportsHover } from "@/hooks/use-hover-capability";
 import { toast } from "sonner";
 import { createTimetableEntryAction } from "@/app/actions/timetable-entries";
 import { cn } from "@/lib/utils";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 import {
   addDays,
   getDayName,
@@ -46,6 +47,10 @@ interface SimpleViewProps {
   memberships?: ClientMembership[];
   orgId: string;
   tasks?: ClientTask[];
+  taskColors: Record<
+    string,
+    { color: string | null; roleColor: string | null; tagColor: string | null }
+  >;
 }
 
 export function SimpleView({
@@ -57,6 +62,7 @@ export function SimpleView({
   memberships,
   orgId,
   tasks,
+  taskColors,
 }: SimpleViewProps) {
   const router = useRouter();
   const supportsHover = useSupportsHover();
@@ -74,6 +80,24 @@ export function SimpleView({
       ? "SKIPPED"
       : inst.status;
   }
+  const [colorFilter] = usePersistedState<"task" | "role" | "tag">(
+    "friendchise-color-filter",
+    "task",
+  );
+
+  const getTaskColor = useCallback((inst: ClientTimetableInstance) => {
+    const entry = taskColors[inst.taskId];
+    let color: string | null = null;
+    if (colorFilter === "role") {
+      color = entry?.roleColor ?? null;
+    } else if (colorFilter === "tag") {
+      color = entry?.tagColor ?? null;
+    } else if (colorFilter === "task") {
+      color = entry?.color ?? null;
+    }
+    return color ?? inst.taskColor ?? "#94a3b8";
+  }, [colorFilter, taskColors]);
+
   const days =
     span === "day"
       ? [anchor]
@@ -258,6 +282,7 @@ export function SimpleView({
                             <CalendarEditSidebarContent
                               key={inst.id}
                               instance={inst}
+                              taskColor={getTaskColor(inst)}
                               memberships={memberships}
                               orgId={orgId}
                               canManage={canManage}
@@ -273,7 +298,7 @@ export function SimpleView({
                         <div
                           className="w-1 self-stretch rounded-full shrink-0"
                           style={{
-                            backgroundColor: inst.taskColor ?? "#94a3b8",
+                            backgroundColor: getTaskColor(inst),
                           }}
                         />
 

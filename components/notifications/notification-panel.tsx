@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Bell } from "lucide-react";
+import Link from "next/link";
+import { Bell, History } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ComponentProps } from "react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import {
   Sheet,
   SheetContent,
   SheetHeader,
+  SheetFooter,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
@@ -81,7 +83,22 @@ export function NotificationPanel({
           </SheetHeader>
           {/* Drag handle */}
           <div className="w-10 h-1 rounded-full bg-muted-foreground/20 mx-auto mt-3 mb-0 shrink-0" />
-          <NotificationList {...notificationListProps} />
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <NotificationList {...notificationListProps} />
+          </div>
+
+          <SheetFooter className="p-0">
+            <div className="w-full shrink-0 border-t px-4 py-2.5 bg-background">
+              <Link
+                href="/notifications"
+                onClick={handleAction}
+                className="flex w-full items-center justify-center gap-1.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <History className="size-3" />
+                View all history
+              </Link>
+            </div>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
     );
@@ -95,7 +112,20 @@ export function NotificationPanel({
         sideOffset={8}
         className="w-95 h-120 p-0 flex flex-col overflow-hidden shadow-xl"
       >
-        <NotificationList {...notificationListProps} />
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <NotificationList {...notificationListProps} />
+        </div>
+        
+        <div className="shrink-0 border-t px-4 py-2.5 bg-background">
+          <Link
+            href="/notifications"
+            onClick={handleAction}
+            className="flex w-full items-center justify-center gap-1.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <History className="size-3" />
+            View all history
+          </Link>
+        </div>
       </PopoverContent>
     </Popover>
   );

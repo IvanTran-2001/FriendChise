@@ -129,7 +129,9 @@ export function TaskTable({
   const router = useRouter();
   const supportsHover = useSupportsHover();
   const [isPending, startTransition] = useTransition();
-  const [search, setSearch] = usePersistedState(`tasks-search-${orgId}`, "");
+  const [search, setSearch] = usePersistedState(`tasks-search-${orgId}`, "", {
+    broadcast: false,
+  });
   const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
 

@@ -31,6 +31,8 @@ import {
   publishTaskAction,
   unpublishTaskAction,
 } from "@/app/actions/tasks";
+import { ToolPanel } from "../task-panels";
+import type { TaskToolSelection } from "../_components/task-tools-picker";
 
 type TaskScope = "ORG" | "GLOBAL";
 
@@ -43,6 +45,7 @@ interface TaskDetailSidebarProps {
   scope: TaskScope;
   sharedBy?: string;
   createdByName?: string;
+  taskTools: TaskToolSelection[];
 }
 
 // ---------------------------------------------------------------------------
@@ -260,6 +263,7 @@ export function TaskDetailSidebar({
   scope,
   sharedBy,
   createdByName,
+  taskTools,
 }: TaskDetailSidebarProps) {
   // useActionSidebar hook call removed — open/close not used in this component
 
@@ -293,6 +297,13 @@ export function TaskDetailSidebar({
           <ScopeSection orgId={orgId} taskId={taskId} initialScope={scope} />
         </div>
       )}
+
+      <div className="px-3 pt-2 pb-3 border-t border-border">
+        <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
+          Tools
+        </p>
+        <ToolPanel orgId={orgId} tools={taskTools} />
+      </div>
 
       {/* Actions section */}
       {isOwner && canManage && (

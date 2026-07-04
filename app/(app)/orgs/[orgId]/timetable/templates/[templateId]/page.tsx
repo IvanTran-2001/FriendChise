@@ -80,6 +80,18 @@ export default async function TemplateEditorPage({
     })),
   }));
 
+  const taskColors: Record<
+    string,
+    { color: string | null; roleColor: string | null; tagColor: string | null }
+  > = {};
+  for (const t of tasks) {
+    taskColors[t.id] = {
+      color: t.color ?? null,
+      roleColor: t.eligibility[0]?.role?.color ?? null,
+      tagColor: t.tags[0]?.tag?.color ?? null,
+    };
+  }
+
   const availableTasks = tasks.map((t) => ({
     id: t.id,
     name: t.name,
@@ -102,6 +114,7 @@ export default async function TemplateEditorPage({
         templateDays={template.cycleLengthDays}
         instances={instances}
         availableTasks={availableTasks}
+        taskColors={taskColors}
         memberships={memberships}
         todayStr={todayStr}
         openTimeMin={org?.openTimeMin ?? 360}

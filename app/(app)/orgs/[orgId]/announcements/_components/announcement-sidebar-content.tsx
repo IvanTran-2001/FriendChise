@@ -30,13 +30,12 @@ export function AnnouncementSidebarContent({
 
   return (
     <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
-      <div className="px-3 pt-2.5 pb-3 border-t border-border">
+      <div className="px-3 pt-2.5 pb-3 border-border">
         <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
           Order
         </p>
         {/* Everyone can change sort order, but only owners get the actions block. */}
         <SegmentedControl
-          className="w-full"
           options={[
             { label: "Newest", value: "newest" },
             { label: "Oldest", value: "oldest" },

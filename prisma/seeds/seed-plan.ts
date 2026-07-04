@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { seedRandomAuditLogs } from "./audit-logs";
 import { seedConversionData } from "./orgs/walker's doughnut/walkers-doughnuts";
 import { registerEmptyOrgSeeds } from "./dummies/empty-orgs";
 import { registerInviteSeeds } from "./notification/invites";
@@ -43,6 +44,9 @@ export function registerSeedModules(plan: SeedPlan) {
   // Conversion data depends on the seeded org, so it runs after the org seed finishes.
   plan.afterOrg.push(async (prisma, _users, donutShopA) => {
     await seedConversionData(prisma, donutShopA.org.id);
+  });
+  plan.afterOrg.push(async (prisma, users, donutShopA) => {
+    await seedRandomAuditLogs(prisma, donutShopA.org.id, users);
   });
   registerEmptyOrgSeeds(plan);
   registerInviteSeeds(plan);

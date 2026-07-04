@@ -28,7 +28,6 @@ import {
   useState,
   useTransition,
   useCallback,
-  useMemo,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
@@ -63,6 +62,7 @@ import type { SharedTask, SharedMembership } from "../../_shared/types";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { registerDragHandlers, unregisterDragHandlers } from "../../_shared/drag-registry";
 import Link from "next/link";
+
 import { CalendarEditSidebarContent } from "./template-timetable-client/calendar-edit-sidebar-content";
 import { TemplateSimpleView } from "./template-timetable-client/simple-view";
 
@@ -111,6 +111,10 @@ interface TemplateEditorClientProps {
   templateDays: number;
   instances: ClientTemplateInstance[];
   availableTasks: ClientTask[];
+  taskColors: Record<
+    string,
+    { color: string | null; roleColor: string | null; tagColor: string | null }
+  >;
   memberships: ClientMembership[];
   todayStr: string;
   openTimeMin: number;
@@ -118,6 +122,7 @@ interface TemplateEditorClientProps {
   fillHeight?: boolean;
   mode: "calendar" | "simple";
   span: "day" | "week";
+  colorFilter: "task" | "role" | "tag";
   /** Rendered at the end of the toolbar (template name / metadata). */
   title?: ReactNode;
   /** Optional external dragging state controlled by a parent bridge. */
@@ -132,6 +137,7 @@ export function TemplateEditorClient({
   templateDays,
   instances,
   availableTasks,
+  taskColors,
   memberships,
   todayStr: _todayStr,
   openTimeMin,
@@ -142,6 +148,7 @@ export function TemplateEditorClient({
   title,
   isDraggingExternal,
   onExternalDragChange,
+  colorFilter,
 }: TemplateEditorClientProps) {
   const router = useRouter();
   const [isPending, startT] = useTransition();
@@ -209,24 +216,32 @@ export function TemplateEditorClient({
     timeMin: number;
   } | null>(null);
   const { hourHeight } = useTimetableZoom();
-  // Precompute a map for fast lookups of the server-provided roleColor.
-  const taskRoleColorMap = useMemo(
-    () =>
-      new Map<string, string | null>(
-        (availableTasks ?? []).map((t: ClientTask) => [t.id, t.roleColor ?? null] as [string, string | null]),
-      ),
-    [availableTasks],
-  );
 
   const getTaskColor = useCallback((inst: ClientTemplateInstance) => {
-    const fromTasks = taskRoleColorMap.get(inst.task.id);
-    return fromTasks ?? inst.taskColor ?? "#9ca3af";
-  }, [taskRoleColorMap]);
+    const entry = taskColors[inst.task.id];
+    let color: string | null = null;
+    if (colorFilter === "role") {
+      color = entry?.roleColor ?? null;
+    } else if (colorFilter === "tag") {
+      color = entry?.tagColor ?? null;
+    } else if (colorFilter === "task") {
+      color = entry?.color ?? null;
+    }
+    return color ?? inst.taskColor ?? "#9ca3af";
+  }, [colorFilter, taskColors]);
 
   const getTaskColorMaybe = useCallback((inst: ClientTemplateInstance) => {
-    const fromTasks = taskRoleColorMap.get(inst.task.id);
-    return fromTasks ?? inst.taskColor ?? undefined;
-  }, [taskRoleColorMap]);
+    const entry = taskColors[inst.task.id];
+    let color: string | null = null;
+    if (colorFilter === "role") {
+      color = entry?.roleColor ?? null;
+    } else if (colorFilter === "tag") {
+      color = entry?.tagColor ?? null;
+    } else if (colorFilter === "task") {
+      color = entry?.color ?? null;
+    }
+    return color ?? inst.taskColor ?? undefined;
+  }, [colorFilter, taskColors]);
 
   // Track the slot (dayIndex + time range) of the currently open group sidebar.
   const openGroupSlotRef = useRef<{ dayIndex: number; startMin: number; endMin: number } | null>(null);
@@ -307,6 +322,7 @@ export function TemplateEditorClient({
         <CalendarEditSidebarContent
           key={inst.id}
           instance={inst}
+          taskColor={getTaskColor(inst)}
           memberships={memberships}
           orgId={orgId}
           onClose={closeSidebar}
@@ -314,7 +330,7 @@ export function TemplateEditorClient({
         />,
       );
     },
-    [openSidebar, closeSidebar, memberships, orgId],
+    [openSidebar, closeSidebar, memberships, orgId, getTaskColor],
   );
 
   function openGroupSidebar(groupInstances: ClientTemplateInstance[]) {
@@ -582,6 +598,8 @@ export function TemplateEditorClient({
           orgId={orgId}
           templateId={templateId}
           availableTasks={availableTasks}
+          taskColors={taskColors}
+          colorFilter={colorFilter}
         />
       )}
 

@@ -26,6 +26,7 @@ vi.mock("@/lib/services/tasks", () => ({
   addTaskEligibility: vi.fn(),
   removeTaskEligibility: vi.fn(),
   setTaskEligibilities: vi.fn(),
+  setTaskToolLinks: vi.fn(),
 }));
 vi.mock("@/lib/services/images", () => ({
   renameTaskImageIfNeeded: vi.fn(),
@@ -100,7 +101,7 @@ describe("createTaskAction", () => {
     expect(createTask).not.toHaveBeenCalled();
   });
 
-  it("redirects to task list on success", async () => {
+  it("returns ok:true with the new task id on success", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
     vi.mocked(createTask).mockResolvedValue({
       id: "task-1",
@@ -114,9 +115,9 @@ describe("createTaskAction", () => {
       minWaitDays: "7",
     });
 
-    await expect(createTaskAction("org-1", null, fd)).rejects.toThrow(
-      "NEXT_REDIRECT",
-    );
+    const result = await createTaskAction("org-1", null, fd);
+
+    expect(result).toEqual({ ok: true, taskId: "task-1" });
 
     expect(createTask).toHaveBeenCalledWith(
       "org-1",
@@ -130,7 +131,7 @@ describe("createTaskAction", () => {
       null,
     );
     expect(revalidatePath).toHaveBeenCalledWith("/orgs/org-1/tasks");
-    expect(redirect).toHaveBeenCalledWith("/orgs/org-1/tasks");
+    expect(redirect).not.toHaveBeenCalled();
   });
 
   it("checks MANAGE_TASKS permission for the org", async () => {

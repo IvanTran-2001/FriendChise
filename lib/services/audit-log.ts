@@ -42,6 +42,103 @@ export interface AuditLogInput {
   metadata?: Record<string, unknown> | null;
 }
 
+// ─── Shared helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Parses a YYYY-MM-DD string into a validated UTC Date, or returns undefined.
+ */
+function parseUtcDate(date: string): Date | undefined {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return undefined;
+
+  const [yearStr, monthStr, dayStr] = date.split("-");
+  const year = parseInt(yearStr, 10);
+  const month = parseInt(monthStr, 10);
+  const day = parseInt(dayStr, 10);
+
+  if (
+    year < 1000 || year > 9999 ||
+    month < 1 || month > 12 ||
+    day < 1 || day > 31
+  ) return undefined;
+
+  const candidate = new Date(`${date}T00:00:00.000Z`);
+  if (
+    candidate.getUTCFullYear() !== year ||
+    candidate.getUTCMonth() !== month - 1 ||
+    candidate.getUTCDate() !== day
+  ) return undefined;
+
+  return candidate;
+}
+
+/**
+ * Resolves a date range from explicit from/to strings or a single date string.
+ */
+function resolveDateRange(
+  date?: string,
+  dateFrom?: string,
+  dateTo?: string
+): { gte?: Date; lt?: Date } | undefined {
+  // Explicit range takes priority
+  if (dateFrom || dateTo) {
+    const from = dateFrom ? parseUtcDate(dateFrom) : undefined;
+    const to = dateTo ? parseUtcDate(dateTo) : undefined;
+
+    if (from || to) {
+      return {
+        ...(from && { gte: from }),
+        ...(to && { lt: new Date(to.getTime() + 24 * 60 * 60 * 1000) }),
+      };
+    }
+  }
+
+  // Single date — full day range
+  const parsed = date ? parseUtcDate(date) : undefined;
+  if (parsed) {
+    return {
+      gte: parsed,
+      lt: new Date(parsed.getTime() + 24 * 60 * 60 * 1000),
+    };
+  }
+
+  return undefined;
+}
+
+/**
+ * Builds the shared Prisma where clause for audit log queries.
+ */
+function buildAuditLogWhere({
+  orgId,
+  search,
+  date,
+  dateFrom,
+  dateTo,
+}: {
+  orgId?: string;
+  search?: string;
+  date?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}): Prisma.AuditLogWhereInput {
+  const dateRange = resolveDateRange(date, dateFrom, dateTo);
+
+  return {
+    ...(orgId && { orgId }),
+    ...(search && {
+      OR: [
+        { action: { contains: search, mode: "insensitive" } },
+        { actorEmail: { contains: search, mode: "insensitive" } },
+        { targetType: { contains: search, mode: "insensitive" } },
+      ],
+    }),
+    ...(dateRange && {
+      createdAt: dateRange,
+    }),
+  };
+}
+
+// ─── Exported functions ─────────────────────────────────────────────────────
+
 /**
  * Returns a sanitized subset of audit params safe for error logging.
  * Omits potentially large/sensitive fields (before, after, metadata).
@@ -107,56 +204,29 @@ export async function recordAudit(
 }
 
 /**
+ * Returns the total count of audit logs for an org, with optional filters.
+ */
+export async function getAuditLogsCount(
+  orgId: string = "",
+  { search, date, dateFrom, dateTo }: { search?: string; date?: string; dateFrom?: string; dateTo?: string } = {}
+) {
+  return prisma.auditLog.count({
+    where: buildAuditLogWhere({ orgId, search, date, dateFrom, dateTo }),
+  });
+}
+
+/**
  * Returns the audit log for an org, newest-first.
- * `limit` defaults to 100 — callers can paginate by adjusting this.
+ * `limit` defaults to 50 — callers can paginate by adjusting this.
  */
 export async function getAuditLogs(
   orgId: string = "",
-  { search, date, limit = 100 }: { search?: string; date?: string; limit?: number } = {}
+  { search, date, dateFrom, dateTo, limit = 50, page = 1 }: { search?: string; date?: string; dateFrom?: string; dateTo?: string; limit?: number; page?: number } = {}
 ) {
-  let parsedDate: Date | undefined;
-  if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    const [yearStr, monthStr, dayStr] = date.split("-");
-    const year = parseInt(yearStr, 10);
-    const month = parseInt(monthStr, 10);
-    const day = parseInt(dayStr, 10);
-
-    // Validate that year/month/day are valid calendar values
-    if (
-      year >= 1000 && year <= 9999 &&
-      month >= 1 && month <= 12 &&
-      day >= 1 && day <= 31
-    ) {
-      const candidate = new Date(`${date}T00:00:00.000Z`);
-      // Verify the date didn't roll over (e.g., Feb 31 -> Mar 3)
-      if (
-        candidate.getUTCFullYear() === year &&
-        candidate.getUTCMonth() === month - 1 &&
-        candidate.getUTCDate() === day
-      ) {
-        parsedDate = candidate;
-      }
-    }
-  }
-
   return prisma.auditLog.findMany({
-    where: {
-      ...(orgId && { orgId }),
-      ...(search && {
-        OR: [
-          { action: { contains: search, mode: "insensitive" } },
-          { actorEmail: { contains: search, mode: "insensitive" } },
-          { targetType: { contains: search, mode: "insensitive" } },
-        ],
-      }),
-      ...(parsedDate && !Number.isNaN(parsedDate.valueOf()) && {
-        createdAt: {
-          gte: parsedDate,
-          lt: new Date(parsedDate.getTime() + 24 * 60 * 60 * 1000),
-        },
-      }),
-    },
+    where: buildAuditLogWhere({ orgId, search, date, dateFrom, dateTo }),
     orderBy: { createdAt: "desc" },
     take: limit,
+    skip: (page - 1) * limit,
   });
 }

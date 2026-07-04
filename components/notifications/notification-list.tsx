@@ -113,16 +113,6 @@ export function NotificationList({
         )}
       </div>
 
-      <div className="shrink-0 border-t px-4 py-2.5">
-        <Link
-          href="/notifications"
-          onClick={onAction}
-          className="flex w-full items-center justify-center gap-1.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <History className="size-3" />
-          View all history
-        </Link>
-      </div>
     </div>
   );
 }

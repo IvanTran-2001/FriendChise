@@ -30,10 +30,8 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Clock, Users, AlarmClock, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ColorPicker } from "@/components/ui/color-picker";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   SearchableCombobox,
@@ -51,9 +49,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { updateTaskAction, createTagOnlyAction } from "@/app/actions/tasks";
 import type { TaskFormState } from "@/app/actions/tasks";
-import { ImageUploadPanel } from "../../task-form";
-import type { Role, Tag } from "../../task-form";
-import { TaskEditorFrame } from "@/app/(app)/orgs/[orgId]/tasks/_components/task-editor-frame";
+import type { Role, Tag } from "../../task-panels";
+import { TaskEditorShell } from "@/app/(app)/orgs/[orgId]/tasks/_components/task-editor-shell";
+import { TaskEditSidebarContent } from "./_components/task-edit-sidebar-content";
+import type { TaskToolSelection } from "../../_components/task-tools-picker";
 
 // ─── Deferred Tag Panel ───────────────────────────────────────────────────────
 //
@@ -239,242 +238,6 @@ function DeferredRolesPanel({
   );
 }
 
-// ─── Sidebar pickers ──────────────────────────────────────────────────────────
-
-function SidebarDurationPicker({
-  value,
-  onChange,
-}: {
-  value: number;
-  onChange: (min: number) => void;
-}) {
-  const hours = Math.floor(value / 60);
-  const mins = Math.round((value % 60) / 5) * 5;
-
-  const selectClass =
-    "h-9 rounded-md border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 w-full";
-
-  return (
-    <div className="flex items-center gap-2">
-      <select
-        value={hours}
-        onChange={(e) => onChange(Number(e.target.value) * 60 + mins)}
-        className={selectClass}
-        aria-label="Hours"
-      >
-        {Array.from({ length: 24 }, (_, i) => (
-          <option key={i} value={i}>
-            {i}h
-          </option>
-        ))}
-      </select>
-      <select
-        value={mins}
-        onChange={(e) => onChange(hours * 60 + Number(e.target.value))}
-        className={selectClass}
-        aria-label="Minutes"
-      >
-        {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
-          <option key={m} value={m}>
-            {m}m
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-function SidebarStartTimePicker({
-  value,
-  onChange,
-}: {
-  value: number | null;
-  onChange: (min: number | null) => void;
-}) {
-  const toHHMM = (min: number) => {
-    const h = Math.floor(min / 60).toString().padStart(2, "0");
-    const m = (min % 60).toString().padStart(2, "0");
-    return `${h}:${m}`;
-  };
-
-  return (
-    <Input
-      type="time"
-      value={value != null ? toHHMM(value) : ""}
-      onChange={(e) => {
-        const v = e.target.value;
-        if (!v) {
-          onChange(null);
-          return;
-        }
-        const [h, m] = v.split(":").map(Number);
-        onChange(h * 60 + m);
-      }}
-      className="w-full"
-    />
-  );
-}
-
-// ── Sidebar content ───────────────────────────────────────────────────────────
-
-interface SidebarFieldsProps {
-  color: string;
-  onColorChange: (v: string) => void;
-  durationMin: number;
-  onDurationChange: (v: number) => void;
-  startTimeMin: number | null;
-  onStartTimeChange: (v: number | null) => void;
-  peopleRequired: number;
-  onPeopleChange: (v: number) => void;
-  minWaitDays: string;
-  onMinWaitDaysChange: (v: string) => void;
-  maxWaitDays: string;
-  onMaxWaitDaysChange: (v: string) => void;
-  // Photo
-  orgId: string;
-  taskId: string;
-  imageSignedUrl: string | null;
-  fallbackInitial: string;
-}
-
-function SidebarFields({
-  color,
-  onColorChange,
-  durationMin,
-  onDurationChange,
-  startTimeMin,
-  onStartTimeChange,
-  peopleRequired,
-  onPeopleChange,
-  minWaitDays,
-  onMinWaitDaysChange,
-  maxWaitDays,
-  onMaxWaitDaysChange,
-  orgId,
-  taskId,
-  imageSignedUrl,
-  fallbackInitial,
-}: SidebarFieldsProps) {
-  const fieldClass = "flex flex-col gap-1.5";
-  const labelClass =
-    "text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5";
-  const inputClass = "h-9 text-sm";
-
-  return (
-    <div className="flex flex-col gap-5 p-4 pt-3">
-      {/* Photo */}
-      <div className={fieldClass}>
-        <ImageUploadPanel
-          orgId={orgId}
-          taskId={taskId}
-          initialSignedUrl={imageSignedUrl}
-          layout="sidebar"
-          fallbackColor={color}
-          fallbackInitial={fallbackInitial}
-        />
-      </div>
-      {/* Color */}
-      <div className={fieldClass}>
-        <span className={labelClass}>Color</span>
-        <div className="flex items-center gap-2">
-          <ColorPicker value={color} onChange={onColorChange} />
-          <span className="text-xs text-muted-foreground font-mono">
-            {color.toUpperCase()}
-          </span>
-        </div>
-      </div>
-
-      {/* Duration */}
-      <div className={fieldClass}>
-        <span className={labelClass}>
-          <Clock className="h-3.5 w-3.5" />
-          Duration
-        </span>
-        <SidebarDurationPicker value={durationMin} onChange={onDurationChange} />
-        <span className="text-xs text-muted-foreground">
-          {durationMin} min total
-        </span>
-      </div>
-
-      {/* Preferred start time */}
-      <div className={fieldClass}>
-        <span className={labelClass}>
-          <AlarmClock className="h-3.5 w-3.5" />
-          Preferred start
-        </span>
-        <SidebarStartTimePicker
-          value={startTimeMin}
-          onChange={onStartTimeChange}
-        />
-        {startTimeMin != null && (
-          <button
-            type="button"
-            className="text-xs text-muted-foreground hover:text-destructive transition-colors text-left"
-            onClick={() => onStartTimeChange(null)}
-          >
-            Clear
-          </button>
-        )}
-      </div>
-
-      {/* People required */}
-      <div className={fieldClass}>
-        <span className={labelClass}>
-          <Users className="h-3.5 w-3.5" />
-          People required
-        </span>
-        <Input
-          type="number"
-          min={1}
-          max={50}
-          value={peopleRequired}
-          onChange={(e) => onPeopleChange(Number(e.target.value))}
-          className={inputClass}
-        />
-      </div>
-
-      {/* Wait days */}
-      <div className={fieldClass}>
-        <span className={labelClass}>
-          <RefreshCw className="h-3.5 w-3.5" />
-          Wait days
-        </span>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">Min</span>
-            <Input
-              type="number"
-              min={0}
-              max={3650}
-              placeholder="e.g. 7"
-              value={minWaitDays}
-              onChange={(e) => onMinWaitDaysChange(e.target.value)}
-              className={inputClass}
-              aria-label="Min wait days"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">Max</span>
-            <Input
-              type="number"
-              min={0}
-              max={3650}
-              placeholder="e.g. 14"
-              value={maxWaitDays}
-              onChange={(e) => onMaxWaitDaysChange(e.target.value)}
-              className={inputClass}
-              aria-label="Max wait days"
-            />
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          At least one of min or max is required.
-        </p>
-      </div>
-    </div>
-  );
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
 
 interface TaskEditClientProps {
@@ -484,6 +247,7 @@ interface TaskEditClientProps {
   eligibleRoles: Role[];
   allTags: Tag[];
   taskTags: Tag[];
+  taskTools: TaskToolSelection[];
   imageSignedUrl?: string | null;
   defaultValues: {
     color: string;
@@ -504,6 +268,7 @@ export function TaskEditClient({
   eligibleRoles,
   allTags,
   taskTags,
+  taskTools,
   imageSignedUrl,
   defaultValues,
 }: TaskEditClientProps) {
@@ -532,6 +297,7 @@ export function TaskEditClient({
   const [maxWaitDays, setMaxWaitDays] = useState(
     defaultValues.maxWaitDays?.toString() ?? "",
   );
+  const [selectedTools, setSelectedTools] = useState<TaskToolSelection[]>(taskTools);
 
   // Dirty-tracking wrappers for sidebar setters
   const setColorDirty = (v: string) => { setColor(v); markDirty(); };
@@ -540,6 +306,10 @@ export function TaskEditClient({
   const setPeopleDirty = (v: number) => { setPeopleRequired(v); markDirty(); };
   const setMinWaitDirty = (v: string) => { setMinWaitDays(v); markDirty(); };
   const setMaxWaitDirty = (v: string) => { setMaxWaitDays(v); markDirty(); };
+  const setSelectedToolsDirty = (tools: TaskToolSelection[]) => {
+    setSelectedTools(tools);
+    markDirty();
+  };
 
   // ── Navigation guard ───────────────────────────────────────────────────────
   const [discardOpen, setDiscardOpen] = useState(false);
@@ -625,7 +395,7 @@ export function TaskEditClient({
   // ── Memoized sidebar content ───────────────────────────────────────────────
   const sidebarContent = useMemo(
     () => (
-      <SidebarFields
+      <TaskEditSidebarContent
         color={color}
         onColorChange={setColorDirty}
         durationMin={durationMin}
@@ -642,10 +412,20 @@ export function TaskEditClient({
         taskId={taskId}
         imageSignedUrl={imageSignedUrl ?? null}
         fallbackInitial={defaultValues.title.charAt(0)}
+        selectedTools={selectedTools}
+        onSelectedToolsChange={setSelectedToolsDirty}
       />
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [color, durationMin, startTimeMin, peopleRequired, minWaitDays, maxWaitDays],
+    [
+      color,
+      durationMin,
+      startTimeMin,
+      peopleRequired,
+      minWaitDays,
+      maxWaitDays,
+      selectedTools,
+    ],
   );
 
   return (
@@ -674,7 +454,7 @@ export function TaskEditClient({
         </AlertDialogContent>
       </AlertDialog>
 
-      <TaskEditorFrame
+      <TaskEditorShell
         sidebarContent={sidebarContent}
         toolbarContent={
           <>
@@ -725,6 +505,17 @@ export function TaskEditClient({
         <input type="hidden" name="peopleRequired" value={peopleRequired} />
         <input type="hidden" name="minWaitDays" value={minWaitDays} />
         <input type="hidden" name="maxWaitDays" value={maxWaitDays} />
+        {selectedTools.map((tool) => (
+          <input key={tool.toolPath} type="hidden" name="toolPaths" value={tool.toolPath} />
+        ))}
+        {selectedTools.map((tool) => (
+          <input
+            key={`${tool.toolPath}-label`}
+            type="hidden"
+            name="toolLabels"
+            value={tool.toolLabel ?? ""}
+          />
+        ))}
 
         {/* Global error */}
         {err("_") && (
@@ -800,7 +591,7 @@ export function TaskEditClient({
           />
         </div>
         </form>
-      </TaskEditorFrame>
+      </TaskEditorShell>
     </>
   );
 }
