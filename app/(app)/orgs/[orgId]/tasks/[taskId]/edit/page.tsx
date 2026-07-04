@@ -38,6 +38,10 @@ const EditTaskPage = async ({
 
   const eligibleRoles = task.eligibility.map((e) => e.role);
   const taskTags = task.tags.map((t) => t.tag);
+  const taskTools = task.taskToolLinks.map((tool) => ({
+    toolPath: tool.toolPath,
+    toolLabel: tool.toolLabel ?? null,
+  }));
 
   return (
     <TaskEditClient
@@ -47,6 +51,7 @@ const EditTaskPage = async ({
       eligibleRoles={eligibleRoles}
       allTags={allTags}
       taskTags={taskTags}
+      taskTools={taskTools}
       imageSignedUrl={imageSignedUrl}
       defaultValues={{
         color: task.color,

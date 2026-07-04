@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { ScrollingText } from "@/components/ui/scrolling-text";
 
 type Org = { id: string; name: string; image: string | null };
 
@@ -125,9 +126,11 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
             {activeOrg ? <OrgBadge org={activeOrg} /> : null}
           </span>
           <span className="flex min-w-0 flex-col items-start leading-none">
-            <span className="truncate max-w-20 text-[11px] font-medium sm:max-w-28">
-              {activeOrg?.name ?? "Select Org"}
-            </span>
+            <ScrollingText
+              text={activeOrg?.name ?? "Select Org"}
+              containerClassName="max-w-20 sm:max-w-28"
+              className="text-[11px] font-medium"
+            />
             <span className="mt-px text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
               Organization
             </span>
@@ -200,14 +203,10 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
                         <OrgBadge org={org} />
                       </span>
                       <span className="flex min-w-0 flex-1 flex-col">
-                        <span
-                          className={cn(
-                            "truncate text-sm",
-                            isActive && "font-semibold",
-                          )}
-                        >
-                          {org.name}
-                        </span>
+                        <ScrollingText
+                          text={org.name}
+                          className={cn("text-sm", isActive && "font-semibold")}
+                        />
                         <span className="truncate text-[11px] text-muted-foreground">
                           {isActive ? "Current organization" : "Tap to switch"}
                         </span>

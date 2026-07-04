@@ -26,7 +26,11 @@ const NewTaskPage = async ({
   ]);
 
   return (
-    <TaskCreateClient orgId={orgId} allRoles={allRoles} allTags={allTags} />
+    <TaskCreateClient
+      orgId={orgId}
+      allRoles={allRoles}
+      allTags={allTags}
+    />
   );
 };
 

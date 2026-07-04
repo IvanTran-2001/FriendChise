@@ -184,6 +184,17 @@ body {
   }
 }
 
+/* Used by ScrollingText to continuously auto-scroll overflowing labels
+   right-to-left. */
+@keyframes scrolling-text {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(var(--scrolling-text-distance));
+  }
+}
+
 /* White sidebar with subtle border */
 [data-sidebar="sidebar"] {
   background: oklch(1 0 0);

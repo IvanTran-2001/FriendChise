@@ -1,4 +1,4 @@
-name: Good First Issue Follow-up
+name: Auto Assign Claim
 
 on:
   issue_comment:
@@ -11,8 +11,7 @@ jobs:
   claim:
     if: >-
       github.event_name == 'issue_comment' &&
-      github.event.issue.state == 'open' &&
-      contains(github.event.issue.labels.*.name, 'good first issue')
+      github.event.issue.state == 'open'
     runs-on: ubuntu-latest
 
     steps:
@@ -23,36 +22,28 @@ jobs:
             const issue = context.payload.issue;
             const comment = context.payload.comment;
             const claimant = comment.user.login;
-            const body = comment.body.toLowerCase().trim();
-            const marker = '<!-- good-first-issue-claim -->';
-            const claimPhrases = ['i want to take this'];
+            const body = comment.body.trim();
+            const claimPhrase = 'i want to work on this';
 
-            const matched = claimPhrases.some((phrase) => body.includes(phrase));
-            if (!matched) {
-              core.info('No claim phrase found in the comment.');
+            if (body !== claimPhrase) {
+              core.info('No exact claim phrase found in the comment.');
               return;
             }
 
-            const comments = await github.paginate(
-              github.rest.issues.listComments,
-              {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                per_page: 100,
-              },
+            const { data: freshIssue } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+            });
+
+            const alreadyAssigned = (freshIssue.assignees ?? []).some(
+              (assignee) => assignee.login === claimant,
             );
 
-            const alreadyCommented = comments.some((existingComment) =>
-              existingComment.body?.includes(marker),
-            );
-
-            if (alreadyCommented) {
-              core.info(`Claim comment already exists for issue #${issue.number}.`);
+            if (alreadyAssigned) {
+              core.info(`@${claimant} is already assigned to issue #${issue.number}.`);
               return;
             }
-
-            let assigned = false;
 
             try {
               await github.rest.issues.addAssignees({
@@ -61,18 +52,14 @@ jobs:
                 issue_number: issue.number,
                 assignees: [claimant],
               });
-              assigned = true;
             } catch (error) {
               core.warning(`Could not assign @${claimant} to issue #${issue.number}: ${error.message}`);
+              return;
             }
-
-            const assignmentLine = assigned
-              ? `You have been assigned to this issue.`
-              : `We could not assign you automatically, so please treat this as your claim on the issue.`;
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue.number,
-              body: `${marker}\n\nHi @${claimant},\n\n${assignmentLine}\n\nPlease aim to finish this within 2 days. If you need setup help, start here: https://friendchise.app/doc/development/quick-start.\n\nIf you enjoy the project, please star the repository to support the project.\n\nIf someone else is already working on this, leave a note here and we can sort it out.`,
+              body: `Hi @${claimant}, I assigned this issue to you.`,
             });

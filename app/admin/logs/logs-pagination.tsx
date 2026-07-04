@@ -15,7 +15,7 @@ export function LogsPagination({ currentPage, totalPages }: LogsPaginationProps)
   function goToPage(page: number) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", page.toString());
-    router.push(`?${params.toString()}`);
+    router.push(`/admin/logs?${params.toString()}`);
   }
 
   if (totalPages <= 1) return null;

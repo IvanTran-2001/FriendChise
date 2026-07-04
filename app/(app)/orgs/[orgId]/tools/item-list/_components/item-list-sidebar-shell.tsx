@@ -13,7 +13,7 @@ const tabs = [
     exact: true,
   },
   {
-    label: "Lists",
+    label: "Set",
     icon: LayoutList,
     href: (orgId: string) => `/orgs/${orgId}/tools/item-list/lists`,
     exact: true,
