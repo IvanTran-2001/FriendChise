@@ -60,7 +60,7 @@ const PLACEHOLDER_TOOLS: ToolItem[] = [
     id: "calculator",
     name: "Calculator",
     icon: Calculator,
-    description: "Calculate item prices",
+    description: "Quick arithmetic calculations",
     accent: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
     iconTone: "ring-indigo-500/15 text-indigo-700 dark:text-indigo-300",
     activeBar: "bg-indigo-500",

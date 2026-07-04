@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Divide, X, Minus, Plus, Delete } from "lucide-react";
 
 export function CalculatorClient() {
@@ -14,7 +14,7 @@ export function CalculatorClient() {
   const [equation, setEquation] = useState("");
   const [isNewNumber, setIsNewNumber] = useState(true);
 
-  const handleNumber = (num: string) => {
+  const handleNumber = useCallback((num: string) => {
     if (num === "." && display.includes(".") && !isNewNumber) return;
 
     if (isNewNumber) {
@@ -23,18 +23,18 @@ export function CalculatorClient() {
     } else {
       setDisplay(display === "0" && num !== "." ? num : display + num);
     }
-  };
+  }, [display, isNewNumber]);
 
-  const handleOperator = (op: string) => {
+  const handleOperator = useCallback((op: string) => {
     if (equation.trim().endsWith(")")) {
       setEquation(equation + op + " ");
     } else {
       setEquation(equation + display + " " + op + " ");
     }
     setIsNewNumber(true);
-  };
+  }, [display, equation]);
 
-  const handleBracket = (bracket: string) => {
+  const handleBracket = useCallback((bracket: string) => {
     if (bracket === "(") {
       setEquation(equation + "( ");
     } else {
@@ -45,9 +45,9 @@ export function CalculatorClient() {
       }
     }
     setIsNewNumber(true);
-  };
+  }, [display, equation, isNewNumber]);
 
-  const handleEqual = () => {
+  const handleEqual = useCallback(() => {
     try {
       let fullEquation = equation;
       if (!equation.trim().endsWith(")")) {
@@ -108,22 +108,30 @@ export function CalculatorClient() {
         values.push(applyOp(a, b, op));
       }
 
-      setDisplay(String(values[0] ?? 0));
+      const result = values[0] ?? 0;
+      if (!Number.isFinite(result)) {
+        setDisplay("Error");
+        setEquation("");
+        setIsNewNumber(true);
+        return;
+      }
+
+      setDisplay(String(result));
       setEquation("");
       setIsNewNumber(true);
-    } catch (e) {
+    } catch {
       setDisplay("Error");
       setIsNewNumber(true);
     }
-  };
+  }, [display, equation]);
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     setDisplay("0");
     setEquation("");
     setIsNewNumber(true);
-  };
+  }, []);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     if (isNewNumber) {
       if (equation.length > 0) {
         const parts = equation.trim().split(" ");
@@ -138,7 +146,7 @@ export function CalculatorClient() {
         setIsNewNumber(true);
       }
     }
-  };
+  }, [display, equation, isNewNumber]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -171,7 +179,7 @@ export function CalculatorClient() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [display, equation, isNewNumber]);
+  }, [handleBracket, handleClear, handleDelete, handleEqual, handleNumber, handleOperator]);
 
   const buttonClass = "flex items-center justify-center p-4 rounded-xl text-lg font-medium transition-colors hover:bg-muted active:scale-95 border border-border shadow-sm";
   const opButtonClass = "flex items-center justify-center p-4 rounded-xl text-lg font-medium transition-colors bg-indigo-500/10 text-indigo-700 hover:bg-indigo-500/20 active:scale-95 border border-indigo-500/20 shadow-sm dark:text-indigo-300";

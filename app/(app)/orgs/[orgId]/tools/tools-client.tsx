@@ -41,8 +41,9 @@ const TOOLS = [
     id: "calculator",
     name: "Calculator",
     icon: Calculator,
-    description: "Calculate item prices",
+    description: "Quick arithmetic calculations",
     accent: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
+    topBar: "bg-indigo-500/70",
   },
 ];
 
@@ -77,6 +78,7 @@ export function ToolsClient({
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
               <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:mt-3 sm:text-4xl">
+      topBar?: string;
                 Tooling that feels organized, not crowded.
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:mt-3 sm:text-base">
@@ -237,19 +239,7 @@ export function ToolsClient({
                   href={`/orgs/${orgId}/tools/${tool.id}`}
                   className="group relative overflow-hidden rounded-3xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
                 >
-                  <div
-                    className={`absolute inset-x-0 top-0 h-1 ${
-                      tool.id === "item-list"
-                        ? "bg-emerald-500/70"
-                        : tool.id === "conversion"
-                          ? "bg-sky-500/70"
-                          : tool.id === "roster"
-                            ? "bg-amber-500/70"
-                            : tool.id === "calculator"
-                              ? "bg-indigo-500/70"
-                              : "bg-indigo-500/70"
-                    }`}
-                  />
+                  <div className={`absolute inset-x-0 top-0 h-1 ${tool.topBar ?? "bg-indigo-500/70"}`} />
                   <div className="flex h-full flex-col gap-4">
                     <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ring-1 ${tool.accent}`}>
                       <Icon className="h-5 w-5" />
