@@ -553,6 +553,7 @@ export function TaskCreateClient({
             <div className="rounded-xl border bg-card p-5">
               <TagPanel
                 mode="create"
+                orgId={orgId}
                 allTags={allTags}
                 selectedTags={selectedTags}
                 onSelectedTagsChange={setSelectedTags}

@@ -16,6 +16,7 @@ import {
   addTagAction,
   removeTagAction,
   createAndAddTagAction,
+  createTagOnlyAction,
 } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
 import { SearchableCombobox, type ComboboxItem } from "@/components/ui/searchable-combobox";
@@ -295,6 +296,7 @@ export function ImageUploadPanel({
 export type TagPanelProps =
   | {
       mode: "create";
+      orgId: string;
       allTags: Tag[];
       selectedTags: Tag[];
       onSelectedTagsChange: (tags: Tag[]) => void;
@@ -310,14 +312,15 @@ export type TagPanelProps =
 export function TagPanel(props: TagPanelProps) {
   const isEdit = props.mode === "edit";
   const [tags, setTags] = useState<Tag[]>(isEdit ? props.taskTags : []);
+  const [knownTags, setKnownTags] = useState<Tag[]>(props.allTags);
   const [isPending, startTransition] = useTransition();
   const selectedTags = isEdit ? tags : props.selectedTags;
 
   const tagIds = new Set(selectedTags.map((t) => t.id));
-  const availableItems = props.allTags.filter((t) => !tagIds.has(t.id));
+  const availableItems = knownTags.filter((t) => !tagIds.has(t.id));
 
   const add = (item: ComboboxItem) => {
-    const tag = props.allTags.find((t) => t.id === item.id);
+    const tag = knownTags.find((t) => t.id === item.id);
     if (!tag) return;
     if (isEdit) {
       startTransition(async () => {
@@ -331,12 +334,23 @@ export function TagPanel(props: TagPanelProps) {
   };
 
   const createNew = (name: string) => {
-    if (!isEdit) return;
-    startTransition(async () => {
-      const res = await createAndAddTagAction(props.orgId, props.taskId, name);
-      if (res.ok) setTags((prev) => [...prev, res.tag]);
-      else toast.error(res.error);
-    });
+    if (isEdit) {
+      startTransition(async () => {
+        const res = await createAndAddTagAction(props.orgId, props.taskId, name);
+        if (res.ok) {
+          setKnownTags((prev) => [...prev, res.tag]);
+          setTags((prev) => [...prev, res.tag]);
+        } else toast.error(res.error);
+      });
+    } else {
+      startTransition(async () => {
+        const res = await createTagOnlyAction(props.orgId, name);
+        if (res.ok) {
+          setKnownTags((prev) => [...prev, res.tag]);
+          props.onSelectedTagsChange([...selectedTags, res.tag]);
+        } else toast.error(res.error);
+      });
+    }
   };
 
   const remove = (tagId: string) => {
@@ -363,9 +377,9 @@ export function TagPanel(props: TagPanelProps) {
       <SearchableCombobox
         items={availableItems}
         onSelect={add}
-        onCreate={isEdit ? createNew : undefined}
+        onCreate={createNew}
         triggerLabel="Add tag"
-        placeholder={isEdit ? "Search or create tags…" : "Search tags…"}
+        placeholder={isEdit ? "Search or create tags…" : "Search or create tags…"}
         emptyText="No tags found"
         disabled={isPending}
       />
