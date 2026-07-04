@@ -82,17 +82,6 @@ function getOrgItems(orgId: string): NavItem[] {
     { title: "Tasks", url: `/orgs/${orgId}/tasks`, icon: ListTodo },
     { title: "Tools", url: `/orgs/${orgId}/tools`, icon: Wrench },
     { title: "Members", url: `/orgs/${orgId}/memberships`, icon: Users },
-    {
-      title: "Notification",
-      url: "/notifications",
-      icon: Bell,
-    },
-    {
-      title: "Help",
-      url: "/help",
-      icon: HelpCircle,
-      disabled: true,
-    },
   ];
 }
 
