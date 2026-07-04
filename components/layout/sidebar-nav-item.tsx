@@ -29,20 +29,24 @@ export type SidebarNavItemProps = {
    *  "page" = standard px-3 gap layout for full-width page sidebars. */
   variant?: "app" | "page";
   onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
+  ignoreRemembered?: boolean;
 };
 
 function useRememberedNavHref({
   url,
   isActive,
   pathname,
+
   disabled,
+  ignoreRemembered,
 }: {
   url: string;
   isActive: boolean;
   pathname: string;
   disabled?: boolean;
+  ignoreRemembered?: boolean;
 }) {
-  const isToolsMenu = url.endsWith("/tools");
+  const isToolsMenu = !ignoreRemembered && url.endsWith("/tools");
   const storageKey = isToolsMenu ? `friendchise-nav-url-${url}` : null;
 
   const subscribe = (onStoreChange: () => void) => {
@@ -101,10 +105,11 @@ export function SidebarNavItem({
   isActive,
   variant = "page",
   onClick,
+  ignoreRemembered,
 }: SidebarNavItemProps) {
   // Active — clean left accent bar + very subtle fill (Jira-style)
   const pathname = usePathname();
-  const dynamicHref = useRememberedNavHref({ url, isActive, pathname, disabled });
+  const dynamicHref = useRememberedNavHref({ url, isActive, pathname, disabled, ignoreRemembered });
 
   const appActive =
     "bg-sidebar-primary/10 text-primary font-semibold before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:rounded-r-full before:bg-primary";

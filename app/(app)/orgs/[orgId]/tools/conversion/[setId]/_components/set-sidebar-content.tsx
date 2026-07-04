@@ -126,6 +126,7 @@ export function SetSidebarContent({
         url={`/orgs/${orgId}/tools/conversion`}
         icon={ArrowLeft}
         isActive={false}
+        ignoreRemembered={true}
       />
 
       {/* View */}

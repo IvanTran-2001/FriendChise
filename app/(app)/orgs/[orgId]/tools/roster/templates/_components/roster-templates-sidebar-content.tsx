@@ -113,6 +113,7 @@ export function RosterTemplatesSidebarContent({
         url={`/orgs/${orgId}/tools/roster`}
         icon={ArrowLeft}
         isActive={false}
+        ignoreRemembered={true}
       />
 
       {/* Templates (active) */}

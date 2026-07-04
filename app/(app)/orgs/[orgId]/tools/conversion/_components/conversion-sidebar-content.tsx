@@ -36,6 +36,7 @@ export function ConversionSidebarContent({ orgId }: { orgId: string }) {
         url={`/orgs/${orgId}/tools`}
         icon={ArrowLeft}
         isActive={false}
+        ignoreRemembered={true}
       />
 
       {/* Actions */}
