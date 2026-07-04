@@ -152,10 +152,12 @@ export function TaskCreateClient({
   orgId,
   allRoles,
   allTags,
+  initialSearch,
 }: {
   orgId: string;
   allRoles: Role[];
   allTags: Tag[];
+  initialSearch?:string;
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -503,28 +505,27 @@ export function TaskCreateClient({
             </p>
           )}
 
-          <div className="flex flex-col gap-6 rounded-xl border bg-card p-5">
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="title" className="text-sm font-medium">
-                Title <span className="text-destructive">*</span>
-              </label>
-              <Input
-                id="title"
-                name="title"
-                type="text"
-                required
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                placeholder="e.g. Deep clean kitchen"
-                aria-invalid={!!err("title")}
-                aria-describedby={err("title") ? "title-error" : undefined}
-              />
-              {err("title") && (
-                <p id="title-error" className="text-xs text-destructive">
-                  {err("title")}
-                </p>
-              )}
-            </div>
+        <div className="flex flex-col gap-6 rounded-xl border bg-card p-5">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="title" className="text-sm font-medium">
+              Title <span className="text-destructive">*</span>
+            </label>
+            <Input
+              id="title"
+              name="title"
+              type="text"
+              required
+              defaultValue={initialSearch ?? ""}
+              placeholder="e.g. Deep clean kitchen"
+              aria-invalid={!!err("title")}
+              aria-describedby={err("title") ? "title-error" : undefined}
+            />
+            {err("title") && (
+              <p id="title-error" className="text-xs text-destructive">
+                {err("title")}
+              </p>
+            )}
+          </div>
 
             <div className="flex flex-col gap-1.5">
               <label htmlFor="description" className="text-sm font-medium">
