@@ -21,3 +21,7 @@ export function orgColor(name: string): string {
     .reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
   return PALETTE[hash % PALETTE.length];
 }
+
+export function getRandomColor(): string {
+  return PALETTE[Math.floor(Math.random() * PALETTE.length)];
+}
