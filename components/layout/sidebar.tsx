@@ -120,6 +120,7 @@ function getSettingsItems(orgId: string): NavItem[] {
     },
     { title: "Roles", url: `/orgs/${orgId}/settings/roles`, icon: ShieldCheck },
     { title: "Tags", url: `/orgs/${orgId}/settings/tags`, icon: Tag },
+    { title: "User", url: `/orgs/${orgId}/settings/`, icon: User },
     {
       title: "Timetable",
       url: `/orgs/${orgId}/settings/timetable`,
