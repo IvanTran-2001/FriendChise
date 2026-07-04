@@ -108,6 +108,16 @@ export function SearchableCombobox({
             autoFocus
             value={search}
             onChange={(event) => setSearch(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                if (canCreate) {
+                  handleCreate();
+                } else if (filtered.length > 0) {
+                  handleSelect(filtered[0]);
+                }
+              }
+            }}
             placeholder={placeholder}
             className="h-9 rounded-xl border-border/70 bg-background/90 text-sm shadow-sm focus-visible:ring-0"
           />
