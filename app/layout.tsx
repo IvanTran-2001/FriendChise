@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, DM_Serif_Display, JetBrains_Mono } from "next/font/google";
+import { DM_Sans, JetBrains_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "sonner";
 import "./globals.css";
@@ -7,13 +7,6 @@ import "./globals.css";
 const dmSans = DM_Sans({
   subsets: ["latin"],
   variable: "--font-sans",
-  display: "swap",
-});
-
-const dmSerifDisplay = DM_Serif_Display({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-heading",
   display: "swap",
 });
 
@@ -36,7 +29,7 @@ export const viewport: Viewport = {
  * Root HTML shell shared by every page.
  *
  * Responsibilities:
- * - Injects Geist Sans and Geist Mono CSS variables for the design system.
+ * - Injects DM Sans and JetBrains Mono CSS variables for the design system.
  * - Wraps the tree in `TooltipProvider` so any component can render a tooltip
  *   without mounting its own provider.
  * - Mounts the Sonner `Toaster` globally so server actions and client code can
@@ -50,7 +43,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${dmSans.variable} ${dmSerifDisplay.variable} ${jetbrainsMono.variable} antialiased`}
+        className={`${dmSans.variable} ${jetbrainsMono.variable} antialiased`}
         suppressHydrationWarning
       >
         <TooltipProvider>

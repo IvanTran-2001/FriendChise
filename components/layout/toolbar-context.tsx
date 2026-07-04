@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useState,
+  useEffect,
   useLayoutEffect,
   useRef,
   type ReactNode,
@@ -16,17 +17,22 @@ const ROW = 48; // h-12
 type ToolbarCtxValue = {
   mountNode: HTMLElement | null;
   setMountNode: (node: HTMLElement | null) => void;
+  hasContent: boolean;
+  setHasContent: (value: boolean) => void;
 };
 
 const ToolbarCtx = createContext<ToolbarCtxValue>({
   mountNode: null,
   setMountNode: () => {},
+  hasContent: false,
+  setHasContent: () => {},
 });
 
 export function ToolbarProvider({ children }: { children: ReactNode }) {
   const [mountNode, setMountNode] = useState<HTMLElement | null>(null);
+  const [hasContent, setHasContent] = useState(false);
   return (
-    <ToolbarCtx.Provider value={{ mountNode, setMountNode }}>
+    <ToolbarCtx.Provider value={{ mountNode, setMountNode, hasContent, setHasContent }}>
       {children}
     </ToolbarCtx.Provider>
   );
@@ -38,14 +44,17 @@ export function ToolbarProvider({ children }: { children: ReactNode }) {
  * Height snaps to multiples of 48px, same as the old inline Toolbar.
  */
 export function ToolbarSlot() {
-  const { setMountNode } = useContext(ToolbarCtx);
+  const { setMountNode, hasContent } = useContext(ToolbarCtx);
   const sidebarCollapsed = usePageSidebarCollapsed();
   const innerRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(ROW);
 
   useLayoutEffect(() => {
     const el = innerRef.current;
-    if (!el) return;
+    if (!el || !hasContent) {
+      setMountNode(null);
+      return;
+    }
 
     setMountNode(el);
 
@@ -60,7 +69,9 @@ export function ToolbarSlot() {
       ro.disconnect();
       setMountNode(null);
     };
-  }, [setMountNode]);
+  }, [hasContent, setMountNode]);
+
+  if (!hasContent) return null;
 
   return (
     <div
@@ -79,7 +90,12 @@ export function ToolbarSlot() {
  * Clears automatically when the component unmounts.
  */
 export function RegisterPageToolbar({ children }: { children: ReactNode }) {
-  const { mountNode } = useContext(ToolbarCtx);
+  const { mountNode, setHasContent } = useContext(ToolbarCtx);
+
+  useEffect(() => {
+    setHasContent(true);
+    return () => setHasContent(false);
+  }, [setHasContent]);
 
   if (!mountNode) return null;
 
