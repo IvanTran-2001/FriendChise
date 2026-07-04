@@ -11,6 +11,7 @@
  */
 import { useState, useReducer, useTransition, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useSupportsHover } from "@/hooks/use-hover-capability";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import { MoreHorizontal, ListTodo, Plus, Loader2 } from "lucide-react";
@@ -350,6 +351,8 @@ export function TaskTable({
   const isEmpty = !initialLoad && !isFetching && tasks.length === 0;
   const hasMore = !!nextCursor;
   const showSkeleton = initialLoad || (isFetching && tasks.length === 0);
+  const trimmedSearch = search.trim();
+  const hasSearch = trimmedSearch !== "";
 
   return (
     <>
@@ -375,32 +378,28 @@ export function TaskTable({
             <div className="flex flex-col items-center gap-3 text-center">
               <ListTodo className="h-10 w-10 text-muted-foreground/40" />
               <p className="text-2xl font-semibold text-foreground">
-                {search ? "No tasks match your search" : "No tasks yet"}
+                {hasSearch ? "No tasks match your search" : "No tasks yet"}
               </p>
-              {search && canManageTasks && (
-                  <div
-                    role="listbox"
-                    className="w-full max-w-xs overflow-hidden rounded-md border bg-popover shadow-sm">
-                      <a
-                      href={`/orgs/${orgId}/tasks/new?title=${encodeURIComponent(search.trim())}`}
-                      role="option"
-                      aria-selected="true"
-                      className="flex items-center gap-2 px-3 py-2.5 text-sm text-foreground hover:bg-accent focus:bg-accent focus:outline-none"
-                      >
-                      <Plus className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <span className="truncate">
-                        Create <span className="font-medium">"{search.trim()}"</span>
-                      </span>
-                    </a>
-                  </div>
+              {hasSearch && canManageTasks && (
+                <div className="w-full max-w-xs overflow-hidden rounded-md border bg-popover shadow-sm">
+                  <Link
+                    href={`/orgs/${orgId}/tasks/new?title=${encodeURIComponent(trimmedSearch)}`}
+                    className="flex items-center gap-2 px-3 py-2.5 text-sm text-foreground hover:bg-accent focus:bg-accent focus:outline-none"
+                  >
+                    <Plus className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="truncate">
+                      Create <span className="font-medium">&quot;{trimmedSearch}&quot;</span>
+                    </span>
+                  </Link>
+                </div>
                 )}
-              {!search && canManageTasks && (
-                <a
-                href={`/orgs/${orgId}/tasks/new`}
-                className="text-sm text-primary hover:underline"
+              {!hasSearch && canManageTasks && (
+                <Link
+                  href={`/orgs/${orgId}/tasks/new`}
+                  className="text-sm text-primary hover:underline"
                 >
                   Create your first task
-                </a>
+                </Link>
               )}
             </div>
           </div>
