@@ -62,7 +62,7 @@ import type { SharedTask, SharedMembership } from "../../_shared/types";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { registerDragHandlers, unregisterDragHandlers } from "../../_shared/drag-registry";
 import Link from "next/link";
-import { usePersistedState } from "@/hooks/use-persisted-state";
+
 import { CalendarEditSidebarContent } from "./template-timetable-client/calendar-edit-sidebar-content";
 import { TemplateSimpleView } from "./template-timetable-client/simple-view";
 
@@ -122,6 +122,7 @@ interface TemplateEditorClientProps {
   fillHeight?: boolean;
   mode: "calendar" | "simple";
   span: "day" | "week";
+  colorFilter: "task" | "role" | "tag";
   /** Rendered at the end of the toolbar (template name / metadata). */
   title?: ReactNode;
   /** Optional external dragging state controlled by a parent bridge. */
@@ -147,6 +148,7 @@ export function TemplateEditorClient({
   title,
   isDraggingExternal,
   onExternalDragChange,
+  colorFilter,
 }: TemplateEditorClientProps) {
   const router = useRouter();
   const [isPending, startT] = useTransition();
@@ -214,10 +216,6 @@ export function TemplateEditorClient({
     timeMin: number;
   } | null>(null);
   const { hourHeight } = useTimetableZoom();
-  const [colorFilter] = usePersistedState<"task" | "role" | "tag">(
-    "friendchise-color-filter",
-    "task",
-  );
 
   const getTaskColor = useCallback((inst: ClientTemplateInstance) => {
     const entry = taskColors[inst.task.id];
@@ -601,6 +599,7 @@ export function TemplateEditorClient({
           templateId={templateId}
           availableTasks={availableTasks}
           taskColors={taskColors}
+          colorFilter={colorFilter}
         />
       )}
 

@@ -25,6 +25,8 @@ interface TemplateEditorSidebarContentProps {
   onModeChange: (mode: "calendar" | "simple") => void;
   onSpanChange: (span: "day" | "week") => void;
   availableTasks: SharedTask[];
+  colorFilter?: "task" | "role" | "tag";
+  onColorFilterChange?: (value: "task" | "role" | "tag") => void;
 }
 
 function ZoomSlider() {
@@ -61,6 +63,8 @@ export function TemplateEditorSidebarContent({
   onModeChange,
   onSpanChange,
   availableTasks,
+  colorFilter,
+  onColorFilterChange,
 }: TemplateEditorSidebarContentProps) {
   const router = useRouter();
   const [isPending, startT] = useTransition();
@@ -104,7 +108,7 @@ export function TemplateEditorSidebarContent({
           Filters
         </p>
         <div className="flex flex-col gap-2">
-          <ColorFilterButton />
+          <ColorFilterButton value={colorFilter} onChange={onColorFilterChange} />
         </div>
       </div>
 
