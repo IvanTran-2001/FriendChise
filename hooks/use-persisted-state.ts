@@ -17,10 +17,6 @@ export function usePersistedState<T>(
   // Initialize with initialValue to avoid SSR hydration mismatch
   const [state, setState] = useState<T>(initialValue);
   const [hydrated, setHydrated] = useState(false);
-  // Tracks whether the initial render has passed — we must NOT write on the
-  // first render because the read effect hasn't restored the stored value yet,
-  // so writing would overwrite localStorage with the blank initialValue.
-  const canWrite = useRef(false);
   const lastSerializedRef = useRef<string | null>(null);
 
   // Read from localStorage after mount (client-side only)
