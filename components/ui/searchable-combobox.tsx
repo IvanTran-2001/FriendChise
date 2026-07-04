@@ -114,7 +114,10 @@ export function SearchableCombobox({
                 if (canCreate) {
                   handleCreate();
                 } else if (filtered.length > 0) {
-                  handleSelect(filtered[0]);
+                  const exactMatch = filtered.find(
+                    (item) => item.name.toLowerCase() === trimmed.toLowerCase(),
+                  );
+                  handleSelect(exactMatch ?? filtered[0]);
                 }
               }
             }}
