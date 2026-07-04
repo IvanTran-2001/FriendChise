@@ -6,7 +6,6 @@ import { CalendarDays, ExternalLink } from "lucide-react";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { useSupportsHover } from "@/hooks/use-hover-capability";
 import { cn } from "@/lib/utils";
-import { usePersistedState } from "@/hooks/use-persisted-state";
 import { groupBy, minTo12h } from "../../../_shared/grid-utils";
 import { AddTemplateTaskPanel } from "../_components/add-template-task-panel";
 import { CalendarEditSidebarContent } from "./calendar-edit-sidebar-content";
@@ -24,6 +23,7 @@ interface SimpleViewProps {
     string,
     { color: string | null; roleColor: string | null; tagColor: string | null }
   >;
+  colorFilter: "task" | "role" | "tag";
 }
 
 export function TemplateSimpleView({
@@ -35,17 +35,13 @@ export function TemplateSimpleView({
   templateId,
   availableTasks,
   taskColors,
+  colorFilter,
 }: SimpleViewProps) {
   const router = useRouter();
   const supportsHover = useSupportsHover();
   const actionSidebar = useActionSidebar();
   const [highlightedDay, setHighlightedDay] = useState<string | null>(null);
   const clearHighlight = useCallback(() => setHighlightedDay(null), []);
-
-  const [colorFilter] = usePersistedState<"task" | "role" | "tag">(
-    "friendchise-color-filter",
-    "task",
-  );
 
   const getTaskColor = useCallback((inst: ClientTemplateInstance) => {
     const entry = taskColors[inst.task.id];
