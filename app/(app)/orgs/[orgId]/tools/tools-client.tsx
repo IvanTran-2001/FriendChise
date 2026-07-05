@@ -78,6 +78,8 @@ export function ToolsClient({
     [],
   );
 
+  const favoriteTools = hydrated ? TOOLS.filter((tool) => favoriteIds.includes(tool.id)) : [];
+
   const toggleFavorite = (toolId: string) => {
     setFavoriteIds((prev) => {
       const isFav = prev.includes(toolId);
@@ -247,9 +249,9 @@ export function ToolsClient({
             </p>
           </div>
 
-          {hydrated && favoriteIds.length > 0 ? (
+          {favoriteTools.length > 0 ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {TOOLS.filter((t) => favoriteIds.includes(t.id)).map((tool) => {
+              {favoriteTools.map((tool) => {
                 const Icon = tool.icon;
                 return (
                   <Link
