@@ -120,7 +120,7 @@ function getSettingsItems(orgId: string): NavItem[] {
     },
     { title: "Roles", url: `/orgs/${orgId}/settings/roles`, icon: ShieldCheck },
     { title: "Tags", url: `/orgs/${orgId}/settings/tags`, icon: Tag },
-    { title: "User", url: `/orgs/${orgId}/settings/`, icon: User },
+    { title: "User", url: `/orgs/${orgId}/settings`, icon: User },
     {
       title: "Timetable",
       url: `/orgs/${orgId}/settings/timetable`,
@@ -204,6 +204,7 @@ export function AppSidebar() {
 
   const isActiveItem = (url: string) => {
     if (orgId && url === `/orgs/${orgId}`) return pathname === url;
+    if (orgId && url === `/orgs/${orgId}/settings`) return pathname === url;
     return pathname === url || pathname.startsWith(`${url}/`);
   };
 
