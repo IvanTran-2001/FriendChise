@@ -15,9 +15,9 @@ labels: good first issue, enhancement, help wanted, Beginner Friendly, UI
 This issue is intended for first-time contributors only. If you are not a first-time contributor, please choose a different issue.
 
 ## ⭐ Before You Start
-If you enjoy the project, please consider starring the repository. Every star helps support future development and encourages more open-source contributions.
-If you need setup help, start here: https://friendchise.app/doc/development/quick-start
-To claim this issue, comment with `I want to take this`. If claimed by a first-time contributor, it may be auto-assigned.
+⭐ Please star the project to support FriendChise. Every star helps future development and encourages more open-source contributions.
+If you need setup help, start with quick-start: https://friendchise.app/doc/development/quick-start
+To claim this issue, comment with `I want to take this`. If you run into any issues, message here.
 
 ---
 

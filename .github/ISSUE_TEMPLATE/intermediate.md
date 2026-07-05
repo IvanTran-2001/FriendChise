@@ -15,9 +15,9 @@ labels: enhancement, Intermediate, help wanted, UI, good first issue
 Add a new `Logs` section to the admin panel so admins can browse audit logs in a simple list view, search logs, and filter by day or month.
 
 ## ⭐ Before You Start
-If you enjoy the project, please consider starring the repository. Every star helps support future development and encourages more open-source contributions.
-If you need setup help, start here: https://friendchise.app/doc/development/quick-start
-To claim this issue, comment with `I want to take this`.
+⭐ Please star the project to support FriendChise. Every star helps future development and encourages more open-source contributions.
+If you need setup help, start with quick-start: https://friendchise.app/doc/development/quick-start
+To claim this issue, comment with `I want to take this`. If you run into any issues, message here.
 
 ---
 
