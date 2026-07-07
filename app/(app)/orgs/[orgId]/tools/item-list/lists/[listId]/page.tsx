@@ -1,10 +1,6 @@
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
-import { requireOrgMemberPage } from "@/lib/authz";
-import {
-  getOrgMembership,
-  memberHasPermission,
-} from "@/lib/authz/_shared";
+import { requireOrgPermissionPage } from "@/lib/authz";
 import { PermissionAction } from "@prisma/client";
 import { getToolItemListDetail, getToolItemsFull, getConversionSets, getConversionRates } from "@/lib/services/tools";
 import { createSignedReadUrls } from "@/lib/supabase-storage";
@@ -28,7 +24,7 @@ export default async function ListDetailPage({
   const { orgId, listId } = await params;
   const { view: viewParam, set: setParam } = await searchParams;
 
-  const { userId } = await requireOrgMemberPage(orgId);
+  await requireOrgPermissionPage(orgId, PermissionAction.MANAGE_TASKS);
 
   // Restore last-used conversion set from cookie when URL has no ?set= param
   const cookieStore = await cookies();
@@ -59,14 +55,7 @@ export default async function ListDetailPage({
         ? "grid"
         : defaultView;
 
-  const membership = userId ? await getOrgMembership(orgId, userId) : null;
-  const canManage = membership
-    ? await memberHasPermission(
-        membership.id,
-        orgId,
-        PermissionAction.MANAGE_TASKS,
-      )
-    : false;
+  const canManage = true;
 
   void recordRecentActivity({
     orgId,

@@ -142,6 +142,7 @@ export function ItemListPageClient({
         }}
         onDeleted={(id) => {
           setItems((prev) => prev.filter((i) => i.id !== id));
+          setTotalCount((current) => Math.max(0, current - 1));
           close();
         }}
         onClose={close}

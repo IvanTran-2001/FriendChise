@@ -1,8 +1,4 @@
-import { requireOrgMemberPage } from "@/lib/authz";
-import {
-  getOrgMembership,
-  memberHasPermission,
-} from "@/lib/authz/_shared";
+import { requireOrgPermissionPage } from "@/lib/authz";
 import { PermissionAction } from "@prisma/client";
 import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
 import { ItemListSidebarShell } from "./_components/item-list-sidebar-shell";
@@ -18,12 +14,8 @@ export default async function ItemListPage({
   const { orgId } = await params;
   const sp = await searchParams;
   const view: "grid" | "list" = sp.view === "list" ? "list" : "grid";
-  const { userId } = await requireOrgMemberPage(orgId);
-
-  const membership = userId ? await getOrgMembership(orgId, userId) : null;
-  const canManage = membership
-    ? await memberHasPermission(membership.id, orgId, PermissionAction.MANAGE_TASKS)
-    : false;
+  await requireOrgPermissionPage(orgId, PermissionAction.MANAGE_TASKS);
+  const canManage = true;
 
   return (
     <>

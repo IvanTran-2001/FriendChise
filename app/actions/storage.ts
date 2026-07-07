@@ -19,7 +19,7 @@
  */
 
 import { PermissionAction } from "@prisma/client";
-import { requireOrgPermissionAction } from "@/lib/authz";
+import { requireOrgMemberAction, requireOrgPermissionAction } from "@/lib/authz";
 import {
   createSignedUploadUrl,
   createSignedUploadUrlPublic,
@@ -570,7 +570,7 @@ export async function getOrgStorageReadUrl(
   orgId: string,
   storagePath: string,
 ): Promise<{ ok: true; signedUrl: string } | { ok: false; error: string }> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  const authz = await requireOrgMemberAction(orgId);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");

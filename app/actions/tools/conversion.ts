@@ -207,7 +207,11 @@ export async function deleteToolItemAction(orgId: string, id: string) {
     });
     return {
       ok: false as const,
-      error: mappedError ?? "Failed to delete item.",
+      error:
+        mappedError ??
+        (err instanceof Error && err.message === "Item is used in a menu."
+          ? "Cannot delete an item that is used in a menu."
+          : "Failed to delete item."),
     };
   }
 }

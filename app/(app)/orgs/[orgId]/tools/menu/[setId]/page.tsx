@@ -1,9 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireOrgMemberPage } from "@/lib/authz";
-import {
-  getOrgMembership,
-  memberHasPermission,
-} from "@/lib/authz/_shared";
+import { requireOrgPermissionPage } from "@/lib/authz";
 import { PermissionAction } from "@prisma/client";
 import { getMenuDetail, getToolItemsFull } from "@/lib/services/tools";
 import { MenuDetailClient } from "./_components/menu-detail-client";
@@ -20,12 +16,8 @@ export default async function MenuDetailPage({
   params: Promise<{ orgId: string; setId: string }>;
 }) {
   const { orgId, setId } = await params;
-  const { userId } = await requireOrgMemberPage(orgId);
-
-  const membership = userId ? await getOrgMembership(orgId, userId) : null;
-  const canManage = membership
-    ? await memberHasPermission(membership.id, orgId, PermissionAction.MANAGE_TASKS)
-    : false;
+  await requireOrgPermissionPage(orgId, PermissionAction.MANAGE_TASKS);
+  const canManage = true;
 
   const [menu, toolItems] = await Promise.all([
     getMenuDetail(orgId, setId),

@@ -83,7 +83,10 @@ export async function updateToolItemListAction(
   const trimmed = name.trim();
   if (!trimmed) return { ok: false as const, error: "Name is required." };
   try {
-    await updateToolItemList(orgId, listId, { name: trimmed, description: description ?? null });
+    const result = await updateToolItemList(orgId, listId, { name: trimmed, description: description ?? null });
+    if (result.count === 0) {
+      return { ok: false as const, error: "List not found." };
+    }
     revalidatePath(`/orgs/${orgId}/tools/item-list/lists`);
     return { ok: true as const };
   } catch (err: unknown) {

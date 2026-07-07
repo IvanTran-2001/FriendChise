@@ -65,7 +65,11 @@ export function MenuCardActions({
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onSelect={() => onDelete(menuId)}
+          onSelect={() => {
+            if (window.confirm(`Delete "${menu.name}"? This cannot be undone.`)) {
+              onDelete(menuId);
+            }
+          }}
           className="text-destructive focus:text-destructive"
         >
           <Trash2 className="mr-2 h-4 w-4" />

@@ -72,10 +72,15 @@ export function MenuListsPageClient({
   const keyRef = useRef(0);
   const [menus, setMenus] = useState<MenuSummary[]>(initialMenus);
   const [search, setSearch] = useState(initialSearch);
+  const [pendingMenuId, setPendingMenuId] = useState<string | null>(null);
 
   useEffect(() => {
     setSearch(initialSearch);
   }, [initialSearch]);
+
+  useEffect(() => {
+    setMenus(initialMenus);
+  }, [initialMenus]);
 
   function buildHref(nextPage: number, nextSearch: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -124,25 +129,35 @@ export function MenuListsPageClient({
   }
 
   async function handleDuplicate(menuId: string) {
-    const result = await duplicateMenuAction(orgId, menuId);
-    if (!result.ok) {
-      toast.error(result.error ?? "Failed to duplicate menu.");
-      return;
+    setPendingMenuId(menuId);
+    try {
+      const result = await duplicateMenuAction(orgId, menuId);
+      if (!result.ok) {
+        toast.error(result.error ?? "Failed to duplicate menu.");
+        return;
+      }
+      setMenus((prev) => [...prev, result.menu].sort(sortMenus));
+      toast.success(`"${result.menu.name}" created.`);
+      router.refresh();
+    } finally {
+      setPendingMenuId((current) => (current === menuId ? null : current));
     }
-    setMenus((prev) => [...prev, result.menu].sort(sortMenus));
-    toast.success(`"${result.menu.name}" created.`);
-    router.refresh();
   }
 
   async function handleDelete(menuId: string) {
-    const result = await deleteMenuAction(orgId, menuId);
-    if (!result.ok) {
-      toast.error(result.error ?? "Failed to delete menu.");
-      return;
+    setPendingMenuId(menuId);
+    try {
+      const result = await deleteMenuAction(orgId, menuId);
+      if (!result.ok) {
+        toast.error(result.error ?? "Failed to delete menu.");
+        return;
+      }
+      setMenus((prev) => prev.filter((menu) => menu.id !== menuId));
+      toast.success("Menu deleted.");
+      router.refresh();
+    } finally {
+      setPendingMenuId((current) => (current === menuId ? null : current));
     }
-    setMenus((prev) => prev.filter((menu) => menu.id !== menuId));
-    toast.success("Menu deleted.");
-    router.refresh();
   }
 
   function handleSearchChange(nextSearch: string) {
@@ -202,7 +217,10 @@ export function MenuListsPageClient({
                 tabIndex={0}
                 onClick={() => handleOpenMenu(menu.id)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
+                  if (
+                    (event.key === "Enter" || event.key === " ") &&
+                    event.target === event.currentTarget
+                  ) {
                     event.preventDefault();
                     handleOpenMenu(menu.id);
                   }
@@ -227,7 +245,7 @@ export function MenuListsPageClient({
                       <MenuCardActions
                         menu={menu}
                         menuId={menu.id}
-                        disabled={false}
+                        disabled={pendingMenuId === menu.id}
                         onEdit={handleEditMenu}
                         onDuplicate={handleDuplicate}
                         onDelete={handleDelete}

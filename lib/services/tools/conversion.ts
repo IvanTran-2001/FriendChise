@@ -157,6 +157,11 @@ export async function createToolItem(
 }
 
 export async function deleteToolItem(orgId: string, id: string) {
+  const menuItemCount = await prisma.menuItem.count({ where: { toolItemId: id, menu: { orgId } } });
+  if (menuItemCount > 0) {
+    throw new Error("Item is used in a menu.");
+  }
+
   await prisma.toolItem.deleteMany({ where: { id, orgId } });
 }
 
