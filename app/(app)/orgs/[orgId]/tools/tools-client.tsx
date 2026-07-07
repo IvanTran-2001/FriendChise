@@ -13,7 +13,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeftRight, ArrowRight, LayoutList, List, Users, Calculator, Star } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, LayoutList, List, Users, Calculator, Star, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 
@@ -31,6 +31,13 @@ const TOOLS = [
     icon: ArrowLeftRight,
     description: "Convert quantities between items",
     accent: "bg-sky-500/10 text-sky-700 ring-sky-500/15 dark:text-sky-300",
+  },
+  {
+    id: "menu",
+    name: "Menu",
+    icon: ClipboardList,
+    description: "Build customer-facing menus",
+    accent: "bg-rose-500/10 text-rose-700 ring-rose-500/15 dark:text-rose-300",
   },
   {
     id: "roster",
@@ -260,7 +267,7 @@ export function ToolsClient({
                     className="group relative overflow-hidden rounded-3xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
                   >
                     <div className={`absolute inset-x-0 top-0 h-1 ${tool.topBar ?? "bg-indigo-500/70"}`} />
-                    
+
                     <button
                       onClick={(e) => {
                         e.preventDefault();
@@ -326,7 +333,7 @@ export function ToolsClient({
                   className="group relative overflow-hidden rounded-3xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
                 >
                   <div className={`absolute inset-x-0 top-0 h-1 ${tool.topBar ?? "bg-indigo-500/70"}`} />
-                  
+
                   <button
                     onClick={(e) => {
                       e.preventDefault();

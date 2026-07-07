@@ -222,6 +222,7 @@ model Organization {
   invites             Invite[]
   announcements       Announcement[]
   auditLogs           AuditLog[]
+  menus               Menu[]
   toolItems           ToolItem[]
   toolItemLists       ToolItemList[]
   conversionSets      ConversionSet[]
@@ -890,9 +891,100 @@ model ToolItem {
   ratesTo              ConversionRate[]          @relation("RateToItem")
   templateEntries      ConversionTemplateEntry[]
   listEntries          ToolItemListEntry[]
+  menuItems            MenuItem[]
 
   @@unique([orgId, name])
   @@index([orgId])
+}
+
+// ─────────────────────────────────────
+// MENU
+// Org-scoped customer-facing menu collection.
+// Each org can have multiple menus, each with ordered tabs/sections.
+// ─────────────────────────────────────
+
+model Menu {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tabs        MenuTab[]
+  items       MenuItem[]
+
+  @@unique([orgId, name])
+  @@index([orgId])
+}
+
+// ─────────────────────────────────────
+// MENU TAB
+// A tab/section inside a menu.
+// Items can appear in multiple tabs, and ordering is stored per tab.
+// ─────────────────────────────────────
+
+model MenuTab {
+  id          String   @id @default(cuid())
+  menuId      String
+  name        String
+  description String?
+  position    Int
+  menu        Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  placements  MenuTabPlacement[]
+
+  @@unique([menuId, name])
+  @@index([menuId])
+}
+
+// ─────────────────────────────────────
+// MENU ITEM
+// Live-linked customer-facing item row.
+// One menu item references one ToolItem and can be reused in multiple sets.
+// ─────────────────────────────────────
+
+model MenuItem {
+  id          String   @id @default(cuid())
+  menuId      String
+  toolItemId  String
+  title       String
+  description String?
+  price       Float?
+  calories    Int?
+  notes       String?
+  imageUrl    String?
+  menu        Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  toolItem    ToolItem @relation(fields: [toolItemId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  placements  MenuTabPlacement[]
+
+  @@unique([menuId, toolItemId])
+  @@index([menuId])
+  @@index([toolItemId])
+}
+
+// ─────────────────────────────────────
+// MENU TAB PLACEMENT
+// Join table for ordering menu items within a tab/section.
+// ─────────────────────────────────────
+
+model MenuTabPlacement {
+  id         String   @id @default(cuid())
+  menuTabId  String
+  menuItemId String
+  position   Int
+  menuTab    MenuTab  @relation(fields: [menuTabId], references: [id], onDelete: Cascade)
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@unique([menuTabId, menuItemId])
+  @@index([menuTabId])
+  @@index([menuItemId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

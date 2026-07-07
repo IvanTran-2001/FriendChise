@@ -13,7 +13,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
-import { ArrowLeftRight, List, Users, Calculator, Star } from "lucide-react";
+import { ArrowLeftRight, List, Users, Calculator, Star, ClipboardList } from "lucide-react";
 import { SearchInput } from "@/components/ui/search-input";
 import { cn } from "@/lib/utils";
 import { usePersistedState } from "@/hooks/use-persisted-state";
@@ -47,6 +47,15 @@ const PLACEHOLDER_TOOLS: ToolItem[] = [
     accent: "bg-sky-500/10 text-sky-700 dark:text-sky-300",
     iconTone: "ring-sky-500/15 text-sky-700 dark:text-sky-300",
     activeBar: "bg-sky-500",
+  },
+  {
+    id: "menu",
+    name: "Menu",
+    icon: ClipboardList,
+    description: "Customer-facing menu layouts",
+    accent: "bg-rose-500/10 text-rose-700 dark:text-rose-300",
+    iconTone: "ring-rose-500/15 text-rose-700 dark:text-rose-300",
+    activeBar: "bg-rose-500",
   },
   {
     id: "roster",
