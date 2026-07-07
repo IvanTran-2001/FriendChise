@@ -1,6 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+/**
+ * Item list page client.
+ * Owns the API-backed item data, pagination, search, and the item detail
+ * sidebar state for the item list tool.
+ */
+
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { ItemListSidebarContent } from "./item-list-sidebar-content";
@@ -9,20 +16,68 @@ import { ItemDetailPanel } from "./item-detail-panel";
 
 interface ItemListPageClientProps {
   orgId: string;
-  items: ToolItem[];
   canManage: boolean;
   view: "grid" | "list";
 }
 
 export function ItemListPageClient({
   orgId,
-  items: initial,
   canManage,
   view,
 }: ItemListPageClientProps) {
   const { open, close } = useActionSidebar();
   const keyRef = useRef(0);
-  const [items, setItems] = useState<ToolItem[]>(initial);
+  const [items, setItems] = useState<ToolItem[]>([]);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const pageSize = view === "grid" ? 24 : 30;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadItems() {
+      setIsLoading(true);
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("limit", String(pageSize));
+      if (search.trim()) params.set("search", search.trim());
+
+      try {
+        const response = await fetch(`/api/orgs/${orgId}/tools/item-list?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error("Failed to load items.");
+        }
+        const data = (await response.json()) as {
+          items: ToolItem[];
+          totalPages: number;
+          totalCount: number;
+        };
+        if (cancelled) return;
+        setItems(data.items);
+        setTotalPages(Math.max(1, data.totalPages));
+        setTotalCount(data.totalCount);
+      } catch {
+        if (!cancelled) {
+          setItems([]);
+          setTotalPages(1);
+          setTotalCount(0);
+          toast.error("Failed to load items.");
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    loadItems();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [orgId, page, pageSize, search]);
 
   function openPanel(title: string, content: React.ReactNode) {
     const k = ++keyRef.current;
@@ -40,6 +95,7 @@ export function ItemListPageClient({
           setItems((prev) =>
             [...prev, item].sort((a, b) => a.name.localeCompare(b.name)),
           );
+            setTotalCount((current) => current + 1);
           close();
         }}
         onClose={close}
@@ -77,6 +133,7 @@ export function ItemListPageClient({
               }
               onDeleted={(id) => {
                 setItems((prev) => prev.filter((i) => i.id !== id));
+                setTotalCount((current) => Math.max(0, current - 1));
                 close();
               }}
               onClose={close}
@@ -105,12 +162,21 @@ export function ItemListPageClient({
         }
       />
       <ItemListClient
-        orgId={orgId}
         items={items}
         view={view}
         canManage={canManage}
         onItemClick={handleItemClick}
         onCreateItem={handleCreate}
+        search={search}
+        page={page}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        isLoading={isLoading}
+        onPageChange={setPage}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
       />
     </>
   );

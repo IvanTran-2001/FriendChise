@@ -125,6 +125,11 @@ export function SetSidebarContent({
         title="Back"
         fallbackHref={`/orgs/${orgId}/tools/conversion`}
         icon={ArrowLeft}
+        secondaryButton={{
+          title: "Toolhub",
+          href: `/orgs/${orgId}/tools`,
+          icon: LayoutGrid,
+        }}
       />
 
       {/* View */}

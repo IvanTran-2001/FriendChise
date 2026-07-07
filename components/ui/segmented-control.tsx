@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactElement } from "react";
 import { cn } from "@/lib/utils";
 
 export type SegmentOption<T extends string = string> = {
@@ -39,6 +40,12 @@ export type SegmentedControlProps<T extends string = string> =
   | SingleProps<T>
   | MultipleProps<T>;
 
+export function SegmentedControl<T extends string>(
+  props: SingleProps<T>,
+): ReactElement;
+export function SegmentedControl<T extends string>(
+  props: MultipleProps<T>,
+): ReactElement;
 export function SegmentedControl<T extends string>({
   options,
   disabled,
@@ -46,7 +53,7 @@ export function SegmentedControl<T extends string>({
   variant = "connected",
   size = "default",
   ...rest
-}: SegmentedControlProps<T>) {
+}: SegmentedControlProps<T>): ReactElement {
   const isActive = (v: T) => {
     if (rest.multiple) return (rest.value as T[]).includes(v);
     return (rest.value as T) === v;

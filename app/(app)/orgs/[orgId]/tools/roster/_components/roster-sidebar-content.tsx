@@ -3,8 +3,14 @@
  */
 "use client";
 
+/**
+ * Roster sidebar content.
+ * Groups roster navigation, filter controls, and action buttons in the shared
+ * page sidebar.
+ */
+
 import { useRef } from "react";
-import { ArrowLeft, LayoutTemplate } from "lucide-react";
+import { ArrowLeft, LayoutGrid, LayoutTemplate } from "lucide-react";
 import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
 import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
 import { Button } from "@/components/ui/button";
@@ -78,6 +84,11 @@ export function RosterSidebarContent({
         title="Back"
         fallbackHref={`/orgs/${orgId}/tools`}
         icon={ArrowLeft}
+        secondaryButton={{
+          title: "Toolhub",
+          href: `/orgs/${orgId}/tools`,
+          icon: LayoutGrid,
+        }}
       />
 
       {/* Templates */}

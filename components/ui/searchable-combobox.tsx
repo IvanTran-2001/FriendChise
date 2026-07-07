@@ -22,6 +22,9 @@ type SearchableComboboxProps = {
   onSelect: (item: ComboboxItem) => void;
   /** If provided, a "Create X" option appears when the typed name has no exact match. */
   onCreate?: (name: string) => void;
+  /** If provided, a blank "Create one" option appears at the top of the list. */
+  onCreateBlank?: () => void;
+  createBlankLabel?: string;
   /** Label on the trigger button. */
   triggerLabel?: string;
   placeholder?: string;
@@ -33,6 +36,8 @@ export function SearchableCombobox({
   items,
   onSelect,
   onCreate,
+  onCreateBlank,
+  createBlankLabel = "Create one",
   triggerLabel = "Add",
   placeholder = "Search…",
   emptyText = "No results",
@@ -127,6 +132,23 @@ export function SearchableCombobox({
         </div>
 
         <div className="max-h-56 overflow-y-auto p-2">
+          {onCreateBlank && (
+            <button
+              type="button"
+              className="mb-1 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-primary transition-colors hover:bg-primary/8"
+              onClick={() => {
+                setOpen(false);
+                setSearch("");
+                onCreateBlank();
+              }}
+            >
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm leading-none">
+                +
+              </span>
+              <span className="truncate">{createBlankLabel}</span>
+            </button>
+          )}
+
           {filtered.length === 0 && !canCreate && trimmed !== "" && (
             <div className="rounded-xl border border-dashed border-border/70 bg-muted/30 px-3 py-4 text-center text-sm text-muted-foreground">
               {emptyText}

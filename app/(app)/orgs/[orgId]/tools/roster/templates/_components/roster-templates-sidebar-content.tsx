@@ -1,7 +1,13 @@
 "use client";
 
+/**
+ * Roster templates sidebar content.
+ * Keeps the back link, templates tab, and create-template action in the same
+ * sidebar column.
+ */
+
 import { useState, useTransition } from "react";
-import { ArrowLeft, LayoutTemplate, Plus, Loader2 } from "lucide-react";
+import { ArrowLeft, LayoutGrid, LayoutTemplate, Plus, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
@@ -113,6 +119,11 @@ export function RosterTemplatesSidebarContent({
         title="Back"
         fallbackHref={`/orgs/${orgId}/tools/roster`}
         icon={ArrowLeft}
+        secondaryButton={{
+          title: "Toolhub",
+          href: `/orgs/${orgId}/tools`,
+          icon: LayoutGrid,
+        }}
       />
 
       {/* Templates (active) */}

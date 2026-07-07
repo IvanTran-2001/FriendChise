@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { requireOrgMemberPage } from "@/lib/authz";
 import {
-  getAuthUserId,
   getOrgMembership,
   memberHasPermission,
 } from "@/lib/authz/_shared";
@@ -29,7 +28,7 @@ export default async function ListDetailPage({
   const { orgId, listId } = await params;
   const { view: viewParam, set: setParam } = await searchParams;
 
-  await requireOrgMemberPage(orgId);
+  const { userId } = await requireOrgMemberPage(orgId);
 
   // Restore last-used conversion set from cookie when URL has no ?set= param
   const cookieStore = await cookies();
@@ -60,7 +59,6 @@ export default async function ListDetailPage({
         ? "grid"
         : defaultView;
 
-  const userId = await getAuthUserId();
   const membership = userId ? await getOrgMembership(orgId, userId) : null;
   const canManage = membership
     ? await memberHasPermission(

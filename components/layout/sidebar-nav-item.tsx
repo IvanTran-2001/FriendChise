@@ -25,6 +25,7 @@ export type SidebarNavItemProps = {
   icon: ComponentType<{ className?: string }>;
   disabled?: boolean;
   isActive: boolean;
+  className?: string;
   /** "app" = fixed w-12 icon wrapper for the collapsible global sidebar.
    *  "page" = standard px-3 gap layout for full-width page sidebars. */
   variant?: "app" | "page";
@@ -99,6 +100,7 @@ export function SidebarNavItem({
   icon: Icon,
   disabled,
   isActive,
+  className,
   variant = "page",
   onClick,
 }: SidebarNavItemProps) {
@@ -110,7 +112,7 @@ export function SidebarNavItem({
     "bg-sidebar-primary/10 text-primary font-semibold before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:rounded-r-full before:bg-primary";
   const pageActive =
     "bg-sidebar-primary/10 text-primary font-semibold before:absolute before:left-2.5 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-primary";
-  
+
 
   if (variant === "app") {
     const base =
@@ -128,6 +130,7 @@ export function SidebarNavItem({
         <div
           className={cn(
             base,
+            className,
             "opacity-40 pointer-events-none text-sidebar-foreground",
           )}
           role="link"
@@ -142,6 +145,7 @@ export function SidebarNavItem({
         onClick={onClick}
         className={cn(
           base,
+          className,
           "group",
           isActive
             ? appActive
@@ -177,6 +181,7 @@ export function SidebarNavItem({
       <div
         className={cn(
           base,
+          className,
           "opacity-40 pointer-events-none text-sidebar-foreground",
           "before:bg-transparent",
         )}
@@ -193,6 +198,7 @@ export function SidebarNavItem({
       onClick={onClick}
       className={cn(
         base,
+        className,
         "group",
         isActive
           ? pageActive

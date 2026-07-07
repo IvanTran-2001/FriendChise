@@ -6,6 +6,7 @@
 "use client";
 
 import { ArrowLeft } from "lucide-react";
+import { LayoutGrid } from "lucide-react";
 import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
 
 export function CalculatorSidebarContent({ orgId }: { orgId: string }) {
@@ -16,6 +17,11 @@ export function CalculatorSidebarContent({ orgId }: { orgId: string }) {
         title="Back"
         fallbackHref={`/orgs/${orgId}/tools`}
         icon={ArrowLeft}
+        secondaryButton={{
+          title: "Toolhub",
+          href: `/orgs/${orgId}/tools`,
+          icon: LayoutGrid,
+        }}
       />
     </div>
   );

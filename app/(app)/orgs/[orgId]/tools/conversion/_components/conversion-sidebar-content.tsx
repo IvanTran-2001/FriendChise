@@ -8,7 +8,7 @@
 "use client";
 
 import { useRef } from "react";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, LayoutGrid, Plus } from "lucide-react";
 import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
 import { Button } from "@/components/ui/button";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
@@ -35,6 +35,11 @@ export function ConversionSidebarContent({ orgId }: { orgId: string }) {
         title="Back"
         fallbackHref={`/orgs/${orgId}/tools`}
         icon={ArrowLeft}
+        secondaryButton={{
+          title: "Toolhub",
+          href: `/orgs/${orgId}/tools`,
+          icon: LayoutGrid,
+        }}
       />
 
       {/* Actions */}

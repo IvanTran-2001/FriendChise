@@ -2,7 +2,6 @@ import { requireOrgMemberPage } from "@/lib/authz";
 import {
   getOrgMembership,
   memberHasPermission,
-  getAuthUserId,
 } from "@/lib/authz/_shared";
 import { PermissionAction } from "@prisma/client";
 import { getToolItemLists } from "@/lib/services/tools";
@@ -24,9 +23,8 @@ export default async function ItemListsPage({
   const { orgId } = await params;
   const { view: viewParam } = await searchParams;
   const view: "list" | "card" = viewParam === "card" ? "card" : "list";
-  await requireOrgMemberPage(orgId);
+  const { userId } = await requireOrgMemberPage(orgId);
 
-  const userId = await getAuthUserId();
   const membership = userId ? await getOrgMembership(orgId, userId) : null;
   const canManage = membership
     ? await memberHasPermission(membership.id, orgId, PermissionAction.MANAGE_TASKS)
