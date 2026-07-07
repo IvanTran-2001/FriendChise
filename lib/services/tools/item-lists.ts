@@ -41,10 +41,17 @@ export async function getToolItemListDetail(listId: string, orgId: string) {
 }
 
 export async function addToolItemListEntry(
+  orgId: string,
   listId: string,
   itemId: string,
   amount: number = 0,
 ) {
+  const list = await prisma.toolItemList.findFirst({
+    where: { id: listId, orgId },
+    select: { id: true },
+  });
+  if (!list) throw new Error("List not found or access denied");
+
   const last = await prisma.toolItemListEntry.findFirst({
     where: { listId },
     select: { position: true },
@@ -59,14 +66,28 @@ export async function addToolItemListEntry(
 }
 
 export async function addToolItemListEntryAtPosition(
+  orgId: string,
   listId: string,
   itemId: string,
   position: number,
   amount: number = 0,
 ) {
-  return prisma.toolItemListEntry.create({
-    data: { listId, itemId, position, amount },
-    include: { item: true, checklistEntry: true },
+  const list = await prisma.toolItemList.findFirst({
+    where: { id: listId, orgId },
+    select: { id: true },
+  });
+  if (!list) throw new Error("List not found or access denied");
+
+  return prisma.$transaction(async (tx) => {
+    await tx.toolItemListEntry.updateMany({
+      where: { listId, position: { gte: position } },
+      data: { position: { increment: 1 } },
+    });
+
+    return tx.toolItemListEntry.create({
+      data: { listId, itemId, position, amount },
+      include: { item: true, checklistEntry: true },
+    });
   });
 }
 
@@ -79,9 +100,29 @@ export async function moveToolItemListEntryById(
   return prisma.$transaction(async (tx) => {
     const entry = await tx.toolItemListEntry.findFirst({
       where: { id: entryId, listId, list: { orgId } },
-      select: { id: true },
+      select: { id: true, position: true },
     });
     if (!entry) throw new Error("Entry not found or access denied");
+
+    if (entry.position !== toPosition) {
+      if (toPosition < entry.position) {
+        await tx.toolItemListEntry.updateMany({
+          where: {
+            listId,
+            position: { gte: toPosition, lt: entry.position },
+          },
+          data: { position: { increment: 1 } },
+        });
+      } else {
+        await tx.toolItemListEntry.updateMany({
+          where: {
+            listId,
+            position: { gt: entry.position, lte: toPosition },
+          },
+          data: { position: { decrement: 1 } },
+        });
+      }
+    }
 
     return tx.toolItemListEntry.update({
       where: { id: entryId },
@@ -92,10 +133,17 @@ export async function moveToolItemListEntryById(
 }
 
 export async function moveToolItemListEntry(
+  orgId: string,
   listId: string,
   fromPosition: number,
   toPosition: number,
 ) {
+  const list = await prisma.toolItemList.findFirst({
+    where: { id: listId, orgId },
+    select: { id: true },
+  });
+  if (!list) throw new Error("List not found or access denied");
+
   const [from, to] = await Promise.all([
     prisma.toolItemListEntry.findFirst({
       where: { listId, position: fromPosition },
@@ -129,10 +177,17 @@ export async function moveToolItemListEntry(
 }
 
 export async function updateToolItemGridConfig(
+  orgId: string,
   listId: string,
   gridCols: number,
   gridRows: number,
 ) {
+  const list = await prisma.toolItemList.findFirst({
+    where: { id: listId, orgId },
+    select: { id: true },
+  });
+  if (!list) throw new Error("List not found or access denied");
+
   return prisma.toolItemGridConfig.upsert({
     where: { listId },
     update: { gridCols, gridRows },
@@ -140,16 +195,32 @@ export async function updateToolItemGridConfig(
   });
 }
 
-export async function removeToolItemListEntry(listId: string, entryId: string) {
-  return prisma.toolItemListEntry.delete({
-    where: { id: entryId, listId },
+export async function removeToolItemListEntry(
+  orgId: string,
+  listId: string,
+  entryId: string,
+) {
+  const entry = await prisma.toolItemListEntry.findFirst({
+    where: { id: entryId, listId, list: { orgId } },
+    select: { id: true },
   });
+  if (!entry) throw new Error("Entry not found or access denied");
+
+  return prisma.toolItemListEntry.delete({ where: { id: entryId } });
 }
 
 export async function updateToolItemListEntryAmount(
+  orgId: string,
+  listId: string,
   entryId: string,
   amount: number,
 ) {
+  const entry = await prisma.toolItemListEntry.findFirst({
+    where: { id: entryId, listId, list: { orgId } },
+    select: { id: true },
+  });
+  if (!entry) throw new Error("Entry not found or access denied");
+
   return prisma.toolItemListEntry.update({
     where: { id: entryId },
     data: { amount },
@@ -157,12 +228,19 @@ export async function updateToolItemListEntryAmount(
 }
 
 export async function toggleChecklistEntry(
+  orgId: string,
   listEntryId: string,
 ): Promise<{ checked: boolean }> {
-  const existing = await prisma.toolItemChecklistEntry.findUnique({
-    where: { listEntryId },
+  const entry = await prisma.toolItemListEntry.findFirst({
+    where: { id: listEntryId, list: { orgId } },
+    select: {
+      id: true,
+      checklistEntry: { select: { listEntryId: true } },
+    },
   });
-  if (existing) {
+  if (!entry) throw new Error("Entry not found or access denied");
+
+  if (entry.checklistEntry) {
     await prisma.toolItemChecklistEntry.delete({ where: { listEntryId } });
     return { checked: false };
   }
