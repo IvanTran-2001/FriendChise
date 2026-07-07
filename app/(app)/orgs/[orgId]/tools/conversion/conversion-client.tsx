@@ -14,6 +14,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { Clock, FolderOpen, Layers, Pencil } from "lucide-react";
 import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
+import { BackButton } from "@/components/layout/back-button";
 import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
@@ -82,12 +83,20 @@ export function ConversionClient({
   return (
     <>
       <RegisterPageToolbar>
-        <SearchInput
-          placeholder="Search sets…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-xs"
-        />
+        <div className="flex items-center gap-3">
+          <BackButton
+            fallbackHref={`/orgs/${orgId}/tools`}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          >
+            ← Tools
+          </BackButton>
+          <SearchInput
+            placeholder="Search sets…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="max-w-xs"
+          />
+        </div>
       </RegisterPageToolbar>
 
       <div className="flex flex-col gap-8 py-5">

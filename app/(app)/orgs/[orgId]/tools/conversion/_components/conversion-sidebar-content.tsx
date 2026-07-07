@@ -9,7 +9,7 @@
 
 import { useRef } from "react";
 import { ArrowLeft, Plus } from "lucide-react";
-import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
+import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
 import { Button } from "@/components/ui/button";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { AddSetForm } from "./add-set-form";
@@ -31,11 +31,10 @@ export function ConversionSidebarContent({ orgId }: { orgId: string }) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Back */}
-      <PageSidebarNavItem
+      <BackSidebarNavItem
         title="Back"
-        url={`/orgs/${orgId}/tools`}
+        fallbackHref={`/orgs/${orgId}/tools`}
         icon={ArrowLeft}
-        isActive={false}
       />
 
       {/* Actions */}

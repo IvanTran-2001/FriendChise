@@ -5,6 +5,7 @@
 
 import { useRef } from "react";
 import { ArrowLeft, LayoutTemplate } from "lucide-react";
+import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
 import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
 import { Button } from "@/components/ui/button";
 import { MembersActions } from "../../../memberships/_components/members-panel-triggers";
@@ -73,11 +74,10 @@ export function RosterSidebarContent({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Back */}
-      <PageSidebarNavItem
+      <BackSidebarNavItem
         title="Back"
-        url={`/orgs/${orgId}/tools`}
+        fallbackHref={`/orgs/${orgId}/tools`}
         icon={ArrowLeft}
-        isActive={false}
       />
 
       {/* Templates */}

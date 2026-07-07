@@ -1,7 +1,8 @@
 "use client";
 
 import { useParams, usePathname } from "next/navigation";
-import { LayoutList, Package } from "lucide-react";
+import { ArrowLeft, LayoutList, Package } from "lucide-react";
+import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
 import { usePageSidebarSubContent } from "@/components/layout/page-sidebar-context";
 import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
 
@@ -27,6 +28,12 @@ export function ItemListSidebarShell() {
 
   return (
     <aside className="flex flex-col flex-1 overflow-y-auto">
+      <BackSidebarNavItem
+        title="Back"
+        fallbackHref={`/orgs/${orgId}/tools`}
+        icon={ArrowLeft}
+      />
+
       {/* Keep the top navigation on the shared page-sidebar item so tab styling stays consistent. */}
       <nav className="shrink-0">
         {tabs.map(({ label, icon: Icon, href, exact }) => {
