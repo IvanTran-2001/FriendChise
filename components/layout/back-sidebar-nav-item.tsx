@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import type { ComponentType } from "react";
 
+import { useBackNavigation } from "@/components/layout/use-back-navigation";
 import { cn } from "@/lib/utils";
 
 interface BackSidebarNavItemProps {
@@ -16,16 +16,7 @@ export function BackSidebarNavItem({
   fallbackHref,
   icon: Icon,
 }: BackSidebarNavItemProps) {
-  const router = useRouter();
-
-  function handleClick() {
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-      return;
-    }
-
-    router.push(fallbackHref);
-  }
+  const handleClick = useBackNavigation(fallbackHref);
 
   return (
     <button
