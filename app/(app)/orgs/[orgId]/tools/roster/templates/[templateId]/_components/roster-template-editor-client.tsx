@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
 import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
-import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
+import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
 import {
   updateRosterTemplateCycleWeeksAction,
   clearRosterTemplateWeekAction,
@@ -109,11 +109,10 @@ function RosterTemplateEditorSidebar({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PageSidebarNavItem
+      <BackSidebarNavItem
         title="Back to Templates"
-        url={`/orgs/${orgId}/tools/roster/templates`}
+        fallbackHref={`/orgs/${orgId}/tools/roster/templates`}
         icon={ArrowLeft}
-        isActive={false}
       />
 
       {canManage && (

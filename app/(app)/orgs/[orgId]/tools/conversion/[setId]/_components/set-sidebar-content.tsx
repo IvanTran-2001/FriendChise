@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
-import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
+import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { AddItemForm } from "./add-item-form";
 import { AddRateForm } from "./add-rate-form";
@@ -121,11 +121,10 @@ export function SetSidebarContent({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Back */}
-      <PageSidebarNavItem
+      <BackSidebarNavItem
         title="Back"
-        url={`/orgs/${orgId}/tools/conversion`}
+        fallbackHref={`/orgs/${orgId}/tools/conversion`}
         icon={ArrowLeft}
-        isActive={false}
       />
 
       {/* View */}
