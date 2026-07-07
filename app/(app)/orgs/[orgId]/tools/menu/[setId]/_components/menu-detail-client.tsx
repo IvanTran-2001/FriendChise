@@ -23,11 +23,13 @@ import type { MenuDetail, ToolItemOption } from "@/lib/services/tools/menus";
 export function MenuDetailClient({
   orgId,
   menu,
+  publicToken,
   canManage,
   toolItems,
 }: {
   orgId: string;
   menu: MenuDetail;
+  publicToken: string;
   canManage: boolean;
   toolItems: ToolItemOption[];
 }) {
@@ -151,6 +153,7 @@ export function MenuDetailClient({
         content={
           <MenuDetailSidebarContent
             canManage={canManage}
+            publicToken={publicToken}
             view={view}
             onViewChange={(value) => setView(value)}
             onAddCategory={handleAddCategory}

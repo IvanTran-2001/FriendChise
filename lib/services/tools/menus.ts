@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 
 /**
  * Menu service layer.
@@ -57,9 +58,18 @@ export type MenuDetail = {
   id: string;
   name: string;
   description: string | null;
+  publicToken: string;
   updatedAt: Date;
   items: MenuItemDetail[];
   tabs: MenuTabDetail[];
+};
+
+export type PublicMenuDetail = MenuDetail & {
+  orgId: string;
+  org: {
+    name: string;
+    image: string | null;
+  };
 };
 
 export type MenusPage = {
@@ -137,6 +147,7 @@ export async function getMenuDetail(
       id: true,
       name: true,
       description: true,
+      publicToken: true,
       updatedAt: true,
       items: {
         orderBy: { title: "asc" },
@@ -198,6 +209,88 @@ export async function getMenuDetail(
       },
     },
   });
+}
+
+export async function getPublicMenuDetail(
+  publicToken: string,
+): Promise<PublicMenuDetail | null> {
+  const publicMenuSelect = {
+    id: true,
+    orgId: true,
+    name: true,
+    description: true,
+    publicToken: true,
+    updatedAt: true,
+    org: {
+      select: {
+        name: true,
+        image: true,
+      },
+    },
+    items: {
+      orderBy: { title: "asc" },
+      select: {
+        id: true,
+        toolItemId: true,
+        title: true,
+        description: true,
+        price: true,
+        calories: true,
+        notes: true,
+        imageUrl: true,
+        toolItem: {
+          select: {
+            id: true,
+            name: true,
+            unit: true,
+            imgUrl: true,
+          },
+        },
+      },
+    },
+    tabs: {
+      orderBy: { position: "asc" },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        position: true,
+        placements: {
+          orderBy: { position: "asc" },
+          select: {
+            id: true,
+            position: true,
+            menuItemId: true,
+            menuItem: {
+              select: {
+                id: true,
+                toolItemId: true,
+                title: true,
+                description: true,
+                price: true,
+                calories: true,
+                notes: true,
+                imageUrl: true,
+                toolItem: {
+                  select: {
+                    id: true,
+                    name: true,
+                    unit: true,
+                    imgUrl: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  } satisfies Prisma.MenuSelect;
+
+  return prisma.menu.findUnique({
+    where: { publicToken },
+    select: publicMenuSelect,
+  }) as Promise<PublicMenuDetail | null>;
 }
 
 export async function createMenu(

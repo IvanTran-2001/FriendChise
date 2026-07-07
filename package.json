@@ -13,6 +13,7 @@
     "seed:clean": "tsx prisma/seed-clean.ts",
     "seed:donut-a": "tsx scripts/seeds/seed-donut-shop-a.ts",
     "seed:donut-a:reset": "tsx scripts/seeds/seed-donut-shop-a.ts --reset",
+    "seed:donut-a:bots": "tsx scripts/seeds/populate-donut-shop-a-bots.ts",
     "test": "vitest run",
     "test:unit": "vitest run",
     "test:watch": "vitest",

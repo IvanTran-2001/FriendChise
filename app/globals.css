@@ -7,12 +7,30 @@
   height: 100%;
 }
 
+@media (max-width: 767px) {
+  .app-root {
+    overflow: visible;
+    height: auto;
+    min-height: 100%;
+  }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 html,
 body {
   overflow: hidden;
   height: 100%;
+}
+
+@media (max-width: 767px) {
+  html,
+  body {
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: auto;
+    min-height: 100%;
+  }
 }
 
 @theme inline {

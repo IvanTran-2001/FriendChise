@@ -18,6 +18,7 @@ import { MenuDetailActionsPanel } from "./menu-detail-actions-panel";
 
 type MenuDetailSidebarContentProps = {
   canManage: boolean;
+  publicToken: string;
   view: "card" | "list";
   onViewChange: (value: "card" | "list") => void;
   onAddCategory: () => void;
@@ -26,12 +27,14 @@ type MenuDetailSidebarContentProps = {
 
 export function MenuDetailSidebarContent({
   canManage,
+  publicToken,
   view,
   onViewChange,
   onAddCategory,
   onAddItem,
 }: MenuDetailSidebarContentProps) {
   const { activeTitle } = useActionSidebar();
+  const previewHref = `/menu/${publicToken}`;
 
   return (
     <div className="flex flex-col gap-0">
@@ -75,6 +78,15 @@ export function MenuDetailSidebarContent({
             </span>
           </button>
         </div>
+
+        <a
+          href={previewHref}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex w-fit items-center justify-center rounded-full border border-border/70 bg-background px-3 py-2 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60"
+        >
+          Preview menu
+        </a>
       </div>
       <MenuDetailActionsPanel
         canManage={canManage}
