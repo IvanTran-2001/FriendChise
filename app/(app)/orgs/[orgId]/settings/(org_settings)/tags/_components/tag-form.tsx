@@ -16,6 +16,10 @@ import {
 } from "@/components/ui/searchable-combobox";
 import { ColorPicker, randomColor } from "@/components/ui/color-picker";
 
+// Tag forms support two modes:
+// - create: collect local task IDs and submit them with the new tag
+// - edit: keep the task list in sync by calling the tag actions immediately
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -28,12 +32,11 @@ type Task = { id: string; name: string; color: string };
 // edit mode:   add/remove fire server actions immediately
 
 type TaskPanelProps =
-  | { mode: "create"; allTasks: Task[] }
+  | { mode: "create"; orgId: string }
   | {
       mode: "edit";
       orgId: string;
       tagId: string;
-      allTasks: Task[];
       tagTasks: Task[];
     };
 
@@ -43,13 +46,34 @@ function TaskPanel(props: TaskPanelProps) {
   const [isPending, startTransition] = useTransition();
 
   const taskIds = new Set(tasks.map((t) => t.id));
-  const availableItems: ComboboxItem[] = props.allTasks
-    .filter((t) => !taskIds.has(t.id))
-    .map((t) => ({ id: t.id, name: t.name, color: t.color }));
+
+  // Tasks are fetched on demand so the picker can search and page through the
+  // org task list without preloading every task into the tag form.
+  function loadTasks(search: string, page: number, signal: AbortSignal) {
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("pageSize", "10");
+    if (search.trim()) params.set("search", search.trim());
+
+    return fetch(`/api/orgs/${props.orgId}/tasks/simple?${params.toString()}`, {
+      signal,
+    }).then(async (response) => {
+      if (!response.ok) throw new Error("Failed to load tasks.");
+      const data = (await response.json()) as {
+        tasks: Task[];
+        hasMore: boolean;
+      };
+      return {
+        items: data.tasks
+          .filter((task) => !taskIds.has(task.id))
+          .map((task) => ({ id: task.id, name: task.name, color: task.color })) satisfies ComboboxItem[],
+        hasMore: data.hasMore,
+      };
+    });
+  }
 
   const add = (item: ComboboxItem) => {
-    const task = props.allTasks.find((t) => t.id === item.id);
-    if (!task) return;
+    const task = { id: item.id, name: item.name, color: item.color ?? "#808080" };
     if (isEdit) {
       startTransition(async () => {
         const res = await addTagToTaskAction(props.orgId, task.id, props.tagId);
@@ -88,7 +112,8 @@ function TaskPanel(props: TaskPanelProps) {
         ))}
 
       <SearchableCombobox
-        items={availableItems}
+        items={[]}
+        loadItems={loadTasks}
         onSelect={add}
         triggerLabel="Add task"
         placeholder="Search tasks…"
@@ -129,11 +154,9 @@ function TaskPanel(props: TaskPanelProps) {
 
 export function CreateTagForm({
   orgId,
-  allTasks,
   onSuccess,
 }: {
   orgId: string;
-  allTasks: Task[];
   onSuccess?: () => void;
 }) {
   const [name, setName] = useState("");
@@ -199,7 +222,7 @@ export function CreateTagForm({
         <ColorPicker value={color} onChange={setColor} disabled={pending} />
       </div>
 
-      <TaskPanel key={resetKey} mode="create" allTasks={allTasks} />
+      <TaskPanel key={resetKey} mode="create" orgId={orgId} />
 
       <Button
         type="submit"
@@ -221,7 +244,6 @@ export function EditTagForm({
   defaultName,
   defaultColor,
   isDefault,
-  allTasks,
   tagTasks,
   onSuccess,
 }: {
@@ -230,7 +252,6 @@ export function EditTagForm({
   defaultName: string;
   defaultColor: string;
   isDefault: boolean;
-  allTasks: Task[];
   tagTasks: Task[];
   onSuccess?: () => void;
 }) {
@@ -299,7 +320,6 @@ export function EditTagForm({
         mode="edit"
         orgId={orgId}
         tagId={tagId}
-        allTasks={allTasks}
         tagTasks={tagTasks}
       />
 

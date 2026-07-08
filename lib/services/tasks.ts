@@ -686,6 +686,35 @@ export async function getTasksSimple(orgId: string) {
   });
 }
 
+export async function getTasksSimplePage(
+  orgId: string,
+  options: { page?: number; pageSize?: number; search?: string } = {},
+) {
+  const pageSize = Math.max(1, options.pageSize ?? 24);
+  const search = options.search?.trim() ?? "";
+
+  const where: Prisma.TaskWhereInput = {
+    orgId,
+    ...(search
+      ? { name: { contains: search, mode: "insensitive" as const } }
+      : {}),
+  };
+
+  const totalCount = await prisma.task.count({ where });
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const page = Math.min(Math.max(1, Math.floor(options.page ?? 1)), totalPages);
+
+  const tasks = await prisma.task.findMany({
+    where,
+    select: { id: true, name: true, color: true },
+    orderBy: { name: "asc" },
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+  });
+
+  return { tasks, totalCount, totalPages, page, pageSize, search };
+}
+
 // ---------------------------------------------------------------------------
 // Task accessibility helpers
 // ---------------------------------------------------------------------------
@@ -709,25 +738,6 @@ export async function canAccessTask(
     }),
   ]);
   return !!(owned || inherited);
-}
-
-/**
- * Returns all tasks accessible to an org — its own tasks plus any tasks it
- * has inherited from its parent. Each result carries an `inherited: boolean`
- * flag so callers can distinguish the two sets.
- */
-export async function getAccessibleTasks(orgId: string) {
-  const [ownTasks, inheritances] = await Promise.all([
-    prisma.task.findMany({ where: { orgId }, include: taskInclude }),
-    prisma.taskInheritance.findMany({
-      where: { orgId, task: { orgId: { not: orgId } } },
-      include: { task: { include: taskInclude } },
-    }),
-  ]);
-  return [
-    ...ownTasks.map((t) => ({ ...t, inherited: false as const })),
-    ...inheritances.map((i) => ({ ...i.task, inherited: true as const })),
-  ];
 }
 
 // ---------------------------------------------------------------------------

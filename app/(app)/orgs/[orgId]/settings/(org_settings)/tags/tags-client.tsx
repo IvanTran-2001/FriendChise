@@ -21,6 +21,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { EditTagForm } from "./_components/tag-form";
 
+// The tags table stays simple: a searchable client-side filter over the
+// server-fetched list, with row actions routed through the tag actions.
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Task = { id: string; name: string; color: string };
@@ -39,11 +42,9 @@ type Tag = {
 function TagRow({
   orgId,
   tag,
-  allTasks,
 }: {
   orgId: string;
   tag: Tag;
-  allTasks: Task[];
 }) {
   const { open, close } = useActionSidebar();
   const [isPending, startTransition] = useTransition();
@@ -60,7 +61,6 @@ function TagRow({
         defaultName={tag.name}
         defaultColor={tag.color}
         isDefault={tag.isDefault}
-        allTasks={allTasks}
         tagTasks={tag.tasks.map((tt) => tt.task)}
         onSuccess={close}
       />,
@@ -163,10 +163,11 @@ function TagRow({
 interface Props {
   orgId: string;
   tags: Tag[];
-  allTasks: Task[];
 }
 
-export function TagsClient({ orgId, tags, allTasks }: Props) {
+export function TagsClient({ orgId, tags }: Props) {
+  // Keep the filter local so the list stays instant while the server only
+  // provides the relatively small tag collection.
   const [query, setQuery] = useState("");
   const trimmedQuery = query.trim().toLowerCase();
   const filtered = trimmedQuery
@@ -210,7 +211,7 @@ export function TagsClient({ orgId, tags, allTasks }: Props) {
                 key={tag.id}
                 className={i < filtered.length - 1 ? "border-b" : ""}
               >
-                <TagRow orgId={orgId} tag={tag} allTasks={allTasks} />
+                <TagRow orgId={orgId} tag={tag} />
               </div>
             ))}
           </div>
