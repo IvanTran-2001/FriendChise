@@ -245,11 +245,25 @@ export async function getSharedTasks(orgId: string) {
  * Includes role eligibility data for display in the task table.
  */
 export async function getTasks(orgId: string) {
-  return prisma.task.findMany({
-    where: { orgId },
-    include: taskInclude,
-    orderBy: { createdAt: "desc" },
-  });
+  const pageSize = 100;
+  const totalCount = await prisma.task.count({ where: { orgId } });
+  if (totalCount === 0) return [];
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const tasks = [] as Awaited<ReturnType<typeof prisma.task.findMany>>;
+
+  for (let page = 1; page <= totalPages; page += 1) {
+    const rows = await prisma.task.findMany({
+      where: { orgId },
+      include: taskInclude,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
+    tasks.push(...rows);
+  }
+
+  return tasks;
 }
 
 export type TaskSortOption =

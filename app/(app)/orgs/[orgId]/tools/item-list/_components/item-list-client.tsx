@@ -3,11 +3,12 @@
 /**
  * ItemListClient — display-only content area for /orgs/[orgId]/tools/item-list.
  *
- * Owns: search state, pagination state.
- * Receives: items array, view mode, click callbacks — all managed by ItemListPageClient.
+ * Owns: search display, load-more sentinel, and the item list rendering.
+ * Receives: items array and callbacks — all managed by ItemListPageClient.
  */
 
-import { ChevronLeft, ChevronRight, Package, Search } from "lucide-react";
+import { useMemo, type RefObject } from "react";
+import { Loader2, Package, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
@@ -27,11 +28,11 @@ interface ItemListClientProps {
   onItemClick: (item: ToolItem) => void;
   onCreateItem: () => void;
   search: string;
-  page: number;
-  totalPages: number;
   totalCount: number;
-  isLoading: boolean;
-  onPageChange: (page: number) => void;
+  isLoadingInitial: boolean;
+  isLoadingMore: boolean;
+  hasMore: boolean;
+  sentinelRef: RefObject<HTMLDivElement | null>;
   onSearchChange: (value: string) => void;
 }
 
@@ -42,14 +43,18 @@ export function ItemListClient({
   onItemClick,
   onCreateItem,
   search,
-  page,
-  totalPages,
   totalCount,
-  isLoading,
-  onPageChange,
+  isLoadingInitial,
+  isLoadingMore,
+  hasMore,
+  sentinelRef,
   onSearchChange,
 }: ItemListClientProps) {
-  const currentPage = Math.min(page, totalPages);
+  const displayCount = useMemo(() => {
+    if (totalCount === 0) return "0 items";
+    if (items.length >= totalCount) return `${totalCount} item${totalCount === 1 ? "" : "s"}`;
+    return `Loaded ${items.length} of ${totalCount}`;
+  }, [items.length, totalCount]);
 
   return (
     <>
@@ -66,10 +71,13 @@ export function ItemListClient({
             className="pl-8 h-7"
           />
         </div>
+        <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+          {displayCount}
+        </span>
       </RegisterPageToolbar>
 
       <div>
-        {isLoading ? (
+        {isLoadingInitial ? (
           <div className="flex items-center justify-center border rounded-lg py-24">
             <p className="text-sm text-muted-foreground">Loading items…</p>
           </div>
@@ -115,32 +123,20 @@ export function ItemListClient({
             ))}
           </div>
         )}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between pt-4">
-            <p className="text-xs text-muted-foreground">
-              Page {currentPage} of {totalPages} &middot; {totalCount} item
-              {totalCount === 1 ? "" : "s"}
-            </p>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-7 w-7"
-                disabled={currentPage === 1}
-                onClick={() => onPageChange(currentPage - 1)}
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-7 w-7"
-                disabled={currentPage === totalPages}
-                onClick={() => onPageChange(currentPage + 1)}
-              >
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Button>
-            </div>
+
+        {hasMore && (
+          <div
+            ref={sentinelRef}
+            className="mt-4 flex items-center justify-center rounded-xl border bg-card px-3 py-3 text-sm text-muted-foreground"
+          >
+            {isLoadingMore ? (
+              <span className="inline-flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading more items…
+              </span>
+            ) : (
+              <span>Scroll to load more</span>
+            )}
           </div>
         )}
       </div>

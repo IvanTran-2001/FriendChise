@@ -14,9 +14,13 @@ import {
   createMenuTab,
   createMenuItem,
   deleteMenu,
+  deleteMenuTab,
   deleteMenuItem,
   duplicateMenu,
+  moveMenuTab,
+  reorderMenuTabs,
   updateMenu,
+  updateMenuTab,
   updateMenuItem,
 } from "@/lib/services/tools";
 
@@ -139,6 +143,106 @@ export async function createMenuTabAction(
       P2002: "A category with that name already exists.",
     });
     return { ok: false as const, error: mappedError ?? "Failed to create category." };
+  }
+}
+
+export async function updateMenuTabAction(
+  orgId: string,
+  menuId: string,
+  tabId: string,
+  name: string,
+  description?: string,
+) {
+  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!auth.ok) return { ok: false as const };
+
+  const trimmedName = name.trim();
+  if (!trimmedName) return { ok: false as const, error: "Name is required." };
+
+  try {
+    const menuTab = await updateMenuTab(
+      orgId,
+      menuId,
+      tabId,
+      trimmedName,
+      description?.trim() || null,
+    );
+
+    if (!menuTab) {
+      return { ok: false as const, error: "Category not found." };
+    }
+
+    revalidatePath(`/orgs/${orgId}/tools/menu`);
+    revalidatePath(`/orgs/${orgId}/tools/menu/${menuId}`);
+    return { ok: true as const, menuTab };
+  } catch (err: unknown) {
+    const mappedError = mapPrismaError(err, {
+      P2002: "A category with that name already exists.",
+    });
+    return { ok: false as const, error: mappedError ?? "Failed to update category." };
+  }
+}
+
+export async function deleteMenuTabAction(orgId: string, menuId: string, tabId: string) {
+  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!auth.ok) return { ok: false as const };
+
+  try {
+    const deleted = await deleteMenuTab(orgId, menuId, tabId);
+    if (!deleted) {
+      return { ok: false as const, error: "Category not found." };
+    }
+
+    revalidatePath(`/orgs/${orgId}/tools/menu`);
+    revalidatePath(`/orgs/${orgId}/tools/menu/${menuId}`);
+    return { ok: true as const };
+  } catch {
+    return { ok: false as const, error: "Failed to delete category." };
+  }
+}
+
+export async function moveMenuTabAction(
+  orgId: string,
+  menuId: string,
+  tabId: string,
+  direction: "up" | "down",
+) {
+  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!auth.ok) return { ok: false as const };
+
+  try {
+    const menuTab = await moveMenuTab(orgId, menuId, tabId, direction);
+    if (!menuTab) {
+      return { ok: false as const, error: "Category not found." };
+    }
+
+    revalidatePath(`/orgs/${orgId}/tools/menu`);
+    revalidatePath(`/orgs/${orgId}/tools/menu/${menuId}`);
+    return { ok: true as const, menuTab };
+  } catch {
+    return { ok: false as const, error: "Failed to reorder category." };
+  }
+}
+
+export async function reorderMenuTabsAction(
+  orgId: string,
+  menuId: string,
+  orderedTabIds: string[],
+) {
+  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!auth.ok) return { ok: false as const };
+
+  try {
+    const tabs = await reorderMenuTabs(orgId, menuId, orderedTabIds);
+    if (!tabs) {
+      return { ok: false as const, error: "Category list not found." };
+    }
+
+    revalidatePath(`/orgs/${orgId}/tools/menu`);
+    revalidatePath(`/orgs/${orgId}/tools/menu/${menuId}`);
+    return { ok: true as const, tabs };
+  } catch {
+    return { ok: false as const, error: "Failed to reorder categories." };
   }
 }
 

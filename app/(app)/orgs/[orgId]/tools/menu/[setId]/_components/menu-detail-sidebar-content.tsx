@@ -8,7 +8,9 @@
 
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { LayoutGrid, List } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { MenuDetailActionsPanel } from "./menu-detail-actions-panel";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 
 /**
  * Menu detail page sidebar controls.
@@ -38,55 +40,46 @@ export function MenuDetailSidebarContent({
 
   return (
     <div className="flex flex-col gap-0">
-      <div className="flex flex-col gap-3 border-t border-border px-3 pb-3 pt-3">
+      <div className="flex flex-col gap-2 border-t border-border px-3 pb-3 pt-2.5">
         <p className="px-1 text-xs font-medium uppercase tracking-wider text-sidebar-foreground/50">
           View
         </p>
 
-        {/* Keep this toggle content-sized so it reads like a sidebar control. */}
-        <div className="inline-flex w-fit overflow-hidden rounded-full border border-border/70 bg-muted/35 p-0.5 text-xs font-medium shadow-sm self-start">
-          <button
-            type="button"
-            onClick={() => onViewChange("card")}
-            aria-pressed={view === "card"}
-            className={[
-              "inline-flex h-8 items-center justify-center rounded-full px-3 transition-all duration-150 cursor-pointer select-none whitespace-nowrap leading-none",
-              view === "card"
-                ? "bg-background text-foreground shadow-sm ring-1 ring-black/5"
-                : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
-            ].join(" ")}
-          >
-            <span className="flex items-center gap-2">
-              <LayoutGrid className="h-4 w-4" />
-              Card
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onViewChange("list")}
-            aria-pressed={view === "list"}
-            className={[
-              "inline-flex h-8 items-center justify-center rounded-full px-3 transition-all duration-150 cursor-pointer select-none whitespace-nowrap leading-none",
-              view === "list"
-                ? "bg-background text-foreground shadow-sm ring-1 ring-black/5"
-                : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
-            ].join(" ")}
-          >
-            <span className="flex items-center gap-2">
-              <List className="h-4 w-4" />
-              List
-            </span>
-          </button>
-        </div>
+        <SegmentedControl
+          value={view}
+          onChange={onViewChange}
+          options={[
+            {
+              value: "card",
+              label: (
+                <span className="flex items-center gap-1.5">
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                  Card
+                </span>
+              ),
+            },
+            {
+              value: "list",
+              label: (
+                <span className="flex items-center gap-1.5">
+                  <List className="h-3.5 w-3.5" />
+                  List
+                </span>
+              ),
+            },
+          ]}
+        />
+      </div>
 
-        <a
-          href={previewHref}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex w-fit items-center justify-center rounded-full border border-border/70 bg-background px-3 py-2 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60"
-        >
-          Preview menu
-        </a>
+      <div className="flex flex-col gap-2 border-t border-border px-3 py-3">
+        <p className="px-1 text-xs font-medium uppercase tracking-wider text-sidebar-foreground/50">
+          Preview
+        </p>
+        <Button asChild variant="outline" size="sm" className="w-full justify-center rounded-xl">
+          <a href={previewHref} target="_blank" rel="noreferrer">
+            Preview menu
+          </a>
+        </Button>
       </div>
       <MenuDetailActionsPanel
         canManage={canManage}

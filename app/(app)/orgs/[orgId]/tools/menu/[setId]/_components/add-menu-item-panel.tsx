@@ -30,7 +30,6 @@ type MenuTabOption = {
 export function AddMenuItemPanel({
   orgId,
   menuId,
-  toolItems,
   tabs,
   defaultTabId,
   initialItem,
@@ -39,7 +38,6 @@ export function AddMenuItemPanel({
 }: {
   orgId: string;
   menuId: string;
-  toolItems: ToolItemOption[];
   tabs: MenuTabOption[];
   defaultTabId: string | null;
   initialItem?: MenuItemDetail | null;
@@ -48,7 +46,12 @@ export function AddMenuItemPanel({
 }) {
   const isEditMode = mode === "edit";
   const initialToolItem = initialItem
-    ? toolItems.find((item) => item.id === initialItem.toolItemId) ?? null
+    ? {
+        id: initialItem.toolItem.id,
+        name: initialItem.toolItem.name,
+        unit: initialItem.toolItem.unit,
+        imgUrl: initialItem.toolItem.imgUrl,
+      }
     : null;
   const initialImageUrl = isEditMode
     ? initialItem?.imageUrl ?? ""
@@ -122,18 +125,33 @@ export function AddMenuItemPanel({
     };
   }, [imageUrl, orgId]);
 
-  function handleSelectToolItem(itemId: string) {
-    const nextItem = toolItems.find((item) => item.id === itemId) ?? null;
-    setSelectedToolItem(nextItem);
-    setCreateNewToolItem(false);
-    setTitle(nextItem?.name ?? "");
-    setImageUrl(nextItem?.imgUrl ?? "");
-  }
+  const loadToolItems = useMemo(
+    () => async (search: string, page: number, signal: AbortSignal) => {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("limit", "24");
+      if (search.trim()) params.set("search", search.trim());
 
-  function handleCreateBlankToolItem() {
+      const response = await fetch(`/api/orgs/${orgId}/tools/item-list?${params.toString()}`, {
+        signal,
+      });
+      if (!response.ok) {
+        throw new Error("Failed to load tool items.");
+      }
+
+      const data = (await response.json()) as { items: ToolItemOption[]; totalPages: number };
+      return { items: data.items, hasMore: page < data.totalPages };
+    },
+    [orgId],
+  );
+
+  function handleCreateToolItem(name: string) {
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+
     setSelectedToolItem(null);
     setCreateNewToolItem(true);
-    setNewToolItemName((current) => current || title.trim());
+    setNewToolItemName(trimmedName);
     setNewToolItemUnit((current) => current || "each");
     setImageUrl("");
     setImagePreviewUrl(null);
@@ -288,13 +306,19 @@ export function AddMenuItemPanel({
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium">Tool Item</label>
         <SearchableCombobox
-          items={toolItems}
+          items={selectedToolItem ? [selectedToolItem] : []}
+          loadItems={loadToolItems}
           triggerLabel={selectedToolItem ? selectedToolItem.name : "Select item"}
           placeholder="Search items…"
           emptyText="No tool items found"
-          onCreateBlank={handleCreateBlankToolItem}
-          createBlankLabel="Create one"
-          onSelect={(item) => handleSelectToolItem(item.id)}
+          onCreate={handleCreateToolItem}
+          onSelect={(item) => {
+            const nextItem = item as ToolItemOption;
+            setSelectedToolItem(nextItem);
+            setCreateNewToolItem(false);
+            setTitle(nextItem.name);
+            setImageUrl(nextItem.imgUrl ?? "");
+          }}
         />
       </div>
 

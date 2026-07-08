@@ -18,20 +18,18 @@ import { AddMenuItemPanel } from "./add-menu-item-panel";
 import { MenuDetailHeader } from "./menu-detail-header";
 import { MenuItemsPanel } from "./menu-items-panel";
 import { deleteMenuItemAction } from "@/app/actions/tools";
-import type { MenuDetail, ToolItemOption } from "@/lib/services/tools/menus";
+import type { MenuDetail } from "@/lib/services/tools/menus";
 
 export function MenuDetailClient({
   orgId,
   menu,
   publicToken,
   canManage,
-  toolItems,
 }: {
   orgId: string;
   menu: MenuDetail;
   publicToken: string;
   canManage: boolean;
-  toolItems: ToolItemOption[];
 }) {
   const { open, close } = useActionSidebar();
   const openKeyRef = useRef(0);
@@ -72,6 +70,7 @@ export function MenuDetailClient({
 
   const selectedCategoryLabel = selectedTab?.name ?? "ALL";
 
+
   function handleAddItem() {
     const key = ++openKeyRef.current;
     open(
@@ -80,7 +79,6 @@ export function MenuDetailClient({
         key={key}
         orgId={orgId}
         menuId={menu.id}
-        toolItems={toolItems}
         tabs={menu.tabs.map((tab) => ({ id: tab.id, name: tab.name }))}
         defaultTabId={selectedTabId}
         onClose={close}
@@ -96,7 +94,6 @@ export function MenuDetailClient({
         key={key}
         orgId={orgId}
         menuId={menu.id}
-        toolItems={toolItems}
         tabs={menu.tabs.map((tab) => ({ id: tab.id, name: tab.name }))}
         defaultTabId={selectedTabId ?? itemDefaultTabIds.get(item.id) ?? null}
         initialItem={item}
@@ -121,11 +118,12 @@ export function MenuDetailClient({
   function handleAddCategory() {
     const key = ++openKeyRef.current;
     open(
-      "Add Category",
+      "Category",
       <AddMenuCategoryPanel
         key={key}
         orgId={orgId}
         menuId={menu.id}
+        tabs={menu.tabs}
         onClose={close}
       />,
     );

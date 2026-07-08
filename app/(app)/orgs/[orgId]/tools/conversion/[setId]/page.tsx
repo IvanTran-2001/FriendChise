@@ -6,7 +6,6 @@ import { prisma } from "@/lib/prisma";
 import { createSignedReadUrls } from "@/lib/supabase-storage";
 import {
   getConversionSet,
-  getToolItems,
   getConversionRates,
   getConversionTemplates,
   getTemplateEntries,
@@ -31,9 +30,8 @@ export default async function ConversionSetPage({
   const view = viewParam === "list" ? "list" : "card";
   await requireOrgPermissionPage(orgId, PermissionAction.MANAGE_TASKS);
 
-  const [set, toolItems, rates, lists] = await Promise.all([
+  const [set, rates, lists] = await Promise.all([
     getConversionSet(orgId, setId),
-    getToolItems(orgId),
     getConversionRates(orgId, setId),
     getToolItemLists(orgId),
   ]);
@@ -96,7 +94,6 @@ export default async function ConversionSetPage({
             orgId={orgId}
             setId={setId}
             setName={set.name}
-            toolItems={toolItems}
             rates={rates}
             templates={templates}
             lists={lists.map((l) => ({ id: l.id, name: l.name }))}

@@ -46,7 +46,6 @@ interface SetSidebarContentProps {
   orgId: string;
   setId: string;
   setName: string;
-  toolItems: ToolItem[];
   rates: Rate[];
   templates: Template[];
   lists: { id: string; name: string }[];
@@ -58,7 +57,6 @@ export function SetSidebarContent({
   orgId,
   setId,
   setName: _setName,
-  toolItems,
   rates,
   templates,
   lists,
@@ -86,7 +84,6 @@ export function SetSidebarContent({
       "Items",
       <AddItemForm
         orgId={orgId}
-        toolItems={toolItems}
         onSuccess={() => {}}
         onCancel={close}
       />,
@@ -99,7 +96,6 @@ export function SetSidebarContent({
       <AddRateForm
         orgId={orgId}
         setId={setId}
-        toolItems={toolItems}
         rates={rates}
         onClose={close}
       />,

@@ -120,6 +120,76 @@ const menuTabSelect = {
   },
 } satisfies Prisma.MenuTabSelect;
 
+const MENU_TAB_POSITION_STEP = 1000;
+
+type MenuTabOrderRow = {
+  id: string;
+  position: number;
+};
+
+async function getOrderedMenuTabs(tx: Prisma.TransactionClient, menuId: string) {
+  return tx.menuTab.findMany({
+    where: { menuId },
+    orderBy: [{ position: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+    select: {
+      id: true,
+      position: true,
+    },
+  }) as Promise<MenuTabOrderRow[]>;
+}
+
+async function normalizeMenuTabPositions(tx: Prisma.TransactionClient, menuId: string) {
+  const tabs = await getOrderedMenuTabs(tx, menuId);
+  await Promise.all(
+    tabs.map((tab, index) =>
+      tx.menuTab.update({
+        where: { id: tab.id },
+        data: { position: (index + 1) * MENU_TAB_POSITION_STEP },
+      }),
+    ),
+  );
+}
+
+export async function reorderMenuTabs(
+  orgId: string,
+  menuId: string,
+  orderedTabIds: string[],
+) {
+  return prisma.$transaction(async (tx) => {
+    const menu = await tx.menu.findFirst({
+      where: { id: menuId, orgId },
+      select: { id: true },
+    });
+    if (!menu) return null;
+
+    const currentTabs = await getOrderedMenuTabs(tx, menuId);
+    if (currentTabs.length !== orderedTabIds.length) return null;
+
+    const currentTabIds = new Set(currentTabs.map((tab) => tab.id));
+    if (orderedTabIds.some((tabId) => !currentTabIds.has(tabId))) return null;
+
+    await Promise.all(
+      orderedTabIds.map((tabId, index) =>
+        tx.menuTab.update({
+          where: { id: tabId },
+          data: { position: (index + 1) * MENU_TAB_POSITION_STEP },
+        }),
+      ),
+    );
+
+    return tx.menuTab.findMany({
+      where: { menuId },
+      orderBy: [{ position: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        position: true,
+      },
+    });
+  });
+}
+
 export async function getMenus(
   orgId: string,
   options: { page?: number; pageSize?: number; search?: string } = {},
@@ -155,24 +225,6 @@ export async function getMenus(
   });
 
   return { menus, totalCount, totalPages, page, pageSize, search };
-}
-
-export async function getMenuDetail(
-  orgId: string,
-  menuId: string,
-): Promise<MenuDetail | null> {
-  return prisma.menu.findFirst({
-    where: { id: menuId, orgId },
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      publicToken: true,
-      updatedAt: true,
-      items: { orderBy: { title: "asc" }, select: menuItemSelect },
-      tabs: { orderBy: { position: "asc" }, select: menuTabSelect },
-    },
-  });
 }
 
 export async function getPublicMenuDetail(
@@ -239,6 +291,117 @@ export async function updateMenu(
       _count: { select: { tabs: true, items: true } },
     },
   }) as Promise<MenuSummary | null>;
+}
+
+export async function updateMenuTab(
+  orgId: string,
+  menuId: string,
+  tabId: string,
+  name: string,
+  description?: string | null,
+) {
+  return prisma.$transaction(async (tx) => {
+    const menu = await tx.menu.findFirst({
+      where: { id: menuId, orgId },
+      select: { id: true },
+    });
+    if (!menu) return null;
+
+    const tab = await tx.menuTab.findFirst({
+      where: { id: tabId, menuId },
+      select: { id: true },
+    });
+    if (!tab) return null;
+
+    return tx.menuTab.update({
+      where: { id: tabId },
+      data: {
+        name,
+        description: description ?? null,
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        position: true,
+      },
+    });
+  });
+}
+
+export async function deleteMenuTab(orgId: string, menuId: string, tabId: string) {
+  return prisma.$transaction(async (tx) => {
+    const menu = await tx.menu.findFirst({
+      where: { id: menuId, orgId },
+      select: { id: true },
+    });
+    if (!menu) return false;
+
+    const deleted = await tx.menuTab.deleteMany({
+      where: { id: tabId, menuId },
+    });
+    return deleted.count > 0;
+  });
+}
+
+export async function moveMenuTab(
+  orgId: string,
+  menuId: string,
+  tabId: string,
+  direction: "up" | "down",
+) {
+  return prisma.$transaction(async (tx) => {
+    const menu = await tx.menu.findFirst({
+      where: { id: menuId, orgId },
+      select: { id: true },
+    });
+    if (!menu) return null;
+
+    const tabs = await getOrderedMenuTabs(tx, menuId);
+    const currentIndex = tabs.findIndex((tab) => tab.id === tabId);
+    if (currentIndex < 0) return null;
+
+    const adjacentIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (adjacentIndex < 0 || adjacentIndex >= tabs.length) {
+      return tx.menuTab.findFirst({
+        where: { id: tabId, menuId },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          position: true,
+        },
+      });
+    }
+
+    const currentTab = tabs[currentIndex];
+    const adjacentTab = tabs[adjacentIndex];
+    if (!currentTab || !adjacentTab) return null;
+
+    let newPosition = Math.floor((currentTab.position + adjacentTab.position) / 2);
+    if (newPosition === currentTab.position || newPosition === adjacentTab.position) {
+      await normalizeMenuTabPositions(tx, menuId);
+      const refreshedTabs = await getOrderedMenuTabs(tx, menuId);
+      const refreshedIndex = refreshedTabs.findIndex((tab) => tab.id === tabId);
+      const refreshedAdjacentIndex =
+        direction === "up" ? refreshedIndex - 1 : refreshedIndex + 1;
+      const refreshedCurrent = refreshedTabs[refreshedIndex];
+      const refreshedAdjacent = refreshedTabs[refreshedAdjacentIndex];
+      if (!refreshedCurrent || !refreshedAdjacent) return null;
+      newPosition = Math.floor((refreshedCurrent.position + refreshedAdjacent.position) / 2);
+    }
+
+    return tx.menuTab.update({
+      where: { id: tabId },
+      data: { position: newPosition },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        position: true,
+      },
+    });
+  });
 }
 
 export async function deleteMenu(orgId: string, menuId: string) {
@@ -371,7 +534,12 @@ export async function createMenuTab(
     });
     if (!menu) return null;
 
-    const position = await tx.menuTab.count({ where: { menuId } });
+    const lastTab = await tx.menuTab.findFirst({
+      where: { menuId },
+      orderBy: { position: "desc" },
+      select: { position: true },
+    });
+    const position = (lastTab?.position ?? 0) + MENU_TAB_POSITION_STEP;
 
     return tx.menuTab.create({
       data: {

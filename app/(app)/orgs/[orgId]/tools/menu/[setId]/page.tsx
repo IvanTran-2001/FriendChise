@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { requireOrgPermissionPage } from "@/lib/authz";
 import { PermissionAction } from "@prisma/client";
-import { getMenuDetail, getToolItemsFull } from "@/lib/services/tools";
+import type { MenuDetail } from "@/lib/services/tools/menus";
 import { MenuDetailClient } from "./_components/menu-detail-client";
 
 /**
@@ -19,11 +20,18 @@ export default async function MenuDetailPage({
   await requireOrgPermissionPage(orgId, PermissionAction.MANAGE_TASKS);
   const canManage = true;
 
-  const [menu, toolItems] = await Promise.all([
-    getMenuDetail(orgId, setId),
-    getToolItemsFull(orgId),
-  ]);
-  if (!menu) notFound();
+  const headerList = await headers();
+  const origin = `${headerList.get("x-forwarded-proto") ?? "http"}://${headerList.get("host")}`;
+  const response = await fetch(`${origin}/api/orgs/${orgId}/tools/menu/${setId}`, {
+    headers: {
+      cookie: headerList.get("cookie") ?? "",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) notFound();
+
+  const menu = (await response.json()) as MenuDetail;
 
   return (
     <MenuDetailClient
@@ -31,7 +39,6 @@ export default async function MenuDetailPage({
       menu={menu}
       publicToken={menu.publicToken}
       canManage={canManage}
-      toolItems={toolItems}
     />
   );
 }

@@ -13,8 +13,8 @@
  * - Reviewed items are dimmed (opacity-50)
  */
 
-import { useState, useTransition, useEffect } from "react";
-import { AlertCircle, Lightbulb, Check } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { AlertCircle, Lightbulb, Check, Loader2 } from "lucide-react";
 import { FeedbackType } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -47,37 +47,174 @@ const TYPE_CONFIG = {
 
 export function AdminFeedbackClient({
   feedback: initial,
+  totalCount: initialTotalCount,
+  totalPages,
+  page,
+  filter: initialFilter,
 }: {
   feedback: FeedbackItem[];
+  totalCount: number;
+  totalPages: number;
+  page: number;
+  filter: "all" | "unreviewed";
 }) {
-  const [filter, setFilter] = useState<"all" | "unreviewed">("unreviewed");
+  const [filter, setFilter] = useState<"all" | "unreviewed">(initialFilter);
   const [feedback, setFeedback] = useState(initial);
+  const [loadedFilter, setLoadedFilter] = useState(initialFilter);
   const [, startTransition] = useTransition();
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
+  const [totalCount, setTotalCount] = useState(initialTotalCount);
+  const [currentPage, setCurrentPage] = useState(page);
+  const [hasMore, setHasMore] = useState(page < totalPages);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const requestSeqRef = useRef(0);
 
-  // Fetch short-lived signed read URLs for all images (private bucket)
+  useEffect(() => {
+    setFeedback(initial);
+    setCurrentPage(page);
+    setHasMore(page < totalPages);
+  }, [initial, page, totalPages]);
+
+  const mergeUniqueFeedback = useCallback((current: FeedbackItem[], incoming: FeedbackItem[]) => {
+    const byId = new Map<string, FeedbackItem>();
+    for (const item of current) byId.set(item.id, item);
+    for (const item of incoming) byId.set(item.id, item);
+    return Array.from(byId.values());
+  }, []);
+
+  const loadPage = useCallback(
+    async ({
+      nextPage,
+      replace,
+      signal,
+      requestSeq,
+    }: {
+      nextPage: number;
+      replace: boolean;
+      signal: AbortSignal;
+      requestSeq: number;
+    }) => {
+      const params = new URLSearchParams();
+      params.set("page", String(nextPage));
+      params.set("pageSize", "10");
+      params.set("filter", filter);
+
+      const response = await fetch(`/api/admin/feedback?${params.toString()}`, {
+        signal,
+      });
+      if (!response.ok) throw new Error("Failed to load feedback.");
+
+      const data = (await response.json()) as {
+        feedback: FeedbackItem[];
+        totalCount: number;
+        page: number;
+        totalPages: number;
+      };
+
+      if (requestSeqRef.current !== requestSeq) return;
+
+      setFeedback((current) =>
+        replace ? mergeUniqueFeedback([], data.feedback) : mergeUniqueFeedback(current, data.feedback),
+      );
+      setTotalCount(data.totalCount);
+      setCurrentPage(data.page);
+      setHasMore(data.page < data.totalPages);
+    },
+    [filter, mergeUniqueFeedback],
+  );
+
+  useEffect(() => {
+    if (filter === loadedFilter) return;
+
+    const requestSeq = requestSeqRef.current + 1;
+    requestSeqRef.current = requestSeq;
+    const controller = new AbortController();
+
+    void (async () => {
+      setIsLoadingMore(false);
+      try {
+        await loadPage({
+          nextPage: 1,
+          replace: true,
+          signal: controller.signal,
+          requestSeq,
+        });
+        setLoadedFilter(filter);
+      } finally {
+        if (requestSeqRef.current === requestSeq) {
+          setIsLoadingMore(false);
+        }
+      }
+    })();
+
+    return () => controller.abort();
+  }, [filter, loadPage, loadedFilter]);
+
+  useEffect(() => {
+    if (isLoadingMore || !hasMore) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) return;
+        if (isLoadingMore || !hasMore) return;
+
+        const nextPage = currentPage + 1;
+        const requestSeq = requestSeqRef.current;
+        const controller = new AbortController();
+        setIsLoadingMore(true);
+
+        void loadPage({
+          nextPage,
+          replace: false,
+          signal: controller.signal,
+          requestSeq,
+        })
+          .catch(() => {
+            // retry on next intersection
+          })
+          .finally(() => {
+            if (requestSeqRef.current === requestSeq) setIsLoadingMore(false);
+          });
+
+        return () => controller.abort();
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [currentPage, hasMore, isLoadingMore, loadPage]);
+
+  // Fetch short-lived signed read URLs for any loaded images (private bucket).
   useEffect(() => {
     const load = async () => {
-      const map: Record<string, string> = {};
+      const nextMap: Record<string, string> = {};
       const results = await Promise.allSettled(
-        initial
-          .filter((f) => f.imageUrl)
-          .map(async (f) => {
-            const res = await getFeedbackImageReadUrl(f.imageUrl!);
-            if (res.ok)
-              return { imageUrl: f.imageUrl!, signedUrl: res.signedUrl };
+        feedback
+          .filter((item) => item.imageUrl)
+          .map(async (item) => {
+            const res = await getFeedbackImageReadUrl(item.imageUrl!);
+            if (res.ok) {
+              return { imageUrl: item.imageUrl!, signedUrl: res.signedUrl };
+            }
             return null;
           }),
       );
-      results.forEach((result) => {
+
+      for (const result of results) {
         if (result.status === "fulfilled" && result.value) {
-          map[result.value.imageUrl] = result.value.signedUrl;
+          nextMap[result.value.imageUrl] = result.value.signedUrl;
         }
-      });
-      setImageUrls(map);
+      }
+
+      setImageUrls((current) => ({ ...current, ...nextMap }));
     };
-    load();
-  }, [initial]);
+
+    void load();
+  }, [feedback]);
 
   const displayed =
     filter === "all" ? feedback : feedback.filter((f) => !f.reviewed);
@@ -92,14 +229,12 @@ export function AdminFeedbackClient({
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 flex flex-col gap-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="mx-auto flex max-w-4xl flex-col gap-5 px-4 py-8 sm:px-6 sm:py-10">
+      <div className="flex items-end justify-between gap-3 border-b border-border/60 pb-4">
         <div>
-          <h1 className="text-xl font-bold">Feedback</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Feedback</h1>
           <p className="text-sm text-muted-foreground">
-            {feedback.filter((f) => !f.reviewed).length} unreviewed ·{" "}
-            {feedback.length} total
+            {feedback.filter((f) => !f.reviewed).length} unreviewed · showing {feedback.length} of {totalCount}
           </p>
         </div>
         <div className="flex gap-2">
@@ -120,7 +255,6 @@ export function AdminFeedbackClient({
         </div>
       </div>
 
-      {/* List */}
       {displayed.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center gap-2 rounded-xl border border-dashed">
           <Check className="h-8 w-8 text-muted-foreground/40" />
@@ -203,6 +337,22 @@ export function AdminFeedbackClient({
               </div>
             );
           })}
+
+          {hasMore && (
+            <div
+              ref={sentinelRef}
+              className="flex items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/20 px-3 py-4 text-sm text-muted-foreground"
+            >
+              {isLoadingMore ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading more…
+                </span>
+              ) : (
+                <span>Scroll for more feedback</span>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

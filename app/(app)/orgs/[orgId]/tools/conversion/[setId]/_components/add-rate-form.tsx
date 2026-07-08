@@ -13,12 +13,12 @@
  */
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useCallback, useRef, useState, useTransition } from "react";
 import { ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchableCombobox } from "@/components/ui/searchable-combobox";
+import { SearchableCombobox, type ComboboxItem } from "@/components/ui/searchable-combobox";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import {
   createConversionRateAction,
@@ -162,7 +162,6 @@ function EditRateForm({
 interface AddRateFormProps {
   orgId: string;
   setId: string;
-  toolItems: ToolItem[];
   rates: Rate[];
   onClose: () => void;
 }
@@ -170,7 +169,6 @@ interface AddRateFormProps {
 export function AddRateForm({
   orgId,
   setId,
-  toolItems,
   rates,
   onClose: _onClose,
 }: AddRateFormProps) {
@@ -200,14 +198,36 @@ export function AddRateForm({
   const [search, setSearch] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const comboItems = toolItems.map((i) => ({
-    id: i.id,
-    name: `${i.name} (${abbrevUnit(i.unit)})`,
-  }));
-
   function itemLabel(item: ToolItem) {
     return `${item.name} (${abbrevUnit(item.unit)})`;
   }
+
+  const loadItems = useCallback(async (search: string, page: number, signal: AbortSignal) => {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: "24",
+      search,
+    });
+    const response = await fetch(`/api/orgs/${orgId}/tools/item-list?${params.toString()}`, {
+      signal,
+    });
+    if (!response.ok) throw new Error("Failed to load items.");
+
+    const data = (await response.json()) as {
+      items: Array<{ id: string; name: string; unit: string }>;
+      totalPages: number;
+      page: number;
+    };
+
+    return {
+      items: data.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        description: item.unit,
+      })) satisfies ComboboxItem[],
+      hasMore: data.page < data.totalPages,
+    };
+  }, [orgId]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -298,10 +318,14 @@ export function AddRateForm({
           <div className="flex items-center gap-2">
             <div className="flex-1 min-w-0">
               <SearchableCombobox
-                items={comboItems}
+                items={[]}
+                loadItems={loadItems}
                 onSelect={(item) => {
-                  const found = toolItems.find((i) => i.id === item.id);
-                  setFromItem(found ?? null);
+                  setFromItem({
+                    id: item.id,
+                    name: item.name,
+                    unit: item.description ?? "",
+                  });
                 }}
                 triggerLabel={fromItem ? itemLabel(fromItem) : "Select item"}
                 placeholder="Search items…"
@@ -325,10 +349,14 @@ export function AddRateForm({
           <div className="flex items-center gap-2">
             <div className="flex-1 min-w-0">
               <SearchableCombobox
-                items={comboItems}
+                items={[]}
+                loadItems={loadItems}
                 onSelect={(item) => {
-                  const found = toolItems.find((i) => i.id === item.id);
-                  setToItem(found ?? null);
+                  setToItem({
+                    id: item.id,
+                    name: item.name,
+                    unit: item.description ?? "",
+                  });
                 }}
                 triggerLabel={toItem ? itemLabel(toItem) : "Select item"}
                 placeholder="Search items…"

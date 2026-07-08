@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { requireOrgPermissionPage } from "@/lib/authz";
 import { PermissionAction } from "@prisma/client";
-import { getToolItemListDetail, getToolItemsFull, getConversionSets, getConversionRates } from "@/lib/services/tools";
+import { getToolItemListDetail, getConversionSets, getConversionRates } from "@/lib/services/tools";
 import { createSignedReadUrls } from "@/lib/supabase-storage";
 import {
   RECENT_ACTIVITY_CATEGORY,
@@ -35,9 +35,8 @@ export default async function ListDetailPage({
   }
   const effectiveSetParam = setParam ?? savedSetId ?? undefined;
 
-  const [list, allOrgItems, conversionSets] = await Promise.all([
+  const [list, conversionSets] = await Promise.all([
     getToolItemListDetail(listId, orgId),
-    getToolItemsFull(orgId),
     getConversionSets(orgId),
   ]);
   if (!list) notFound();
@@ -67,18 +66,10 @@ export default async function ListDetailPage({
     console.error("Failed to record recent activity:", err);
   });
 
-  const imagePaths = allOrgItems.map((i) => i.imgUrl).filter((p): p is string => !!p);
   const entryImagePaths = list.entries.map((e) => e.item.imgUrl).filter((p): p is string => !!p);
-  const allPaths = [...new Set([...imagePaths, ...entryImagePaths])];
-  const signedMap = allPaths.length > 0 ? await createSignedReadUrls(allPaths) : new Map<string, string | null>();
-
-  const allItems = allOrgItems.map((i) => ({
-    id: i.id,
-    name: i.name,
-    unit: i.unit,
-    imgUrl: i.imgUrl,
-    imageSignedUrl: i.imgUrl ? (signedMap.get(i.imgUrl) ?? null) : null,
-  }));
+  const signedMap = entryImagePaths.length > 0
+    ? await createSignedReadUrls(entryImagePaths)
+    : new Map<string, string | null>();
 
   const listWithSignedUrls: ListDetail = {
     ...list,
@@ -103,7 +94,6 @@ export default async function ListDetailPage({
         list={listWithSignedUrls}
         view={view}
         canManage={canManage}
-        allOrgItems={allItems}
         activeSetId={activeSetId}
         activeSetName={activeSetName}
         activeSetRates={activeSetRates}
