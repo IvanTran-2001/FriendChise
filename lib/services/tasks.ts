@@ -707,7 +707,7 @@ export async function getTasksSimplePage(
   const tasks = await prisma.task.findMany({
     where,
     select: { id: true, name: true, color: true },
-    orderBy: { name: "asc" },
+    orderBy: [{ name: "asc" }, { id: "asc" }],
     skip: (page - 1) * pageSize,
     take: pageSize,
   });

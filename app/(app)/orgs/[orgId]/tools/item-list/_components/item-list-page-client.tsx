@@ -264,14 +264,11 @@ export function ItemListPageClient({
         onCreateItem={handleCreate}
         search={search}
         totalCount={totalCount}
-          isLoadingInitial={isLoadingInitial}
-          isLoadingMore={isLoadingMore}
-          hasMore={items.length > 0 && page < totalPages}
-          sentinelRef={sentinelRef}
-          onLoadMore={() => {
-            setPage((current) => Math.min(current + 1, totalPages));
-          }}
-          onSearchChange={(value) => {
+        isLoadingInitial={isLoadingInitial}
+        isLoadingMore={isLoadingMore}
+        hasMore={items.length > 0 && page < totalPages}
+        sentinelRef={sentinelRef}
+        onSearchChange={(value) => {
           setSearch(value);
         }}
       />

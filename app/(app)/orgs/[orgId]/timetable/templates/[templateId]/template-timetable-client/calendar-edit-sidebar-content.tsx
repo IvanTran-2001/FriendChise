@@ -56,7 +56,7 @@ export function CalendarEditSidebarContent({
           memberships: ComboboxItem[];
           hasMore: boolean;
         };
-        return data;
+        return { items: data.memberships, hasMore: data.hasMore };
       });
   }
 

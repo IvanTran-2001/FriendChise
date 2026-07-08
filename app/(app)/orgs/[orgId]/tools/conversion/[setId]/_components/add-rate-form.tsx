@@ -262,7 +262,6 @@ export function AddRateForm({
           <AddRateForm
             orgId={orgId}
             setId={setId}
-            toolItems={toolItems}
             rates={rateListRef.current}
             onClose={() => {}}
           />

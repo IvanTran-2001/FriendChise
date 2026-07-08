@@ -19,6 +19,7 @@ export async function GET(
   const page = Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1);
   const pageSize = Math.min(Math.max(1, Number.parseInt(searchParams.get("pageSize") ?? "10", 10) || 10), 50);
   const search = searchParams.get("search") ?? undefined;
+  const roleId = searchParams.get("roleId") ?? undefined;
   const excludeIds = searchParams.getAll("excludeIds").filter(Boolean);
   const excludeBots = searchParams.get("excludeBots") === "true";
 
@@ -26,6 +27,7 @@ export async function GET(
     page,
     pageSize,
     search,
+    roleId,
     excludeIds,
     excludeBots,
   });
@@ -36,6 +38,7 @@ export async function GET(
     memberships: result.memberships.map((membership) => ({
       id: membership.id,
       userId: membership.userId,
+      botName: membership.botName,
       status: membership.status,
       joinedAt: membership.joinedAt,
       workingDays: membership.workingDays,
@@ -57,6 +60,10 @@ export async function GET(
       name: membership.user?.name ?? membership.botName ?? "Unknown",
       description: membership.user?.email ?? (membership.botName ? "Bot" : undefined),
     })),
+    totalCount: result.totalCount,
+    totalPages: result.totalPages,
+    page: result.page,
+    pageSize: result.pageSize,
     hasMore: result.page < result.totalPages,
   });
 }

@@ -8,16 +8,17 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { GripVertical, PencilLine, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   createMenuTabAction,
   deleteMenuTabAction,
+  moveMenuTabAction,
   reorderMenuTabsAction,
   updateMenuTabAction,
 } from "@/app/actions/tools";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ChevronDown, ChevronUp, GripVertical, PencilLine, Trash2 } from "lucide-react";
 
 export function AddMenuCategoryPanel({
   orgId,
@@ -188,6 +189,34 @@ export function AddMenuCategoryPanel({
     reorderTabs(normalized);
   }
 
+  function handleMoveTab(tabId: string, direction: "up" | "down") {
+    const currentIndex = orderedTabs.findIndex((tab) => tab.id === tabId);
+    if (currentIndex < 0) return;
+
+    const adjacentIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (adjacentIndex < 0 || adjacentIndex >= orderedTabs.length) return;
+
+    const nextOrder = [...orderedTabs];
+    const [moved] = nextOrder.splice(currentIndex, 1);
+    nextOrder.splice(adjacentIndex, 0, moved);
+    const normalized = nextOrder.map((tab, index) => ({
+      ...tab,
+      position: (index + 1) * 1000,
+    }));
+    setLocalTabs(normalized);
+
+    startTransition(async () => {
+      const result = await moveMenuTabAction(orgId, menuId, tabId, direction);
+      if (!result.ok) {
+        toast.error("error" in result ? result.error : "Failed to reorder category.");
+        setLocalTabs([...tabs].sort((a, b) => a.position - b.position));
+        return;
+      }
+
+      router.refresh();
+    });
+  }
+
   return (
     <div className="flex flex-col gap-4 p-4">
       <div className="flex items-center justify-between gap-3">
@@ -294,6 +323,28 @@ export function AddMenuCategoryPanel({
                       aria-label={`Edit ${tab.name}`}
                     >
                       <PencilLine className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleMoveTab(tab.id, "up")}
+                      disabled={isPending || orderedTabs[0]?.id === tab.id}
+                      aria-label={`Move ${tab.name} up`}
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleMoveTab(tab.id, "down")}
+                      disabled={isPending || orderedTabs[orderedTabs.length - 1]?.id === tab.id}
+                      aria-label={`Move ${tab.name} down`}
+                    >
+                      <ChevronDown className="h-4 w-4" />
                     </Button>
                     <Button
                       type="button"

@@ -123,13 +123,14 @@ export function AddItemToListPanel({
   function handleSelectItem(item: PickableItem) {
     if (isPending) return;
 
+    setSelectedItem(item);
+
     if (mode === "grid") {
       // Grid mode: notify parent to handle cell selection.
       onItemPicked?.(item);
       return;
     }
 
-    setSelectedItem(item);
     if (manualPosition < 0) return;
     startTransition(async () => {
       const result = await addToolItemListEntryAtPositionAction(

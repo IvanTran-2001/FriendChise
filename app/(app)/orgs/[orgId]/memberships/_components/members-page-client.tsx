@@ -113,7 +113,7 @@ export function MembersPageClient({
       const pageSize = view === "list" ? 30 : 24;
       const params = new URLSearchParams();
       params.set("page", String(targetPage));
-      params.set("limit", String(pageSize));
+      params.set("pageSize", String(pageSize));
       if (search.trim()) params.set("search", search.trim());
       if (roleId) params.set("roleId", roleId);
 

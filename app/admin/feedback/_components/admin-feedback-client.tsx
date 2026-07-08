@@ -141,6 +141,10 @@ export function AdminFeedbackClient({
           requestSeq,
         });
         setLoadedFilter(filter);
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          console.error("Failed to load feedback page", err);
+        }
       } finally {
         if (requestSeqRef.current === requestSeq) {
           setIsLoadingMore(false);
@@ -156,14 +160,18 @@ export function AdminFeedbackClient({
     const el = sentinelRef.current;
     if (!el) return;
 
+    let activeController: AbortController | null = null;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (!entries[0]?.isIntersecting) return;
         if (isLoadingMore || !hasMore) return;
 
         const nextPage = currentPage + 1;
+        requestSeqRef.current += 1;
         const requestSeq = requestSeqRef.current;
         const controller = new AbortController();
+        activeController = controller;
         setIsLoadingMore(true);
 
         void loadPage({
@@ -178,24 +186,25 @@ export function AdminFeedbackClient({
           .finally(() => {
             if (requestSeqRef.current === requestSeq) setIsLoadingMore(false);
           });
-
-        return () => controller.abort();
       },
       { rootMargin: "200px" },
     );
 
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      activeController?.abort();
+      observer.disconnect();
+    };
   }, [currentPage, hasMore, isLoadingMore, loadPage]);
 
   // Fetch short-lived signed read URLs for any loaded images (private bucket).
   useEffect(() => {
     const load = async () => {
+      const pending = feedback.filter((item) => item.imageUrl && !imageUrls[item.imageUrl]);
+      if (pending.length === 0) return;
       const nextMap: Record<string, string> = {};
       const results = await Promise.allSettled(
-        feedback
-          .filter((item) => item.imageUrl)
-          .map(async (item) => {
+        pending.map(async (item) => {
             const res = await getFeedbackImageReadUrl(item.imageUrl!);
             if (res.ok) {
               return { imageUrl: item.imageUrl!, signedUrl: res.signedUrl };
@@ -214,7 +223,7 @@ export function AdminFeedbackClient({
     };
 
     void load();
-  }, [feedback]);
+  }, [feedback, imageUrls]);
 
   const displayed =
     filter === "all" ? feedback : feedback.filter((f) => !f.reviewed);

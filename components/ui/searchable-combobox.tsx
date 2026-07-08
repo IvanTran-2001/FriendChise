@@ -61,10 +61,12 @@ export function SearchableCombobox({
 
   const trimmed = search.trim();
   const sourceItems = loadItems ? asyncItems : items;
-  const filtered = sourceItems.filter(
-    (item) =>
-      !trimmed || item.name.toLowerCase().includes(trimmed.toLowerCase()),
-  );
+  const filtered = loadItems
+    ? sourceItems
+    : sourceItems.filter(
+        (item) =>
+          !trimmed || item.name.toLowerCase().includes(trimmed.toLowerCase()),
+      );
   const showInitialLoading = isLoading && sourceItems.length === 0;
   const showAppendLoading = isLoading && sourceItems.length > 0;
   const canCreate =

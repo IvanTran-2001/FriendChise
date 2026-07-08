@@ -166,7 +166,13 @@ export async function reorderMenuTabs(
     if (currentTabs.length !== orderedTabIds.length) return null;
 
     const currentTabIds = new Set(currentTabs.map((tab) => tab.id));
-    if (orderedTabIds.some((tabId) => !currentTabIds.has(tabId))) return null;
+    const orderedTabIdSet = new Set(orderedTabIds);
+    if (
+      orderedTabIdSet.size !== orderedTabIds.length ||
+      orderedTabIds.some((tabId) => !currentTabIds.has(tabId))
+    ) {
+      return null;
+    }
 
     await Promise.all(
       orderedTabIds.map((tabId, index) =>
@@ -378,8 +384,7 @@ export async function moveMenuTab(
     const adjacentTab = tabs[adjacentIndex];
     if (!currentTab || !adjacentTab) return null;
 
-    let newPosition = Math.floor((currentTab.position + adjacentTab.position) / 2);
-    if (newPosition === currentTab.position || newPosition === adjacentTab.position) {
+    if (currentTab.position === adjacentTab.position) {
       await normalizeMenuTabPositions(tx, menuId);
       const refreshedTabs = await getOrderedMenuTabs(tx, menuId);
       const refreshedIndex = refreshedTabs.findIndex((tab) => tab.id === tabId);
@@ -388,19 +393,33 @@ export async function moveMenuTab(
       const refreshedCurrent = refreshedTabs[refreshedIndex];
       const refreshedAdjacent = refreshedTabs[refreshedAdjacentIndex];
       if (!refreshedCurrent || !refreshedAdjacent) return null;
-      newPosition = Math.floor((refreshedCurrent.position + refreshedAdjacent.position) / 2);
+
+      return Promise.all([
+        tx.menuTab.update({
+          where: { id: refreshedCurrent.id },
+          data: { position: refreshedAdjacent.position },
+          select: { id: true, name: true, description: true, position: true },
+        }),
+        tx.menuTab.update({
+          where: { id: refreshedAdjacent.id },
+          data: { position: refreshedCurrent.position },
+          select: { id: true, name: true, description: true, position: true },
+        }),
+      ]).then(([updated]) => updated);
     }
 
-    return tx.menuTab.update({
-      where: { id: tabId },
-      data: { position: newPosition },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        position: true,
-      },
-    });
+    return Promise.all([
+      tx.menuTab.update({
+        where: { id: currentTab.id },
+        data: { position: adjacentTab.position },
+        select: { id: true, name: true, description: true, position: true },
+      }),
+      tx.menuTab.update({
+        where: { id: adjacentTab.id },
+        data: { position: currentTab.position },
+        select: { id: true, name: true, description: true, position: true },
+      }),
+    ]).then(([updated]) => updated);
   });
 }
 
