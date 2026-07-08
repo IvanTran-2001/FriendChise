@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { AlertTriangle, ImageIcon, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SearchableCombobox, type ComboboxItem } from "@/components/ui/searchable-combobox";
 import { TimezoneSelect } from "@/components/ui/timezone-select";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 import type { ImageCropConfig } from "@/components/ui/image-crop-dialog";
@@ -42,11 +43,6 @@ function timeToMin(value: string): number | undefined {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface TransferableMember {
-  id: string;
-  user: { id: string; name: string | null; email: string } | null;
-}
-
 interface OrgData {
   id: string;
   name: string;
@@ -62,7 +58,6 @@ interface OrgData {
 interface Props {
   org: OrgData;
   isParentOwner: boolean;
-  transferableMembers: TransferableMember[];
   timezones: TimezoneOption[];
 }
 
@@ -334,16 +329,50 @@ function OrgInfoForm({
 
 function TransferOwnershipSection({
   orgId,
-  members,
   disabled,
+  ownerId,
 }: {
   orgId: string;
-  members: TransferableMember[];
   disabled: boolean;
+  ownerId: string | null;
 }) {
   const [newOwnerId, setNewOwnerId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  function loadMembers(search: string, page: number, signal: AbortSignal) {
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("pageSize", "10");
+    params.set("excludeBots", "true");
+    if (search.trim()) params.set("search", search.trim());
+    if (ownerId) params.append("excludeIds", ownerId);
+
+    return fetch(`/api/orgs/${orgId}/memberships?${params.toString()}`, { signal }).then(
+      async (response) => {
+        if (!response.ok) throw new Error("Failed to load members.");
+        const data = (await response.json()) as {
+          memberships: Array<{
+            id: string;
+            userId: string | null;
+            name: string;
+            description?: string | null;
+          }>;
+          hasMore: boolean;
+        };
+        return {
+          items: data.memberships
+            .filter((membership) => membership.userId)
+            .map((membership) => ({
+              id: membership.userId!,
+              name: membership.name,
+              description: membership.description ?? undefined,
+            })) satisfies ComboboxItem[],
+          hasMore: data.hasMore,
+        };
+      },
+    );
+  }
 
   function handleTransfer() {
     if (!newOwnerId) return;
@@ -375,18 +404,17 @@ function TransferOwnershipSection({
         <label className="text-sm text-muted-foreground shrink-0">
           Transfer to
         </label>
-        <select
-          value={newOwnerId}
-          onChange={(e) => setNewOwnerId(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm w-full sm:max-w-xs"
-        >
-          <option value="">Select member</option>
-          {members.map((m) => (
-            <option key={m.id} value={m.user?.id}>
-              {m.user?.name ?? m.user?.email ?? m.user?.id}
-            </option>
-          ))}
-        </select>
+        <div className="w-full sm:max-w-xs">
+          <SearchableCombobox
+            items={[]}
+            loadItems={loadMembers}
+            onSelect={(item) => setNewOwnerId(item.id)}
+            triggerLabel={newOwnerId ? "Member selected" : "Select member"}
+            placeholder="Search members…"
+            emptyText="No matching members"
+            disabled={disabled}
+          />
+        </div>
       </div>
 
       {newOwnerId && (
@@ -494,7 +522,6 @@ function DeleteOrgSection({
 export function OrgSettingsClient({
   org,
   isParentOwner,
-  transferableMembers,
   timezones,
 }: Props) {
   const { orgId } = useParams<{ orgId: string }>();
@@ -505,8 +532,8 @@ export function OrgSettingsClient({
       <OrgInfoForm org={org} orgId={orgId} timezones={timezones} />
       <TransferOwnershipSection
         orgId={orgId}
-        members={transferableMembers}
         disabled={!isParentOwner}
+        ownerId={org.ownerId}
       />
       <DeleteOrgSection
         orgId={orgId}

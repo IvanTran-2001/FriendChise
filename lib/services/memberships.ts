@@ -155,10 +155,64 @@ export async function deleteMembership(
 /**
  * Returns all memberships for an org, including the linked user (id + name)
  * and role, sorted newest-first.
+ * The underlying reads are paged so large orgs don't force one giant query.
  */
 export async function getMemberships(orgId: string) {
-  return prisma.membership.findMany({
-    where: { orgId },
+  const pageSize = 100;
+  const firstPage = await getMembershipsPage(orgId, { page: 1, pageSize });
+  if (firstPage.totalPages === 1) return firstPage.memberships;
+
+  const memberships = [...firstPage.memberships];
+  for (let page = 2; page <= firstPage.totalPages; page += 1) {
+    const result = await getMembershipsPage(orgId, { page, pageSize });
+    memberships.push(...result.memberships);
+  }
+
+  return memberships;
+}
+
+export async function getMembershipsPage(
+  orgId: string,
+  options: { page?: number; pageSize?: number; search?: string; roleId?: string | null; excludeIds?: string[]; excludeBots?: boolean } = {},
+) {
+  const pageSize = Math.max(1, options.pageSize ?? 24);
+  const search = options.search?.trim() ?? "";
+  const roleId = options.roleId?.trim() ?? null;
+  const excludeIds = options.excludeIds?.filter(Boolean) ?? [];
+  const excludeBots = options.excludeBots ?? false;
+
+  const where = {
+    orgId,
+    ...(excludeBots ? { userId: { not: null } } : {}),
+    ...(roleId ? { memberRoles: { some: { roleId } } } : {}),
+    ...(excludeIds.length > 0 ? { id: { notIn: excludeIds } } : {}),
+    ...(search
+      ? {
+          OR: [
+            ...(excludeBots
+              ? []
+              : [{ botName: { contains: search, mode: "insensitive" as const } }]),
+            {
+              user: {
+                is: {
+                  OR: [
+                    { name: { contains: search, mode: "insensitive" as const } },
+                    { email: { contains: search, mode: "insensitive" as const } },
+                  ],
+                },
+              },
+            },
+          ],
+        }
+      : {}),
+  };
+
+  const totalCount = await prisma.membership.count({ where });
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const page = Math.min(Math.max(1, Math.floor(options.page ?? 1)), totalPages);
+
+  const memberships = await prisma.membership.findMany({
+    where,
     select: {
       id: true,
       userId: true,
@@ -170,7 +224,11 @@ export async function getMemberships(orgId: string) {
       memberRoles: { include: { role: true } },
     },
     orderBy: { joinedAt: "desc" },
+    skip: (page - 1) * pageSize,
+    take: pageSize,
   });
+
+  return { memberships, totalCount, totalPages, page, pageSize, search, roleId };
 }
 
 /**

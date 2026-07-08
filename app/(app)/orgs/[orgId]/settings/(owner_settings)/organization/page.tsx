@@ -33,23 +33,10 @@ export default async function OrgSettingsOrganizationPage({
   // A franchisee's lifecycle is controlled by the franchisor, not the franchisee owner.
   const isParentOwner = org.parentId === null && org.ownerId === userId;
 
-  // Only needed for the transfer dropdown — skip the query for non-owners
-  const transferableMembers = isParentOwner
-    ? await prisma.membership.findMany({
-        where: { orgId, NOT: { userId }, userId: { not: null } },
-        select: {
-          id: true,
-          user: { select: { id: true, name: true, email: true } },
-        },
-        orderBy: { user: { name: "asc" } },
-      })
-    : [];
-
   return (
     <OrgSettingsClient
       org={org}
       isParentOwner={isParentOwner}
-      transferableMembers={transferableMembers}
       timezones={TIMEZONES}
     />
   );
