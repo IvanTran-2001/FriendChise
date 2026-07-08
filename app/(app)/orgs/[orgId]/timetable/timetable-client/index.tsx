@@ -113,6 +113,7 @@ export function TimetableClient({
   const [isNavPending, startNavTransition] = useTransition();
   const navigate = (href: string) =>
     startNavTransition(() => router.push(href));
+  const shouldFillHeight = mode === "calendar" && fillHeight;
 
   // ── Mobile task panel (works for both calendar and simple view) ──────────
   const isMobile = useIsMobile();
@@ -206,7 +207,7 @@ export function TimetableClient({
   }, [prevHref, nextHref, router]);
 
   return (
-    <div className={`flex flex-col${fillHeight ? " flex-1 min-h-0" : ""}`}>
+    <div className={`flex flex-col${shouldFillHeight ? " flex-1 min-h-0" : ""}`}>
       {/* Combined toolbar */}
       <RegisterPageToolbar>
         {/* Row 1 (always): prev / date label / next + Today */}
@@ -257,7 +258,7 @@ export function TimetableClient({
       </RegisterPageToolbar>
 
       <div
-        className={`bg-background rounded-xl transition-opacity duration-150${isNavPending ? " opacity-40 pointer-events-none" : ""}${fillHeight ? " flex-1 min-h-0 flex flex-col" : ""}`}
+        className={`bg-background rounded-xl transition-opacity duration-150${isNavPending ? " opacity-40 pointer-events-none" : ""}${shouldFillHeight ? " flex-1 min-h-0 flex flex-col" : ""}`}
       >
         {mode === "calendar" ? (
           <CalendarView
@@ -266,7 +267,7 @@ export function TimetableClient({
             span={span}
             openTimeMin={openTimeMin}
             closeTimeMin={closeTimeMin}
-            fillHeight={fillHeight}
+            fillHeight={shouldFillHeight}
             orgId={orgId}
             todayStr={todayStr}
             canManage={canManage}

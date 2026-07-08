@@ -29,6 +29,7 @@ export default async function MenuDetailPage({
     <MenuDetailClient
       orgId={orgId}
       menu={menu}
+      publicToken={menu.publicToken}
       canManage={canManage}
       toolItems={toolItems}
     />

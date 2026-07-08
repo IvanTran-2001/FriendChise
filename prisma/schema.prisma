@@ -907,6 +907,7 @@ model Menu {
   id          String   @id @default(cuid())
   name        String
   description String?
+  publicToken String   @unique @default(cuid())
   orgId       String
   org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
