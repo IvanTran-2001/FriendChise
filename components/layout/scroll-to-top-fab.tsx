@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp } from "lucide-react";
+import { useMobileSidebar } from "@/components/layout/sidebar";
 
 export function ScrollToTopFab() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const mainRef = useRef<HTMLElement | null>(null);
+  const { open: isMobileSidebarOpen } = useMobileSidebar();
 
   useEffect(() => {
     mainRef.current = document.querySelector("main") as HTMLElement | null;
@@ -41,7 +43,7 @@ export function ScrollToTopFab() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  if (!showScrollTop) return null;
+  if (!showScrollTop || isMobileSidebarOpen) return null;
 
   return (
     <button
