@@ -84,7 +84,7 @@ export async function listRecentActivitiesByCategory(
   return prisma.recentActivity.findMany({
     where: { orgId, category },
     orderBy: { lastUsedAt: "desc" },
-    take: limit,
+    take: Math.min(Math.max(1, limit), 50),
     select: {
       id: true,
       orgId: true,
@@ -107,7 +107,7 @@ export async function listRecentActivitiesByCategories(
   return prisma.recentActivity.findMany({
     where: { orgId, category: { in: categories } },
     orderBy: { lastUsedAt: "desc" },
-    take: limit,
+    take: Math.min(Math.max(1, limit), 50),
     select: {
       id: true,
       orgId: true,

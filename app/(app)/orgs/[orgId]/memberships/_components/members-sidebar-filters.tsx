@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { FilterCombobox } from "@/components/ui/filter-combobox";
 
 type Role = { id: string; name: string; color: string };
@@ -8,14 +7,12 @@ type Role = { id: string; name: string; color: string };
 export function MembersSidebarFilters({
   roles,
   roleId,
-  buildHref,
+  onRoleChange,
 }: {
   roles: Role[];
   roleId: string | null;
-  buildHref: (overrides: { roleId?: string | null; view?: "list" | "card" }) => string;
+  onRoleChange: (roleId: string | null) => void;
 }) {
-  const router = useRouter();
-
   if (roles.length === 0) {
     return null;
   }
@@ -31,7 +28,7 @@ export function MembersSidebarFilters({
           selectedId={roleId}
           allLabel="All roles"
           placeholder="Search roles…"
-          onSelect={(newRoleId) => router.push(buildHref({ roleId: newRoleId }))}
+          onSelect={onRoleChange}
         />
       </div>
     </div>

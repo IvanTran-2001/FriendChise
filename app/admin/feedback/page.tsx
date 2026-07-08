@@ -9,11 +9,19 @@
  */
 
 import { requireSuperAdminPage } from "@/lib/authz";
-import { getAllFeedback } from "@/lib/services/feedback";
+import { getFeedbackPage } from "@/lib/services/feedback";
 import { AdminFeedbackClient } from "./_components/admin-feedback-client";
 
 export default async function AdminFeedbackPage() {
   await requireSuperAdminPage();
-  const feedback = await getAllFeedback();
-  return <AdminFeedbackClient feedback={feedback} />;
+  const { feedback, totalCount, totalPages, page } = await getFeedbackPage(1, 10, "unreviewed");
+  return (
+    <AdminFeedbackClient
+      feedback={feedback}
+      totalCount={totalCount}
+      totalPages={totalPages}
+      page={page}
+      filter="unreviewed"
+    />
+  );
 }

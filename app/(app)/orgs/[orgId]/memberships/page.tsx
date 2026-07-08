@@ -1,4 +1,3 @@
-import { getMemberships } from "@/lib/services/memberships";
 import { getRoles } from "@/lib/services/roles";
 import { requireOrgMemberPage } from "@/lib/authz";
 import { memberHasPermission, getOrgMembership } from "@/lib/authz/_shared";
@@ -9,9 +8,9 @@ import { MembersPageClient } from "./_components/members-page-client";
  * Members list page — server component.
  *
  * Guards access with `requireOrgMemberPage`; non-members are redirected.
- * Fetches all memberships for the org and checks whether the current user
- * holds the `MANAGE_MEMBERS` permission. Both fetches are parallelised with
- * `Promise.all` to avoid a waterfall.
+ * Fetches the available roles and checks whether the current user holds the
+ * `MANAGE_MEMBERS` permission. The membership list itself is loaded from the
+ * API by the client so pagination and local persistence can live together.
  *
  * Role filter and view (list/card) are URL-param driven so the sidebar
  * controls and the members list stay in sync without client state sharing.
@@ -28,8 +27,7 @@ const MembersPage = async ({
 
   const { userId } = await requireOrgMemberPage(orgId);
 
-  const [memberships, membership, roles] = await Promise.all([
-    getMemberships(orgId),
+  const [membership, roles] = await Promise.all([
     getOrgMembership(orgId, userId),
     getRoles(orgId),
   ]);
@@ -48,25 +46,7 @@ const MembersPage = async ({
       : null;
   const view: "list" | "card" = sp.view === "list" ? "list" : "card";
 
-  return (
-    <MembersPageClient
-      orgId={orgId}
-      members={memberships.map((m) => ({
-        id: m.id,
-        userId: m.userId,
-        botName: m.botName,
-        status: m.status,
-        workingDays: m.workingDays,
-        joinedAt: m.joinedAt,
-        user: m.user,
-        memberRoles: m.memberRoles,
-      }))}
-      canManage={canManage}
-      roles={roles}
-      roleId={roleId}
-      view={view}
-    />
-  );
+  return <MembersPageClient orgId={orgId} canManage={canManage} roles={roles} initialRoleId={roleId} initialView={view} />;
 };
 
 export default MembersPage;

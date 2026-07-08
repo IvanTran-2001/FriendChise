@@ -22,6 +22,7 @@ interface MemberViewPanelProps {
   canManage: boolean;
   allRoles: { id: string; name: string; color: string }[];
   initialRoleIds: string[];
+  onMemberSaved: () => void;
 }
 
 export function MemberViewPanel({
@@ -38,6 +39,7 @@ export function MemberViewPanel({
   canManage,
   allRoles,
   initialRoleIds,
+  onMemberSaved,
 }: MemberViewPanelProps) {
   const { open, close } = useActionSidebar();
 
@@ -62,7 +64,10 @@ export function MemberViewPanel({
         initialWorkingDays={workingDays}
         name={displayName}
         image={image}
-        onSuccess={close}
+        onSuccess={() => {
+          onMemberSaved();
+          close();
+        }}
       />,
     );
   }

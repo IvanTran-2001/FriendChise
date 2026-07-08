@@ -21,20 +21,20 @@ export function MenuDetailActionsPanel({
   onAddItem: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-3 border-t border-border px-3 pb-3 pt-3">
+    <div className="flex flex-col gap-2 border-t border-border px-3 py-3">
       <p className="px-1 text-xs font-medium uppercase tracking-wider text-sidebar-foreground/50">
         Actions
       </p>
       {canManage && (
-        <>
+        <div className="flex flex-col gap-2">
           <Button
-            variant={activeTitle === "Add Category" ? "default" : "outline"}
+            variant={activeTitle === "Category" ? "default" : "outline"}
             size="sm"
             className="w-full justify-start gap-2"
             onClick={onAddCategory}
           >
             <FolderPlus className="h-4 w-4" />
-            Add Category
+            Category
           </Button>
           <Button
             variant={activeTitle === "Add Item" ? "default" : "outline"}
@@ -45,7 +45,7 @@ export function MenuDetailActionsPanel({
             <Plus className="h-4 w-4" />
             Add Item
           </Button>
-        </>
+        </div>
       )}
     </div>
   );

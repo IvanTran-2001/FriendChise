@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -8,14 +8,13 @@ import {
   Megaphone,
   CalendarClock,
   ArrowRight,
-  ChevronLeft,
-  ChevronRight,
+  Loader2,
   Pencil,
   Trash2,
 } from "lucide-react";
 import { AnnouncementScope } from "@prisma/client";
 import { toast } from "sonner";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -34,8 +33,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { AddAnnouncementPanel } from "./add-announcement-panel";
 import {
@@ -81,7 +78,6 @@ export function AnnouncementClient({
   canManage,
   page,
   totalPages,
-  totalCount,
 }: {
   orgId: string;
   orgName: string;
@@ -90,88 +86,113 @@ export function AnnouncementClient({
   canManage: boolean;
   page: number;
   totalPages: number;
-  totalCount: number;
 }) {
-  const previousHref = buildListHref(orgId, order, Math.max(1, page - 1));
-  const nextHref = buildListHref(orgId, order, Math.min(totalPages, page + 1));
+  const [items, setItems] = useState<AnnouncementItem[]>(announcements);
+  const [currentPage, setCurrentPage] = useState(page);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(page < totalPages);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const requestSeqRef = useRef(0);
+
+  const mergeUniqueAnnouncements = useCallback((current: AnnouncementItem[], incoming: AnnouncementItem[]) => {
+    const byId = new Map<string, AnnouncementItem>();
+    for (const item of current) byId.set(item.id, item);
+    for (const item of incoming) byId.set(item.id, item);
+    return Array.from(byId.values());
+  }, []);
+
+  const loadPage = useCallback(
+    async ({ nextPage, replace, signal, requestSeq }: { nextPage: number; replace: boolean; signal: AbortSignal; requestSeq: number; }) => {
+      const params = new URLSearchParams();
+      params.set("page", String(nextPage));
+      params.set("pageSize", "10");
+      if (order === "oldest") params.set("order", order);
+
+      const response = await fetch(`/api/orgs/${orgId}/announcements?${params.toString()}`, { signal });
+      if (!response.ok) throw new Error("Failed to load announcements.");
+
+      const data = (await response.json()) as {
+        announcements: AnnouncementItem[];
+        page: number;
+        totalPages: number;
+      };
+
+      if (requestSeqRef.current !== requestSeq) return;
+
+      setItems((current) => (replace ? mergeUniqueAnnouncements([], data.announcements) : mergeUniqueAnnouncements(current, data.announcements)));
+      setCurrentPage(data.page);
+      setHasMore(data.page < data.totalPages);
+    },
+    [mergeUniqueAnnouncements, order, orgId],
+  );
+
+  useEffect(() => {
+    if (isLoadingMore || !hasMore) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) return;
+        if (isLoadingMore || !hasMore) return;
+
+        const nextPage = currentPage + 1;
+        const requestSeq = requestSeqRef.current;
+        const controller = new AbortController();
+        setIsLoadingMore(true);
+
+        const cleanup = () => controller.abort();
+
+        void loadPage({ nextPage, replace: false, signal: controller.signal, requestSeq })
+          .catch(() => {
+            // Retry on next intersection.
+          })
+          .finally(() => {
+            if (requestSeqRef.current === requestSeq) setIsLoadingMore(false);
+          });
+        return cleanup;
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [currentPage, hasMore, isLoadingMore, loadPage]);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
-      <section className="relative overflow-hidden rounded-[2rem] border border-border/70 bg-card shadow-sm">
-        <div className="absolute inset-0 bg-linear-to-br from-primary/10 via-transparent to-transparent" />
-        <div className="relative flex flex-col gap-4 p-5 sm:p-7 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-background/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary shadow-sm backdrop-blur">
-              <Megaphone className="h-3.5 w-3.5" />
-              Announcements
-            </div>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-5xl">
-              {orgName} announcements
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-              {canManage
-                ? "A running feed of org updates. Owners can edit, extend expiry, or remove announcements directly from each post."
-                : "A running feed of org updates. Open a post to read the full announcement."}
-            </p>
-          </div>
-          <div className="grid min-w-52 grid-cols-2 gap-3 sm:grid-cols-3 lg:w-auto">
-            <div className="rounded-2xl border border-border/70 bg-background/85 px-3 py-2.5 shadow-sm backdrop-blur">
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                Posts
-              </p>
-              <p className="mt-1 text-lg font-semibold tabular-nums">{totalCount}</p>
-            </div>
-            <div className="rounded-2xl border border-border/70 bg-background/85 px-3 py-2.5 shadow-sm backdrop-blur">
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                Page
-              </p>
-              <p className="mt-1 text-lg font-semibold tabular-nums">
-                {page}/{totalPages}
-              </p>
-            </div>
-            <div className="col-span-2 rounded-2xl border border-border/70 bg-background/85 px-3 py-2.5 shadow-sm backdrop-blur sm:col-span-1">
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                Visible now
-              </p>
-              <p className="mt-1 text-lg font-semibold tabular-nums">{announcements.length}</p>
-            </div>
-          </div>
+      <section className="overflow-hidden rounded-2xl border border-border/70 bg-card px-4 py-4 shadow-sm sm:px-5 sm:py-5">
+        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+          <Megaphone className="h-3.5 w-3.5" />
+          Announcements
+        </div>
+        <div className="mt-2 flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            {orgName}
+          </h1>
+          <p className="max-w-2xl text-sm text-muted-foreground">
+            Updates, notices, and changes that matter.
+          </p>
         </div>
       </section>
 
       <div className="flex flex-col gap-4">
-        <div className="flex items-end justify-between gap-3 px-1">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Latest feed
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {canManage
-                ? "Newest posts first. Owners can edit from each card or use the sidebar to change order."
-                : "Newest posts first. Use the sidebar to change order."}
-            </p>
-          </div>
-        </div>
-
         <Card className="overflow-hidden border-border/70 bg-card shadow-sm">
           <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
-            <CardTitle>Posts</CardTitle>
-            <CardDescription>
-              Showing {announcements.length} of {totalCount}.
-            </CardDescription>
+            <CardTitle>Updates</CardTitle>
           </CardHeader>
           <CardContent className="px-0 pb-0">
-            {announcements.length === 0 ? (
+            {items.length === 0 ? (
               <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
                 <CalendarClock className="h-10 w-10 text-muted-foreground/30" />
-                <p className="mt-3 text-sm font-medium">No announcements yet</p>
+                <p className="mt-3 text-sm font-medium">Nothing to show yet</p>
                 <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                  Post the first update to show everyone where the org is headed this week.
+                  Check back later for updates.
                 </p>
               </div>
             ) : (
               <div className="flex flex-col gap-4 px-4 pb-4 sm:px-6 sm:pb-6">
-                {announcements.map((announcement) => (
+                {items.map((announcement) => (
                   <AnnouncementCard
                     key={announcement.id}
                     orgId={orgId}
@@ -179,54 +200,28 @@ export function AnnouncementClient({
                     announcement={announcement}
                   />
                 ))}
+                {hasMore && (
+                  <div
+                    ref={sentinelRef}
+                    className="flex items-center justify-center rounded-2xl border border-dashed border-border/70 bg-muted/20 px-3 py-4 text-sm text-muted-foreground"
+                  >
+                    {isLoadingMore ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading more…
+                      </span>
+                    ) : (
+                      <span>Scroll for more updates</span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
         </Card>
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-card px-4 py-3 shadow-sm">
-            <p className="text-xs text-muted-foreground">
-              Page {page} of {totalPages}
-            </p>
-            <div className="flex items-center gap-2">
-              <Link
-                href={previousHref}
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "sm" }),
-                  page === 1 && "pointer-events-none opacity-50",
-                )}
-                aria-disabled={page === 1}
-                tabIndex={page === 1 ? -1 : 0}
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-                Previous
-              </Link>
-              <Link
-                href={nextHref}
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "sm" }),
-                  page === totalPages && "pointer-events-none opacity-50",
-                )}
-                aria-disabled={page === totalPages}
-                tabIndex={page === totalPages ? -1 : 0}
-              >
-                Next
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
-}
-
-function buildListHref(orgId: string, order: AnnouncementOrder, page: number) {
-  const params = new URLSearchParams();
-  if (order === "oldest") params.set("order", order);
-  if (page > 1) params.set("page", String(page));
-  const query = params.toString();
-  return query ? `/orgs/${orgId}/announcements?${query}` : `/orgs/${orgId}/announcements`;
 }
 
 function AnnouncementCard({
@@ -290,28 +285,24 @@ function AnnouncementCard({
       {canManage ? (
         <div className="group rounded-[1.5rem] border border-border/70 bg-background p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md sm:p-5">
           <div className="flex items-start gap-3">
-            <button
-              type="button"
-              onClick={openEditPanel}
-              className="min-w-0 flex-1 text-left"
-            >
+            <Link href={detailHref} className="min-w-0 flex-1 text-left">
               <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   <CalendarClock className="h-3 w-3" />
                   {formatDateTime(announcement.createdAt)}
                 </div>
-                <h2 className="text-lg font-semibold tracking-tight sm:text-[1.35rem]">
+                <h2 className="text-lg font-semibold tracking-tight sm:text-[1.2rem]">
                   {announcement.title}
                 </h2>
                 <p className="max-w-none whitespace-pre-wrap text-sm leading-7 text-muted-foreground line-clamp-6">
                   {announcement.description}
                 </p>
-                <div className="flex items-center justify-end gap-1.5 text-xs font-medium text-primary">
-                  Edit announcement
+                <div className="flex items-center gap-1.5 text-xs font-medium text-primary">
+                  Open post
                   <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                 </div>
               </div>
-            </button>
+            </Link>
 
             <div className="flex shrink-0 items-start gap-2">
               <span

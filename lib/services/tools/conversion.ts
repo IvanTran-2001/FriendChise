@@ -88,24 +88,6 @@ export async function renameConversionSet(
   });
 }
 
-// ─── ToolItem ─────────────────────────────────────────────────────────────────
-
-export async function getToolItems(orgId: string) {
-  return prisma.toolItem.findMany({
-    where: { orgId },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true, unit: true },
-  });
-}
-
-export async function getToolItemsFull(orgId: string) {
-  return prisma.toolItem.findMany({
-    where: { orgId },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true, unit: true, imgUrl: true },
-  });
-}
-
 export async function getToolItemsPage(
   orgId: string,
   options: { page?: number; pageSize?: number; search?: string } = {},

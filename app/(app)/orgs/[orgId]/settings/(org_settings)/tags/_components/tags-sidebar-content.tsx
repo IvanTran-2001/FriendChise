@@ -6,22 +6,20 @@ import { Button } from "@/components/ui/button";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { CreateTagForm } from "./tag-form";
 
+// The sidebar only needs to open the create form; the tag list itself lives in
+// the main panel so the form can be remounted cleanly whenever the user clicks.
+
 export function TagsSidebarContent({
   orgId,
-  allTasks,
 }: {
   orgId: string;
-  allTasks: { id: string; name: string; color: string }[];
 }) {
   const { open, activeTitle } = useActionSidebar();
   const formKeyRef = useRef(0);
 
   function handleCreate() {
     const k = ++formKeyRef.current;
-    open(
-      "New Tag",
-      <CreateTagForm key={k} orgId={orgId} allTasks={allTasks} />,
-    );
+    open("New Tag", <CreateTagForm key={k} orgId={orgId} />);
   }
 
   return (

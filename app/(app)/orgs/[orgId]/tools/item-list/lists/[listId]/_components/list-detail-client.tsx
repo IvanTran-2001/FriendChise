@@ -46,7 +46,6 @@ interface ListDetailClientProps {
   list: ListDetail;
   view: "grid" | "checklist";
   canManage: boolean;
-  allOrgItems: PickableItem[];
   activeSetId: string | null;
   activeSetName: string | null;
   activeSetRates: ConversionRate[];
@@ -58,7 +57,6 @@ export function ListDetailClient({
   list,
   view,
   canManage,
-  allOrgItems,
   activeSetId,
   activeSetName,
   activeSetRates,
@@ -211,7 +209,6 @@ export function ListDetailClient({
         key={k}
         orgId={orgId}
         listId={list.id}
-        availableItems={allOrgItems}
         defaultPage={defaultPage}
         defaultCol={defaultCol}
         defaultRow={defaultRow}
@@ -305,7 +302,6 @@ export function ListDetailClient({
       listId={list.id}
       view={currentView}
       canManage={canManage}
-      availableItems={allOrgItems}
       gridCols={list.gridConfig?.gridCols}
       gridRows={list.gridConfig?.gridRows}
       conversionSets={conversionSets}
