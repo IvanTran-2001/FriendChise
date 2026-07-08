@@ -29,6 +29,12 @@ import {
   deleteOrg as deleteOrgService,
 } from "@/lib/services/orgs";
 import { checkDemoLimit } from "@/lib/demo";
+import { PermissionAction } from "@prisma/client";
+import {
+  getOrgMembership,
+  isOrgOwnerOrParentOrgOwner,
+  memberHasPermission,
+} from "@/lib/authz/_shared";
 
 type OrgResult = { ok: true; orgId: string } | { ok: false; error: string };
 
@@ -175,4 +181,44 @@ export async function deleteOrg(
       error: err instanceof Error ? err.message : "Failed to delete org",
     };
   }
+}
+
+/**
+ * Returns the permissions the current user has for accessing settings sections.
+ */
+export async function getOrgSettingsPermissions(orgId: string): Promise<{
+  canManageOrgSettings: boolean;
+  canManageRoles: boolean;
+  canManageSettings: boolean;
+}> {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) {
+    return {
+      canManageOrgSettings: false,
+      canManageRoles: false,
+      canManageSettings: false,
+    };
+  }
+
+  const membership = await getOrgMembership(orgId, userId);
+  if (!membership) {
+    return {
+      canManageOrgSettings: false,
+      canManageRoles: false,
+      canManageSettings: false,
+    };
+  }
+
+  const [isOwner, canManageRoles, canManageSettings] = await Promise.all([
+    isOrgOwnerOrParentOrgOwner(orgId, userId),
+    memberHasPermission(membership.id, orgId, PermissionAction.MANAGE_ROLES),
+    memberHasPermission(membership.id, orgId, PermissionAction.MANAGE_SETTINGS),
+  ]);
+
+  return {
+    canManageOrgSettings: isOwner,
+    canManageRoles: isOwner || canManageRoles,
+    canManageSettings: isOwner || canManageSettings,
+  };
 }
