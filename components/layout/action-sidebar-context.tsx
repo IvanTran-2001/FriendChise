@@ -107,7 +107,7 @@ export function ActionSidebarSlot() {
 
   // ── All hooks must be called unconditionally ──────────────────────────────
   const [mounted, setMounted] = useState(false);
-  const [width, setWidth] = useState(260);
+  const [width, setWidth] = useState(300);
   const dragging = useRef(false);
   const startX = useRef(0);
   const startW = useRef(0);

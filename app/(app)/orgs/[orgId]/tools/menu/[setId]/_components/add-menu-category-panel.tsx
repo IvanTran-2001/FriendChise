@@ -16,9 +16,16 @@ import {
   reorderMenuTabsAction,
   updateMenuTabAction,
 } from "@/app/actions/tools";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronUp, GripVertical, PencilLine, Trash2 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { GripVertical, MoreVertical } from "lucide-react";
 
 export function AddMenuCategoryPanel({
   orgId,
@@ -93,6 +100,10 @@ export function AddMenuCategoryPanel({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmedName = name.trim();
+    if (!trimmedName) {
+      toast.error("Category name is required.");
+      return;
+    }
     startTransition(async () => {
       if (editingTabId) {
         const result = await updateMenuTabAction(
@@ -218,153 +229,175 @@ export function AddMenuCategoryPanel({
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <div className="flex items-center justify-between gap-3">
-        {editingTabId && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleCancelEdit}
-            disabled={isPending}
-          >
-            Cancel edit
+    <div className="flex flex-col gap-5 p-4">
+      <form
+        onSubmit={handleSubmit}
+        className="rounded-2xl border border-border/70 bg-muted/20 p-3 shadow-sm"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              {editingTabId ? "Edit category" : "New category"}
+            </p>
+          </div>
+          {editingTabId && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleCancelEdit}
+              disabled={isPending}
+              className="shrink-0"
+            >
+              Cancel
+            </Button>
+          )}
+        </div>
+
+        <div className="mt-3 space-y-3">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="menu-category-name" className="text-xs font-medium text-muted-foreground">
+              Name <span className="text-destructive">*</span>
+            </label>
+            <Input
+              id="menu-category-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Breakfast"
+              autoFocus
+              disabled={isPending}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="menu-category-description" className="text-xs font-medium text-muted-foreground">
+              Description
+            </label>
+            <Input
+              id="menu-category-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Optional description"
+              disabled={isPending}
+            />
+          </div>
+
+          <Button type="submit" disabled={isPending} className="w-full">
+            {isPending ? "Saving…" : editingTabId ? "Save category" : "Add category"}
           </Button>
-        )}
-      </div>
-
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-2xl border border-border/70 p-3">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="menu-category-name" className="text-sm font-medium">
-            Name
-          </label>
-          <Input
-            id="menu-category-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Breakfast"
-            required
-            autoFocus
-            disabled={isPending}
-          />
         </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="menu-category-description" className="text-sm font-medium">
-            Description
-          </label>
-          <Input
-            id="menu-category-description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Optional description"
-            disabled={isPending}
-          />
-        </div>
-
-        <Button type="submit" disabled={isPending || !name.trim()} className="w-full">
-          {isPending ? "Saving…" : editingTabId ? "Save changes" : "Add"}
-        </Button>
       </form>
 
-      <div className="flex flex-col gap-2">
+      <Separator />
+
+      <div className="space-y-2">
         {orderedTabs.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-border/70 px-3 py-4 text-sm text-muted-foreground">
-            No categories yet.
-          </p>
+          <div className="rounded-2xl border border-dashed border-border/70 bg-background/60 px-3 py-6 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">No categories yet.</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              Create the first category above. It will appear here and can be reordered later.
+            </p>
+          </div>
         ) : (
-          orderedTabs.map((tab) => {
-            return (
-              <div
-                key={tab.id}
-                draggable
-                onDragStart={() => setDraggedTabId(tab.id)}
-                onDragEnd={() => setDraggedTabId(null)}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  const rect = event.currentTarget.getBoundingClientRect();
-                  const insertBefore = event.clientY - rect.top < rect.height / 2;
-                  setDragTargetTabId(tab.id);
-                  setDragInsertPosition(insertBefore ? "before" : "after");
-                }}
-                onDragLeave={() => {
-                  if (dragTargetTabId === tab.id) {
-                    setDragTargetTabId(null);
-                    setDragInsertPosition(null);
-                  }
-                }}
-                onDrop={() => handleDrop(tab.id)}
-                className="flex flex-col gap-2 rounded-2xl border border-border/70 px-3 py-3 transition-colors hover:border-primary/30"
-              >
-                {dragTargetTabId === tab.id && dragInsertPosition === "before" ? (
-                  <div className="-mt-2 h-1 rounded-full bg-primary/70 shadow-[0_0_0_1px_rgba(255,255,255,0.6)]" />
-                ) : null}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 flex-1 items-start gap-2">
-                    <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/50" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{tab.name}</p>
+          <div className="flex flex-col gap-2">
+            {orderedTabs.map((tab) => {
+              const isEditingThisTab = editingTabId === tab.id;
+
+              return (
+                <div
+                  key={tab.id}
+                  draggable
+                  onDragStart={() => setDraggedTabId(tab.id)}
+                  onDragEnd={clearDragState}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    const insertBefore = event.clientY - rect.top < rect.height / 2;
+                    setDragTargetTabId(tab.id);
+                    setDragInsertPosition(insertBefore ? "before" : "after");
+                  }}
+                  onDragLeave={() => {
+                    if (dragTargetTabId === tab.id) {
+                      setDragTargetTabId(null);
+                      setDragInsertPosition(null);
+                    }
+                  }}
+                  onDrop={() => handleDrop(tab.id)}
+                  className={[
+                    "flex flex-col gap-2 rounded-2xl border px-3 py-3 transition-all",
+                    isEditingThisTab
+                      ? "border-primary/30 bg-primary/5 shadow-sm"
+                      : "border-border/70 bg-background/80 hover:border-primary/30 hover:bg-muted/20",
+                  ].join(" ")}
+                >
+                  {dragTargetTabId === tab.id && dragInsertPosition === "before" ? (
+                    <div className="-mt-2 h-1 rounded-full bg-primary/70 shadow-[0_0_0_1px_rgba(255,255,255,0.6)]" />
+                  ) : null}
+
+                  <div className="flex items-start gap-2">
+                    <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/45" />
+                    <div className="relative min-w-0 flex-1 pr-8">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-0 top-0 h-7 w-7 rounded-full"
+                            disabled={isPending}
+                            aria-label={`Open actions for ${tab.name}`}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="min-w-40">
+                          <DropdownMenuItem onSelect={() => handleEditTab(tab.id)}>
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => handleMoveTab(tab.id, "up")}
+                            disabled={isPending || orderedTabs[0]?.id === tab.id}
+                          >
+                            Move up
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => handleMoveTab(tab.id, "down")}
+                            disabled={isPending || orderedTabs[orderedTabs.length - 1]?.id === tab.id}
+                          >
+                            Move down
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onSelect={() => handleDelete(tab.id, tab.name)}
+                            disabled={isPending}
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
+                      <div className="flex items-start gap-0.5">
+                        <p className="min-w-0 flex-1 text-[12px] font-semibold leading-3 wrap-break-word pr-1">
+                          {tab.name}
+                        </p>
+                      </div>
                       {tab.description ? (
-                        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                        <p className="mt-px line-clamp-2 text-[10px] leading-3 text-muted-foreground">
                           {tab.description}
                         </p>
-                      ) : null}
+                      ) : (
+                        <p className="mt-px text-[10px] leading-3 text-muted-foreground/60">No description</p>
+                      )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleEditTab(tab.id)}
-                      disabled={isPending}
-                      aria-label={`Edit ${tab.name}`}
-                    >
-                      <PencilLine className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleMoveTab(tab.id, "up")}
-                      disabled={isPending || orderedTabs[0]?.id === tab.id}
-                      aria-label={`Move ${tab.name} up`}
-                    >
-                      <ChevronUp className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleMoveTab(tab.id, "down")}
-                      disabled={isPending || orderedTabs[orderedTabs.length - 1]?.id === tab.id}
-                      aria-label={`Move ${tab.name} down`}
-                    >
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => handleDelete(tab.id, tab.name)}
-                      disabled={isPending}
-                      aria-label={`Delete ${tab.name}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  {dragTargetTabId === tab.id && dragInsertPosition === "after" ? (
+                    <div className="-mb-2 h-1 rounded-full bg-primary/70 shadow-[0_0_0_1px_rgba(255,255,255,0.6)]" />
+                  ) : null}
                 </div>
-                {dragTargetTabId === tab.id && dragInsertPosition === "after" ? (
-                  <div className="-mb-2 h-1 rounded-full bg-primary/70 shadow-[0_0_0_1px_rgba(255,255,255,0.6)]" />
-                ) : null}
-              </div>
-            );
-          })
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

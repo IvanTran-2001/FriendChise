@@ -152,6 +152,7 @@ export function MenuDetailClient({
           <MenuDetailSidebarContent
             canManage={canManage}
             publicToken={publicToken}
+            previewClicksThisMonth={menu.previewClicksThisMonth ?? 0}
             view={view}
             onViewChange={(value) => setView(value)}
             onAddCategory={handleAddCategory}

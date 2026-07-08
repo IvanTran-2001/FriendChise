@@ -7,10 +7,11 @@
  */
 
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
-import { LayoutGrid, List } from "lucide-react";
+import { ExternalLink, LayoutGrid, List, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MenuDetailActionsPanel } from "./menu-detail-actions-panel";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { MenuSharePanel } from "./menu-share-panel";
 
 /**
  * Menu detail page sidebar controls.
@@ -21,6 +22,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control";
 type MenuDetailSidebarContentProps = {
   canManage: boolean;
   publicToken: string;
+  previewClicksThisMonth: number;
   view: "card" | "list";
   onViewChange: (value: "card" | "list") => void;
   onAddCategory: () => void;
@@ -30,13 +32,23 @@ type MenuDetailSidebarContentProps = {
 export function MenuDetailSidebarContent({
   canManage,
   publicToken,
+  previewClicksThisMonth,
   view,
   onViewChange,
   onAddCategory,
   onAddItem,
 }: MenuDetailSidebarContentProps) {
-  const { activeTitle } = useActionSidebar();
+  const { activeTitle, open } = useActionSidebar();
   const previewHref = `/menu/${publicToken}`;
+
+  function handleOpenShare() {
+    open(
+      "Share",
+      <MenuSharePanel
+        publicToken={publicToken}
+      />,
+    );
+  }
 
   return (
     <div className="flex flex-col gap-0">
@@ -73,13 +85,27 @@ export function MenuDetailSidebarContent({
 
       <div className="flex flex-col gap-2 border-t border-border px-3 py-3">
         <p className="px-1 text-xs font-medium uppercase tracking-wider text-sidebar-foreground/50">
+          Share
+        </p>
+        <Button variant="outline" size="sm" className="w-full justify-start gap-2 rounded-xl" onClick={handleOpenShare}>
+          <Share2 className="h-4 w-4" />
+          Share menu
+        </Button>
+      </div>
+
+      <div className="flex flex-col gap-2 border-t border-border px-3 py-3">
+        <p className="px-1 text-xs font-medium uppercase tracking-wider text-sidebar-foreground/50">
           Preview
         </p>
-        <Button asChild variant="outline" size="sm" className="w-full justify-center rounded-xl">
+        <Button asChild variant="outline" size="sm" className="w-full justify-start gap-2 rounded-xl">
           <a href={previewHref} target="_blank" rel="noreferrer">
+            <ExternalLink className="h-4 w-4" />
             Preview menu
           </a>
         </Button>
+        <p className="px-1 text-xs text-sidebar-foreground/60">
+          {previewClicksThisMonth} click{previewClicksThisMonth === 1 ? "" : "s"} this month
+        </p>
       </div>
       <MenuDetailActionsPanel
         canManage={canManage}

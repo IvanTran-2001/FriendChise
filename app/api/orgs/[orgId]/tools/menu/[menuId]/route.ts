@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { PermissionAction } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireOrgPermission } from "@/lib/authz";
+import { getMenuPreviewClicksThisMonth } from "@/lib/services/tools";
 
 const menuItemSelect = {
   id: true,
@@ -68,5 +69,10 @@ export async function GET(
     return NextResponse.json({ error: "Menu not found." }, { status: 404 });
   }
 
-  return NextResponse.json(menu);
+  const previewClicksThisMonth = await getMenuPreviewClicksThisMonth(menuId);
+
+  return NextResponse.json({
+    ...menu,
+    previewClicksThisMonth,
+  });
 }

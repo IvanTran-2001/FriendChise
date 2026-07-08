@@ -4,8 +4,8 @@ import { MenuItemCard } from "./menu-item-card";
 /**
  * One category section (e.g. "Burgers", "Drinks").
  * The `id` is used as the anchor target for scroll-spy and tab navigation.
- * `scroll-mt-[132px]` offsets the sticky navbar (64px) + tabs bar (~56px)
- * so the section heading is not hidden behind the sticky elements on scroll.
+ * Extra top scroll margin keeps the section heading from hiding behind the
+ * sticky navbar and category bar on scroll.
  */
 export function MenuSection({
   id,
@@ -21,7 +21,7 @@ export function MenuSection({
   if (items.length === 0) return null;
 
   return (
-    <section id={id} className="scroll-mt-[132px]">
+    <section id={id} className="scroll-mt-33">
       {/* Section heading */}
       <div className="mb-4">
         <h2 className="text-xl font-extrabold tracking-tight text-stone-900 sm:text-2xl">

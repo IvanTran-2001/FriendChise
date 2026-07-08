@@ -60,9 +60,6 @@ export function AddMenuItemPanel({
   const [selectedToolItem, setSelectedToolItem] = useState<ToolItemOption | null>(
     initialToolItem,
   );
-  const [createNewToolItem, setCreateNewToolItem] = useState(false);
-  const [newToolItemName, setNewToolItemName] = useState("");
-  const [newToolItemUnit, setNewToolItemUnit] = useState("");
   const [selectedTabId, setSelectedTabId] = useState<string | null>(defaultTabId ?? null);
   const [localTabs, setLocalTabs] = useState<MenuTabOption[]>(tabs);
   const [title, setTitle] = useState(initialItem?.title ?? "");
@@ -82,6 +79,33 @@ export function AddMenuItemPanel({
   useEffect(() => {
     setLocalTabs(tabs);
   }, [tabs]);
+
+  function maybeApplySelectedToolImage(nextImageUrl: string | null) {
+    if (!nextImageUrl) return;
+
+    if (!imageUrl) {
+      setImageUrl(nextImageUrl);
+      setImagePreviewUrl(null);
+      return;
+    }
+
+    if (imageUrl === nextImageUrl) return;
+
+    const shouldReplace = window.confirm(
+      "Replace the current image with this item's image?",
+    );
+
+    if (shouldReplace) {
+      setImageUrl(nextImageUrl);
+      setImagePreviewUrl(null);
+    }
+  }
+
+  function selectToolItem(item: ToolItemOption) {
+    setSelectedToolItem(item);
+    setTitle((current) => (current.trim() ? current : item.name));
+    maybeApplySelectedToolImage(item.imgUrl);
+  }
 
   function handleSelectCategory(tabId: string | null) {
     setSelectedTabId(tabId);
@@ -149,12 +173,20 @@ export function AddMenuItemPanel({
     const trimmedName = name.trim();
     if (!trimmedName) return;
 
-    setSelectedToolItem(null);
-    setCreateNewToolItem(true);
-    setNewToolItemName(trimmedName);
-    setNewToolItemUnit((current) => current || "each");
-    setImageUrl("");
-    setImagePreviewUrl(null);
+    startTransition(async () => {
+      const result = await createToolItemAction(orgId, trimmedName, "each");
+      if (!result.ok) {
+        toast.error("error" in result ? result.error : "Failed to create tool item.");
+        return;
+      }
+
+      setSelectedToolItem({
+        ...result.item,
+        imgUrl: null,
+      });
+      setTitle((current) => (current.trim() ? current : trimmedName));
+      toast.success(`"${trimmedName}" created.`);
+    });
   }
 
   function handleImageSelect(storagePath: string, signedUrl: string) {
@@ -181,7 +213,12 @@ export function AddMenuItemPanel({
 
     const trimmedTitle = title.trim();
     startTransition(async () => {
-      let toolItemId = selectedToolItem?.id ?? null;
+      const toolItemId = selectedToolItem?.id;
+      if (!toolItemId) {
+        toast.error("Choose or create a tool item first.");
+        return;
+      }
+
       const parsedPrice = parsePrice(price);
       if (parsedPrice === undefined) {
         toast.error("Price must be a valid number.");
@@ -194,25 +231,13 @@ export function AddMenuItemPanel({
         return;
       }
 
-      if (!toolItemId) {
-        const toolItemName = (newToolItemName.trim() || trimmedTitle).trim();
-        const toolItemUnit = newToolItemUnit.trim();
-        if (!toolItemName) {
-          toast.error("Tool item name is required.");
-          return;
-        }
-        if (!toolItemUnit) {
-          toast.error("Tool item unit is required.");
-          return;
-        }
-
-        const toolItemResult = await createToolItemAction(orgId, toolItemName, toolItemUnit);
-        if (!toolItemResult.ok) {
-          toast.error("error" in toolItemResult ? toolItemResult.error : "Failed to create tool item.");
-          return;
-        }
-        toolItemId = toolItemResult.item.id;
+      const effectiveTitle = trimmedTitle || selectedToolItem?.name || "";
+      if (!effectiveTitle) {
+        toast.error("Title is required.");
+        return;
       }
+
+      const effectiveImageUrl = imageUrl.trim() || undefined;
 
       const result = isEditMode && initialItem
         ? await updateMenuItemAction(
@@ -220,145 +245,136 @@ export function AddMenuItemPanel({
             menuId,
             initialItem.id,
             toolItemId,
-            trimmedTitle,
+            effectiveTitle,
             description.trim() || undefined,
             parsedPrice,
             parsedCalories,
             notes.trim() || undefined,
             selectedTabId,
-            imageUrl.trim() || undefined,
+            effectiveImageUrl,
           )
         : await createMenuItemAction(
             orgId,
             menuId,
             toolItemId,
-            trimmedTitle,
+            effectiveTitle,
             description.trim() || undefined,
             parsedPrice,
             parsedCalories,
             notes.trim() || undefined,
             selectedTabId,
-            imageUrl.trim() || undefined,
+            effectiveImageUrl,
           );
       if (!result.ok) {
         toast.error("error" in result ? result.error : "Failed to save item.");
         return;
       }
-      toast.success(isEditMode ? `"${trimmedTitle}" updated.` : `"${trimmedTitle}" added.`);
+      toast.success(isEditMode ? `"${effectiveTitle}" updated.` : `"${effectiveTitle}" added.`);
       onClose();
     });
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between gap-3">
-          <label className="text-sm font-medium">Image</label>
-          {imageUrl ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2 text-xs"
-              onClick={() => {
-                setImageUrl("");
-                setImagePreviewUrl(null);
-              }}
-              disabled={isPending}
-            >
-              Clear
-            </Button>
+      <div className="rounded-2xl border border-border/70 bg-muted/20 p-3 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Tool item
+            </p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Search an existing item, or create one from the search text.
+            </p>
+          </div>
+          {selectedToolItem ? (
+            <span className="shrink-0 rounded-full border border-border/70 bg-background px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Selected
+            </span>
           ) : null}
         </div>
 
-        {imagePreviewUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={imagePreviewUrl}
-            alt="Menu item image"
-            className="w-full max-h-48 rounded-lg object-cover border"
+        <div className="mt-3 flex flex-col gap-2">
+          <label className="text-xs font-medium text-muted-foreground">
+            Tool Item <span className="text-destructive">*</span>
+          </label>
+          <SearchableCombobox
+            items={selectedToolItem ? [selectedToolItem] : []}
+            loadItems={loadToolItems}
+            triggerLabel={selectedToolItem ? selectedToolItem.name : "Select item"}
+            placeholder="Search items…"
+            emptyText="No tool items found"
+            onCreate={handleCreateToolItem}
+            onSelect={(item) => {
+              const nextItem = item as ToolItemOption;
+              selectToolItem(nextItem);
+            }}
           />
-        ) : (
-          <div className="flex h-40 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
-            {isEditMode
-              ? imageUrl
-                ? "Loading menu item image…"
-                : "No menu item image selected"
-              : selectedToolItem?.imgUrl
-                ? "Loading tool item image…"
-                : "No image selected"}
-          </div>
-        )}
+        </div>
 
-        <OrgImagePicker
-          orgId={orgId}
-          config={{ aspect: 1, outputWidth: 512, outputHeight: 512 }}
-          disabled={isPending}
-          onSelect={handleImageSelect}
-          trigger={
-            <Button type="button" variant="outline" size="sm" className="w-fit" disabled={isPending}>
-              {imageUrl ? "Change image" : "Upload image"}
-            </Button>
-          }
-        />
+        <div className="mt-4 flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <label className="text-xs font-medium text-muted-foreground">Image</label>
+            {imageUrl ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs"
+                onClick={() => {
+                  setImageUrl("");
+                  setImagePreviewUrl(null);
+                }}
+                disabled={isPending}
+              >
+                Clear
+              </Button>
+            ) : null}
+          </div>
+
+          {imagePreviewUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imagePreviewUrl}
+              alt="Menu item image"
+              className="h-44 w-full rounded-xl border object-cover"
+            />
+          ) : (
+            <div className="flex h-44 items-center justify-center rounded-xl border border-dashed border-border/70 bg-background/70 text-center text-sm text-muted-foreground">
+              {isEditMode
+                ? imageUrl
+                  ? "Loading menu item image…"
+                  : "No menu item image selected"
+                : imageUrl
+                  ? "Loading menu item image…"
+                  : "No image selected"}
+            </div>
+          )}
+
+          <OrgImagePicker
+            orgId={orgId}
+            config={{ aspect: 1, outputWidth: 512, outputHeight: 512 }}
+            disabled={isPending}
+            onSelect={handleImageSelect}
+            trigger={
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-fit rounded-full"
+                disabled={isPending}
+              >
+                {imageUrl ? "Change image" : "Upload image"}
+              </Button>
+            }
+          />
+        </div>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium">Tool Item</label>
-        <SearchableCombobox
-          items={selectedToolItem ? [selectedToolItem] : []}
-          loadItems={loadToolItems}
-          triggerLabel={selectedToolItem ? selectedToolItem.name : "Select item"}
-          placeholder="Search items…"
-          emptyText="No tool items found"
-          onCreate={handleCreateToolItem}
-          onSelect={(item) => {
-            const nextItem = item as ToolItemOption;
-            setSelectedToolItem(nextItem);
-            setCreateNewToolItem(false);
-            setTitle(nextItem.name);
-            setImageUrl(nextItem.imgUrl ?? "");
-          }}
-        />
-      </div>
-
-      {createNewToolItem && (
-        <>
+      <CollapsibleSection title="Item Info">
+        <div className="flex flex-col gap-4 rounded-2xl bg-background/80">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="new-tool-item-name" className="text-sm font-medium">
-              New Tool Item Name
-            </label>
-            <Input
-              id="new-tool-item-name"
-              value={newToolItemName}
-              onChange={(e) => setNewToolItemName(e.target.value)}
-              placeholder="e.g. Flour"
-              disabled={isPending}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="new-tool-item-unit" className="text-sm font-medium">
-              New Tool Item Unit
-            </label>
-            <Input
-              id="new-tool-item-unit"
-              value={newToolItemUnit}
-              onChange={(e) => setNewToolItemUnit(e.target.value)}
-              placeholder="e.g. kg"
-              disabled={isPending}
-            />
-          </div>
-        </>
-      )}
-
-      <CollapsibleSection
-        title="Item Info"
-      >
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="menu-item-title" className="text-sm font-medium">
-              Title
+            <label htmlFor="menu-item-title" className="text-xs font-medium text-muted-foreground">
+              Title <span className="text-destructive">*</span>
             </label>
             <Input
               id="menu-item-title"
@@ -370,7 +386,7 @@ export function AddMenuItemPanel({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium">Category</label>
+            <label className="text-xs font-medium text-muted-foreground">Category</label>
             <SearchableCombobox
               items={localTabs}
               triggerLabel={selectedTab ? selectedTab.name : "None"}
@@ -384,7 +400,7 @@ export function AddMenuItemPanel({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="menu-item-description" className="text-sm font-medium">
+            <label htmlFor="menu-item-description" className="text-xs font-medium text-muted-foreground">
               Description
             </label>
             <Input
@@ -398,7 +414,7 @@ export function AddMenuItemPanel({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="menu-item-price" className="text-sm font-medium">
+              <label htmlFor="menu-item-price" className="text-xs font-medium text-muted-foreground">
                 Price
               </label>
               <Input
@@ -413,7 +429,7 @@ export function AddMenuItemPanel({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="menu-item-calories" className="text-sm font-medium">
+              <label htmlFor="menu-item-calories" className="text-xs font-medium text-muted-foreground">
                 Calories
               </label>
               <Input
@@ -429,7 +445,7 @@ export function AddMenuItemPanel({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="menu-item-notes" className="text-sm font-medium">
+            <label htmlFor="menu-item-notes" className="text-xs font-medium text-muted-foreground">
               Notes
             </label>
             <Input
@@ -443,8 +459,8 @@ export function AddMenuItemPanel({
         </div>
       </CollapsibleSection>
 
-      <Button type="submit" disabled={isPending || !title.trim()} className="w-full">
-        {isPending ? "Saving…" : isEditMode ? "Save Changes" : "Add Item"}
+      <Button type="submit" disabled={isPending} className="w-full rounded-full">
+        {isPending ? "Saving…" : isEditMode ? "Save changes" : "Add item"}
       </Button>
     </form>
   );

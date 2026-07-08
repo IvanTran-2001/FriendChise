@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { getPublicMenuDetail } from "@/lib/services/tools";
+import { getPublicMenuDetail, recordMenuPreviewDailyView } from "@/lib/services/tools";
 import { createSignedReadUrls, getPublicUrl } from "@/lib/supabase-storage";
 import { MenuNavbar } from "./_components/menu-navbar";
 import { MenuClient } from "./_components/menu-client";
@@ -14,6 +14,12 @@ type PageProps = { params: Promise<{ token: string }> };
 const loadPublicMenu = cache(async (token: string): Promise<ResolvedMenuData | null> => {
   const menu = await getPublicMenuDetail(token);
   if (!menu) return null;
+
+  try {
+    await recordMenuPreviewDailyView(menu.id);
+  } catch (error) {
+    console.error("Failed to record public menu preview view:", error);
+  }
 
   const isPrivate = (path: string) =>
     !path.startsWith(`orgs/${menu.orgId}/images/`);
@@ -107,7 +113,7 @@ export default async function PublicMenuPage({ params }: PageProps) {
         orgLogoUrl={data.orgLogoUrl}
         menuName={data.name}
       />
-      <MenuClient data={data} />
+      <MenuClient data={data} publicToken={token} />
 
       <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-stone-200 bg-white/90 px-4 py-3 text-center backdrop-blur-md sm:px-6">
         <p className="text-xs text-stone-500">
