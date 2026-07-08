@@ -46,7 +46,6 @@ export function MenuDetailSidebarContent({
       "Share",
       <MenuSharePanel
         publicToken={publicToken}
-        previewClicksThisMonth={previewClicksThisMonth}
       />,
     );
   }

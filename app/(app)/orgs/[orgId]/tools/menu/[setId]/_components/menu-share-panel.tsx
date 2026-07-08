@@ -3,17 +3,16 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { Check, Copy, Download, ExternalLink, Share2 } from "lucide-react";
+import Image from "next/image";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 type MenuSharePanelProps = {
   publicToken: string;
-  previewClicksThisMonth: number;
 };
 
 export function MenuSharePanel({
   publicToken,
-  previewClicksThisMonth,
 }: MenuSharePanelProps) {
   const [shareUrl, setShareUrl] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -120,9 +119,11 @@ export function MenuSharePanel({
 
       <div className="flex items-center justify-center rounded-2xl border border-border bg-white p-4 shadow-sm">
         {qrDataUrl ? (
-          <img
+          <Image
             src={qrDataUrl}
             alt="QR code for the public menu link"
+            width={224}
+            height={224}
             className="h-56 w-56 rounded-xl bg-white"
           />
         ) : (
