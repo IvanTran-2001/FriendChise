@@ -294,16 +294,16 @@ export function AddMenuCategoryPanel({
                   }
                 }}
                 onDrop={() => handleDrop(tab.id)}
-                className="flex flex-col gap-3 rounded-2xl border border-border/70 px-3 py-3 transition-colors hover:border-primary/30"
+                className="flex flex-col gap-2 rounded-2xl border border-border/70 px-3 py-3 transition-colors hover:border-primary/30"
               >
                 {dragTargetTabId === tab.id && dragInsertPosition === "before" ? (
                   <div className="-mt-2 h-1 rounded-full bg-primary/70 shadow-[0_0_0_1px_rgba(255,255,255,0.6)]" />
                 ) : null}
-                <div className="flex items-start gap-2">
+                <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 flex-1 items-start gap-2">
                     <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/50" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium leading-5 wrap-break-word">{tab.name}</p>
+                      <p className="truncate text-sm font-medium">{tab.name}</p>
                       {tab.description ? (
                         <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
                           {tab.description}
@@ -312,9 +312,7 @@ export function AddMenuCategoryPanel({
                     </div>
                   </div>
 
-                </div>
-
-                <div className="flex flex-wrap items-center justify-end gap-1">
+                  <div className="flex items-center gap-1">
                     <Button
                       type="button"
                       variant="ghost"
@@ -360,6 +358,7 @@ export function AddMenuCategoryPanel({
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
+                </div>
                 {dragTargetTabId === tab.id && dragInsertPosition === "after" ? (
                   <div className="-mb-2 h-1 rounded-full bg-primary/70 shadow-[0_0_0_1px_rgba(255,255,255,0.6)]" />
                 ) : null}
