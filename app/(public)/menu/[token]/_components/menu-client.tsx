@@ -38,10 +38,18 @@ export function MenuClient({ data }: { data: ResolvedMenuData }) {
   useEffect(() => {
     if (allTabs.length <= 1) return;
 
+    const mountedIds =
+      activeId === ALL_ID
+        ? allTabs.map((tab) => tab.id).filter((id) => id !== ALL_ID)
+        : activeId === UNASSIGNED_ID
+          ? [UNASSIGNED_ID]
+          : [activeId];
+
     const observer = new IntersectionObserver(
       (entries) => {
-        // Pick the first section that is currently intersecting
-        const visible = entries.filter((e) => e.isIntersecting);
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
         if (visible.length > 0) {
           setActiveId(visible[0].target.id);
         }
@@ -50,13 +58,13 @@ export function MenuClient({ data }: { data: ResolvedMenuData }) {
       { rootMargin: "-130px 0px -55% 0px", threshold: 0 },
     );
 
-    for (const tab of allTabs.filter((tab) => tab.id !== ALL_ID)) {
-      const el = document.getElementById(tab.id);
+    for (const tabId of mountedIds) {
+      const el = document.getElementById(tabId);
       if (el) observer.observe(el);
     }
 
     return () => observer.disconnect();
-  }, [allTabs]);
+  }, [allTabs, activeId]);
 
   // --- Auto-centre the active tab pill in the tab bar ----------------------
   useEffect(() => {

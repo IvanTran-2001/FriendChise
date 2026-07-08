@@ -100,6 +100,26 @@ const menuItemSelect = {
   },
 } as const;
 
+const menuTabPlacementSelect = {
+  id: true,
+  position: true,
+  menuItemId: true,
+  menuItem: {
+    select: menuItemSelect,
+  },
+} satisfies Prisma.MenuTabPlacementSelect;
+
+const menuTabSelect = {
+  id: true,
+  name: true,
+  description: true,
+  position: true,
+  placements: {
+    orderBy: { position: "asc" },
+    select: menuTabPlacementSelect,
+  },
+} satisfies Prisma.MenuTabSelect;
+
 export async function getMenus(
   orgId: string,
   options: { page?: number; pageSize?: number; search?: string } = {},
@@ -149,64 +169,8 @@ export async function getMenuDetail(
       description: true,
       publicToken: true,
       updatedAt: true,
-      items: {
-        orderBy: { title: "asc" },
-        select: {
-          id: true,
-          toolItemId: true,
-          title: true,
-          description: true,
-          price: true,
-          calories: true,
-          notes: true,
-          imageUrl: true,
-          toolItem: {
-            select: {
-              id: true,
-              name: true,
-              unit: true,
-              imgUrl: true,
-            },
-          },
-        },
-      },
-      tabs: {
-        orderBy: { position: "asc" },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          position: true,
-          placements: {
-            orderBy: { position: "asc" },
-            select: {
-              id: true,
-              position: true,
-              menuItemId: true,
-              menuItem: {
-                select: {
-                  id: true,
-                  toolItemId: true,
-                  title: true,
-                  description: true,
-                  price: true,
-                  calories: true,
-                  notes: true,
-                  imageUrl: true,
-                  toolItem: {
-                    select: {
-                      id: true,
-                      name: true,
-                      unit: true,
-                      imgUrl: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+      items: { orderBy: { title: "asc" }, select: menuItemSelect },
+      tabs: { orderBy: { position: "asc" }, select: menuTabSelect },
     },
   });
 }
@@ -227,64 +191,8 @@ export async function getPublicMenuDetail(
         image: true,
       },
     },
-    items: {
-      orderBy: { title: "asc" },
-      select: {
-        id: true,
-        toolItemId: true,
-        title: true,
-        description: true,
-        price: true,
-        calories: true,
-        notes: true,
-        imageUrl: true,
-        toolItem: {
-          select: {
-            id: true,
-            name: true,
-            unit: true,
-            imgUrl: true,
-          },
-        },
-      },
-    },
-    tabs: {
-      orderBy: { position: "asc" },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        position: true,
-        placements: {
-          orderBy: { position: "asc" },
-          select: {
-            id: true,
-            position: true,
-            menuItemId: true,
-            menuItem: {
-              select: {
-                id: true,
-                toolItemId: true,
-                title: true,
-                description: true,
-                price: true,
-                calories: true,
-                notes: true,
-                imageUrl: true,
-                toolItem: {
-                  select: {
-                    id: true,
-                    name: true,
-                    unit: true,
-                    imgUrl: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+    items: { orderBy: { title: "asc" }, select: menuItemSelect },
+    tabs: { orderBy: { position: "asc" }, select: menuTabSelect },
   } satisfies Prisma.MenuSelect;
 
   return prisma.menu.findUnique({

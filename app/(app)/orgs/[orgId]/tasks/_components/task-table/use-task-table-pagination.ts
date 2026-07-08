@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, type RefObject } f
 import type { SortOption } from "../tasks-config";
 import type { Task } from "./task-types";
 
+type TaskUpdater = Task[] | ((prev: Task[]) => Task[]);
+
 type PaginationState = {
   tasks: Task[];
   nextCursor: string | null;
@@ -79,6 +81,12 @@ export function useTaskTablePagination({
   const sentinelRef = useRef<HTMLDivElement>(null);
   const resetKeyRef = useRef(0);
   const pageCacheRef = useRef<Record<string, { tasks: Task[]; nextCursor: string | null }>>({});
+  const stateRef = useRef<PaginationState>({
+    tasks: initialTasks,
+    nextCursor: initialNextCursor,
+    isFetching: false,
+    initialLoad: initialTasks.length === 0 && initialNextCursor === null,
+  });
   const initialQueryKeyRef = useRef(
     [mode, sort, filterRoleId ?? "", filterTagId ?? "", ""].join("|")
   );
@@ -86,6 +94,15 @@ export function useTaskTablePagination({
     () => [mode, sort, filterRoleId ?? "", filterTagId ?? "", debouncedSearch].join("|"),
     [mode, sort, filterRoleId, filterTagId, debouncedSearch],
   );
+  const queryKeyRef = useRef(queryKey);
+
+  useEffect(() => {
+    queryKeyRef.current = queryKey;
+  }, [queryKey]);
+
+  useEffect(() => {
+    stateRef.current = { tasks, nextCursor, isFetching, initialLoad };
+  }, [tasks, nextCursor, isFetching, initialLoad]);
 
   useEffect(() => {
     pageCacheRef.current[initialQueryKeyRef.current] = {
@@ -154,6 +171,10 @@ export function useTaskTablePagination({
       .then((r) => r.json() as Promise<{ tasks: Task[]; nextCursor: string | null }>)
       .then((data) => {
         if (resetKeyRef.current !== key) return;
+        pageCacheRef.current[queryKeyRef.current] = {
+          tasks: [...stateRef.current.tasks, ...data.tasks],
+          nextCursor: data.nextCursor,
+        };
         dispatch({ type: "more_loaded", tasks: data.tasks, nextCursor: data.nextCursor });
       })
       .catch(() => {
@@ -186,8 +207,13 @@ export function useTaskTablePagination({
     isFetching,
     initialLoad,
     sentinelRef,
-    setTasks(tasks: Task[]) {
-      dispatch({ type: "set_tasks", tasks });
+    setTasks(updater: TaskUpdater) {
+      const nextTasks = typeof updater === "function" ? updater(stateRef.current.tasks) : updater;
+      pageCacheRef.current[queryKeyRef.current] = {
+        tasks: nextTasks,
+        nextCursor: stateRef.current.nextCursor,
+      };
+      dispatch({ type: "set_tasks", tasks: nextTasks });
     },
   };
 }

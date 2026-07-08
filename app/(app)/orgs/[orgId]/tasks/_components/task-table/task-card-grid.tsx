@@ -10,46 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Task } from "./task-types";
-
-function formatDuration(min: number): string {
-  if (min < 60) return `${min}m`;
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
-}
-
-function ownershipBadge(task: Task, orgId: string) {
-  if (task._available) {
-    return (
-      <span className="inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 text-xs font-medium whitespace-nowrap">
-        Available
-      </span>
-    );
-  }
-  if (task.orgId !== orgId) {
-    return (
-      <span className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 px-2 py-0.5 text-xs font-medium whitespace-nowrap">
-        Franchise
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center rounded-full bg-muted text-muted-foreground border border-border px-2 py-0.5 text-xs font-medium whitespace-nowrap">
-      Mine
-    </span>
-  );
-}
-
-function stripMd(text: string): string {
-  return text
-    .replace(/\*\*(.+?)\*\*/g, "$1")
-    .replace(/\*(.+?)\*/g, "$1")
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/^[•\-*]\s+/gm, "")
-    .replace(/^\d+\.\s+/gm, "")
-    .replace(/\n/g, " ")
-    .trim();
-}
+import { formatDuration, ownershipBadge, stripMd } from "./task-format-utils";
 
 interface TaskCardGridProps {
   orgId: string;

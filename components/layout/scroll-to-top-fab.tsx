@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowUp } from "lucide-react";
 
 export function ScrollToTopFab() {
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const mainRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
+    mainRef.current = document.querySelector("main") as HTMLElement | null;
+
     function getScrollTop() {
-      const scrollContainer = document.querySelector("main");
-      const mainScrollTop = scrollContainer instanceof HTMLElement ? scrollContainer.scrollTop : 0;
+      const mainScrollTop = mainRef.current?.scrollTop ?? 0;
       return Math.max(window.scrollY, mainScrollTop);
     }
 
@@ -20,7 +22,7 @@ export function ScrollToTopFab() {
     updateScrollTopVisibility();
     window.addEventListener("scroll", updateScrollTopVisibility, { passive: true });
 
-    const scrollContainer = document.querySelector("main");
+    const scrollContainer = mainRef.current;
     scrollContainer?.addEventListener("scroll", updateScrollTopVisibility, { passive: true });
 
     return () => {
@@ -30,7 +32,7 @@ export function ScrollToTopFab() {
   }, []);
 
   function scrollToTop() {
-    const scrollContainer = document.querySelector("main");
+    const scrollContainer = mainRef.current ?? (document.querySelector("main") as HTMLElement | null);
 
     if (scrollContainer instanceof HTMLElement) {
       scrollContainer.scrollTo({ top: 0, behavior: "smooth" });

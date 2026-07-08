@@ -69,7 +69,6 @@ export function TaskTable({
 
   const {
     tasks,
-    nextCursor,
     isFetching,
     initialLoad,
     sentinelRef,
@@ -97,7 +96,7 @@ export function TaskTable({
       const result = await removeTaskFromListAction(orgId, taskId);
       if (result.ok) {
         toast.success("Removed from list.");
-        setTasks(tasks.filter((t) => t.id !== taskId));
+        setTasks((prev) => prev.filter((t) => t.id !== taskId));
       } else {
         toast.error(result.error);
       }
@@ -112,7 +111,7 @@ export function TaskTable({
       const result = await deleteTaskAction(orgId, taskId);
       if (result.ok) {
         toast.success("Task deleted.");
-        setTasks(tasks.filter((t) => t.id !== taskId));
+        setTasks((prev) => prev.filter((t) => t.id !== taskId));
       } else {
         toast.error(result.error);
       }
@@ -124,7 +123,9 @@ export function TaskTable({
       const result = await inheritTaskAction(orgId, task.id);
       if (result.ok) {
         toast.success(`"${task.name}" added to your list.`);
-        setTasks(tasks.map((t) => (t.id === task.id ? { ...t, _available: false } : t)));
+        setTasks((prev) =>
+          prev.map((t) => (t.id === task.id ? { ...t, _available: false } : t)),
+        );
       } else {
         toast.error(result.error);
       }
@@ -132,7 +133,6 @@ export function TaskTable({
   }
 
   const isEmpty = !initialLoad && !isFetching && tasks.length === 0;
-  const hasMore = !!nextCursor;
   const showSkeleton = initialLoad || (isFetching && tasks.length === 0);
   const trimmedSearch = search.trim();
   const hasSearch = trimmedSearch !== "";
@@ -183,7 +183,7 @@ export function TaskTable({
 
         <div ref={sentinelRef} className="h-1" aria-hidden />
 
-        {isFetching && !initialLoad && !hasMore && (
+        {isFetching && !initialLoad && (
           <div className="flex justify-center py-4">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { getPublicMenuDetail } from "@/lib/services/tools";
 import { createSignedReadUrls, getPublicUrl } from "@/lib/supabase-storage";
 import { MenuNavbar } from "./_components/menu-navbar";
@@ -10,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 type PageProps = { params: Promise<{ token: string }> };
 
-async function loadPublicMenu(token: string): Promise<ResolvedMenuData | null> {
+const loadPublicMenu = cache(async (token: string): Promise<ResolvedMenuData | null> => {
   const menu = await getPublicMenuDetail(token);
   if (!menu) return null;
 
@@ -82,7 +83,7 @@ async function loadPublicMenu(token: string): Promise<ResolvedMenuData | null> {
       .filter((item) => !tabbedItemIds.has(item.id))
       .map(mapItem),
   };
-}
+});
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { token } = await params;
