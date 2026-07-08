@@ -10,7 +10,7 @@ export function MenuItemCard({ item }: { item: ResolvedMenuItem }) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm transition-all duration-200 active:scale-[0.97]">
       {/* Image area — always fixed aspect ratio */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-stone-100">
+      <div className="relative aspect-4/3 w-full overflow-hidden bg-stone-100">
         {item.imageUrl ? (
           <img
             src={item.imageUrl}
@@ -18,7 +18,7 @@ export function MenuItemCard({ item }: { item: ResolvedMenuItem }) {
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-50 to-stone-200">
+          <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-amber-50 to-stone-200">
             <span className="text-3xl opacity-40">🍽️</span>
           </div>
         )}

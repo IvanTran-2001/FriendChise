@@ -73,6 +73,14 @@ export type PublicMenuDetail = MenuDetail & {
   };
 };
 
+export type PublicMenuItemsPage = {
+  items: MenuItemDetail[];
+  totalCount: number;
+  totalPages: number;
+  page: number;
+  pageSize: number;
+};
+
 export type MenusPage = {
   menus: MenuSummary[];
   totalCount: number;
@@ -258,6 +266,26 @@ export async function getPublicMenuDetail(
     where: { publicToken },
     select: publicMenuSelect,
   }) as Promise<PublicMenuDetail | null>;
+}
+
+export async function getMenuItemsPage(
+  menuId: string,
+  options: { page?: number; pageSize?: number } = {},
+): Promise<PublicMenuItemsPage> {
+  const pageSize = Math.max(1, options.pageSize ?? 24);
+  const totalCount = await prisma.menuItem.count({ where: { menuId } });
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const page = Math.min(Math.max(1, Math.floor(options.page ?? 1)), totalPages);
+
+  const items = await prisma.menuItem.findMany({
+    where: { menuId },
+    orderBy: [{ title: "asc" }, { id: "asc" }],
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    select: menuItemSelect,
+  });
+
+  return { items, totalCount, totalPages, page, pageSize };
 }
 
 function toUtcDay(value: Date) {
