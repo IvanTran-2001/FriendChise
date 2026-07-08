@@ -6,10 +6,6 @@
  * Sections:
  *  - Filters — role filter, list/card view toggle
  *  - Actions — Invite Member, Add Bot (canManage only)
- *
- * The view toggle updates local state immediately for responsiveness, then
- * updates the URL with `history.replaceState` so the current view is still
- * reflected in the address bar without triggering a rerender.
  */
 import { MembersSidebarFilters } from "./members-sidebar-filters";
 import Link from "next/link";
@@ -26,6 +22,7 @@ interface MembersSidebarContentProps {
   canManage: boolean;
   roleId: string | null;
   view: "list" | "card";
+  onRoleChange: (roleId: string | null) => void;
   onViewChange: (view: "list" | "card") => void;
 }
 
@@ -35,26 +32,15 @@ export function MembersSidebarContent({
   canManage,
   roleId,
   view,
+  onRoleChange,
   onViewChange,
 }: MembersSidebarContentProps) {
-  function buildHref(overrides: {
-    roleId?: string | null;
-    view?: "list" | "card";
-  }) {
-    const params = new URLSearchParams();
-    const next = { roleId, view, ...overrides };
-    if (next.roleId) params.set("roleId", next.roleId);
-    if (next.view && next.view !== "card") params.set("view", next.view);
-    const qs = params.toString();
-    return `/orgs/${orgId}/memberships${qs ? `?${qs}` : ""}`;
-  }
-
   return (
     <>
       <MembersSidebarFilters
         roles={roles}
         roleId={roleId}
-        buildHref={buildHref}
+        onRoleChange={onRoleChange}
       />
       <div className="px-3 pt-2.5 pb-3 border-t border-border">
         <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
@@ -64,7 +50,6 @@ export function MembersSidebarContent({
           value={view}
           onChange={(nextView) => {
             onViewChange(nextView);
-            window.history.replaceState(null, "", buildHref({ view: nextView }));
           }}
           options={[
             {

@@ -43,6 +43,11 @@ export default async function AnnouncementsPage({
 
   // The owner check only drives the UI affordances, not page access.
   const canManage = org.ownerId === userId;
+  const feedKey = [
+    order,
+    announcements.page,
+    announcements.announcements.map((announcement) => announcement.id).join("."),
+  ].join("|");
 
   return (
     <>
@@ -50,6 +55,7 @@ export default async function AnnouncementsPage({
         content={<AnnouncementSidebarContent orgId={orgId} order={order} canManage={canManage} />}
       />
       <AnnouncementClient
+        key={feedKey}
         orgId={orgId}
         orgName={org.name}
         announcements={announcements.announcements}
@@ -57,7 +63,6 @@ export default async function AnnouncementsPage({
         canManage={canManage}
         page={announcements.page}
         totalPages={announcements.totalPages}
-        totalCount={announcements.totalCount}
       />
     </>
   );
