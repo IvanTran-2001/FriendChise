@@ -62,6 +62,7 @@ export type MenuDetail = {
   updatedAt: Date;
   items: MenuItemDetail[];
   tabs: MenuTabDetail[];
+  previewClicksThisMonth?: number;
 };
 
 export type PublicMenuDetail = MenuDetail & {
@@ -257,6 +258,57 @@ export async function getPublicMenuDetail(
     where: { publicToken },
     select: publicMenuSelect,
   }) as Promise<PublicMenuDetail | null>;
+}
+
+function toUtcDay(value: Date) {
+  return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
+}
+
+function getUtcMonthBounds(value: Date) {
+  const start = new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), 1));
+  const end = new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth() + 1, 1));
+  return { start, end };
+}
+
+export async function recordMenuPreviewDailyView(menuId: string, viewedAt = new Date()) {
+  const day = toUtcDay(viewedAt);
+
+  return prisma.menuPreviewDailyView.upsert({
+    where: {
+      menuId_day: {
+        menuId,
+        day,
+      },
+    },
+    create: {
+      menuId,
+      day,
+      views: 1,
+    },
+    update: {
+      views: {
+        increment: 1,
+      },
+    },
+  });
+}
+
+export async function getMenuPreviewClicksThisMonth(menuId: string, viewedAt = new Date()) {
+  const { start, end } = getUtcMonthBounds(viewedAt);
+  const result = await prisma.menuPreviewDailyView.aggregate({
+    where: {
+      menuId,
+      day: {
+        gte: start,
+        lt: end,
+      },
+    },
+    _sum: {
+      views: true,
+    },
+  });
+
+  return result._sum.views ?? 0;
 }
 
 export async function createMenu(

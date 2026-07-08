@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { getPublicMenuDetail } from "@/lib/services/tools";
+import { getPublicMenuDetail, recordMenuPreviewDailyView } from "@/lib/services/tools";
 import { createSignedReadUrls, getPublicUrl } from "@/lib/supabase-storage";
 import { MenuNavbar } from "./_components/menu-navbar";
 import { MenuClient } from "./_components/menu-client";
@@ -14,6 +14,12 @@ type PageProps = { params: Promise<{ token: string }> };
 const loadPublicMenu = cache(async (token: string): Promise<ResolvedMenuData | null> => {
   const menu = await getPublicMenuDetail(token);
   if (!menu) return null;
+
+  try {
+    await recordMenuPreviewDailyView(menu.id);
+  } catch (error) {
+    console.error("Failed to record public menu preview view:", error);
+  }
 
   const isPrivate = (path: string) =>
     !path.startsWith(`orgs/${menu.orgId}/images/`);

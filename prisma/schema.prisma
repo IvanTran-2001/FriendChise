@@ -915,9 +915,30 @@ model Menu {
 
   tabs        MenuTab[]
   items       MenuItem[]
+  previewDailyViews MenuPreviewDailyView[]
 
   @@unique([orgId, name])
   @@index([orgId])
+}
+
+// ─────────────────────────────────────
+// MENU PREVIEW DAILY VIEW
+// Daily preview counter for public menu page views.
+// One row per menu per UTC day.
+// ─────────────────────────────────────
+
+model MenuPreviewDailyView {
+  id        String   @id @default(cuid())
+  menuId    String
+  day       DateTime
+  views     Int      @default(0)
+  menu      Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([menuId, day])
+  @@index([menuId])
+  @@index([day])
 }
 
 // ─────────────────────────────────────
