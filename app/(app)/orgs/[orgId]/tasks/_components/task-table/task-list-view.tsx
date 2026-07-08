@@ -33,13 +33,13 @@ export function TaskListView({
 
   return (
     <>
-      <ul className="md:hidden flex flex-col divide-y rounded-xl border bg-card overflow-hidden shadow-sm touch-pan-y">
+      <ul className="md:hidden flex flex-col divide-y rounded-2xl border border-border/70 bg-card overflow-hidden shadow-sm touch-pan-y">
         {tasks.map((task) => (
-          <li key={task.id} className="px-3 py-1 transition-colors hover:bg-muted/40">
+          <li key={task.id} className="px-3 py-2 transition-colors hover:bg-muted/40">
             <div className="flex items-start gap-2">
               <button
                 type="button"
-                className="flex min-w-0 flex-1 items-start gap-2 text-left touch-pan-y"
+                className="flex min-w-0 flex-1 items-start gap-2 text-left touch-pan-y cursor-pointer"
                 onClick={() => router.push(`/orgs/${orgId}/tasks/${task.id}`)}
               >
                 {task.imageSignedUrl ? (
@@ -76,7 +76,7 @@ export function TaskListView({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 shrink-0 touch-pan-y"
+                  className="h-8 w-8 shrink-0 touch-pan-y cursor-pointer"
                   disabled={isPending}
                   title="Add to my list"
                   onClick={() => onAddToList(task)}
@@ -92,7 +92,7 @@ export function TaskListView({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 shrink-0 touch-pan-y"
+                      className="h-8 w-8 shrink-0 touch-pan-y cursor-pointer"
                       disabled={isPending}
                     >
                       <MoreHorizontal className="h-4 w-4" />
@@ -163,7 +163,8 @@ export function TaskListView({
         ))}
       </ul>
 
-      <table className="hidden w-full border-collapse text-sm md:table">
+      <div className="hidden overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm md:block">
+        <table className="w-full border-collapse text-sm">
         <thead className="bg-muted/50 text-muted-foreground">
           <tr className="border-b">
             <th className="px-4 py-3 text-left font-medium">Task</th>
@@ -178,12 +179,12 @@ export function TaskListView({
           {tasks.map((task) => (
             <tr
               key={task.id}
-              className="border-b last:border-b-0 hover:bg-muted/40 transition-colors"
+              className="border-b border-border/70 last:border-b-0 hover:bg-muted/40 transition-colors"
             >
               <td className="px-4 py-3 align-top">
                 <button
                   type="button"
-                  className="flex w-full items-start gap-3 text-left"
+                  className="flex w-full items-start gap-3 text-left cursor-pointer"
                   onClick={() => router.push(`/orgs/${orgId}/tasks/${task.id}`)}
                 >
                   {task.imageSignedUrl ? (
@@ -277,7 +278,7 @@ export function TaskListView({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
+                      className="h-8 w-8 cursor-pointer"
                       disabled={isPending}
                       title="Add to my list"
                       onClick={() => onAddToList(task)}
@@ -292,7 +293,7 @@ export function TaskListView({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
+                          className="h-8 w-8 cursor-pointer"
                           disabled={isPending}
                         >
                           <MoreHorizontal className="h-4 w-4" />
@@ -320,7 +321,8 @@ export function TaskListView({
             </tr>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
     </>
   );
 }
