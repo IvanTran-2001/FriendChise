@@ -100,6 +100,10 @@ export function AddMenuCategoryPanel({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmedName = name.trim();
+    if (!trimmedName) {
+      toast.error("Category name is required.");
+      return;
+    }
     startTransition(async () => {
       if (editingTabId) {
         const result = await updateMenuTabAction(
@@ -304,7 +308,7 @@ export function AddMenuCategoryPanel({
                   key={tab.id}
                   draggable
                   onDragStart={() => setDraggedTabId(tab.id)}
-                  onDragEnd={() => setDraggedTabId(null)}
+                  onDragEnd={clearDragState}
                   onDragOver={(event) => {
                     event.preventDefault();
                     const rect = event.currentTarget.getBoundingClientRect();

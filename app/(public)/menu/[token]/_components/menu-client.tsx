@@ -42,6 +42,7 @@ export function MenuClient({
   const [allPage, setAllPage] = useState(0);
   const [allHasMore, setAllHasMore] = useState(true);
   const [allLoading, setAllLoading] = useState(false);
+  const [allError, setAllError] = useState<string | null>(null);
 
   // Ref map: tab id → button element, for auto-scrolling the tab bar
   const tabButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
@@ -50,6 +51,7 @@ export function MenuClient({
   const loadNextAllPage = useCallback(async () => {
     if (allLoading || !allHasMore) return;
     setAllLoading(true);
+    setAllError(null);
     try {
       const nextPage = allPage + 1;
       const response = await fetch(
@@ -69,6 +71,8 @@ export function MenuClient({
       setAllItems((prev) => [...prev, ...payload.items]);
       setAllPage(payload.page);
       setAllHasMore(payload.hasMore);
+    } catch {
+      setAllError("Failed to load items. Please try again.");
     } finally {
       setAllLoading(false);
     }
@@ -183,6 +187,8 @@ export function MenuClient({
             <div ref={allSentinelRef} className="flex min-h-10 items-center justify-center py-2">
               {allLoading ? (
                 <p className="text-xs text-stone-400">Loading more items…</p>
+              ) : allError ? (
+                <p className="text-xs text-red-500">{allError}</p>
               ) : allHasMore ? (
                 <p className="text-xs text-stone-400">Scroll for more</p>
               ) : (

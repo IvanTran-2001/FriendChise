@@ -237,7 +237,7 @@ export function AddMenuItemPanel({
         return;
       }
 
-      const effectiveImageUrl = imageUrl.trim() || selectedToolItem?.imgUrl || undefined;
+      const effectiveImageUrl = imageUrl.trim() || undefined;
 
       const result = isEditMode && initialItem
         ? await updateMenuItemAction(
@@ -344,8 +344,8 @@ export function AddMenuItemPanel({
                 ? imageUrl
                   ? "Loading menu item image…"
                   : "No menu item image selected"
-                : selectedToolItem?.imgUrl
-                  ? "Loading tool item image…"
+                : imageUrl
+                  ? "Loading menu item image…"
                   : "No image selected"}
             </div>
           )}
