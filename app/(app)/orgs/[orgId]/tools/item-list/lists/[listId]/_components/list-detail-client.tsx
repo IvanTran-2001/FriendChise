@@ -302,7 +302,6 @@ export function ListDetailClient({
       listId={list.id}
       view={currentView}
       canManage={canManage}
-      availableItems={allOrgItems}
       gridCols={list.gridConfig?.gridCols}
       gridRows={list.gridConfig?.gridRows}
       conversionSets={conversionSets}

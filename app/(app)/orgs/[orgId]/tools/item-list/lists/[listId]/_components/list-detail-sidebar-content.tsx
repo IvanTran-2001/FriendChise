@@ -9,7 +9,6 @@ import { SegmentedControl } from "@/components/ui/segmented-control";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { updateToolItemGridConfigAction } from "@/app/actions/tools";
-import type { PickableItem } from "./add-item-to-list-panel";
 
 const MIN_COLS = 1, MAX_COLS = 8, MIN_ROWS = 1, MAX_ROWS = 8;
 
@@ -18,7 +17,6 @@ interface ListDetailSidebarContentProps {
   listId: string;
   view: "grid" | "checklist";
   canManage: boolean;
-  availableItems: PickableItem[];
   gridCols?: number;
   gridRows?: number;
   conversionSets: { id: string; name: string }[];
@@ -33,7 +31,6 @@ export function ListDetailSidebarContent({
   listId,
   view,
   canManage,
-  availableItems: _availableItems,
   gridCols: initialCols = 4,
   gridRows: initialRows = 4,
   conversionSets,
