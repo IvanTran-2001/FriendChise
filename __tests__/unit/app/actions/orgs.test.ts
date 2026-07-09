@@ -217,10 +217,8 @@ describe("getOrgSettingsPermissions", () => {
     mockSession("user-1");
     vi.mocked(getOrgMembership).mockResolvedValue({ id: "membership-1" } as any);
     vi.mocked(isOrgOwnerOrParentOrgOwner).mockResolvedValue(true);
-    vi.mocked(memberHasPermission).mockImplementation(async (membershipId, orgId, action) => {
-      // Explicit permission grants are false, but they should be implied by ownership
-      return false;
-    });
+    // Explicit permission grants are false, but they should be implied by ownership
+    vi.mocked(memberHasPermission).mockResolvedValue(false);
 
     const result = await getOrgSettingsPermissions("org-1");
 

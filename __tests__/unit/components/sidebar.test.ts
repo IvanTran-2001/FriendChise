@@ -2,6 +2,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as React from "react";
 import * as navigation from "next/navigation";
 
+const mockOrgSettingsPermissions: {
+  orgId: string | null;
+  permissions: {
+    canManageOrgSettings: boolean;
+    canManageRoles: boolean;
+    canManageSettings: boolean;
+  } | null;
+} = {
+  orgId: null,
+  permissions: null,
+};
+
 // Define a mutable reference for useState mock implementation
 let mockUseStateImpl: any = null;
 
@@ -16,7 +28,7 @@ vi.mock("react", async (importOriginal) => {
       }
       return original.useState(init);
     },
-    useContext: (ctx: any) => {
+    useContext: (_ctx: any) => {
       // Mock MobileSidebarCtx (or any other context) to return standard defaults
       return { open: false, setOpen: () => {} };
     },
@@ -37,8 +49,8 @@ vi.mock("next/link", () => ({
   default: ({ children, ...props }: any) => React.createElement("a", props, children),
 }));
 
-vi.mock("@/app/actions/orgs", () => ({
-  getOrgSettingsPermissions: vi.fn(),
+vi.mock("@/components/layout/org-settings-permissions-context", () => ({
+  useOrgSettingsPermissions: () => mockOrgSettingsPermissions,
 }));
 
 vi.mock("./logo", () => ({
@@ -72,18 +84,19 @@ describe("AppSidebar - Settings Filtering", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseStateImpl = null;
+    mockOrgSettingsPermissions.orgId = null;
+    mockOrgSettingsPermissions.permissions = null;
   });
 
   it("renders no settings items when permissions are loading (null)", () => {
     mockUseParams.mockReturnValue({ orgId: "org-1" });
     mockUsePathname.mockReturnValue("/orgs/org-1/settings/organization");
+    mockOrgSettingsPermissions.orgId = "org-1";
 
     let stateIndex = 0;
     const mockStates = [
       // Call 1: parentOwnerStatus state
       [{ orgId: "org-1", isParentOwner: false, parentOrgId: null }, vi.fn()],
-      // Call 2: permissions state (null while loading)
-      [null, vi.fn()],
     ];
 
     mockUseStateImpl = () => {
@@ -102,20 +115,17 @@ describe("AppSidebar - Settings Filtering", () => {
   it("renders only authorized settings items for a limited user", () => {
     mockUseParams.mockReturnValue({ orgId: "org-1" });
     mockUsePathname.mockReturnValue("/orgs/org-1/settings/organization");
+    mockOrgSettingsPermissions.orgId = "org-1";
+    mockOrgSettingsPermissions.permissions = {
+      canManageOrgSettings: false,
+      canManageRoles: true,
+      canManageSettings: false,
+    };
 
     let stateIndex = 0;
     const mockStates = [
       // Call 1: parentOwnerStatus state
       [{ orgId: "org-1", isParentOwner: false, parentOrgId: null }, vi.fn()],
-      // Call 2: permissions state
-      [
-        {
-          canManageOrgSettings: false,
-          canManageRoles: true,
-          canManageSettings: false,
-        },
-        vi.fn(),
-      ],
     ];
 
     mockUseStateImpl = () => {
@@ -135,20 +145,17 @@ describe("AppSidebar - Settings Filtering", () => {
   it("renders all settings items for an owner user", () => {
     mockUseParams.mockReturnValue({ orgId: "org-1" });
     mockUsePathname.mockReturnValue("/orgs/org-1/settings/organization");
+    mockOrgSettingsPermissions.orgId = "org-1";
+    mockOrgSettingsPermissions.permissions = {
+      canManageOrgSettings: true,
+      canManageRoles: true,
+      canManageSettings: true,
+    };
 
     let stateIndex = 0;
     const mockStates = [
       // Call 1: parentOwnerStatus state
       [{ orgId: "org-1", isParentOwner: true, parentOrgId: null }, vi.fn()],
-      // Call 2: permissions state
-      [
-        {
-          canManageOrgSettings: true,
-          canManageRoles: true,
-          canManageSettings: true,
-        },
-        vi.fn(),
-      ],
     ];
 
     mockUseStateImpl = () => {
