@@ -12,6 +12,7 @@ import {
   ToolbarProvider,
   ToolbarSlot,
 } from "@/components/layout/toolbar-context";
+import { OrgSettingsPermissionsProvider } from "@/components/layout/org-settings-permissions-context";
 import { DemoBanner } from "@/components/layout/demo-banner";
 import { ScrollToTopFab } from "@/components/layout/scroll-to-top-fab";
 
@@ -21,25 +22,27 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <ActionSidebarProvider>
         <GlobalSidebarProvider>
           <ToolbarProvider>
-            <div className="app-root">
-              {/* Full-height flex column: navbar on top, sidebar+content row below */}
-              <div className="min-h-dvh flex flex-col md:h-dvh">
-                <DemoBanner />
-                <NavBar />
-                <div className="flex flex-1 min-h-0 overflow-hidden">
-                  <AppSidebar />
-                  <PageSidebarSlot />
-                  <ActionSidebarSlot />
-                  <div className="flex flex-col flex-1 overflow-hidden">
-                    <ToolbarSlot />
-                    <main className="flex-1 min-h-0 overflow-x-hidden flex flex-col p-4 sm:p-6 touch-pan-y md:overflow-y-auto">
-                      {children}
-                    </main>
-                    <ScrollToTopFab />
+            <OrgSettingsPermissionsProvider>
+              <div className="app-root">
+                {/* Full-height flex column: navbar on top, sidebar+content row below */}
+                <div className="min-h-dvh flex flex-col md:h-dvh">
+                  <DemoBanner />
+                  <NavBar />
+                  <div className="flex flex-1 min-h-0 overflow-hidden">
+                    <AppSidebar />
+                    <PageSidebarSlot />
+                    <ActionSidebarSlot />
+                    <div className="flex flex-col flex-1 overflow-hidden">
+                      <ToolbarSlot />
+                      <main className="flex-1 min-h-0 overflow-x-hidden flex flex-col p-4 sm:p-6 touch-pan-y md:overflow-y-auto">
+                        {children}
+                      </main>
+                      <ScrollToTopFab />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </OrgSettingsPermissionsProvider>
           </ToolbarProvider>
         </GlobalSidebarProvider>
       </ActionSidebarProvider>

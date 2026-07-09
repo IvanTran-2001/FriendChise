@@ -41,6 +41,10 @@ import {
   useMobileSidebar,
   GlobalSidebarProvider,
 } from "./mobile-sidebar-context";
+import {
+  useOrgSettingsPermissions,
+  type OrgSettingsPermissions,
+} from "./org-settings-permissions-context";
 import { Logo } from "./logo";
 import { SidebarNavItem } from "./sidebar-nav-item";
 
@@ -156,6 +160,7 @@ export function AppSidebar() {
   const { orgId } = useParams<{ orgId?: string }>();
   const pathname = usePathname();
   const { open, setOpen } = useContext(MobileSidebarCtx);
+  const { orgId: permissionsOrgId, permissions } = useOrgSettingsPermissions();
 
   // Close the mobile overlay on navigation
   useEffect(() => {
@@ -186,6 +191,9 @@ export function AppSidebar() {
       .catch(() => {});
     return () => controller.abort();
   }, [orgId]);
+
+  const settingsPermissions: OrgSettingsPermissions | null =
+    permissionsOrgId === orgId ? permissions : null;
 
   const isParentOwner =
     parentOwnerStatus.orgId === orgId && parentOwnerStatus.isParentOwner;
@@ -266,14 +274,34 @@ export function AppSidebar() {
           </Link>
           <div className="flex-1 overflow-y-auto overflow-x-hidden">
             <div className="flex flex-col">
-              {settingsItems.map((item) => (
-                <SidebarNavItem
-                  key={item.title}
-                  variant="app"
-                  {...item}
-                  isActive={isActiveItem(item.url)}
-                />
-              ))}
+              {settingsPermissions && settingsItems
+                .filter((item) => {
+                  if (item.url.endsWith("/settings/organization")) {
+                    return settingsPermissions.canManageOrgSettings;
+                  }
+                  if (item.url.endsWith("/settings/roles")) {
+                    return settingsPermissions.canManageRoles;
+                  }
+                  if (
+                    item.url.endsWith("/settings/tags") ||
+                    item.url.endsWith("/settings/timetable") ||
+                    item.url.endsWith("/settings/notification")
+                  ) {
+                    return settingsPermissions.canManageSettings;
+                  }
+                  if (item.url.endsWith("/settings")) {
+                    return true;
+                  }
+                  return true;
+                })
+                .map((item) => (
+                  <SidebarNavItem
+                    key={item.title}
+                    variant="app"
+                    {...item}
+                    isActive={isActiveItem(item.url)}
+                  />
+                ))}
             </div>
           </div>
         </>
