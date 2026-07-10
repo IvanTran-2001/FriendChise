@@ -15,8 +15,6 @@
 import { auth, signOut } from "@/auth";
 import Image from "next/image";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
-import { getPublicUrl } from "@/lib/supabase-storage";
 import { isAdminUser } from "@/lib/authz";
 import { Button } from "@/components/ui/button";
 import { OrgSwitcher } from "@/components/layout/org-switcher";
@@ -45,32 +43,6 @@ export const NavBar = async () => {
   const session = await auth();
   const user = session?.user;
   const limit = 7;
-
-  // Fetch all orgs the current user is a member of, sorted alphabetically.
-  // Used to populate the OrgSwitcher dropdown.
-  const orgs = user?.id
-    ? await prisma.membership
-        .findMany({
-          where: { userId: user.id },
-          select: {
-            organization: { select: { id: true, name: true, image: true } },
-          },
-        })
-        .then((ms) =>
-          ms
-            .map((m) => m.organization)
-            .filter((org) => org !== null)
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map((org) => ({
-              ...org,
-              image: org.image ? getPublicUrl(org.image) : null,
-            })),
-        )
-        .catch((error) => {
-          console.error("Failed to load organizations for navbar", error);
-          return [];
-        })
-    : [];
 
 
   const [allNotificationFeed, unseenNotificationFeed] = user?.id
@@ -125,7 +97,7 @@ export const NavBar = async () => {
           </Button>
           <MobileSidebarTrigger />
           <div className="min-w-0">
-            <OrgSwitcher orgs={orgs} />
+            <OrgSwitcher />
           </div>
         </div>
 

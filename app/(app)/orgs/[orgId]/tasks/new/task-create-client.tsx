@@ -157,13 +157,14 @@ export function TaskCreateClient({
   orgId: string;
   allRoles: Role[];
   allTags: Tag[];
-  initialSearch?:string;
+  initialSearch?: string;
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement | null>(null);
   const [initialColor] = useState(() => randomColor());
   const storedDraft = useMemo(() => readStoredDraft(orgId), [orgId]);
-  const [title, setTitle] = useState(() => storedDraft?.title ?? "");
+  const initialTitle = storedDraft?.title ?? initialSearch ?? "";
+  const [title, setTitle] = useState(() => initialTitle);
   const [color, setColor] = useState(() => storedDraft?.color ?? initialColor);
   const [description, setDescription] = useState(
     () => storedDraft?.description ?? "",
@@ -222,7 +223,7 @@ export function TaskCreateClient({
   }, [orgId]);
 
   const resetForm = useCallback(() => {
-    setTitle("");
+    setTitle(initialTitle);
     setColor(initialColor);
     setDescription("");
     setSelectedImage(null);
@@ -234,7 +235,7 @@ export function TaskCreateClient({
     setSelectedTags([]);
     setSelectedRoles([]);
     setSelectedTools([]);
-  }, [initialColor]);
+  }, [initialColor, initialTitle]);
 
   const draftSnapshot = useMemo<TaskCreateDraft>(
     () => ({
@@ -269,7 +270,7 @@ export function TaskCreateClient({
   );
 
   const isDraftPristine =
-    title === "" &&
+    title === initialTitle &&
     description === "" &&
     color === initialColor &&
     selectedImage === null &&
@@ -435,7 +436,6 @@ export function TaskCreateClient({
               onClick={() => attemptLeave(`/orgs/${orgId}/tasks`)}
               className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
-              ← Tasks
             </button>
             <div className="ml-auto flex items-center gap-2">
               <Button
@@ -488,7 +488,12 @@ export function TaskCreateClient({
             value={normalizeWaitDays(maxWaitDays)}
           />
           {selectedTools.map((tool) => (
-            <input key={tool.toolPath} type="hidden" name="toolPaths" value={tool.toolPath} />
+            <input
+              key={tool.toolPath}
+              type="hidden"
+              name="toolPaths"
+              value={tool.toolPath}
+            />
           ))}
           {selectedTools.map((tool) => (
             <input
@@ -505,27 +510,28 @@ export function TaskCreateClient({
             </p>
           )}
 
-        <div className="flex flex-col gap-6 rounded-xl border bg-card p-5">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="title" className="text-sm font-medium">
-              Title <span className="text-destructive">*</span>
-            </label>
-            <Input
-              id="title"
-              name="title"
-              type="text"
-              required
-              defaultValue={initialSearch ?? ""}
-              placeholder="e.g. Deep clean kitchen"
-              aria-invalid={!!err("title")}
-              aria-describedby={err("title") ? "title-error" : undefined}
-            />
-            {err("title") && (
-              <p id="title-error" className="text-xs text-destructive">
-                {err("title")}
-              </p>
-            )}
-          </div>
+          <div className="flex flex-col gap-6 rounded-xl border bg-card p-5">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="title" className="text-sm font-medium">
+                Title <span className="text-destructive">*</span>
+              </label>
+              <Input
+                id="title"
+                name="title"
+                type="text"
+                required
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="e.g. Deep clean kitchen"
+                aria-invalid={!!err("title")}
+                aria-describedby={err("title") ? "title-error" : undefined}
+              />
+              {err("title") && (
+                <p id="title-error" className="text-xs text-destructive">
+                  {err("title")}
+                </p>
+              )}
+            </div>
 
             <div className="flex flex-col gap-1.5">
               <label htmlFor="description" className="text-sm font-medium">

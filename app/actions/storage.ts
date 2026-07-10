@@ -19,7 +19,7 @@
  */
 
 import { PermissionAction } from "@prisma/client";
-import { requireOrgPermissionAction } from "@/lib/authz";
+import { requireOrgMemberAction, requireOrgPermissionAction } from "@/lib/authz";
 import {
   createSignedUploadUrl,
   createSignedUploadUrlPublic,
@@ -557,6 +557,28 @@ export async function getFeedbackImageReadUrl(
 
   const { createSignedReadUrl } = await import("@/lib/supabase-storage");
   const signedUrl = await createSignedReadUrl(storagePath, 3600);
+  if (!signedUrl) return { ok: false, error: "Failed to generate signed URL" };
+
+  return { ok: true, signedUrl };
+}
+
+/**
+ * Returns a short-lived signed read URL for an org-owned storage path.
+ * Accepts tool item and org library image paths.
+ */
+export async function getOrgStorageReadUrl(
+  orgId: string,
+  storagePath: string,
+): Promise<{ ok: true; signedUrl: string } | { ok: false; error: string }> {
+  const authz = await requireOrgMemberAction(orgId);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+
+  const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
+  if (!normalized.startsWith(`orgs/${orgId}/`)) {
+    return { ok: false, error: "Invalid path" };
+  }
+
+  const signedUrl = await createSignedReadUrl(normalized, 3600);
   if (!signedUrl) return { ok: false, error: "Failed to generate signed URL" };
 
   return { ok: true, signedUrl };

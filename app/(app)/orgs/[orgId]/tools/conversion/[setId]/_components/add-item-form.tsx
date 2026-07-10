@@ -13,10 +13,11 @@
  */
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useCallback, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import {
   createToolItemAction,
@@ -31,14 +32,10 @@ type ToolItem = { id: string; name: string; unit: string };
 function EditItemForm({
   orgId,
   item,
-  onUpdate,
-  onDelete,
   onBack,
 }: {
   orgId: string;
   item: ToolItem;
-  onUpdate: (updated: ToolItem) => void;
-  onDelete: (id: string) => void;
   onBack: () => void;
 }) {
   const [name, setName] = useState(item.name);
@@ -55,7 +52,6 @@ function EditItemForm({
         );
         return;
       }
-      onUpdate({ ...item, name: name.trim(), unit: unit.trim() });
       toast.success("Item updated.");
       onBack();
     });
@@ -70,7 +66,6 @@ function EditItemForm({
         );
         return;
       }
-      onDelete(item.id);
       toast.success("Item deleted.");
       onBack();
     });
@@ -127,40 +122,48 @@ function EditItemForm({
 
 interface AddItemFormProps {
   orgId: string;
-  toolItems: ToolItem[];
   onSuccess: () => void;
   onCancel: () => void;
 }
 
 export function AddItemForm({
   orgId,
-  toolItems,
   onSuccess,
   onCancel: _onCancel,
 }: AddItemFormProps) {
   const { open } = useActionSidebar();
   const editKeyRef = useRef(0);
-  const [items, setItems] = useState(toolItems);
-  const itemsRef = useRef(items);
-
-  function updateItems(fn: (prev: ToolItem[]) => ToolItem[]) {
-    const next = fn(itemsRef.current);
-    itemsRef.current = next;
-    setItems(next);
-  }
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("");
-  const [search, setSearch] = useState("");
-  const [isPending, startTransition] = useTransition();
+  const [createPending, startCreateTransition] = useTransition();
+  const isPending = createPending;
 
-  const filterQuery = search || name;
-  const filteredItems = filterQuery
-    ? items.filter(
-        (i) =>
-          i.name.toLowerCase().includes(filterQuery.toLowerCase()) ||
-          i.unit.toLowerCase().includes(filterQuery.toLowerCase()),
-      )
-    : items;
+  const loadItems = useCallback(async (query: string, nextPage: number, signal: AbortSignal) => {
+    const params = new URLSearchParams({
+      page: String(nextPage),
+      limit: "24",
+      search: query,
+    });
+    const response = await fetch(`/api/orgs/${orgId}/tools/item-list?${params.toString()}`, {
+      signal,
+    });
+    if (!response.ok) throw new Error("Failed to load items.");
+
+    const data = (await response.json()) as {
+      items: Array<{ id: string; name: string; unit: string }>;
+      totalPages: number;
+      page: number;
+    };
+
+    return {
+      items: data.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        description: item.unit,
+      })),
+      hasMore: data.page < data.totalPages,
+    };
+  }, [orgId]);
 
   function openEdit(item: ToolItem) {
     const k = ++editKeyRef.current;
@@ -171,7 +174,6 @@ export function AddItemForm({
         <div key={k2} className="p-4">
           <AddItemForm
             orgId={orgId}
-            toolItems={itemsRef.current}
             onSuccess={() => {}}
             onCancel={() => {}}
           />
@@ -184,14 +186,6 @@ export function AddItemForm({
         <EditItemForm
           orgId={orgId}
           item={item}
-          onUpdate={(updated) =>
-            updateItems((prev) =>
-              prev.map((i) => (i.id === updated.id ? updated : i)),
-            )
-          }
-          onDelete={(id) =>
-            updateItems((prev) => prev.filter((i) => i.id !== id))
-          }
           onBack={goBack}
         />
       </div>,
@@ -200,7 +194,7 @@ export function AddItemForm({
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    startTransition(async () => {
+    startCreateTransition(async () => {
       const result = await createToolItemAction(orgId, name, unit);
       if (!result.ok) {
         toast.error(
@@ -208,7 +202,6 @@ export function AddItemForm({
         );
         return;
       }
-      updateItems((prev) => [...prev, result.item]);
       toast.success(`"${name.trim()}" added.`);
       setName("");
       setUnit("");
@@ -250,7 +243,7 @@ export function AddItemForm({
 
         <Button
           type="submit"
-          disabled={isPending || !name.trim() || !unit.trim()}
+          disabled={createPending || !name.trim() || !unit.trim()}
           className="w-full"
         >
           Add Item
@@ -259,43 +252,24 @@ export function AddItemForm({
 
       <hr className="border-border" />
 
-      {/* Item list */}
       <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Items
-          </span>
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search…"
-            className="h-7 w-32 text-xs"
-          />
-        </div>
-        {items.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-2">No items yet.</p>
-        ) : filteredItems.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-2">No matches.</p>
-        ) : (
-          <div className="flex flex-col gap-1">
-            {filteredItems.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => openEdit(item)}
-                className="flex items-center justify-between rounded-lg border bg-card px-3 py-2 cursor-pointer hover:border-primary/40 transition-colors"
-              >
-                <span className="text-sm font-medium truncate">
-                  {item.name.length > 20
-                    ? item.name.slice(0, 20) + "…"
-                    : item.name}
-                </span>
-                <span className="text-xs text-muted-foreground ml-2 shrink-0">
-                  {item.unit.length > 3 ? item.unit.slice(0, 3) : item.unit}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+        <p className="px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Items
+        </p>
+        <SearchableCombobox
+          items={[]}
+          loadItems={loadItems}
+          triggerLabel="Search items"
+          placeholder="Search items…"
+          emptyText="No items found"
+          onSelect={(item) => {
+            openEdit({
+              id: item.id,
+              name: item.name,
+              unit: item.description ?? "",
+            });
+          }}
+        />
       </div>
     </div>
   );

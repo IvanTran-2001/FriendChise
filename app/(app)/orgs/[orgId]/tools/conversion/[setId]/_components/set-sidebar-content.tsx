@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
-import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
+import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { AddItemForm } from "./add-item-form";
 import { AddRateForm } from "./add-rate-form";
@@ -46,7 +46,6 @@ interface SetSidebarContentProps {
   orgId: string;
   setId: string;
   setName: string;
-  toolItems: ToolItem[];
   rates: Rate[];
   templates: Template[];
   lists: { id: string; name: string }[];
@@ -58,7 +57,6 @@ export function SetSidebarContent({
   orgId,
   setId,
   setName: _setName,
-  toolItems,
   rates,
   templates,
   lists,
@@ -86,7 +84,6 @@ export function SetSidebarContent({
       "Items",
       <AddItemForm
         orgId={orgId}
-        toolItems={toolItems}
         onSuccess={() => {}}
         onCancel={close}
       />,
@@ -99,7 +96,6 @@ export function SetSidebarContent({
       <AddRateForm
         orgId={orgId}
         setId={setId}
-        toolItems={toolItems}
         rates={rates}
         onClose={close}
       />,
@@ -121,11 +117,15 @@ export function SetSidebarContent({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Back */}
-      <PageSidebarNavItem
+      <BackSidebarNavItem
         title="Back"
-        url={`/orgs/${orgId}/tools/conversion`}
+        fallbackHref={`/orgs/${orgId}/tools/conversion`}
         icon={ArrowLeft}
-        isActive={false}
+        secondaryButton={{
+          title: "Toolhub",
+          href: `/orgs/${orgId}/tools`,
+          icon: LayoutGrid,
+        }}
       />
 
       {/* View */}

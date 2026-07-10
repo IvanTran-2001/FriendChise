@@ -37,6 +37,7 @@ export async function getRoles(orgId: string): Promise<RoleWithPermissions[]> {
     where: { orgId },
     select: roleSelect,
     orderBy: { name: "asc" },
+    take: 100,
   });
 }
 

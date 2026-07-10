@@ -1,13 +1,11 @@
 ---
 name: 🟡 Intermediate
 about: Contributor-friendly task with setup notes, requirements, and submission checklist
-title: "🟡 [Good First Issue] Add a Logs sidebar to the admin panel"
+title: "🟡 [Intermediate] Add a Logs sidebar to the admin panel"
 labels: enhancement, Intermediate, help wanted, UI, good first issue
 ---
 
 # 🟡 Good First Issue: Add a Logs sidebar to the admin panel
-**Time:** ~1-2 hours
-
 **Difficulty:** Good First Issue
 
 **Skill Level:** Contributors comfortable with admin UI and data filtering
@@ -15,9 +13,9 @@ labels: enhancement, Intermediate, help wanted, UI, good first issue
 Add a new `Logs` section to the admin panel so admins can browse audit logs in a simple list view, search logs, and filter by day or month.
 
 ## ⭐ Before You Start
-If you enjoy the project, please consider starring the repository. Every star helps support future development and encourages more open-source contributions.
-If you need setup help, start here: https://friendchise.app/doc/development/quick-start
-To claim this issue, comment with `I want to take this`.
+⭐ Please star the project to support FriendChise. Every star helps future development and encourages more open-source contributions.
+If you need setup help, start with quick-start: https://friendchise.app/doc/development/quick-start
+To claim this issue, comment with `I want to take this`. If you run into any issues, message here.
 
 ---
 
@@ -44,17 +42,6 @@ Admins should be able to:
 - Search for log entries.
 - Filter logs by a day or a month.
 - Read timestamps in UTC.
-
----
-
-## 🚀 Quick Info
-| Category | Details |
-| --- | --- |
-| Difficulty | Good First Issue |
-| Time | ~1-2 hours |
-| Focus | Admin UI, filtering, logs |
-| Tech | React, Next.js, Prisma |
-| Good For | Contributors with some UI + data experience |
 
 ---
 

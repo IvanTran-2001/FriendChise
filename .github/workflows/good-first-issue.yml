@@ -23,7 +23,7 @@ jobs:
             const comment = context.payload.comment;
             const claimant = comment.user.login;
             const body = comment.body.trim();
-            const claimPhrase = 'i want to work on this';
+            const claimPhrase = 'i want to take this';
 
             if (body !== claimPhrase) {
               core.info('No exact claim phrase found in the comment.');
@@ -61,5 +61,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue.number,
-              body: `Hi @${claimant}, I assigned this issue to you.`,
+              body: `⭐ Hi @${claimant}! I assigned this issue to you. Please star the project to support FriendChise. Start with quick-start: https://friendchise.app/doc/development/quick-start. If you run into any issues, message here.`,
             });

@@ -18,6 +18,11 @@ vi.mock("@/lib/services/orgs", () => ({
   transferOrgOwnership: vi.fn(),
   deleteOrg: vi.fn(),
 }));
+vi.mock("@/lib/authz/_shared", () => ({
+  getOrgMembership: vi.fn(),
+  isOrgOwnerOrParentOrgOwner: vi.fn(),
+  memberHasPermission: vi.fn(),
+}));
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
@@ -25,7 +30,12 @@ import {
   createOrg as createOrgService,
   joinFranchise as joinFranchiseService,
 } from "@/lib/services/orgs";
-import { createOrg, joinFranchise } from "@/app/actions/orgs";
+import { createOrg, joinFranchise, getOrgSettingsPermissions } from "@/app/actions/orgs";
+import {
+  getOrgMembership,
+  isOrgOwnerOrParentOrgOwner,
+  memberHasPermission,
+} from "@/lib/authz/_shared";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -169,5 +179,76 @@ describe("joinFranchise", () => {
     await joinFranchise({ token: "tok-valid" });
 
     expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
+  });
+});
+
+// ─── getOrgSettingsPermissions ────────────────────────────────────────────────
+
+describe("getOrgSettingsPermissions", () => {
+  it("returns all false when no session exists", async () => {
+    noSession();
+
+    const result = await getOrgSettingsPermissions("org-1");
+
+    expect(result).toEqual({
+      canManageOrgSettings: false,
+      canManageRoles: false,
+      canManageSettings: false,
+    });
+    expect(getOrgMembership).not.toHaveBeenCalled();
+  });
+
+  it("returns all false when membership does not exist", async () => {
+    mockSession("user-1");
+    vi.mocked(getOrgMembership).mockResolvedValue(null);
+
+    const result = await getOrgSettingsPermissions("org-1");
+
+    expect(result).toEqual({
+      canManageOrgSettings: false,
+      canManageRoles: false,
+      canManageSettings: false,
+    });
+    expect(getOrgMembership).toHaveBeenCalledWith("org-1", "user-1");
+    expect(memberHasPermission).not.toHaveBeenCalled();
+  });
+
+  it("returns full settings access when user is the owner/parent-owner", async () => {
+    mockSession("user-1");
+    vi.mocked(getOrgMembership).mockResolvedValue({ id: "membership-1" } as any);
+    vi.mocked(isOrgOwnerOrParentOrgOwner).mockResolvedValue(true);
+    // Explicit permission grants are false, but they should be implied by ownership
+    vi.mocked(memberHasPermission).mockResolvedValue(false);
+
+    const result = await getOrgSettingsPermissions("org-1");
+
+    expect(result).toEqual({
+      canManageOrgSettings: true,
+      canManageRoles: true,
+      canManageSettings: true,
+    });
+    expect(isOrgOwnerOrParentOrgOwner).toHaveBeenCalledWith("org-1", "user-1");
+  });
+
+  it("returns explicit permission grants for a non-owner member", async () => {
+    mockSession("user-2");
+    vi.mocked(getOrgMembership).mockResolvedValue({ id: "membership-2" } as any);
+    vi.mocked(isOrgOwnerOrParentOrgOwner).mockResolvedValue(false);
+    vi.mocked(memberHasPermission).mockImplementation(async (membershipId, orgId, action) => {
+      if (action === "MANAGE_ROLES") return false;
+      if (action === "MANAGE_SETTINGS") return true;
+      return false;
+    });
+
+    const result = await getOrgSettingsPermissions("org-1");
+
+    expect(result).toEqual({
+      canManageOrgSettings: false,
+      canManageRoles: false,
+      canManageSettings: true,
+    });
+    expect(isOrgOwnerOrParentOrgOwner).toHaveBeenCalledWith("org-1", "user-2");
+    expect(memberHasPermission).toHaveBeenCalledWith("membership-2", "org-1", "MANAGE_ROLES");
+    expect(memberHasPermission).toHaveBeenCalledWith("membership-2", "org-1", "MANAGE_SETTINGS");
   });
 });

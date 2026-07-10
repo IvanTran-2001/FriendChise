@@ -17,10 +17,6 @@ export function usePersistedState<T>(
   // Initialize with initialValue to avoid SSR hydration mismatch
   const [state, setState] = useState<T>(initialValue);
   const [hydrated, setHydrated] = useState(false);
-  // Tracks whether the initial render has passed — we must NOT write on the
-  // first render because the read effect hasn't restored the stored value yet,
-  // so writing would overwrite localStorage with the blank initialValue.
-  const canWrite = useRef(false);
   const lastSerializedRef = useRef<string | null>(null);
 
   // Read from localStorage after mount (client-side only)
@@ -61,13 +57,9 @@ export function usePersistedState<T>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once after mount
 
-  // Write to localStorage when state changes (skips the initial render so we
-  // don't overwrite the stored value before the read effect has fired)
+  // Write to localStorage when state changes (only after hydration is complete)
   useEffect(() => {
-    if (!canWrite.current) {
-      canWrite.current = true;
-      return;
-    }
+    if (!hydrated) return;
     if (typeof window === "undefined") return;
     const serialized = JSON.stringify(state);
     if (lastSerializedRef.current === serialized) return;
@@ -80,7 +72,7 @@ export function usePersistedState<T>(
     } catch {
       // Ignore quota exceeded / private browsing errors
     }
-  }, [key, options?.broadcast, state]);
+  }, [key, options?.broadcast, state, hydrated]);
 
   return [state, setState, hydrated];
 }

@@ -110,7 +110,25 @@ export function CalendarEditSidebarContent({
   }
 
   const assignedIds = new Set(localAssignees.map((a) => a.membership.id));
-  const available = memberships.filter((m) => !assignedIds.has(m.id));
+
+  function loadMemberships(search: string, page: number, signal: AbortSignal) {
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("pageSize", "10");
+    if (search.trim()) params.set("search", search.trim());
+    for (const id of assignedIds) params.append("excludeIds", id);
+
+    return fetch(`/api/orgs/${orgId}/memberships?${params.toString()}`, { signal }).then(
+      async (response) => {
+        if (!response.ok) throw new Error("Failed to load assignees.");
+        const data = (await response.json()) as {
+          memberships: ComboboxItem[];
+          hasMore: boolean;
+        };
+        return { items: data.memberships, hasMore: data.hasMore };
+      },
+    );
+  }
 
   const parsedStart = hhmmToMin(startTime);
   const endMin =
@@ -346,18 +364,15 @@ export function CalendarEditSidebarContent({
                 Assignees
               </label>
 
-              {available.length > 0 && (
-                <SearchableCombobox
-                  items={available.map((m): ComboboxItem => ({
-                    id: m.id,
-                    name: m.user?.name ?? m.botName ?? "Bot",
-                  }))}
-                  onSelect={(item) => handleAddAssignee(item.id)}
-                  triggerLabel="Add assignee…"
-                  placeholder="Search members…"
-                  disabled={isSaving}
-                />
-              )}
+              <SearchableCombobox
+                items={[]}
+                loadItems={loadMemberships}
+                onSelect={(item) => handleAddAssignee(item.id)}
+                triggerLabel="Add assignee…"
+                placeholder="Search members…"
+                emptyText="No matching members"
+                disabled={isSaving}
+              />
 
               <div className="flex flex-col gap-1">
                 {localAssignees.length === 0 && (

@@ -1,12 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { GripVertical, Clock, MapPin } from "lucide-react";
 import { SearchInput } from "@/components/ui/search-input";
 import type { SharedTask } from "./types";
 
+type LoadTasksResult = {
+  tasks: SharedTask[];
+  nextCursor: string | null;
+};
+
 interface TaskPanelProps {
   tasks: SharedTask[];
+  loadTasks?: (
+    search: string,
+    cursor: string | null | undefined,
+    signal: AbortSignal,
+  ) => Promise<LoadTasksResult>;
   onDragStart: (taskId: string, e: React.DragEvent) => void;
   onDragEnd: () => void;
   selectedTaskId?: string | null;
@@ -22,6 +32,7 @@ interface TaskPanelProps {
  */
 export function TaskPanel({
   tasks,
+  loadTasks,
   onDragStart,
   onDragEnd,
   selectedTaskId,
@@ -30,18 +41,97 @@ export function TaskPanel({
   onTaskClick,
 }: TaskPanelProps) {
   const [search, setSearch] = useState("");
+  const [loadedTasks, setLoadedTasks] = useState<SharedTask[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const listRootRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const requestIdRef = useRef(0);
 
-  const filtered = tasks
-    .filter((t) => t.name.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => {
-      if (a.roleName && b.roleName) return a.roleName.localeCompare(b.roleName);
-      if (a.roleName) return -1;
-      if (b.roleName) return 1;
-      return a.name.localeCompare(b.name);
-    });
+  useEffect(() => {
+    if (!loadTasks) return;
 
-  // Group by role name
+    const controller = new AbortController();
+    const requestId = ++requestIdRef.current;
+    const timer = window.setTimeout(async () => {
+      setLoadedTasks([]);
+      setNextCursor(null);
+      setIsLoading(true);
+      try {
+        const result = await loadTasks(search.trim(), undefined, controller.signal);
+        if (!controller.signal.aborted && requestId === requestIdRef.current) {
+          setLoadedTasks(result.tasks);
+          setNextCursor(result.nextCursor);
+        }
+      } catch {
+        if (!controller.signal.aborted && requestId === requestIdRef.current) {
+          setLoadedTasks([]);
+          setNextCursor(null);
+        }
+      } finally {
+        if (!controller.signal.aborted && requestId === requestIdRef.current) {
+          setIsLoading(false);
+        }
+      }
+    }, 200);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [loadTasks, search]);
+
+  const visibleTasks = loadTasks ? loadedTasks : tasks;
+  const filtered = useMemo(() => {
+    if (loadTasks) return visibleTasks;
+    const query = search.toLowerCase();
+    return visibleTasks
+      .filter((task) => task.name.toLowerCase().includes(query))
+      .sort((a, b) => {
+        if (a.roleName && b.roleName) return a.roleName.localeCompare(b.roleName);
+        if (a.roleName) return -1;
+        if (b.roleName) return 1;
+        return a.name.localeCompare(b.name);
+      });
+  }, [loadTasks, search, visibleTasks]);
+
+  useEffect(() => {
+    if (!loadTasks) return;
+    const sentinel = sentinelRef.current;
+    const root = listRootRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting || isLoading || !nextCursor) return;
+        const controller = new AbortController();
+        const requestId = ++requestIdRef.current;
+        setIsLoading(true);
+        void loadTasks(search.trim(), nextCursor, controller.signal)
+          .then((result) => {
+            if (controller.signal.aborted || requestId !== requestIdRef.current) return;
+            setLoadedTasks((current) => [...current, ...result.tasks]);
+            setNextCursor(result.nextCursor);
+          })
+          .catch(() => {
+            if (!controller.signal.aborted && requestId === requestIdRef.current) {
+              setNextCursor(null);
+            }
+          })
+          .finally(() => {
+            if (!controller.signal.aborted && requestId === requestIdRef.current) {
+              setIsLoading(false);
+            }
+          });
+      },
+      { root, rootMargin: "200px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [isLoading, loadTasks, nextCursor, search]);
+
   const grouped = filtered.reduce<Record<string, SharedTask[]>>((acc, task) => {
     const key = task.roleName ?? "";
     if (!acc[key]) acc[key] = [];
@@ -54,8 +144,10 @@ export function TaskPanel({
     return a.localeCompare(b);
   });
 
+  const showInitialLoading = !!loadTasks && isLoading && filtered.length === 0;
+
   const rows =
-    filtered.length === 0 ? (
+    filtered.length === 0 && !showInitialLoading ? (
       <div className="flex flex-col items-center justify-center py-12 text-center gap-2 text-muted-foreground">
         <MapPin className="h-7 w-7 opacity-30" />
         <p className="text-sm">No tasks found</p>
@@ -141,12 +233,10 @@ export function TaskPanel({
                     borderLeftWidth: 3,
                   }}
                 >
-                  {/* Drag grip — only in drag mode */}
                   {!tapToPlaceMode && !onTaskClick && (
                     <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground/70 transition-colors" />
                   )}
 
-                  {/* Content */}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate leading-snug text-[13px]">
                       {task.name}
@@ -159,7 +249,6 @@ export function TaskPanel({
                     </div>
                   </div>
 
-                  {/* Tap-to-place indicator */}
                   {tapToPlaceMode && isSelected && (
                     <span className="shrink-0 text-[10px] font-semibold text-primary bg-primary/10 rounded px-1.5 py-0.5 leading-tight">
                       Tap grid
@@ -191,7 +280,20 @@ export function TaskPanel({
           </p>
         </div>
       )}
-      <div className="flex flex-col overflow-y-auto flex-1">{rows}</div>
+      <div ref={listRootRef} className="flex flex-col overflow-y-auto flex-1">
+        {showInitialLoading && (
+          <div className="mx-3 mt-3 rounded-xl border border-dashed border-border/70 bg-muted/20 px-3 py-6 text-center text-muted-foreground">
+            <p className="text-xs">Loading tasks…</p>
+          </div>
+        )}
+        {rows}
+        {loadTasks && isLoading && filtered.length > 0 && (
+          <div className="px-3 py-2 text-center text-xs text-muted-foreground">
+            Loading more…
+          </div>
+        )}
+        {loadTasks && <div ref={sentinelRef} className="h-4" />}
+      </div>
     </div>
   );
 }

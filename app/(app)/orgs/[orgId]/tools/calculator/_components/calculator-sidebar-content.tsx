@@ -6,17 +6,22 @@
 "use client";
 
 import { ArrowLeft } from "lucide-react";
-import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
+import { LayoutGrid } from "lucide-react";
+import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
 
 export function CalculatorSidebarContent({ orgId }: { orgId: string }) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Back */}
-      <PageSidebarNavItem
+      <BackSidebarNavItem
         title="Back"
-        url={`/orgs/${orgId}/tools`}
+        fallbackHref={`/orgs/${orgId}/tools`}
         icon={ArrowLeft}
-        isActive={false}
+        secondaryButton={{
+          title: "Toolhub",
+          href: `/orgs/${orgId}/tools`,
+          icon: LayoutGrid,
+        }}
       />
     </div>
   );

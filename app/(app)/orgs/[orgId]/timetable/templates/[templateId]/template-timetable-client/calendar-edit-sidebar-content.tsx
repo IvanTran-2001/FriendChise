@@ -2,9 +2,10 @@
 
 import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Plus, X } from "lucide-react";
+import { ChevronLeft, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { SearchableCombobox, type ComboboxItem } from "@/components/ui/searchable-combobox";
 import { addInstanceAssigneeAction, removeInstanceAssigneeAction, updateTemplateInstanceAction, removeTemplateInstanceAction } from "@/app/actions/templates";
 import { minToHHMM, hhmmToMin } from "../../../_shared/grid-utils";
 import type { ClientTemplateInstance, ClientMembership } from "../template-editor-client";
@@ -37,27 +38,40 @@ export function CalendarEditSidebarContent({
   const [startTime, setStartTime] = useState(minToHHMM(initialStartTimeMin ?? instance.startTimeMin));
   const [dayIndex] = useState<number | null>(initialDayIndex ?? instance.dayIndex);
   const [localAssignees, setLocalAssignees] = useState(instance.assignees);
-  const [addMembershipId, setAddMembershipId] = useState("");
   const [, startT] = useTransition();
 
   const assignedIds = new Set(localAssignees.map((a) => a.membership.id));
-  const available = memberships.filter((m) => !assignedIds.has(m.id));
-  const effectiveAddId = available.find((m) => m.id === addMembershipId)
-    ? addMembershipId
-    : (available[0]?.id ?? "");
+
+  function loadMemberships(search: string, page: number, signal: AbortSignal) {
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("pageSize", "10");
+    if (search.trim()) params.set("search", search.trim());
+    for (const id of assignedIds) params.append("excludeIds", id);
+
+    return fetch(`/api/orgs/${orgId}/memberships?${params.toString()}`, { signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Failed to load assignees.");
+        const data = (await response.json()) as {
+          memberships: ComboboxItem[];
+          hasMore: boolean;
+        };
+        return { items: data.memberships, hasMore: data.hasMore };
+      });
+  }
 
   const parsedStartTime = hhmmToMin(startTime);
   const endMin = parsedStartTime == null ? null : parsedStartTime + instance.task.durationMin;
 
-  function handleAddAssignee() {
-    const membership = memberships.find((m) => m.id === effectiveAddId);
+  function handleAddAssignee(membershipId: string) {
+    const membership = memberships.find((m) => m.id === membershipId);
     if (!membership) return;
     startT(async () => {
-      const r = await addInstanceAssigneeAction(orgId, instance.id, effectiveAddId);
+      const r = await addInstanceAssigneeAction(orgId, instance.id, membershipId);
       if (r.ok) {
         setLocalAssignees((p) => [
           ...p,
-          { id: `opt-${effectiveAddId}`, membership: { ...membership, botName: membership.botName ?? null } },
+          { id: `opt-${membershipId}`, membership: { ...membership, botName: membership.botName ?? null } },
         ]);
         router.refresh();
       }
@@ -158,24 +172,15 @@ export function CalendarEditSidebarContent({
               </div>
             ))}
           </div>
-          {available.length > 0 && (
-            <div className="flex gap-1.5 items-center">
-              <select
-                value={effectiveAddId}
-                onChange={(e) => setAddMembershipId(e.target.value)}
-                className="flex-1 rounded border border-input bg-background px-2 py-1 text-sm"
-              >
-                {available.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.user?.name ?? m.botName ?? "Unknown"}
-                  </option>
-                ))}
-              </select>
-              <Button size="sm" variant="outline" onClick={handleAddAssignee} className="h-8 w-8 p-0 shrink-0" aria-label="Add assignee">
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          )}
+          <SearchableCombobox
+            items={[]}
+            loadItems={loadMemberships}
+            onSelect={(item) => handleAddAssignee(item.id)}
+            triggerLabel="Add assignee"
+            placeholder="Search members…"
+            emptyText="No matching members"
+            disabled={assignedIds.size >= memberships.length}
+          />
         </div>
 
         {/* Actions */}

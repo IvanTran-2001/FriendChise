@@ -134,7 +134,10 @@ export async function requireOrgOwnerOrParentOrgOwnerPage(
   const userId = await getAuthUserId();
   if (!userId) redirect("/signin");
   if (!(await isOrgOwnerOrParentOrgOwner(orgId, userId))) {
-    redirect(redirectTo ?? `/orgs/${orgId}`);
+    const base = redirectTo ?? `/orgs/${orgId}`;
+    redirect(
+      base.includes("?") ? `${base}&unauthorized=1` : `${base}?unauthorized=1`,
+    );
   }
   return { userId };
 }

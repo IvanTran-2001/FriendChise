@@ -8,6 +8,19 @@
 import { FeedbackType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
+export type FeedbackFilter = "all" | "unreviewed";
+
+export type FeedbackRow = {
+  id: string;
+  createdAt: Date;
+  type: FeedbackType;
+  message: string;
+  imageUrl: string | null;
+  reviewed: boolean;
+  user: { email: string | null; name: string | null };
+  org: { id: string; name: string } | null;
+};
+
 /** Creates a new feedback submission and returns its id. */
 export async function createFeedback(
   userId: string,
@@ -28,14 +41,30 @@ export async function createFeedback(
   });
 }
 
+function buildFeedbackWhere(filter: FeedbackFilter) {
+  return filter === "unreviewed" ? { reviewed: false } : {};
+}
+
 /**
- * Returns all feedback ordered newest-first, including the submitting user's
- * email/name and the associated org name (if any).
- * Used exclusively by the admin panel — requires super-admin auth at the call site.
+ * Returns a paginated slice of feedback ordered newest-first, including the
+ * submitting user's email/name and the associated org name (if any).
+ * Used by the admin inbox and other bounded admin views.
  */
-export async function getAllFeedback() {
-  return prisma.feedback.findMany({
+export async function getFeedbackPage(
+  page: number,
+  pageSize: number,
+  filter: FeedbackFilter = "all",
+): Promise<{ feedback: FeedbackRow[]; totalCount: number; totalPages: number; page: number; pageSize: number; filter: FeedbackFilter }> {
+  const where = buildFeedbackWhere(filter);
+  const totalCount = await prisma.feedback.count({ where });
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const currentPage = Math.min(Math.max(1, Math.floor(page)), totalPages);
+
+  const feedback = await prisma.feedback.findMany({
+    where,
     orderBy: { createdAt: "desc" },
+    skip: (currentPage - 1) * pageSize,
+    take: pageSize,
     select: {
       id: true,
       createdAt: true,
@@ -47,6 +76,27 @@ export async function getAllFeedback() {
       org: { select: { id: true, name: true } },
     },
   });
+
+  return { feedback, totalCount, totalPages, page: currentPage, pageSize, filter };
+}
+
+/**
+ * Returns all feedback ordered newest-first by loading it in bounded pages.
+ * Existing admin pages still consume the full list, but the underlying reads
+ * are chunked so the query path stays bounded.
+ */
+export async function getAllFeedback() {
+  const pageSize = 100;
+  const firstPage = await getFeedbackPage(1, pageSize, "all");
+  if (firstPage.totalPages === 1) return firstPage.feedback;
+
+  const rows: FeedbackRow[] = [...firstPage.feedback];
+  for (let page = 2; page <= firstPage.totalPages; page += 1) {
+    const result = await getFeedbackPage(page, pageSize, "all");
+    rows.push(...result.feedback);
+  }
+
+  return rows;
 }
 
 /**

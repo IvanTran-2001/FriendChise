@@ -13,7 +13,9 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeftRight, ArrowRight, LayoutList, List, Users, Calculator } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, LayoutList, List, Users, Calculator, Star, ClipboardList } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 
 const TOOLS = [
   {
@@ -29,6 +31,13 @@ const TOOLS = [
     icon: ArrowLeftRight,
     description: "Convert quantities between items",
     accent: "bg-sky-500/10 text-sky-700 ring-sky-500/15 dark:text-sky-300",
+  },
+  {
+    id: "menu",
+    name: "Menu",
+    icon: ClipboardList,
+    description: "Build customer-facing menus",
+    accent: "bg-rose-500/10 text-rose-700 ring-rose-500/15 dark:text-rose-300",
   },
   {
     id: "roster",
@@ -71,6 +80,24 @@ export function ToolsClient({
   const totalTools = TOOLS.length;
   const totalRecent = recent.length;
 
+  const [favoriteIds, setFavoriteIds, hydrated] = usePersistedState<string[]>(
+    `toolhub-favorites-${orgId}`,
+    [],
+  );
+
+  const favoriteTools = hydrated ? TOOLS.filter((tool) => favoriteIds.includes(tool.id)) : [];
+
+  const toggleFavorite = (toolId: string) => {
+    setFavoriteIds((prev) => {
+      const isFav = prev.includes(toolId);
+      if (isFav) {
+        return prev.filter((id) => id !== toolId);
+      } else {
+        return [...prev, toolId];
+      }
+    });
+  };
+
   return (
     <>
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-4 sm:px-6 sm:py-6">
@@ -78,7 +105,6 @@ export function ToolsClient({
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
               <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:mt-3 sm:text-4xl">
-      topBar?: string;
                 Tooling that feels organized, not crowded.
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:mt-3 sm:text-base">
@@ -223,6 +249,72 @@ export function ToolsClient({
         <section className="flex flex-col gap-3">
           <div className="px-1">
             <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Favorites
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Your pinned tools for quick access.
+            </p>
+          </div>
+
+          {favoriteTools.length > 0 ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {favoriteTools.map((tool) => {
+                const Icon = tool.icon;
+                return (
+                  <Link
+                    key={`fav-${tool.id}`}
+                    href={`/orgs/${orgId}/tools/${tool.id}`}
+                    className="group relative overflow-hidden rounded-3xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
+                  >
+                    <div className={`absolute inset-x-0 top-0 h-1 ${tool.topBar ?? "bg-indigo-500/70"}`} />
+
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleFavorite(tool.id);
+                      }}
+                      className="absolute right-4 top-4 z-10 rounded-full p-1.5 text-amber-500 bg-amber-500/5 hover:bg-amber-500/10 transition-all duration-200"
+                      aria-label="Remove from favorites"
+                    >
+                      <Star className="h-4 w-4 fill-current" />
+                    </button>
+
+                    <div className="flex h-full flex-col gap-4">
+                      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ring-1 ${tool.accent}`}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="flex flex-1 flex-col gap-2">
+                        <div>
+                          <span className="text-sm font-semibold">{tool.name}</span>
+                          <span className="block mt-1 text-sm leading-6 text-muted-foreground">
+                            {tool.description}
+                          </span>
+                        </div>
+                        <div className="mt-auto flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                          <span>Open module</span>
+                          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-card/50 p-8 text-center shadow-sm">
+              <Star className="h-8 w-8 text-muted-foreground/30 mb-2" />
+              <p className="text-sm font-medium text-muted-foreground">No favorite tools yet</p>
+              <p className="mt-1 text-xs text-muted-foreground/60 max-w-xs">
+                Click the star icon on any tool below to keep it at the top of your workspace.
+              </p>
+            </div>
+          )}
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <div className="px-1">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Tools
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -233,6 +325,7 @@ export function ToolsClient({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {TOOLS.map((tool) => {
               const Icon = tool.icon;
+              const isFavorite = hydrated && favoriteIds.includes(tool.id);
               return (
                 <Link
                   key={tool.id}
@@ -240,6 +333,24 @@ export function ToolsClient({
                   className="group relative overflow-hidden rounded-3xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
                 >
                   <div className={`absolute inset-x-0 top-0 h-1 ${tool.topBar ?? "bg-indigo-500/70"}`} />
+
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleFavorite(tool.id);
+                    }}
+                    className={cn(
+                      "absolute right-4 top-4 z-10 rounded-full p-1.5 transition-all duration-200",
+                      isFavorite
+                        ? "text-amber-500 bg-amber-500/5 hover:bg-amber-500/10"
+                        : "text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:text-amber-500 hover:bg-amber-500/5"
+                    )}
+                    aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                  >
+                    <Star className={cn("h-4 w-4", isFavorite && "fill-current")} />
+                  </button>
+
                   <div className="flex h-full flex-col gap-4">
                     <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ring-1 ${tool.accent}`}>
                       <Icon className="h-5 w-5" />
