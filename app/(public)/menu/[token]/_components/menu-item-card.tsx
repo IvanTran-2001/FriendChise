@@ -8,14 +8,20 @@ import type { ResolvedMenuItem } from "./types";
  */
 export function MenuItemCard({ item }: { item: ResolvedMenuItem }) {
   return (
-    <article className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm transition-all duration-200 active:scale-[0.97]">
+    <article
+      className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm"
+      style={{ width: "176px", height: "280px" }}
+    >
       {/* Image area — always fixed aspect ratio */}
-      <div className="relative aspect-4/3 w-full overflow-hidden bg-stone-100">
+      <div
+        className="relative w-full overflow-hidden bg-stone-100"
+        style={{ height: "160px" }}
+      >
         {item.imageUrl ? (
           <img
             src={item.imageUrl}
             alt={item.title}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="h-full w-full object-cover"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-amber-50 to-stone-200">
@@ -34,8 +40,8 @@ export function MenuItemCard({ item }: { item: ResolvedMenuItem }) {
       </div>
 
       {/* Info area */}
-      <div className="flex flex-1 flex-col gap-1 p-3">
-        <h3 className="line-clamp-2 text-sm font-bold leading-snug text-stone-900 sm:text-base">
+      <div className="flex flex-1 flex-col gap-1.5 p-3">
+        <h3 className="truncate text-sm font-bold leading-snug text-stone-900 sm:text-base">
           {item.title}
         </h3>
 
