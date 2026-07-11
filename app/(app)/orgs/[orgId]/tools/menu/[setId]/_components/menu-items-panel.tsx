@@ -6,7 +6,7 @@
  * previews so the panel can show the same item data in both layouts.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type RefObject } from "react";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +28,10 @@ export function MenuItemsPanel({
   onEditItem,
   onDeleteItem,
   emptyStateText,
+  totalCount,
+  hasMore,
+  isLoadingMore,
+  sentinelRef,
 }: {
   orgId: string;
   menu: MenuDetail;
@@ -38,6 +42,10 @@ export function MenuItemsPanel({
   onEditItem: (item: MenuDetail["items"][number]) => void;
   onDeleteItem: (item: MenuDetail["items"][number]) => void;
   emptyStateText?: string;
+  totalCount: number;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  sentinelRef: RefObject<HTMLDivElement | null>;
 }) {
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
 
@@ -102,7 +110,9 @@ export function MenuItemsPanel({
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {selectedCategoryName === "ALL"
-              ? `Showing all ${menu.items.length} menu items.`
+              ? items.length >= totalCount
+                ? `Showing all ${totalCount} menu items.`
+                : `Loaded ${items.length} of ${totalCount} menu items.`
               : `Showing ${items.length} item${items.length === 1 ? "" : "s"} in ${selectedCategoryName}.`}
           </p>
         </div>
@@ -140,6 +150,15 @@ export function MenuItemsPanel({
                 categories={categoryLookup.get(item.id) ?? []}
               />
             ))}
+          </div>
+        )}
+
+        {selectedCategoryName === "ALL" && hasMore && (
+          <div
+            ref={sentinelRef}
+            className="mt-4 flex items-center justify-center rounded-xl border bg-card px-3 py-3 text-sm text-muted-foreground"
+          >
+            {isLoadingMore ? "Loading more items…" : "Scroll to load more"}
           </div>
         )}
       </div>

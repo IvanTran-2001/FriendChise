@@ -62,6 +62,9 @@ const loadPublicMenu = cache(async (token: string): Promise<ResolvedMenuData | n
   const tabbedItemIds = new Set<string>();
   const tabs: ResolvedMenuTab[] = menu.tabs.map((tab) => ({
     id: tab.id,
+    parentTabId: tab.parentTabId,
+    position: tab.position,
+    displayMode: tab.displayMode,
     name: tab.name,
     description: tab.description,
     items: tab.placements.map((pl) => {

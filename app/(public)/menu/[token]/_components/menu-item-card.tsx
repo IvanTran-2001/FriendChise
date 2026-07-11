@@ -9,8 +9,7 @@ import type { ResolvedMenuItem } from "./types";
 export function MenuItemCard({ item }: { item: ResolvedMenuItem }) {
   return (
     <article
-      className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm"
-      style={{ width: "176px", height: "280px" }}
+      className="flex h-70 w-full max-w-44 flex-col overflow-hidden rounded-2xl bg-white shadow-sm sm:max-w-none sm:w-57.5"
     >
       {/* Image area — always fixed aspect ratio */}
       <div

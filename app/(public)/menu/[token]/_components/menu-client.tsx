@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import type { ResolvedMenuData } from "./types";
 import { MenuSection } from "./menu-section";
 
@@ -22,15 +23,29 @@ export function MenuClient({
 }: {
   data: ResolvedMenuData;
 }) {
+  const tabsByParentId = useMemo(() => {
+    const children = new Map<string | null, (typeof data.tabs)[number][]>();
+    for (const tab of data.tabs) {
+      const parentId = tab.parentTabId ?? null;
+      const current = children.get(parentId) ?? [];
+      current.push(tab);
+      children.set(parentId, current);
+    }
+
+    return children;
+  }, [data]);
+
+  const rootTabs = useMemo(() => tabsByParentId.get(null) ?? [], [tabsByParentId]);
+
   const allTabs = useMemo(
     () => [
       { id: ALL_ID, name: "ALL" },
-      ...data.tabs.map((t) => ({ id: t.id, name: t.name })),
+      ...rootTabs.map((t) => ({ id: t.id, name: t.name })),
       ...(data.unassignedItems.length > 0
         ? [{ id: UNASSIGNED_ID, name: "Other" }]
         : []),
     ],
-    [data.tabs, data.unassignedItems.length],
+    [data.unassignedItems.length, rootTabs],
   );
 
   const [activeId, setActiveId] = useState<string>(ALL_ID);
@@ -89,18 +104,45 @@ export function MenuClient({
   // If there are no tabs and no items at all, show a friendly empty state
   const isEmpty = data.tabs.length === 0 && data.unassignedItems.length === 0;
 
-  const visibleTabs =
-    activeId === ALL_ID
-      ? data.tabs
-      : activeId === UNASSIGNED_ID
-        ? []
-        : data.tabs.filter((tab) => tab.id === activeId);
-
   const showUnassigned = activeId === ALL_ID || activeId === UNASSIGNED_ID;
 
-  function renderAllView() {
-    const sections = data.tabs;
+  function renderTabTree(tab: (typeof data.tabs)[number], depth = 0): ReactNode {
+    const children = tabsByParentId.get(tab.id) ?? [];
 
+    return (
+      <div key={tab.id} className="space-y-8">
+        <MenuSection
+          id={tab.id}
+          name={tab.name}
+          description={tab.description}
+          items={tab.items}
+          displayMode={tab.displayMode}
+          depth={depth}
+        />
+
+        {children.length > 0 && (
+          <div className="space-y-8">
+            {children.map((child) => renderTabTree(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function renderFlatTab(tab: (typeof data.tabs)[number]) {
+    return (
+      <MenuSection
+        key={tab.id}
+        id={tab.id}
+        name={tab.name}
+        description={tab.description}
+        items={tab.items}
+        displayMode={tab.displayMode}
+      />
+    );
+  }
+
+  function renderAllView() {
     return (
       <section id={ALL_ID} className="scroll-mt-33 space-y-4">
         <div>
@@ -112,15 +154,9 @@ export function MenuClient({
           </p>
         </div>
 
-        {sections.map((tab) => (
-          <MenuSection
-            key={tab.id}
-            id={tab.id}
-            name={tab.name}
-            description={tab.description}
-            items={tab.items}
-          />
-        ))}
+        <div className="space-y-8">
+          {rootTabs.map((tab) => renderFlatTab(tab))}
+        </div>
 
         {data.unassignedItems.length > 0 && (
           <MenuSection
@@ -169,7 +205,7 @@ export function MenuClient({
       )}
 
       {/* ── Sections ───────────────────────────────────────────────────────── */}
-      <div className="mx-auto min-h-0 flex-1 max-w-5xl space-y-10 overflow-y-auto px-4 pb-28 pt-6 sm:px-6 sm:pb-32">
+      <div className="mx-auto min-h-0 flex-1 w-full max-w-5xl space-y-10 overflow-y-auto px-4 pb-28 pt-6 sm:px-6 sm:pb-32 sm:pt-6">
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
             <span className="text-5xl">🍽️</span>
@@ -180,15 +216,9 @@ export function MenuClient({
           renderAllView()
         ) : (
           <>
-            {visibleTabs.map((tab) => (
-              <MenuSection
-                key={tab.id}
-                id={tab.id}
-                name={tab.name}
-                description={tab.description}
-                items={tab.items}
-              />
-            ))}
+            {data.tabs
+              .filter((tab) => tab.id === activeId)
+              .map((tab) => renderTabTree(tab))}
 
             {showUnassigned && data.unassignedItems.length > 0 && (
               <MenuSection

@@ -16,6 +16,7 @@ type MenuCategoryTab = {
   name: string;
   description?: string | null;
   position: number;
+  parentTabId?: string | null;
 };
 
 type ReorderTarget = {
@@ -52,6 +53,28 @@ export function MenuCategoryReorderList({
     () => [...(draftTabs ?? tabs)].sort((a, b) => a.position - b.position),
     [draftTabs, tabs],
   );
+
+  const tabById = useMemo(() => new Map(orderedTabs.map((tab) => [tab.id, tab])), [orderedTabs]);
+
+  const depthByTabId = useMemo(() => {
+    const cache = new Map<string, number>();
+
+    function resolveDepth(tabId: string): number {
+      const cached = cache.get(tabId);
+      if (cached !== undefined) return cached;
+
+      const tab = tabById.get(tabId);
+      const depth = tab?.parentTabId ? resolveDepth(tab.parentTabId) + 1 : 0;
+      cache.set(tabId, depth);
+      return depth;
+    }
+
+    for (const tab of orderedTabs) {
+      resolveDepth(tab.id);
+    }
+
+    return cache;
+  }, [orderedTabs, tabById]);
 
   const normalizeTabs = useCallback((nextOrder: MenuCategoryTab[]) => {
     return nextOrder.map((tab, index) => ({
@@ -147,6 +170,7 @@ export function MenuCategoryReorderList({
 
   useEffect(() => {
     if (!draggedTabId) return;
+    const activeDraggedTabId = draggedTabId;
 
     function handlePointerMove(event: PointerEvent) {
       if (activePointerIdRef.current !== event.pointerId) return;
@@ -166,7 +190,7 @@ export function MenuCategoryReorderList({
         const nextRect = nextElement.getBoundingClientRect();
         const threshold = nextRect.top + nextRect.height * 0.1;
         if (event.clientY >= threshold) {
-          moveDraggedTab({ tabId: nextTab.id, insertBefore: false }, draggedTabId);
+          moveDraggedTab({ tabId: nextTab.id, insertBefore: false }, activeDraggedTabId);
         }
         return;
       }
@@ -178,7 +202,7 @@ export function MenuCategoryReorderList({
       const previousRect = previousElement.getBoundingClientRect();
       const threshold = previousRect.bottom - previousRect.height * 0.1;
       if (event.clientY <= threshold) {
-        moveDraggedTab({ tabId: previousTab.id, insertBefore: true }, draggedTabId);
+        moveDraggedTab({ tabId: previousTab.id, insertBefore: true }, activeDraggedTabId);
       }
     }
 
@@ -213,6 +237,8 @@ export function MenuCategoryReorderList({
         <div className="flex flex-col gap-2">
           {orderedTabs.map((tab) => {
             const isEditingThisTab = editingTabId === tab.id;
+            const depth = depthByTabId.get(tab.id) ?? 0;
+            const parentName = tab.parentTabId ? tabById.get(tab.parentTabId)?.name ?? null : null;
 
             return (
               <div
@@ -232,6 +258,7 @@ export function MenuCategoryReorderList({
                     : "border-border/70 bg-background/80 hover:border-primary/30 hover:bg-muted/20",
                   draggedTabId === tab.id ? "ring-2 ring-primary/40 shadow-md" : "",
                 ].join(" ")}
+                style={{ marginLeft: `${depth * 12}px` }}
               >
                 <div className="flex items-start gap-2">
                   <button
@@ -288,6 +315,11 @@ export function MenuCategoryReorderList({
                         {tab.name}
                       </p>
                     </div>
+                    {parentName ? (
+                      <p className="mt-px text-[10px] leading-3 text-muted-foreground/70">
+                        Parent: {parentName}
+                      </p>
+                    ) : null}
                     {tab.description ? (
                       <p className="mt-px line-clamp-2 text-[10px] leading-3 text-muted-foreground">
                         {tab.description}

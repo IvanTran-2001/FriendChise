@@ -81,6 +81,11 @@ enum ListDisplayType {
   GALLERY
 }
 
+enum MenuTabDisplayMode {
+  CARDS
+  LIST
+}
+
 // ─────────────────────────────────────
 // AUTH (NextAuth)
 // ─────────────────────────────────────
@@ -950,10 +955,14 @@ model MenuPreviewDailyView {
 model MenuTab {
   id          String   @id @default(cuid())
   menuId      String
+  parentTabId String?
+  displayMode MenuTabDisplayMode @default(CARDS)
   name        String
   description String?
   position    Int
   menu        Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parentTab   MenuTab? @relation("MenuTabHierarchy", fields: [parentTabId], references: [id], onDelete: SetNull)
+  children    MenuTab[] @relation("MenuTabHierarchy")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

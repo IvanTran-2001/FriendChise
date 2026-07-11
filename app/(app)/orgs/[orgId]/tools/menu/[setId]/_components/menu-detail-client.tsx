@@ -6,7 +6,7 @@
  * the menu page can swap between card and list layouts without losing state.
  */
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
@@ -34,9 +34,16 @@ export function MenuDetailClient({
 }) {
   const { open, close } = useActionSidebar();
   const openKeyRef = useRef(0);
+  const requestSeqRef = useRef(0);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
   const [view, setView] = useState<"card" | "list">("card");
   const [itemSearch, setItemSearch] = useState("");
+  const [allItems, setAllItems] = useState(menu.items);
+  const [page, setPage] = useState(menu.itemsPage ?? 1);
+  const [totalPages, setTotalPages] = useState(menu.itemsTotalPages ?? 1);
+  const [totalCount, setTotalCount] = useState(menu.itemsTotalCount ?? menu.items.length);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const itemDefaultTabIds = useMemo(() => {
     const map = new Map<string, string>();
@@ -66,9 +73,9 @@ export function MenuDetailClient({
   );
 
   const visibleItems = useMemo(() => {
-    if (!selectedTab) return menu.items;
+    if (!selectedTab) return allItems;
     return selectedTab.placements.map((placement) => placement.menuItem);
-  }, [menu.items, selectedTab]);
+  }, [allItems, selectedTab]);
 
   const filteredItems = useMemo(() => {
     const query = itemSearch.trim().toLowerCase();
@@ -89,6 +96,73 @@ export function MenuDetailClient({
 
   const selectedCategoryLabel = selectedTab?.name ?? "ALL";
   const selectedCategoryId = selectedTabId;
+
+  const hasMore = selectedTabId === null && page < totalPages;
+
+  const loadMoreItems = useCallback(async () => {
+    if (selectedTabId !== null || isLoadingMore || page >= totalPages) return;
+
+    const nextPage = page + 1;
+    const requestSeq = requestSeqRef.current + 1;
+    requestSeqRef.current = requestSeq;
+    setIsLoadingMore(true);
+
+    try {
+      const params = new URLSearchParams();
+      params.set("page", String(nextPage));
+      params.set("pageSize", String(menu.itemsPageSize ?? 24));
+
+      const response = await fetch(
+        `/api/orgs/${orgId}/tools/menu/${menu.id}/items?${params.toString()}`,
+      );
+
+      if (!response.ok) throw new Error("Failed to load menu items.");
+
+      const data = (await response.json()) as {
+        items: MenuDetail["items"];
+        totalCount: number;
+        totalPages: number;
+        page: number;
+      };
+
+      if (requestSeqRef.current !== requestSeq) return;
+
+      setAllItems((current) => {
+        const nextItems = new Map<string, MenuDetail["items"][number]>();
+        for (const item of current) nextItems.set(item.id, item);
+        for (const item of data.items) nextItems.set(item.id, item);
+        return Array.from(nextItems.values());
+      });
+      setTotalCount(data.totalCount);
+      setTotalPages(data.totalPages);
+      setPage(data.page);
+    } catch {
+      // Retry on the next intersection.
+    } finally {
+      if (requestSeqRef.current === requestSeq) {
+        setIsLoadingMore(false);
+      }
+    }
+  }, [isLoadingMore, menu.id, menu.itemsPageSize, orgId, page, selectedTabId, totalPages]);
+
+  useEffect(() => {
+    if (selectedTabId !== null) return;
+    if (!hasMore) return;
+
+    const el = sentinelRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) return;
+        void loadMoreItems();
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, loadMoreItems, selectedTabId]);
 
 
   function handleAddItem() {
@@ -144,6 +218,7 @@ export function MenuDetailClient({
         orgId={orgId}
         menuId={menu.id}
         tabs={menu.tabs}
+          defaultParentTabId={selectedTabId}
         onClose={close}
       />,
     );
@@ -199,6 +274,10 @@ export function MenuDetailClient({
               ? `No items match “${itemSearch.trim()}”.`
               : undefined
           }
+          totalCount={totalCount}
+          hasMore={hasMore}
+          isLoadingMore={isLoadingMore}
+          sentinelRef={sentinelRef}
         />
       </div>
     </>
