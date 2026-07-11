@@ -1,4 +1,5 @@
 import { requireOrgMemberPage } from "@/lib/authz";
+import { LeaveOrgButton } from "./leave-org-button";
 
 export default async function SettingsPage({
   params,
@@ -19,8 +20,7 @@ export default async function SettingsPage({
           Organization settings
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-          Empty template for now. This page can later hold the settings home view or
-          general organization preferences.
+          Manage your personal settings and membership for this organization.
         </p>
         <p className="mt-4 text-xs text-muted-foreground">Org ID: {orgId}</p>
       </section>
@@ -30,6 +30,17 @@ export default async function SettingsPage({
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
           Add settings sections here when the page is ready.
         </p>
+      </section>
+
+      <section className="rounded-3xl border border-destructive/20 bg-destructive/5 p-5 sm:p-6">
+        <h2 className="text-lg font-medium text-destructive">Leave Organization</h2>
+        <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+          If you leave this organization, you will lose access to its content and resources.
+          This action will convert your membership to a placeholder instead of deleting it.
+        </p>
+        <div className="mt-4">
+          <LeaveOrgButton orgId={orgId} />
+        </div>
       </section>
     </div>
   );
