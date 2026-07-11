@@ -27,6 +27,7 @@ export function MenuItemsPanel({
   canManage,
   onEditItem,
   onDeleteItem,
+  emptyStateText,
 }: {
   orgId: string;
   menu: MenuDetail;
@@ -36,6 +37,7 @@ export function MenuItemsPanel({
   canManage: boolean;
   onEditItem: (item: MenuDetail["items"][number]) => void;
   onDeleteItem: (item: MenuDetail["items"][number]) => void;
+  emptyStateText?: string;
 }) {
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
 
@@ -109,7 +111,7 @@ export function MenuItemsPanel({
       <div className="mt-4 flex flex-col gap-3">
         {items.length === 0 ? (
           <div className="rounded-2xl border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
-            No items in this category.
+            {emptyStateText ?? "No items in this category."}
           </div>
         ) : view === "card" ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">

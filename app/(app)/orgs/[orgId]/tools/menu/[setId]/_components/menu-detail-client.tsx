@@ -11,7 +11,8 @@ import { toast } from "sonner";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
 import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
-import { SearchableCombobox, type ComboboxItem } from "@/components/ui/searchable-combobox";
+import { Input } from "@/components/ui/input";
+import { type FilterComboboxItem } from "@/components/ui/filter-combobox";
 import { MenuDetailSidebarContent } from "./menu-detail-sidebar-content";
 import { AddMenuCategoryPanel } from "./add-menu-category-panel";
 import { AddMenuItemPanel } from "./add-menu-item-panel";
@@ -35,6 +36,7 @@ export function MenuDetailClient({
   const openKeyRef = useRef(0);
   const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
   const [view, setView] = useState<"card" | "list">("card");
+  const [itemSearch, setItemSearch] = useState("");
 
   const itemDefaultTabIds = useMemo(() => {
     const map = new Map<string, string>();
@@ -55,7 +57,7 @@ export function MenuDetailClient({
     [menu.tabs, selectedTabId],
   );
 
-  const categoryItems = useMemo<ComboboxItem[]>(
+  const categoryItems = useMemo<FilterComboboxItem[]>(
     () => [
       { id: "__all__", name: "ALL" },
       ...menu.tabs.map((tab) => ({ id: tab.id, name: tab.name })),
@@ -68,7 +70,25 @@ export function MenuDetailClient({
     return selectedTab.placements.map((placement) => placement.menuItem);
   }, [menu.items, selectedTab]);
 
+  const filteredItems = useMemo(() => {
+    const query = itemSearch.trim().toLowerCase();
+    if (!query) return visibleItems;
+
+    return visibleItems.filter((item) => {
+      const haystacks = [
+        item.title,
+        item.description ?? "",
+        item.notes ?? "",
+        item.toolItem.name,
+        item.toolItem.unit,
+      ];
+
+      return haystacks.some((value) => value.toLowerCase().includes(query));
+    });
+  }, [itemSearch, visibleItems]);
+
   const selectedCategoryLabel = selectedTab?.name ?? "ALL";
+  const selectedCategoryId = selectedTabId;
 
 
   function handleAddItem() {
@@ -132,16 +152,13 @@ export function MenuDetailClient({
   return (
     <>
       <RegisterPageToolbar>
-        <div className="flex w-full flex-wrap items-center justify-between gap-3">
-          <div className="w-full max-w-xs min-w-0 flex-1">
-            <SearchableCombobox
-              items={categoryItems}
-              triggerLabel={selectedCategoryLabel}
-              placeholder="Search categories…"
-              emptyText="No categories"
-              onSelect={(item) => {
-                setSelectedTabId(item.id === "__all__" ? null : item.id);
-              }}
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="w-full min-w-0 flex-1 sm:max-w-sm">
+            <Input
+              value={itemSearch}
+              onChange={(event) => setItemSearch(event.target.value)}
+              placeholder="Search items…"
+              className="h-9 rounded-full border-border/70 bg-background/85 px-3.5 text-sm shadow-sm"
             />
           </div>
         </div>
@@ -153,6 +170,11 @@ export function MenuDetailClient({
             canManage={canManage}
             publicToken={publicToken}
             previewClicksThisMonth={menu.previewClicksThisMonth ?? 0}
+            categoryItems={categoryItems}
+            selectedCategoryId={selectedCategoryId}
+            onCategorySelect={(categoryId) => {
+              setSelectedTabId(categoryId === "__all__" ? null : categoryId);
+            }}
             view={view}
             onViewChange={(value) => setView(value)}
             onAddCategory={handleAddCategory}
@@ -166,12 +188,17 @@ export function MenuDetailClient({
         <MenuItemsPanel
           orgId={orgId}
           menu={menu}
-          items={visibleItems}
+          items={filteredItems}
           selectedCategoryName={selectedCategoryLabel}
           view={view}
           canManage={canManage}
           onEditItem={handleEditItem}
           onDeleteItem={handleDeleteItem}
+          emptyStateText={
+            itemSearch.trim()
+              ? `No items match “${itemSearch.trim()}”.`
+              : undefined
+          }
         />
       </div>
     </>
