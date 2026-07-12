@@ -181,7 +181,20 @@ export async function moveStorageFile(
   const copyResult = await copyStorageFile(sourcePath, destinationPath);
   if (!copyResult.ok) return copyResult;
 
-  await deleteStorageFile(sourcePath);
+  const { url, key } = getConfig();
+  const deleteRes = await fetch(`${url}/storage/v1/object/${BUCKET}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ prefixes: [sourcePath] }),
+  });
+  if (!deleteRes.ok) {
+    const body = await deleteRes.text().catch(() => deleteRes.statusText);
+    return { ok: false, error: `Storage move error: ${body}` };
+  }
+
   return { ok: true };
 }
 
@@ -216,6 +229,7 @@ export async function copyStorageFile(
       headers: {
         Authorization: `Bearer ${key}`,
         "Content-Type": sourceRes.headers.get("content-type") ?? "application/octet-stream",
+        "x-upsert": "true",
       },
       body: await sourceRes.arrayBuffer(),
     },

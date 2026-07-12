@@ -239,6 +239,13 @@ async function isValidMenuTabParent(
   if (!parent) return false;
   if (parent.parentTabId !== null) return false;
 
+  if (tabId) {
+    const childCount = await tx.menuTab.count({
+      where: { menuId, parentTabId: tabId },
+    });
+    if (childCount > 0) return false;
+  }
+
   if (!tabId) return true;
   if (parent.id === tabId) return false;
 
@@ -603,7 +610,7 @@ export async function moveMenuTab(
 
     if (currentTab.position === adjacentTab.position) {
       await normalizeMenuTabPositions(tx, menuId);
-      const refreshedTabs = await getOrderedMenuTabs(tx, menuId);
+      const refreshedTabs = await getOrderedSiblingTabs(tx, menuId, parentTabId);
       const refreshedIndex = refreshedTabs.findIndex((tab) => tab.id === tabId);
       const refreshedAdjacentIndex =
         direction === "up" ? refreshedIndex - 1 : refreshedIndex + 1;
