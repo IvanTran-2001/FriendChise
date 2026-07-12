@@ -48,6 +48,8 @@ export type MenuTabPlacementDetail = {
 
 export type MenuTabDetail = {
   id: string;
+  parentTabId: string | null;
+  displayMode: "CARDS" | "LIST";
   name: string;
   description: string | null;
   position: number;
@@ -61,6 +63,10 @@ export type MenuDetail = {
   publicToken: string;
   updatedAt: Date;
   items: MenuItemDetail[];
+  itemsTotalCount?: number;
+  itemsTotalPages?: number;
+  itemsPage?: number;
+  itemsPageSize?: number;
   tabs: MenuTabDetail[];
   previewClicksThisMonth?: number;
 };
@@ -90,7 +96,7 @@ export type MenusPage = {
   search: string;
 };
 
-const menuItemSelect = {
+export const menuItemSelect = {
   id: true,
   toolItemId: true,
   title: true,
@@ -118,8 +124,14 @@ const menuTabPlacementSelect = {
   },
 } satisfies Prisma.MenuTabPlacementSelect;
 
-const menuTabSelect = {
+type MenuTabSelectWithDisplayMode = Prisma.MenuTabSelect & {
+  displayMode?: true;
+};
+
+const menuTabSelectBase = {
   id: true,
+  parentTabId: true,
+  displayMode: true,
   name: true,
   description: true,
   position: true,
@@ -127,13 +139,16 @@ const menuTabSelect = {
     orderBy: { position: "asc" },
     select: menuTabPlacementSelect,
   },
-} satisfies Prisma.MenuTabSelect;
+} as const;
+
+export const menuTabSelect = menuTabSelectBase as MenuTabSelectWithDisplayMode;
 
 const MENU_TAB_POSITION_STEP = 1000;
 
 type MenuTabOrderRow = {
   id: string;
   position: number;
+  parentTabId: string | null;
 };
 
 async function getOrderedMenuTabs(tx: Prisma.TransactionClient, menuId: string) {
@@ -143,14 +158,64 @@ async function getOrderedMenuTabs(tx: Prisma.TransactionClient, menuId: string) 
     select: {
       id: true,
       position: true,
+      parentTabId: true,
+    },
+  }) as Promise<MenuTabOrderRow[]>;
+}
+
+async function getOrderedSiblingTabs(
+  tx: Prisma.TransactionClient,
+  menuId: string,
+  parentTabId: string | null,
+) {
+  return tx.menuTab.findMany({
+    where: { menuId, parentTabId },
+    orderBy: [{ position: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+    select: {
+      id: true,
+      position: true,
+      parentTabId: true,
     },
   }) as Promise<MenuTabOrderRow[]>;
 }
 
 async function normalizeMenuTabPositions(tx: Prisma.TransactionClient, menuId: string) {
   const tabs = await getOrderedMenuTabs(tx, menuId);
+
+  const childrenByParentId = new Map<string | null, MenuTabOrderRow[]>();
+  for (const tab of tabs) {
+    const parentId = tab.parentTabId ?? null;
+    const current = childrenByParentId.get(parentId) ?? [];
+    current.push(tab);
+    childrenByParentId.set(parentId, current);
+  }
+
+  for (const siblings of childrenByParentId.values()) {
+    siblings.sort((a, b) => a.position - b.position || a.id.localeCompare(b.id));
+  }
+
+  const orderedTabs: MenuTabOrderRow[] = [];
+  const visited = new Set<string>();
+
+  function walk(parentId: string | null) {
+    for (const tab of childrenByParentId.get(parentId) ?? []) {
+      if (visited.has(tab.id)) continue;
+      visited.add(tab.id);
+      orderedTabs.push(tab);
+      walk(tab.id);
+    }
+  }
+
+  walk(null);
+  for (const tab of tabs) {
+    if (visited.has(tab.id)) continue;
+    visited.add(tab.id);
+    orderedTabs.push(tab);
+    walk(tab.id);
+  }
+
   await Promise.all(
-    tabs.map((tab, index) =>
+    orderedTabs.map((tab, index) =>
       tx.menuTab.update({
         where: { id: tab.id },
         data: { position: (index + 1) * MENU_TAB_POSITION_STEP },
@@ -159,10 +224,69 @@ async function normalizeMenuTabPositions(tx: Prisma.TransactionClient, menuId: s
   );
 }
 
+async function isValidMenuTabParent(
+  tx: Prisma.TransactionClient,
+  menuId: string,
+  tabId: string | null,
+  parentTabId: string | null,
+) {
+  if (!parentTabId) return true;
+
+  const parent = await tx.menuTab.findFirst({
+    where: { id: parentTabId, menuId },
+    select: { id: true, parentTabId: true },
+  });
+  if (!parent) return false;
+  if (parent.parentTabId !== null) return false;
+
+  if (tabId) {
+    const childCount = await tx.menuTab.count({
+      where: { menuId, parentTabId: tabId },
+    });
+    if (childCount > 0) return false;
+  }
+
+  if (!tabId) return true;
+  if (parent.id === tabId) return false;
+
+  const visited = new Set<string>();
+  let currentParentId: string | null = parent.parentTabId ?? null;
+
+  while (currentParentId) {
+    if (currentParentId === tabId) return false;
+    if (visited.has(currentParentId)) break;
+    visited.add(currentParentId);
+
+    const currentParentResult = await tx.menuTab.findFirst({
+      where: { id: currentParentId, menuId },
+      select: { parentTabId: true },
+    });
+    const currentParent = currentParentResult as { parentTabId: string | null } | null;
+    currentParentId = currentParent?.parentTabId ?? null;
+  }
+
+  return true;
+}
+
+async function getNextMenuTabPosition(
+  tx: Prisma.TransactionClient,
+  menuId: string,
+  parentTabId: string | null,
+) {
+  const lastSibling = await tx.menuTab.findFirst({
+    where: { menuId, parentTabId },
+    orderBy: [{ position: "desc" }, { createdAt: "desc" }, { id: "desc" }],
+    select: { position: true },
+  });
+
+  return (lastSibling?.position ?? 0) + MENU_TAB_POSITION_STEP;
+}
+
 export async function reorderMenuTabs(
   orgId: string,
   menuId: string,
   orderedTabIds: string[],
+  parentTabId: string | null = null,
 ) {
   return prisma.$transaction(async (tx) => {
     const menu = await tx.menu.findFirst({
@@ -171,7 +295,7 @@ export async function reorderMenuTabs(
     });
     if (!menu) return null;
 
-    const currentTabs = await getOrderedMenuTabs(tx, menuId);
+    const currentTabs = await getOrderedSiblingTabs(tx, menuId, parentTabId);
     if (currentTabs.length !== orderedTabIds.length) return null;
 
     const currentTabIds = new Set(currentTabs.map((tab) => tab.id));
@@ -193,10 +317,11 @@ export async function reorderMenuTabs(
     );
 
     return tx.menuTab.findMany({
-      where: { menuId },
+      where: { menuId, parentTabId },
       orderBy: [{ position: "asc" }, { createdAt: "asc" }, { id: "asc" }],
       select: {
         id: true,
+        parentTabId: true,
         name: true,
         description: true,
         position: true,
@@ -385,6 +510,8 @@ export async function updateMenuTab(
   tabId: string,
   name: string,
   description?: string | null,
+  parentTabId?: string | null,
+  displayMode: "CARDS" | "LIST" = "CARDS",
 ) {
   return prisma.$transaction(async (tx) => {
     const menu = await tx.menu.findFirst({
@@ -395,18 +522,32 @@ export async function updateMenuTab(
 
     const tab = await tx.menuTab.findFirst({
       where: { id: tabId, menuId },
-      select: { id: true },
+      select: { id: true, parentTabId: true, position: true },
     });
     if (!tab) return null;
+
+    const nextParentTabId = parentTabId ?? null;
+    const parentIsValid = await isValidMenuTabParent(tx, menuId, tabId, nextParentTabId);
+    if (!parentIsValid) return null;
+
+    const position =
+      nextParentTabId === tab.parentTabId
+        ? tab.position
+        : await getNextMenuTabPosition(tx, menuId, nextParentTabId);
 
     return tx.menuTab.update({
       where: { id: tabId },
       data: {
         name,
         description: description ?? null,
+        parentTabId: nextParentTabId,
+        displayMode,
+        position,
       },
       select: {
         id: true,
+        parentTabId: true,
+        displayMode: true,
         name: true,
         description: true,
         position: true,
@@ -435,6 +576,7 @@ export async function moveMenuTab(
   menuId: string,
   tabId: string,
   direction: "up" | "down",
+  parentTabId: string | null = null,
 ) {
   return prisma.$transaction(async (tx) => {
     const menu = await tx.menu.findFirst({
@@ -443,7 +585,7 @@ export async function moveMenuTab(
     });
     if (!menu) return null;
 
-    const tabs = await getOrderedMenuTabs(tx, menuId);
+    const tabs = await getOrderedSiblingTabs(tx, menuId, parentTabId);
     const currentIndex = tabs.findIndex((tab) => tab.id === tabId);
     if (currentIndex < 0) return null;
 
@@ -453,6 +595,8 @@ export async function moveMenuTab(
         where: { id: tabId, menuId },
         select: {
           id: true,
+          parentTabId: true,
+          displayMode: true,
           name: true,
           description: true,
           position: true,
@@ -466,7 +610,7 @@ export async function moveMenuTab(
 
     if (currentTab.position === adjacentTab.position) {
       await normalizeMenuTabPositions(tx, menuId);
-      const refreshedTabs = await getOrderedMenuTabs(tx, menuId);
+      const refreshedTabs = await getOrderedSiblingTabs(tx, menuId, parentTabId);
       const refreshedIndex = refreshedTabs.findIndex((tab) => tab.id === tabId);
       const refreshedAdjacentIndex =
         direction === "up" ? refreshedIndex - 1 : refreshedIndex + 1;
@@ -478,12 +622,26 @@ export async function moveMenuTab(
         tx.menuTab.update({
           where: { id: refreshedCurrent.id },
           data: { position: refreshedAdjacent.position },
-          select: { id: true, name: true, description: true, position: true },
+          select: {
+            id: true,
+            parentTabId: true,
+            displayMode: true,
+            name: true,
+            description: true,
+            position: true,
+          },
         }),
         tx.menuTab.update({
           where: { id: refreshedAdjacent.id },
           data: { position: refreshedCurrent.position },
-          select: { id: true, name: true, description: true, position: true },
+          select: {
+            id: true,
+            parentTabId: true,
+            displayMode: true,
+            name: true,
+            description: true,
+            position: true,
+          },
         }),
       ]).then(([updated]) => updated);
     }
@@ -492,12 +650,26 @@ export async function moveMenuTab(
       tx.menuTab.update({
         where: { id: currentTab.id },
         data: { position: adjacentTab.position },
-        select: { id: true, name: true, description: true, position: true },
+        select: {
+          id: true,
+          parentTabId: true,
+          displayMode: true,
+          name: true,
+          description: true,
+          position: true,
+        },
       }),
       tx.menuTab.update({
         where: { id: adjacentTab.id },
         data: { position: currentTab.position },
-        select: { id: true, name: true, description: true, position: true },
+        select: {
+          id: true,
+          parentTabId: true,
+          displayMode: true,
+          name: true,
+          description: true,
+          position: true,
+        },
       }),
     ]).then(([updated]) => updated);
   });
@@ -513,10 +685,19 @@ export async function duplicateMenu(orgId: string, menuId: string) {
     include: {
       tabs: {
         orderBy: { position: "asc" },
-        include: {
+        select: {
+          id: true,
+          parentTabId: true,
+          displayMode: true,
+          name: true,
+          description: true,
+          position: true,
           placements: {
             orderBy: { position: "asc" },
-            include: {
+            select: {
+              id: true,
+              position: true,
+              menuItemId: true,
               menuItem: { select: { toolItemId: true } },
             },
           },
@@ -583,6 +764,7 @@ export async function duplicateMenu(orgId: string, menuId: string) {
       copiedItems.set(created.toolItemId, created.id);
     }
 
+    const copiedTabs = new Map<string, string>();
     for (const tab of source.tabs) {
       const createdTab = await tx.menuTab.create({
         data: {
@@ -590,9 +772,12 @@ export async function duplicateMenu(orgId: string, menuId: string) {
           name: tab.name,
           description: tab.description,
           position: tab.position,
+          parentTabId: null,
+          displayMode: tab.displayMode,
         },
         select: { id: true },
       });
+      copiedTabs.set(tab.id, createdTab.id);
 
       if (tab.placements.length === 0) continue;
 
@@ -616,6 +801,19 @@ export async function duplicateMenu(orgId: string, menuId: string) {
       });
     }
 
+    for (const tab of source.tabs) {
+      const copiedTabId = copiedTabs.get(tab.id);
+      if (!copiedTabId) continue;
+
+      const copiedParentTabId = tab.parentTabId ? copiedTabs.get(tab.parentTabId) ?? null : null;
+      if (copiedParentTabId) {
+        await tx.menuTab.update({
+          where: { id: copiedTabId },
+          data: { parentTabId: copiedParentTabId },
+        });
+      }
+    }
+
     return menu;
   });
 }
@@ -625,6 +823,8 @@ export async function createMenuTab(
   menuId: string,
   name: string,
   description?: string | null,
+  parentTabId?: string | null,
+  displayMode: "CARDS" | "LIST" = "CARDS",
 ) {
   return prisma.$transaction(async (tx) => {
     const menu = await tx.menu.findFirst({
@@ -633,12 +833,11 @@ export async function createMenuTab(
     });
     if (!menu) return null;
 
-    const lastTab = await tx.menuTab.findFirst({
-      where: { menuId },
-      orderBy: { position: "desc" },
-      select: { position: true },
-    });
-    const position = (lastTab?.position ?? 0) + MENU_TAB_POSITION_STEP;
+    const nextParentTabId = parentTabId ?? null;
+    const parentIsValid = await isValidMenuTabParent(tx, menuId, null, nextParentTabId);
+    if (!parentIsValid) return null;
+
+    const position = await getNextMenuTabPosition(tx, menuId, nextParentTabId);
 
     return tx.menuTab.create({
       data: {
@@ -646,9 +845,13 @@ export async function createMenuTab(
         name,
         description: description ?? null,
         position,
+        parentTabId: nextParentTabId,
+        displayMode,
       },
       select: {
         id: true,
+        parentTabId: true,
+        displayMode: true,
         name: true,
         description: true,
         position: true,

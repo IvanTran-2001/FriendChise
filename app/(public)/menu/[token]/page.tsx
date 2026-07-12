@@ -62,6 +62,9 @@ const loadPublicMenu = cache(async (token: string): Promise<ResolvedMenuData | n
   const tabbedItemIds = new Set<string>();
   const tabs: ResolvedMenuTab[] = menu.tabs.map((tab) => ({
     id: tab.id,
+    parentTabId: tab.parentTabId,
+    position: tab.position,
+    displayMode: tab.displayMode,
     name: tab.name,
     description: tab.description,
     items: tab.placements.map((pl) => {
@@ -113,7 +116,7 @@ export default async function PublicMenuPage({ params }: PageProps) {
         orgLogoUrl={data.orgLogoUrl}
         menuName={data.name}
       />
-      <MenuClient data={data} publicToken={token} />
+      <MenuClient data={data} />
 
       <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-stone-200 bg-white/90 px-4 py-3 text-center backdrop-blur-md sm:px-6">
         <p className="text-xs text-stone-500">

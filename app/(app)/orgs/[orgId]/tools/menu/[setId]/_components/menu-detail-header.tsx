@@ -13,6 +13,8 @@ export function MenuDetailHeader({
   menu: MenuDetail;
   canManage: boolean;
 }) {
+  const itemCount = menu.itemsTotalCount ?? menu.items.length;
+
   return (
     <section className="rounded-3xl border bg-card p-5 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -28,7 +30,7 @@ export function MenuDetailHeader({
 
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
           <span className="rounded-full bg-muted px-2.5 py-1 font-medium">
-            {menu.items.length} item{menu.items.length === 1 ? "" : "s"}
+            {itemCount} item{itemCount === 1 ? "" : "s"}
           </span>
           <span className="rounded-full bg-muted px-2.5 py-1 font-medium">
             {menu.tabs.length} tab{menu.tabs.length === 1 ? "" : "s"}

@@ -9,6 +9,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { ChevronDown } from "lucide-react";
 import {
   createMenuTabAction,
   deleteMenuTabAction,
@@ -17,56 +18,110 @@ import {
   updateMenuTabAction,
 } from "@/app/actions/tools";
 import {
+  FilterCombobox,
+  type FilterComboboxItem,
+} from "@/components/ui/filter-combobox";
+import { Button } from "@/components/ui/button";
+import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { GripVertical, MoreVertical } from "lucide-react";
+import { MenuCategoryReorderList } from "./menu-category-reorder-list";
+
+type MenuTabDisplayMode = "CARDS" | "LIST";
 
 export function AddMenuCategoryPanel({
   orgId,
   menuId,
   tabs,
+  defaultParentTabId,
   onClose: _onClose,
 }: {
   orgId: string;
   menuId: string;
-  tabs: Array<{ id: string; name: string; description?: string | null; position: number }>;
+  tabs: Array<{ id: string; name: string; description?: string | null; position: number; parentTabId?: string | null; displayMode?: MenuTabDisplayMode }>;
+  defaultParentTabId?: string | null;
   onClose: () => void;
 }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [displayMode, setDisplayMode] = useState<MenuTabDisplayMode>("CARDS");
+  const [parentTabId, setParentTabId] = useState<string | null>(defaultParentTabId ?? null);
+  const [viewParentTabId, setViewParentTabId] = useState<string | null>(null);
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [localTabs, setLocalTabs] = useState(() => [...tabs].sort((a, b) => a.position - b.position));
-  const [draggedTabId, setDraggedTabId] = useState<string | null>(null);
-  const [dragTargetTabId, setDragTargetTabId] = useState<string | null>(null);
-  const [dragInsertPosition, setDragInsertPosition] = useState<"before" | "after" | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const orderedTabs = useMemo(
-    () => [...localTabs].sort((a, b) => a.position - b.position),
+  const visibleTabs = useMemo(
+    () =>
+      localTabs.filter((tab) => {
+        if (viewParentTabId === null) return (tab.parentTabId ?? null) === null;
+        return (tab.parentTabId ?? null) === viewParentTabId;
+      }),
+    [localTabs, viewParentTabId],
+  );
+  const selectedViewParentTab = useMemo(
+    () => localTabs.find((tab) => tab.id === viewParentTabId) ?? null,
+    [localTabs, viewParentTabId],
+  );
+
+  const parentCategoryItems = useMemo<FilterComboboxItem[]>(
+    () =>
+      localTabs
+        .filter((tab) => (tab.parentTabId ?? null) === null)
+        .map((tab) => ({ id: tab.id, name: tab.name })),
+    [localTabs],
+  );
+  const viewCategoryItems = useMemo<FilterComboboxItem[]>(
+    () => localTabs.map((tab) => ({ id: tab.id, name: tab.name })),
     [localTabs],
   );
 
+  function handleViewParentChange(id: string | null) {
+    setViewParentTabId(id);
+  }
+
+  function applySiblingOrder(
+    currentTabs: typeof localTabs,
+    parentId: string | null,
+    orderedSiblingIds: string[],
+  ) {
+    const positionById = new Map(orderedSiblingIds.map((tabId, index) => [tabId, (index + 1) * 1000]));
+
+    return currentTabs.map((tab) =>
+      (tab.parentTabId ?? null) === parentId && positionById.has(tab.id)
+        ? { ...tab, position: positionById.get(tab.id) ?? tab.position }
+        : tab,
+    );
+  }
+
   function syncTabs(update: (currentTabs: typeof localTabs) => typeof localTabs) {
-    setLocalTabs((currentTabs) => [...update(currentTabs)].sort((a, b) => a.position - b.position));
+    setLocalTabs((currentTabs) => update(currentTabs));
     router.refresh();
   }
 
   function reorderTabs(nextOrder: typeof localTabs) {
-    const ordered = [...nextOrder].sort((a, b) => a.position - b.position);
-    setLocalTabs(ordered);
+    const ordered = nextOrder;
+    setLocalTabs((currentTabs) =>
+      applySiblingOrder(
+        currentTabs,
+        viewParentTabId ?? null,
+        ordered.map((tab) => tab.id),
+      ),
+    );
 
     startTransition(async () => {
       const result = await reorderMenuTabsAction(
         orgId,
         menuId,
         ordered.map((tab) => tab.id),
+        viewParentTabId,
       );
       if (!result.ok) {
         toast.error("error" in result ? result.error : "Failed to reorder categories.");
@@ -78,23 +133,21 @@ export function AddMenuCategoryPanel({
     });
   }
 
-  function clearDragState() {
-    setDraggedTabId(null);
-    setDragTargetTabId(null);
-    setDragInsertPosition(null);
-  }
-
   function handleEditTab(tabId: string) {
     const tab = localTabs.find((candidate) => candidate.id === tabId) ?? null;
     setEditingTabId(tabId);
     setName(tab?.name ?? "");
     setDescription(tab?.description ?? "");
+    setParentTabId(tab?.parentTabId ?? null);
+    setDisplayMode(tab?.displayMode ?? "CARDS");
   }
 
   function handleCancelEdit() {
     setEditingTabId(null);
     setName("");
     setDescription("");
+    setDisplayMode("CARDS");
+    setParentTabId(null);
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -112,6 +165,8 @@ export function AddMenuCategoryPanel({
           editingTabId,
           trimmedName,
           description.trim() || undefined,
+          parentTabId,
+          displayMode,
         );
         if (!result.ok) {
           toast.error("error" in result ? result.error : "Failed to update category.");
@@ -125,6 +180,8 @@ export function AddMenuCategoryPanel({
                   ...tab,
                   name: trimmedName,
                   description: description.trim() || null,
+                  parentTabId,
+                  displayMode,
                 }
               : tab,
           ),
@@ -139,6 +196,8 @@ export function AddMenuCategoryPanel({
         menuId,
         trimmedName,
         description.trim() || undefined,
+        parentTabId,
+        displayMode,
       );
       if (!result.ok) {
         toast.error("error" in result ? result.error : "Failed to create category.");
@@ -150,6 +209,8 @@ export function AddMenuCategoryPanel({
       toast.success(`"${trimmedName}" created.`);
       setName("");
       setDescription("");
+      setDisplayMode("CARDS");
+      setParentTabId(null);
     });
   }
 
@@ -171,53 +232,26 @@ export function AddMenuCategoryPanel({
     });
   }
 
-  function handleDrop(targetTabId: string) {
-    if (!draggedTabId || draggedTabId === targetTabId) {
-      clearDragState();
-      return;
-    }
-
-    const currentOrder = [...orderedTabs];
-    const fromIndex = currentOrder.findIndex((tab) => tab.id === draggedTabId);
-    const toIndex = currentOrder.findIndex((tab) => tab.id === targetTabId);
-    if (fromIndex < 0 || toIndex < 0) {
-      clearDragState();
-      return;
-    }
-
-    const nextOrder = [...currentOrder];
-    const [moved] = nextOrder.splice(fromIndex, 1);
-    const targetIndexAfterRemoval = nextOrder.findIndex((tab) => tab.id === targetTabId);
-    const insertAfter = dragInsertPosition === "after";
-    nextOrder.splice(targetIndexAfterRemoval + (insertAfter ? 1 : 0), 0, moved);
-
-    const normalized = nextOrder.map((tab, index) => ({
-      ...tab,
-      position: (index + 1) * 1000,
-    }));
-
-    clearDragState();
-    reorderTabs(normalized);
-  }
-
   function handleMoveTab(tabId: string, direction: "up" | "down") {
-    const currentIndex = orderedTabs.findIndex((tab) => tab.id === tabId);
+    const currentIndex = visibleTabs.findIndex((tab) => tab.id === tabId);
     if (currentIndex < 0) return;
 
     const adjacentIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    if (adjacentIndex < 0 || adjacentIndex >= orderedTabs.length) return;
+    if (adjacentIndex < 0 || adjacentIndex >= visibleTabs.length) return;
 
-    const nextOrder = [...orderedTabs];
+    const nextOrder = [...visibleTabs];
     const [moved] = nextOrder.splice(currentIndex, 1);
     nextOrder.splice(adjacentIndex, 0, moved);
-    const normalized = nextOrder.map((tab, index) => ({
-      ...tab,
-      position: (index + 1) * 1000,
-    }));
-    setLocalTabs(normalized);
+    setLocalTabs((currentTabs) =>
+      applySiblingOrder(
+        currentTabs,
+        viewParentTabId ?? null,
+        nextOrder.map((tab) => tab.id),
+      ),
+    );
 
     startTransition(async () => {
-      const result = await moveMenuTabAction(orgId, menuId, tabId, direction);
+      const result = await moveMenuTabAction(orgId, menuId, tabId, direction, viewParentTabId);
       if (!result.ok) {
         toast.error("error" in result ? result.error : "Failed to reorder category.");
         setLocalTabs([...tabs].sort((a, b) => a.position - b.position));
@@ -240,6 +274,7 @@ export function AddMenuCategoryPanel({
               {editingTabId ? "Edit category" : "New category"}
             </p>
           </div>
+
           {editingTabId && (
             <Button
               type="button"
@@ -282,6 +317,57 @@ export function AddMenuCategoryPanel({
             />
           </div>
 
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-muted-foreground">Parent category</span>
+            <FilterCombobox
+              items={parentCategoryItems}
+              selectedId={parentTabId}
+              allLabel="Top level"
+              placeholder="Search categories…"
+              searchable
+              onSelect={setParentTabId}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-muted-foreground">Display mode</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isPending}
+                  className="h-9 w-full justify-between rounded-full border-border/70 bg-background/85 px-3.5 shadow-sm"
+                >
+                  <span className="text-sm font-medium">
+                    {displayMode === "CARDS" ? "Card" : "List"}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] min-w-44">
+                <DropdownMenuRadioGroup
+                  value={displayMode}
+                  onValueChange={(value) => setDisplayMode(value as MenuTabDisplayMode)}
+                >
+                  <DropdownMenuRadioItem value="CARDS">
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className="font-medium">Card</span>
+                      <span className="text-xs text-muted-foreground">Current image cards</span>
+                    </div>
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="LIST">
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className="font-medium">List</span>
+                      <span className="text-xs text-muted-foreground">Title-only rows</span>
+                    </div>
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
           <Button type="submit" disabled={isPending} className="w-full">
             {isPending ? "Saving…" : editingTabId ? "Save category" : "Add category"}
           </Button>
@@ -290,116 +376,45 @@ export function AddMenuCategoryPanel({
 
       <Separator />
 
-      <div className="space-y-2">
-        {orderedTabs.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border/70 bg-background/60 px-3 py-6 text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">No categories yet.</p>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Create the first category above. It will appear here and can be reordered later.
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {orderedTabs.map((tab) => {
-              const isEditingThisTab = editingTabId === tab.id;
-
-              return (
-                <div
-                  key={tab.id}
-                  draggable
-                  onDragStart={() => setDraggedTabId(tab.id)}
-                  onDragEnd={clearDragState}
-                  onDragOver={(event) => {
-                    event.preventDefault();
-                    const rect = event.currentTarget.getBoundingClientRect();
-                    const insertBefore = event.clientY - rect.top < rect.height / 2;
-                    setDragTargetTabId(tab.id);
-                    setDragInsertPosition(insertBefore ? "before" : "after");
-                  }}
-                  onDragLeave={() => {
-                    if (dragTargetTabId === tab.id) {
-                      setDragTargetTabId(null);
-                      setDragInsertPosition(null);
-                    }
-                  }}
-                  onDrop={() => handleDrop(tab.id)}
-                  className={[
-                    "flex flex-col gap-2 rounded-2xl border px-3 py-3 transition-all",
-                    isEditingThisTab
-                      ? "border-primary/30 bg-primary/5 shadow-sm"
-                      : "border-border/70 bg-background/80 hover:border-primary/30 hover:bg-muted/20",
-                  ].join(" ")}
-                >
-                  {dragTargetTabId === tab.id && dragInsertPosition === "before" ? (
-                    <div className="-mt-2 h-1 rounded-full bg-primary/70 shadow-[0_0_0_1px_rgba(255,255,255,0.6)]" />
-                  ) : null}
-
-                  <div className="flex items-start gap-2">
-                    <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/45" />
-                    <div className="relative min-w-0 flex-1 pr-8">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-7 w-7 rounded-full"
-                            disabled={isPending}
-                            aria-label={`Open actions for ${tab.name}`}
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="min-w-40">
-                          <DropdownMenuItem onSelect={() => handleEditTab(tab.id)}>
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onSelect={() => handleMoveTab(tab.id, "up")}
-                            disabled={isPending || orderedTabs[0]?.id === tab.id}
-                          >
-                            Move up
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onSelect={() => handleMoveTab(tab.id, "down")}
-                            disabled={isPending || orderedTabs[orderedTabs.length - 1]?.id === tab.id}
-                          >
-                            Move down
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            variant="destructive"
-                            onSelect={() => handleDelete(tab.id, tab.name)}
-                            disabled={isPending}
-                          >
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-
-                      <div className="flex items-start gap-0.5">
-                        <p className="min-w-0 flex-1 text-[12px] font-semibold leading-3 wrap-break-word pr-1">
-                          {tab.name}
-                        </p>
-                      </div>
-                      {tab.description ? (
-                        <p className="mt-px line-clamp-2 text-[10px] leading-3 text-muted-foreground">
-                          {tab.description}
-                        </p>
-                      ) : (
-                        <p className="mt-px text-[10px] leading-3 text-muted-foreground/60">No description</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {dragTargetTabId === tab.id && dragInsertPosition === "after" ? (
-                    <div className="-mb-2 h-1 rounded-full bg-primary/70 shadow-[0_0_0_1px_rgba(255,255,255,0.6)]" />
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        )}
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium text-muted-foreground">View level</span>
+        <FilterCombobox
+          items={viewCategoryItems}
+          selectedId={viewParentTabId}
+          allLabel="Top level"
+          placeholder="Search categories…"
+          searchable
+          onSelect={handleViewParentChange}
+        />
       </div>
+
+      <Separator />
+
+      {selectedViewParentTab && (
+        <div className="rounded-2xl border border-border/70 bg-muted/20 px-3 py-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Viewing children of
+          </p>
+          <p className="mt-1 text-sm font-semibold text-foreground">
+            {selectedViewParentTab.name}
+          </p>
+          {selectedViewParentTab.description ? (
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              {selectedViewParentTab.description}
+            </p>
+          ) : null}
+        </div>
+      )}
+
+      <MenuCategoryReorderList
+        tabs={visibleTabs}
+        editingTabId={editingTabId}
+        isPending={isPending}
+        onEditTab={handleEditTab}
+        onDeleteTab={handleDelete}
+        onMoveTab={handleMoveTab}
+        onReorderTabs={reorderTabs}
+      />
     </div>
   );
 }

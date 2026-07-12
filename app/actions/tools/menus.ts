@@ -116,6 +116,8 @@ export async function createMenuTabAction(
   menuId: string,
   name: string,
   description?: string,
+  parentTabId?: string | null,
+  displayMode: "CARDS" | "LIST" = "CARDS",
 ) {
   const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!auth.ok) return { ok: false as const };
@@ -129,6 +131,8 @@ export async function createMenuTabAction(
       menuId,
       trimmedName,
       description?.trim() || null,
+      parentTabId ?? null,
+      displayMode,
     );
 
     if (!menuTab) {
@@ -152,6 +156,8 @@ export async function updateMenuTabAction(
   tabId: string,
   name: string,
   description?: string,
+  parentTabId?: string | null,
+  displayMode: "CARDS" | "LIST" = "CARDS",
 ) {
   const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!auth.ok) return { ok: false as const };
@@ -166,6 +172,8 @@ export async function updateMenuTabAction(
       tabId,
       trimmedName,
       description?.trim() || null,
+      parentTabId ?? null,
+      displayMode,
     );
 
     if (!menuTab) {
@@ -206,12 +214,13 @@ export async function moveMenuTabAction(
   menuId: string,
   tabId: string,
   direction: "up" | "down",
+  parentTabId?: string | null,
 ) {
   const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!auth.ok) return { ok: false as const };
 
   try {
-    const menuTab = await moveMenuTab(orgId, menuId, tabId, direction);
+    const menuTab = await moveMenuTab(orgId, menuId, tabId, direction, parentTabId ?? null);
     if (!menuTab) {
       return { ok: false as const, error: "Category not found." };
     }
@@ -228,12 +237,13 @@ export async function reorderMenuTabsAction(
   orgId: string,
   menuId: string,
   orderedTabIds: string[],
+  parentTabId?: string | null,
 ) {
   const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!auth.ok) return { ok: false as const };
 
   try {
-    const tabs = await reorderMenuTabs(orgId, menuId, orderedTabIds);
+    const tabs = await reorderMenuTabs(orgId, menuId, orderedTabIds, parentTabId ?? null);
     if (!tabs) {
       return { ok: false as const, error: "Category list not found." };
     }

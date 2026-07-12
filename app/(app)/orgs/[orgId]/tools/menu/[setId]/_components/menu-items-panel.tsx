@@ -6,7 +6,7 @@
  * previews so the panel can show the same item data in both layouts.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type RefObject } from "react";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +27,12 @@ export function MenuItemsPanel({
   canManage,
   onEditItem,
   onDeleteItem,
+  emptyStateText,
+  totalCount,
+  hasMore,
+  isLoadingMore,
+  sentinelRef,
+  searchQuery,
 }: {
   orgId: string;
   menu: MenuDetail;
@@ -36,6 +42,12 @@ export function MenuItemsPanel({
   canManage: boolean;
   onEditItem: (item: MenuDetail["items"][number]) => void;
   onDeleteItem: (item: MenuDetail["items"][number]) => void;
+  emptyStateText?: string;
+  totalCount: number;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  sentinelRef: RefObject<HTMLDivElement | null>;
+  searchQuery: string;
 }) {
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
 
@@ -100,8 +112,16 @@ export function MenuItemsPanel({
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {selectedCategoryName === "ALL"
-              ? `Showing all ${menu.items.length} menu items.`
-              : `Showing ${items.length} item${items.length === 1 ? "" : "s"} in ${selectedCategoryName}.`}
+              ? searchQuery
+                ? hasMore
+                  ? "Searching all menu items…"
+                  : `Showing ${items.length} matching menu item${items.length === 1 ? "" : "s"}.`
+                : items.length >= totalCount
+                  ? `Showing all ${totalCount} menu items.`
+                  : `Loaded ${items.length} of ${totalCount} menu items.`
+              : searchQuery
+                ? `Showing ${items.length} matching item${items.length === 1 ? "" : "s"} in ${selectedCategoryName}.`
+                : `Showing ${items.length} item${items.length === 1 ? "" : "s"} in ${selectedCategoryName}.`}
           </p>
         </div>
       </div>
@@ -109,7 +129,7 @@ export function MenuItemsPanel({
       <div className="mt-4 flex flex-col gap-3">
         {items.length === 0 ? (
           <div className="rounded-2xl border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
-            No items in this category.
+            {emptyStateText ?? "No items in this category."}
           </div>
         ) : view === "card" ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -138,6 +158,15 @@ export function MenuItemsPanel({
                 categories={categoryLookup.get(item.id) ?? []}
               />
             ))}
+          </div>
+        )}
+
+        {selectedCategoryName === "ALL" && hasMore && (
+          <div
+            ref={sentinelRef}
+            className="mt-4 flex items-center justify-center rounded-xl border bg-card px-3 py-3 text-sm text-muted-foreground"
+          >
+            {isLoadingMore ? "Loading more items…" : "Scroll to load more"}
           </div>
         )}
       </div>

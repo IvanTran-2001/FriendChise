@@ -3,45 +3,9 @@ import { PermissionAction } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireOrgPermission } from "@/lib/authz";
 import { getMenuPreviewClicksThisMonth } from "@/lib/services/tools";
+import { getMenuItemsPage, menuTabSelect } from "@/lib/services/tools/menus";
 
-const menuItemSelect = {
-  id: true,
-  toolItemId: true,
-  title: true,
-  description: true,
-  price: true,
-  calories: true,
-  notes: true,
-  imageUrl: true,
-  toolItem: {
-    select: {
-      id: true,
-      name: true,
-      unit: true,
-      imgUrl: true,
-    },
-  },
-} as const;
-
-const menuTabPlacementSelect = {
-  id: true,
-  position: true,
-  menuItemId: true,
-  menuItem: {
-    select: menuItemSelect,
-  },
-} as const;
-
-const menuTabSelect = {
-  id: true,
-  name: true,
-  description: true,
-  position: true,
-  placements: {
-    orderBy: { position: "asc" as const },
-    select: menuTabPlacementSelect,
-  },
-} as const;
+const MENU_PAGE_SIZE = 24;
 
 export async function GET(
   _req: Request,
@@ -60,7 +24,6 @@ export async function GET(
       description: true,
       publicToken: true,
       updatedAt: true,
-      items: { orderBy: { title: "asc" }, select: menuItemSelect },
       tabs: { orderBy: { position: "asc" }, select: menuTabSelect },
     },
   });
@@ -70,9 +33,15 @@ export async function GET(
   }
 
   const previewClicksThisMonth = await getMenuPreviewClicksThisMonth(menuId);
+  const itemsPage = await getMenuItemsPage(menuId, { page: 1, pageSize: MENU_PAGE_SIZE });
 
   return NextResponse.json({
     ...menu,
+    items: itemsPage.items,
+    itemsTotalCount: itemsPage.totalCount,
+    itemsTotalPages: itemsPage.totalPages,
+    itemsPage: itemsPage.page,
+    itemsPageSize: itemsPage.pageSize,
     previewClicksThisMonth,
   });
 }

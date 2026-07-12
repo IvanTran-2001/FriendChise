@@ -123,7 +123,7 @@ export async function renameConversionSetAction(
 export async function createToolItemAction(
   orgId: string,
   name: string,
-  unit: string,
+  unit: string = "",
 ) {
   const auth = await requireOrgPermissionAction(
     orgId,
@@ -134,7 +134,6 @@ export async function createToolItemAction(
   const trimmedName = name.trim();
   const trimmedUnit = unit.trim();
   if (!trimmedName) return { ok: false as const, error: "Name is required." };
-  if (!trimmedUnit) return { ok: false as const, error: "Unit is required." };
 
   try {
     const item = await createToolItem(orgId, trimmedName, trimmedUnit);
@@ -166,7 +165,6 @@ export async function updateToolItemAction(
   const trimmedName = name.trim();
   const trimmedUnit = unit.trim();
   if (!trimmedName) return { ok: false as const, error: "Name is required." };
-  if (!trimmedUnit) return { ok: false as const, error: "Unit is required." };
 
   try {
     await updateToolItem(orgId, id, trimmedName, trimmedUnit);

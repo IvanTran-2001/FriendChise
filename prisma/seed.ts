@@ -1,6 +1,5 @@
 import dotenv from "dotenv";
 dotenv.config({ path: ".env", quiet: true });
-dotenv.config({ path: ".env.local", override: true, quiet: true });
 
 import {
   PrismaClient,
@@ -33,7 +32,7 @@ function confirm(): void {
   // Validate DATABASE_URL is present
   if (!dbUrl) {
     console.error("  ❌ ERROR: DATABASE_URL is not set.");
-    console.error("  Ensure .env.local is present with DATABASE_URL set to your local database.\n");
+    console.error("  Ensure .env is present with DATABASE_URL set to your local database.\n");
     process.exit(1);
   }
 

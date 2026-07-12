@@ -40,9 +40,9 @@ export function MenuNavbar({
           <p className="truncate text-xs text-stone-400">{menuName}</p>
         </div>
 
-        {/* Menu badge */}
+        {/* Payment badge */}
         <span className="shrink-0 rounded-full bg-amber-400 px-3 py-1 text-xs font-bold text-stone-950">
-          Menu
+          Pay at front
         </span>
       </div>
     </header>

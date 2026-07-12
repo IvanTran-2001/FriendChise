@@ -174,7 +174,7 @@ export function AddMenuItemPanel({
     if (!trimmedName) return;
 
     startTransition(async () => {
-      const result = await createToolItemAction(orgId, trimmedName, "each");
+      const result = await createToolItemAction(orgId, trimmedName, "");
       if (!result.ok) {
         toast.error("error" in result ? result.error : "Failed to create tool item.");
         return;

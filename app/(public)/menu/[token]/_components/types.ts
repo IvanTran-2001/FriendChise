@@ -12,6 +12,9 @@ export type ResolvedMenuItem = {
 
 export type ResolvedMenuTab = {
   id: string;
+  parentTabId: string | null;
+  position: number;
+  displayMode: "CARDS" | "LIST";
   name: string;
   description: string | null;
   items: ResolvedMenuItem[];

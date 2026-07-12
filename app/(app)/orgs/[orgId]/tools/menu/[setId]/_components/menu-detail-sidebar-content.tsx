@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { MenuDetailActionsPanel } from "./menu-detail-actions-panel";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { MenuSharePanel } from "./menu-share-panel";
+import { FilterCombobox, type FilterComboboxItem } from "@/components/ui/filter-combobox";
 
 /**
  * Menu detail page sidebar controls.
@@ -23,6 +24,9 @@ type MenuDetailSidebarContentProps = {
   canManage: boolean;
   publicToken: string;
   previewClicksThisMonth: number;
+  categoryItems: FilterComboboxItem[];
+  selectedCategoryId: string | null;
+  onCategorySelect: (categoryId: string | null) => void;
   view: "card" | "list";
   onViewChange: (value: "card" | "list") => void;
   onAddCategory: () => void;
@@ -33,6 +37,9 @@ export function MenuDetailSidebarContent({
   canManage,
   publicToken,
   previewClicksThisMonth,
+  categoryItems,
+  selectedCategoryId,
+  onCategorySelect,
   view,
   onViewChange,
   onAddCategory,
@@ -81,6 +88,22 @@ export function MenuDetailSidebarContent({
             },
           ]}
         />
+      </div>
+
+      <div className="border-t border-border px-3 pt-3 pb-2">
+        <p className="px-1 text-xs font-medium uppercase tracking-wider text-sidebar-foreground/50">
+          Filters
+        </p>
+        <div className="mt-2 flex flex-col gap-2">
+          <FilterCombobox
+            items={categoryItems}
+            selectedId={selectedCategoryId}
+            allLabel="All categories"
+            placeholder="Search categories…"
+            onSelect={onCategorySelect}
+            ariaLabel="Filter menu categories"
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-2 border-t border-border px-3 py-3">
