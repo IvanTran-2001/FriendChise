@@ -21,19 +21,16 @@ const loadPublicMenu = cache(async (token: string): Promise<ResolvedMenuData | n
     console.error("Failed to record public menu preview view:", error);
   }
 
-  const isPrivate = (path: string) =>
-    !path.startsWith(`orgs/${menu.orgId}/images/`);
-
-  // Collect paths that need signing
+  // Menu item images are stored in the private bucket, so they all need signed URLs.
   const privatePaths = new Set<string>();
   for (const item of menu.items) {
     const p = item.imageUrl ?? item.toolItem.imgUrl;
-    if (p && isPrivate(p)) privatePaths.add(p);
+    if (p) privatePaths.add(p);
   }
   for (const tab of menu.tabs) {
     for (const pl of tab.placements) {
       const p = pl.menuItem.imageUrl ?? pl.menuItem.toolItem.imgUrl;
-      if (p && isPrivate(p)) privatePaths.add(p);
+      if (p) privatePaths.add(p);
     }
   }
 
@@ -41,7 +38,6 @@ const loadPublicMenu = cache(async (token: string): Promise<ResolvedMenuData | n
 
   function resolveUrl(path: string | null): string | null {
     if (!path) return null;
-    if (!isPrivate(path)) return getPublicUrl(path);
     return signedUrls.get(path) ?? null;
   }
 
