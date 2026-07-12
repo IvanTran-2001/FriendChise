@@ -32,6 +32,7 @@ export function MenuItemsPanel({
   hasMore,
   isLoadingMore,
   sentinelRef,
+  searchQuery,
 }: {
   orgId: string;
   menu: MenuDetail;
@@ -46,6 +47,7 @@ export function MenuItemsPanel({
   hasMore: boolean;
   isLoadingMore: boolean;
   sentinelRef: RefObject<HTMLDivElement | null>;
+  searchQuery: string;
 }) {
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
 
@@ -110,10 +112,16 @@ export function MenuItemsPanel({
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {selectedCategoryName === "ALL"
-              ? items.length >= totalCount
-                ? `Showing all ${totalCount} menu items.`
-                : `Loaded ${items.length} of ${totalCount} menu items.`
-              : `Showing ${items.length} item${items.length === 1 ? "" : "s"} in ${selectedCategoryName}.`}
+              ? searchQuery
+                ? hasMore
+                  ? "Searching all menu items…"
+                  : `Showing ${items.length} matching menu item${items.length === 1 ? "" : "s"}.`
+                : items.length >= totalCount
+                  ? `Showing all ${totalCount} menu items.`
+                  : `Loaded ${items.length} of ${totalCount} menu items.`
+              : searchQuery
+                ? `Showing ${items.length} matching item${items.length === 1 ? "" : "s"} in ${selectedCategoryName}.`
+                : `Showing ${items.length} item${items.length === 1 ? "" : "s"} in ${selectedCategoryName}.`}
           </p>
         </div>
       </div>

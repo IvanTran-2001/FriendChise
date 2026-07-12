@@ -96,6 +96,8 @@ export function MenuDetailClient({
 
   const selectedCategoryLabel = selectedTab?.name ?? "ALL";
   const selectedCategoryId = selectedTabId;
+  const searchQuery = itemSearch.trim();
+  const isSearchingAllItems = selectedTabId === null && searchQuery.length > 0;
 
   const hasMore = selectedTabId === null && page < totalPages;
 
@@ -144,6 +146,11 @@ export function MenuDetailClient({
       }
     }
   }, [isLoadingMore, menu.id, menu.itemsPageSize, orgId, page, selectedTabId, totalPages]);
+
+  useEffect(() => {
+    if (!isSearchingAllItems || !hasMore || isLoadingMore) return;
+    void loadMoreItems();
+  }, [hasMore, isLoadingMore, isSearchingAllItems, loadMoreItems]);
 
   useEffect(() => {
     if (selectedTabId !== null) return;
@@ -270,14 +277,19 @@ export function MenuDetailClient({
           onEditItem={handleEditItem}
           onDeleteItem={handleDeleteItem}
           emptyStateText={
-            itemSearch.trim()
-              ? `No items match “${itemSearch.trim()}”.`
-              : undefined
+            searchQuery
+              ? selectedTabId === null
+                ? "No items match your search."
+                : `No items match your search in ${selectedCategoryLabel}.`
+              : selectedTabId === null
+                ? "No items found."
+                : undefined
           }
           totalCount={totalCount}
           hasMore={hasMore}
           isLoadingMore={isLoadingMore}
           sentinelRef={sentinelRef}
+          searchQuery={searchQuery}
         />
       </div>
     </>

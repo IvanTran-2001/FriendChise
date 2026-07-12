@@ -129,19 +129,6 @@ export function MenuClient({
     );
   }
 
-  function renderFlatTab(tab: (typeof data.tabs)[number]) {
-    return (
-      <MenuSection
-        key={tab.id}
-        id={tab.id}
-        name={tab.name}
-        description={tab.description}
-        items={tab.items}
-        displayMode={tab.displayMode}
-      />
-    );
-  }
-
   function renderAllView() {
     return (
       <section id={ALL_ID} className="scroll-mt-33 space-y-4">
@@ -155,7 +142,7 @@ export function MenuClient({
         </div>
 
         <div className="space-y-8">
-          {rootTabs.map((tab) => renderFlatTab(tab))}
+          {rootTabs.map((tab) => renderTabTree(tab))}
         </div>
 
         {data.unassignedItems.length > 0 && (

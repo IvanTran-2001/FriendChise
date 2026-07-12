@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { PermissionAction } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { requireOrgPermission } from "@/lib/authz";
 import { getMenuItemsPage } from "@/lib/services/tools/menus";
 
@@ -13,6 +14,15 @@ export async function GET(
 
   const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TASKS);
   if (!authz.ok) return authz.response;
+
+  const menu = await prisma.menu.findFirst({
+    where: { id: menuId, orgId },
+    select: { id: true },
+  });
+
+  if (!menu) {
+    return NextResponse.json({ error: "Menu not found." }, { status: 404 });
+  }
 
   const { searchParams } = new URL(req.url);
   const page = Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1);

@@ -178,23 +178,10 @@ export async function moveStorageFile(
   sourcePath: string,
   destinationPath: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const { url, key } = getConfig();
-  const res = await fetch(`${url}/storage/v1/object/move`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      bucketId: BUCKET,
-      sourceKey: sourcePath,
-      destinationKey: destinationPath,
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => res.statusText);
-    return { ok: false, error: `Storage move error: ${body}` };
-  }
+  const copyResult = await copyStorageFile(sourcePath, destinationPath);
+  if (!copyResult.ok) return copyResult;
+
+  await deleteStorageFile(sourcePath);
   return { ok: true };
 }
 
@@ -206,20 +193,35 @@ export async function copyStorageFile(
   destinationPath: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const { url, key } = getConfig();
-  const res = await fetch(`${url}/storage/v1/object/copy`, {
-    method: "POST",
+  const encodedSourcePath = sourcePath.split("/").map(encodeURIComponent).join("/");
+  const encodedDestinationPath = destinationPath
+    .split("/")
+    .map(encodeURIComponent)
+    .join("/");
+
+  const sourceRes = await fetch(`${url}/storage/v1/object/${BUCKET}/${encodedSourcePath}`, {
     headers: {
       Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      bucketId: BUCKET,
-      sourceKey: sourcePath,
-      destinationKey: destinationPath,
-    }),
   });
-  if (!res.ok) {
-    const body = await res.text().catch(() => res.statusText);
+  if (!sourceRes.ok) {
+    const body = await sourceRes.text().catch(() => sourceRes.statusText);
+    return { ok: false, error: `Storage copy error: ${body}` };
+  }
+
+  const uploadRes = await fetch(
+    `${url}/storage/v1/object/${BUCKET}/${encodedDestinationPath}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": sourceRes.headers.get("content-type") ?? "application/octet-stream",
+      },
+      body: await sourceRes.arrayBuffer(),
+    },
+  );
+  if (!uploadRes.ok) {
+    const body = await uploadRes.text().catch(() => uploadRes.statusText);
     return { ok: false, error: `Storage copy error: ${body}` };
   }
   return { ok: true };
