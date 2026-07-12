@@ -2,8 +2,15 @@
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { MarkdownImage, MarkdownLink } from "@/components/ui/markdown-media";
 
-export function TaskDescription({ description }: { description: string }) {
+export function TaskDescription({
+  description,
+  orgId,
+}: {
+  description: string;
+  orgId?: string;
+}) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -29,6 +36,16 @@ export function TaskDescription({ description }: { description: string }) {
           <h3 className="text-sm font-semibold mt-3 mb-1 first:mt-0">
             {children}
           </h3>
+        ),
+        img: ({ src, alt }) => (
+          <MarkdownImage
+            src={typeof src === "string" ? src : undefined}
+            alt={alt}
+            orgId={orgId}
+          />
+        ),
+        a: ({ href, children }) => (
+          <MarkdownLink href={href}>{children}</MarkdownLink>
         ),
       }}
     >
