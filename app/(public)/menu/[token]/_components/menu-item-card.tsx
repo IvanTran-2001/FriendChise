@@ -8,14 +8,9 @@ import type { ResolvedMenuItem } from "./types";
  */
 export function MenuItemCard({ item }: { item: ResolvedMenuItem }) {
   return (
-    <article
-      className="flex h-70 w-full max-w-44 flex-col overflow-hidden rounded-2xl bg-white shadow-sm sm:max-w-none sm:w-57.5"
-    >
+    <article className="flex w-full max-w-44 flex-col overflow-hidden rounded-2xl bg-white shadow-sm sm:max-w-none sm:w-57.5">
       {/* Image area — always fixed aspect ratio */}
-      <div
-        className="relative w-full overflow-hidden bg-stone-100"
-        style={{ height: "160px" }}
-      >
+      <div className="relative aspect-square w-full overflow-hidden bg-stone-100">
         {item.imageUrl ? (
           <img
             src={item.imageUrl}

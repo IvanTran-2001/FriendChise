@@ -195,7 +195,7 @@ function MenuItemCard({
 
   return (
     <article className="overflow-hidden rounded-2xl border bg-background shadow-sm transition-shadow hover:shadow-md">
-      <div className="relative h-40 w-full overflow-hidden bg-muted/30">
+      <div className="relative aspect-square w-full overflow-hidden bg-muted/30">
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={imageUrl} alt={item.title} className="h-full w-full object-cover" />
