@@ -44,11 +44,13 @@ export function MenuItemDialog({ item, open, onOpenChange }: MenuItemDialogProps
               </div>
             )}
 
-            <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-stone-950/55 via-stone-950/20 to-transparent px-4 pb-4 pt-10 sm:px-6 sm:pb-6">
-              <p className="max-w-[18rem] text-sm font-medium leading-5 text-white/90 sm:text-base sm:leading-6">
-                {item.calories !== null ? `${item.calories} cal` : item.unit}
-              </p>
-            </div>
+            {(item.unit || item.calories !== null) && (
+              <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-stone-950/55 via-stone-950/20 to-transparent px-4 pb-4 pt-10 sm:px-6 sm:pb-6">
+                <p className="max-w-[18rem] text-sm font-medium leading-5 text-white/90 sm:text-base sm:leading-6">
+                  {item.calories !== null ? `${item.calories} cal` : item.unit}
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto overflow-x-hidden px-5 py-5 sm:px-6 sm:py-6 md:w-[52%]">
@@ -56,10 +58,12 @@ export function MenuItemDialog({ item, open, onOpenChange }: MenuItemDialogProps
               <DialogTitle className="min-w-0 w-full whitespace-normal break-words text-2xl font-extrabold leading-tight tracking-tight text-stone-900 sm:text-3xl">
                 {item.title}
               </DialogTitle>
-              <DialogDescription className="min-w-0 whitespace-normal break-words text-sm text-stone-500 sm:text-[15px]">
-                {item.unit}
-                {item.calories !== null ? ` · ${item.calories} cal` : ""}
-              </DialogDescription>
+              {(item.unit || item.calories !== null) && (
+                <DialogDescription className="min-w-0 whitespace-normal break-words text-sm text-stone-500 sm:text-[15px]">
+                  {item.unit}
+                  {item.calories !== null ? ` · ${item.calories} cal` : ""}
+                </DialogDescription>
+              )}
             </DialogHeader>
 
             {item.description ? (

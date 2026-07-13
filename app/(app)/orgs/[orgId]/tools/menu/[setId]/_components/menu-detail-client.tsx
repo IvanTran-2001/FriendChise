@@ -43,10 +43,12 @@ export function MenuDetailClient({
   const [itemSearch, setItemSearch] = useState("");
   const [debouncedItemSearch, setDebouncedItemSearch] = useState("");
   const [allItems, setAllItems] = useState(menu.items);
+  const [deletedItemIds, setDeletedItemIds] = useState<Set<string>>(() => new Set());
   const [page, setPage] = useState(menu.itemsPage ?? 1);
   const [totalPages, setTotalPages] = useState(menu.itemsTotalPages ?? 1);
   const [totalCount, setTotalCount] = useState(menu.itemsTotalCount ?? menu.items.length);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const menuIdRef = useRef(menu.id);
 
   const itemDefaultTabAssignments = useMemo(() => {
     const map = new Map<string, { tabId: string; priceOverride: number | null }[]>();
@@ -81,11 +83,10 @@ export function MenuDetailClient({
   const visibleItems = useMemo(() => {
     if (!selectedTab) return allItems;
 
-    const visibleIds = new Set(allItems.map((item) => item.id));
     return selectedTab.placements
       .map((placement) => placement.menuItem)
-      .filter((item) => visibleIds.has(item.id));
-  }, [allItems, selectedTab]);
+      .filter((item) => !deletedItemIds.has(item.id));
+  }, [allItems, deletedItemIds, selectedTab]);
 
   const selectedTabPriceByItemId = useMemo(() => {
     if (!selectedTab) return undefined;
@@ -131,7 +132,11 @@ export function MenuDetailClient({
   const hasMore = selectedTabId === null && page < totalPages;
 
   useEffect(() => {
+    if (menuIdRef.current === menu.id) return;
+
+    menuIdRef.current = menu.id;
     setAllItems(menu.items);
+    setDeletedItemIds(new Set());
     setPage(menu.itemsPage ?? 1);
     setTotalPages(menu.itemsTotalPages ?? 1);
     setTotalCount(menu.itemsTotalCount ?? menu.items.length);
@@ -168,7 +173,9 @@ export function MenuDetailClient({
       setAllItems((current) => {
         const nextItems = new Map<string, MenuDetail["items"][number]>();
         for (const item of current) nextItems.set(item.id, item);
-        for (const item of data.items) nextItems.set(item.id, item);
+        for (const item of data.items) {
+          if (!deletedItemIds.has(item.id)) nextItems.set(item.id, item);
+        }
         return Array.from(nextItems.values());
       });
       setTotalCount(data.totalCount);
@@ -181,7 +188,7 @@ export function MenuDetailClient({
         setIsLoadingMore(false);
       }
     }
-  }, [isLoadingMore, menu.id, menu.itemsPageSize, orgId, page, selectedTabId, totalPages]);
+  }, [deletedItemIds, isLoadingMore, menu.id, menu.itemsPageSize, orgId, page, selectedTabId, totalPages]);
 
   useEffect(() => {
     if (!isSearchingAllItems || !hasMore || isLoadingMore) return;
@@ -281,7 +288,9 @@ export function MenuDetailClient({
     }
 
     toast.success(`"${item.title}" deleted.`);
+    setDeletedItemIds((current) => new Set(current).add(item.id));
     setAllItems((current) => current.filter((currentItem) => currentItem.id !== item.id));
+    setTotalCount((current) => Math.max(current - 1, 0));
     router.refresh();
   }
 

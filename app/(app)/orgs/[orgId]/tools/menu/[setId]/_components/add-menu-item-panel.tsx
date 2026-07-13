@@ -79,7 +79,7 @@ export function AddMenuItemPanel({
     prefill?.imageUrl && prefill.imageUrl.trim()
       ? prefill.imageUrl
       : mode === "edit"
-        ? initialItem?.imageUrl ?? ""
+        ? initialItem?.imageUrl ?? initialToolItem?.imgUrl ?? ""
         : initialItem?.imageUrl ?? initialToolItem?.imgUrl ?? "";
 
   const [editingItem, setEditingItem] = useState<MenuItemDetail | null>(initialItem ?? null);
