@@ -45,14 +45,17 @@ export function MenuDetailClient({
   const [totalCount, setTotalCount] = useState(menu.itemsTotalCount ?? menu.items.length);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const itemDefaultTabIds = useMemo(() => {
-    const map = new Map<string, string>();
+  const itemDefaultTabAssignments = useMemo(() => {
+    const map = new Map<string, { tabId: string; priceOverride: number | null }[]>();
 
     for (const tab of menu.tabs) {
       for (const placement of tab.placements) {
-        if (!map.has(placement.menuItem.id)) {
-          map.set(placement.menuItem.id, tab.id);
-        }
+        const current = map.get(placement.menuItem.id) ?? [];
+        current.push({
+          tabId: tab.id,
+          priceOverride: placement.priceOverride ?? null,
+        });
+        map.set(placement.menuItem.id, current);
       }
     }
 
@@ -76,6 +79,17 @@ export function MenuDetailClient({
     if (!selectedTab) return allItems;
     return selectedTab.placements.map((placement) => placement.menuItem);
   }, [allItems, selectedTab]);
+
+  const selectedTabPriceByItemId = useMemo(() => {
+    if (!selectedTab) return undefined;
+
+    return Object.fromEntries(
+      selectedTab.placements.map((placement) => [
+        placement.menuItem.id,
+        placement.priceOverride ?? placement.menuItem.price,
+      ]),
+    ) as Record<string, number | null>;
+  }, [selectedTab]);
 
   const filteredItems = useMemo(() => {
     const query = itemSearch.trim().toLowerCase();
@@ -180,8 +194,13 @@ export function MenuDetailClient({
         key={key}
         orgId={orgId}
         menuId={menu.id}
+        menuItems={menu.items}
+        itemDefaultTabAssignments={itemDefaultTabAssignments}
         tabs={menu.tabs.map((tab) => ({ id: tab.id, name: tab.name }))}
         defaultTabId={selectedTabId}
+        defaultTabAssignments={
+          selectedTabId ? [{ tabId: selectedTabId, priceOverride: null }] : []
+        }
         onClose={close}
       />,
     );
@@ -195,8 +214,11 @@ export function MenuDetailClient({
         key={key}
         orgId={orgId}
         menuId={menu.id}
+        menuItems={menu.items}
+        itemDefaultTabAssignments={itemDefaultTabAssignments}
         tabs={menu.tabs.map((tab) => ({ id: tab.id, name: tab.name }))}
-        defaultTabId={selectedTabId ?? itemDefaultTabIds.get(item.id) ?? null}
+        defaultTabId={selectedTabId}
+        defaultTabAssignments={itemDefaultTabAssignments.get(item.id) ?? []}
         initialItem={item}
         mode="edit"
         onClose={close}
@@ -290,6 +312,7 @@ export function MenuDetailClient({
           isLoadingMore={isLoadingMore}
           sentinelRef={sentinelRef}
           searchQuery={searchQuery}
+          priceByItemId={selectedTabPriceByItemId}
         />
       </div>
     </>

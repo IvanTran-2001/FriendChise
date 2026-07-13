@@ -33,6 +33,7 @@ import { updateToolItemImageUrl } from "@/lib/services/tools";
 import { updateOrgImage } from "@/lib/services/orgs";
 import {
   getOrgImages,
+  getOrgImagesPage,
   addOrgImage,
   deleteOrgImage,
   renameTaskImageIfNeeded,
@@ -388,6 +389,56 @@ export async function getOrgImagesWithSignedUrls(
     }))
     .filter((r): r is typeof r & { signedUrl: string } => !!r.signedUrl);
   return { ok: true, images };
+}
+
+/** Returns a paginated slice of org library images with fresh signed URLs. */
+export async function getOrgImagesPageWithSignedUrls(
+  orgId: string,
+  options: { page?: number; pageSize?: number; search?: string } = {},
+): Promise<
+  | {
+      ok: true;
+      images: { id: string; storagePath: string; name: string | null; signedUrl: string }[];
+      totalCount: number;
+      totalPages: number;
+      page: number;
+      pageSize: number;
+    }
+  | { ok: false; error: string }
+> {
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+
+  const pageData = await getOrgImagesPage(orgId, options);
+  if (pageData.images.length === 0) {
+    return {
+      ok: true,
+      images: [],
+      totalCount: pageData.totalCount,
+      totalPages: pageData.totalPages,
+      page: pageData.page,
+      pageSize: pageData.pageSize,
+    };
+  }
+
+  const signedMap = await createSignedReadUrls(pageData.images.map((r) => r.storagePath));
+  const images = pageData.images
+    .map((r) => ({
+      id: r.id,
+      storagePath: r.storagePath,
+      name: r.name,
+      signedUrl: signedMap.get(r.storagePath) ?? null,
+    }))
+    .filter((r): r is typeof r & { signedUrl: string } => !!r.signedUrl);
+
+  return {
+    ok: true,
+    images,
+    totalCount: pageData.totalCount,
+    totalPages: pageData.totalPages,
+    page: pageData.page,
+    pageSize: pageData.pageSize,
+  };
 }
 
 /** Deletes a library image. Only removes from storage if nothing else references it. */

@@ -43,6 +43,7 @@ export type MenuTabPlacementDetail = {
   id: string;
   position: number;
   menuItemId: string;
+  priceOverride: number | null;
   menuItem: MenuItemDetail;
 };
 
@@ -119,6 +120,7 @@ const menuTabPlacementSelect = {
   id: true,
   position: true,
   menuItemId: true,
+  priceOverride: true,
   menuItem: {
     select: menuItemSelect,
   },
@@ -698,6 +700,7 @@ export async function duplicateMenu(orgId: string, menuId: string) {
               id: true,
               position: true,
               menuItemId: true,
+              priceOverride: true,
               menuItem: { select: { toolItemId: true } },
             },
           },
@@ -790,12 +793,13 @@ export async function duplicateMenu(orgId: string, menuId: string) {
               menuTabId: createdTab.id,
               menuItemId: copiedItemId,
               position: placement.position,
+              priceOverride: placement.priceOverride,
             };
           })
           .filter(
             (
               value,
-            ): value is { menuTabId: string; menuItemId: string; position: number } =>
+            ): value is { menuTabId: string; menuItemId: string; position: number; priceOverride: number | null } =>
               value !== null,
           ),
       });
@@ -869,7 +873,7 @@ export async function createMenuItem(
   price?: number | null,
   calories?: number | null,
   notes?: string | null,
-  tabId?: string | null,
+  tabAssignments?: { tabId: string; priceOverride?: number | null }[],
   imageUrl?: string | null,
 ) {
   return prisma.$transaction(async (tx) => {
@@ -885,12 +889,20 @@ export async function createMenuItem(
     });
     if (!toolItem) return null;
 
-    if (tabId) {
-      const tab = await tx.menuTab.findFirst({
-        where: { id: tabId, menuId },
+    const uniqueAssignments = new Map<string, number | null>();
+    for (const assignment of tabAssignments ?? []) {
+      if (!assignment?.tabId) continue;
+      if (!uniqueAssignments.has(assignment.tabId)) {
+        uniqueAssignments.set(assignment.tabId, assignment.priceOverride ?? null);
+      }
+    }
+    const uniqueTabIds = [...uniqueAssignments.keys()];
+    if (uniqueTabIds.length > 0) {
+      const tabs = await tx.menuTab.findMany({
+        where: { id: { in: uniqueTabIds }, menuId },
         select: { id: true },
       });
-      if (!tab) return null;
+      if (tabs.length !== uniqueTabIds.length) return null;
     }
 
     const menuItem = await tx.menuItem.create({
@@ -907,21 +919,24 @@ export async function createMenuItem(
       select: menuItemSelect,
     });
 
-    if (!tabId) {
+    if (uniqueTabIds.length === 0) {
       return menuItem;
     }
 
-    const position = await tx.menuTabPlacement.count({
-      where: { menuTabId: tabId },
-    });
+    for (const [tabId, priceOverride] of uniqueAssignments) {
+      const position = await tx.menuTabPlacement.count({
+        where: { menuTabId: tabId },
+      });
 
-    await tx.menuTabPlacement.create({
-      data: {
-        menuTabId: tabId,
-        menuItemId: menuItem.id,
-        position,
-      },
-    });
+      await tx.menuTabPlacement.create({
+        data: {
+          menuTabId: tabId,
+          menuItemId: menuItem.id,
+          position,
+          priceOverride,
+        },
+      });
+    }
 
     return menuItem;
   });
@@ -937,7 +952,7 @@ export async function updateMenuItem(
   price?: number | null,
   calories?: number | null,
   notes?: string | null,
-  tabId?: string | null,
+  tabAssignments?: { tabId: string; priceOverride?: number | null }[],
   imageUrl?: string | null,
 ) {
   return prisma.$transaction(async (tx) => {
@@ -959,12 +974,21 @@ export async function updateMenuItem(
     });
     if (!item) return null;
 
-    if (tabId) {
-      const tab = await tx.menuTab.findFirst({
-        where: { id: tabId, menuId },
+    const uniqueAssignments =
+      tabAssignments === undefined
+        ? undefined
+        : new Map(
+            tabAssignments
+              .filter((assignment) => !!assignment?.tabId)
+              .map((assignment) => [assignment.tabId, assignment.priceOverride ?? null] as const),
+          );
+    const uniqueTabIds = uniqueAssignments ? [...uniqueAssignments.keys()] : undefined;
+    if (uniqueTabIds && uniqueTabIds.length > 0) {
+      const tabs = await tx.menuTab.findMany({
+        where: { id: { in: uniqueTabIds }, menuId },
         select: { id: true },
       });
-      if (!tab) return null;
+      if (tabs.length !== uniqueTabIds.length) return null;
     }
 
     const updatedMenuItem = await tx.menuItem.update({
@@ -981,31 +1005,21 @@ export async function updateMenuItem(
       select: menuItemSelect,
     });
 
-    if (tabId !== undefined) {
-      const existingPlacements = await tx.menuTabPlacement.findMany({
-        where: { menuItemId },
-        select: { menuTabId: true },
-      });
-      const shouldKeepCurrentPlacement =
-        tabId !== null &&
-        existingPlacements.length === 1 &&
-        existingPlacements[0]?.menuTabId === tabId;
+    if (uniqueAssignments !== undefined) {
+      await tx.menuTabPlacement.deleteMany({ where: { menuItemId } });
 
-      if (!shouldKeepCurrentPlacement) {
-        await tx.menuTabPlacement.deleteMany({ where: { menuItemId } });
-
-        if (tabId) {
-          const position = await tx.menuTabPlacement.count({
-            where: { menuTabId: tabId },
-          });
-          await tx.menuTabPlacement.create({
-            data: {
-              menuTabId: tabId,
-              menuItemId,
-              position,
-            },
-          });
-        }
+      for (const [tabId, priceOverride] of uniqueAssignments) {
+        const position = await tx.menuTabPlacement.count({
+          where: { menuTabId: tabId },
+        });
+        await tx.menuTabPlacement.create({
+          data: {
+            menuTabId: tabId,
+            menuItemId,
+            position,
+            priceOverride,
+          },
+        });
       }
     }
 

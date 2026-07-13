@@ -265,7 +265,7 @@ export async function createMenuItemAction(
   price?: number | null,
   calories?: number | null,
   notes?: string | null,
-  tabId?: string | null,
+  tabAssignments?: { tabId: string; priceOverride?: number | null }[],
   imageUrl?: string | null,
 ) {
   const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
@@ -284,7 +284,7 @@ export async function createMenuItemAction(
       price ?? null,
       calories ?? null,
       notes?.trim() || null,
-      tabId ?? null,
+      tabAssignments,
       imageUrl?.trim() || null,
     );
 
@@ -313,7 +313,7 @@ export async function updateMenuItemAction(
   price?: number | null,
   calories?: number | null,
   notes?: string | null,
-  tabId?: string | null,
+  tabAssignments?: { tabId: string; priceOverride?: number | null }[],
   imageUrl?: string | null,
 ) {
   const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
@@ -333,7 +333,7 @@ export async function updateMenuItemAction(
       price ?? null,
       calories ?? null,
       notes?.trim() || null,
-      tabId ?? null,
+      tabAssignments,
       imageUrl?.trim() || null,
     );
 

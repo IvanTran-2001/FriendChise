@@ -30,21 +30,26 @@ type MenuTabOption = {
 export function AddMenuItemPanel({
   orgId,
   menuId,
+  menuItems,
+  itemDefaultTabAssignments,
   tabs,
   defaultTabId,
+  defaultTabAssignments,
   initialItem,
   mode = "create",
   onClose,
 }: {
   orgId: string;
   menuId: string;
+  menuItems: MenuItemDetail[];
+  itemDefaultTabAssignments: Map<string, { tabId: string; priceOverride: number | null }[]>;
   tabs: MenuTabOption[];
   defaultTabId: string | null;
+  defaultTabAssignments?: { tabId: string; priceOverride: number | null }[];
   initialItem?: MenuItemDetail | null;
   mode?: "create" | "edit";
   onClose: () => void;
 }) {
-  const isEditMode = mode === "edit";
   const initialToolItem = initialItem
     ? {
         id: initialItem.toolItem.id,
@@ -53,14 +58,16 @@ export function AddMenuItemPanel({
         imgUrl: initialItem.toolItem.imgUrl,
       }
     : null;
-  const initialImageUrl = isEditMode
+  const initialImageUrl = mode === "edit"
     ? initialItem?.imageUrl ?? ""
     : initialItem?.imageUrl ?? initialToolItem?.imgUrl ?? "";
+
+  const [editingItem, setEditingItem] = useState<MenuItemDetail | null>(initialItem ?? null);
+  const isEditMode = mode === "edit" || editingItem !== null;
 
   const [selectedToolItem, setSelectedToolItem] = useState<ToolItemOption | null>(
     initialToolItem,
   );
-  const [selectedTabId, setSelectedTabId] = useState<string | null>(defaultTabId ?? null);
   const [localTabs, setLocalTabs] = useState<MenuTabOption[]>(tabs);
   const [title, setTitle] = useState(initialItem?.title ?? "");
   const [description, setDescription] = useState(initialItem?.description ?? "");
@@ -69,11 +76,32 @@ export function AddMenuItemPanel({
   const [notes, setNotes] = useState(initialItem?.notes ?? "");
   const [imageUrl, setImageUrl] = useState(initialImageUrl);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [selectedTabAssignments, setSelectedTabAssignments] = useState<
+    { tabId: string; priceOverride: string }[]
+  >(() =>
+    initialItem
+      ? (defaultTabAssignments ?? []).map((assignment) => ({
+          tabId: assignment.tabId,
+          priceOverride:
+            assignment.priceOverride === null ? "" : String(assignment.priceOverride),
+        }))
+      : defaultTabId
+        ? [{ tabId: defaultTabId, priceOverride: "" }]
+        : [],
+  );
   const [isPending, startTransition] = useTransition();
 
-  const selectedTab = useMemo(
-    () => localTabs.find((tab) => tab.id === selectedTabId) ?? null,
-    [localTabs, selectedTabId],
+  const selectedTabs = useMemo(
+    () =>
+      selectedTabAssignments
+        .map((assignment) => localTabs.find((tab) => tab.id === assignment.tabId))
+        .filter((tab): tab is MenuTabOption => !!tab),
+    [localTabs, selectedTabAssignments],
+  );
+
+  const availableTabs = useMemo(
+    () => localTabs.filter((tab) => !selectedTabAssignments.some((assignment) => assignment.tabId === tab.id)),
+    [localTabs, selectedTabAssignments],
   );
 
   useEffect(() => {
@@ -105,10 +133,59 @@ export function AddMenuItemPanel({
     setSelectedToolItem(item);
     setTitle((current) => (current.trim() ? current : item.name));
     maybeApplySelectedToolImage(item.imgUrl);
+
+    if (mode !== "create") return;
+
+    const existingItem = menuItems.find((menuItem) => menuItem.toolItemId === item.id);
+    if (!existingItem) return;
+
+    const existingAssignments = itemDefaultTabAssignments.get(existingItem.id) ?? [];
+    const nextAssignments = new Map<string, string>();
+
+    for (const assignment of existingAssignments) {
+      nextAssignments.set(
+        assignment.tabId,
+        assignment.priceOverride === null ? "" : String(assignment.priceOverride),
+      );
+    }
+
+    for (const assignment of selectedTabAssignments) {
+      if (!nextAssignments.has(assignment.tabId)) {
+        nextAssignments.set(assignment.tabId, assignment.priceOverride);
+      }
+    }
+
+    setEditingItem(existingItem);
+    setTitle((current) => (current.trim() ? current : existingItem.title));
+    setDescription((current) => (current.trim() ? current : (existingItem.description ?? "")));
+    setPrice((current) => (current.trim() ? current : (existingItem.price === null ? "" : String(existingItem.price))));
+    setCalories((current) => (current.trim() ? current : (existingItem.calories === null ? "" : String(existingItem.calories))));
+    setNotes((current) => (current.trim() ? current : (existingItem.notes ?? "")));
+    setImageUrl((current) => (current.trim() ? current : (existingItem.imageUrl ?? existingItem.toolItem.imgUrl ?? "")));
+    setSelectedTabAssignments(
+      [...nextAssignments.entries()].map(([tabId, priceOverride]) => ({ tabId, priceOverride })),
+    );
   }
 
   function handleSelectCategory(tabId: string | null) {
-    setSelectedTabId(tabId);
+    if (!tabId) return;
+    setSelectedTabAssignments((current) =>
+      current.some((assignment) => assignment.tabId === tabId)
+        ? current
+        : [...current, { tabId, priceOverride: "" }],
+    );
+  }
+
+  function handleRemoveCategory(tabId: string) {
+    setSelectedTabAssignments((current) => current.filter((assignment) => assignment.tabId !== tabId));
+  }
+
+  function handleCategoryPriceChange(tabId: string, value: string) {
+    setSelectedTabAssignments((current) =>
+      current.map((assignment) =>
+        assignment.tabId === tabId ? { ...assignment, priceOverride: value } : assignment,
+      ),
+    );
   }
 
   function handleCreateCategory(name: string) {
@@ -127,10 +204,19 @@ export function AddMenuItemPanel({
           ? current
           : [...current, { id: result.menuTab.id, name: result.menuTab.name }],
       );
-      setSelectedTabId(result.menuTab.id);
+      setSelectedTabAssignments((current) =>
+        current.some((assignment) => assignment.tabId === result.menuTab.id)
+          ? current
+          : [...current, { tabId: result.menuTab.id, priceOverride: "" }],
+      );
       toast.success(`"${trimmedName}" category created.`);
     });
   }
+
+  useEffect(() => {
+    if (mode !== "edit" || !initialItem) return;
+    setEditingItem(initialItem);
+  }, [initialItem, mode]);
 
   useEffect(() => {
     if (!imageUrl) return;
@@ -238,19 +324,29 @@ export function AddMenuItemPanel({
       }
 
       const effectiveImageUrl = imageUrl.trim() || undefined;
+      const tabAssignments = selectedTabAssignments.map((assignment) => ({
+        tabId: assignment.tabId,
+        priceOverride:
+          assignment.priceOverride.trim() === "" ? null : Number(assignment.priceOverride),
+      }));
 
-      const result = isEditMode && initialItem
+      if (tabAssignments.some((assignment) => assignment.priceOverride !== null && !Number.isFinite(assignment.priceOverride))) {
+        toast.error("Each category price must be a valid number.");
+        return;
+      }
+
+      const result = editingItem
         ? await updateMenuItemAction(
             orgId,
             menuId,
-            initialItem.id,
+        editingItem.id,
             toolItemId,
             effectiveTitle,
             description.trim() || undefined,
             parsedPrice,
             parsedCalories,
             notes.trim() || undefined,
-            selectedTabId,
+            tabAssignments,
             effectiveImageUrl,
           )
         : await createMenuItemAction(
@@ -262,7 +358,7 @@ export function AddMenuItemPanel({
             parsedPrice,
             parsedCalories,
             notes.trim() || undefined,
-            selectedTabId,
+            tabAssignments,
             effectiveImageUrl,
           );
       if (!result.ok) {
@@ -288,7 +384,7 @@ export function AddMenuItemPanel({
           </div>
           {selectedToolItem ? (
             <span className="shrink-0 rounded-full border border-border/70 bg-background px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Selected
+                {isEditMode ? "Editing" : "Selected"}
             </span>
           ) : null}
         </div>
@@ -330,6 +426,19 @@ export function AddMenuItemPanel({
               </Button>
             ) : null}
           </div>
+
+            {selectedTabs.length > 0 ? (
+              <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                <span className="font-medium uppercase tracking-[0.12em] text-muted-foreground/70">
+                  Active in
+                </span>
+                {selectedTabs.map((tab) => (
+                  <span key={tab.id} className="rounded-full border border-border/70 bg-background px-2 py-0.5">
+                    {tab.name}
+                  </span>
+                ))}
+              </div>
+            ) : null}
 
           {imagePreviewUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -387,14 +496,39 @@ export function AddMenuItemPanel({
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-muted-foreground">Category</label>
+            <div className="flex flex-wrap gap-2 rounded-2xl border border-border/70 bg-background/70 p-2">
+              {selectedTabs.length === 0 ? (
+                <span className="px-2 py-1 text-xs text-muted-foreground">No categories selected</span>
+              ) : (
+                selectedTabs.map((tab) => (
+                  <div key={tab.id} className="flex items-center gap-2 rounded-full border border-border/70 bg-muted/40 px-2 py-1 text-xs font-medium text-foreground">
+                    <span className="whitespace-nowrap">{tab.name}</span>
+                    <Input
+                      value={selectedTabAssignments.find((assignment) => assignment.tabId === tab.id)?.priceOverride ?? ""}
+                      onChange={(event) => handleCategoryPriceChange(tab.id, event.target.value)}
+                      placeholder="Price"
+                      type="number"
+                      step="0.01"
+                      className="h-7 w-20 rounded-full border-border/70 bg-background/90 px-2 text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCategory(tab.id)}
+                      className="rounded-full px-1 text-muted-foreground transition-colors hover:text-destructive"
+                      title="Remove category"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
             <SearchableCombobox
-              items={localTabs}
-              triggerLabel={selectedTab ? selectedTab.name : "None"}
+              items={availableTabs}
+              triggerLabel={selectedTabs.length > 0 ? `Add category (${selectedTabs.length})` : "Add category"}
               placeholder="Search categories…"
               emptyText="No categories yet"
               onSelect={(tab) => handleSelectCategory(tab.id)}
-              onCreateBlank={() => handleSelectCategory(null)}
-              createBlankLabel="None"
               onCreate={handleCreateCategory}
             />
           </div>

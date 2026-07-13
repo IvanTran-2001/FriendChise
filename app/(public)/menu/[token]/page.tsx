@@ -69,7 +69,7 @@ const loadPublicMenu = cache(async (token: string): Promise<ResolvedMenuData | n
         id: pl.menuItem.id,
         title: pl.menuItem.title,
         description: pl.menuItem.description,
-        price: pl.menuItem.price,
+        price: pl.priceOverride ?? pl.menuItem.price,
         calories: pl.menuItem.calories,
         notes: pl.menuItem.notes,
         imageUrl: resolveUrl(pl.menuItem.imageUrl ?? pl.menuItem.toolItem.imgUrl),
