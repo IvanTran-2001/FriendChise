@@ -15,6 +15,7 @@ import { getMemberships } from "@/lib/services/memberships";
 import { getRoles } from "@/lib/services/roles";
 import { getOrgTags } from "@/lib/services/tags";
 import { prisma } from "@/lib/prisma";
+import { parseMultipleIds } from "@/lib/utils";
 import { TimetablePageClient } from "./_components/timetable-page-client";
 import { toLocalDateStr, addCalendarDays } from "@/lib/date-utils";
 
@@ -38,8 +39,8 @@ export default async function TimetablePage({
   const anchorParam = first(rawSearchParams.anchor);
   const modeParam = first(rawSearchParams.mode);
   const spanParam = first(rawSearchParams.span);
-  const urlRoleId = first(rawSearchParams.roleId) ?? null;
-  const urlTagId = first(rawSearchParams.tagId) ?? null;
+  const urlRoleIds = parseMultipleIds(rawSearchParams.roleId);
+  const urlTagIds = parseMultipleIds(rawSearchParams.tagId);
 
   const { userId } = await requireOrgMemberPage(orgId);
 
@@ -53,6 +54,8 @@ export default async function TimetablePage({
   let savedPrefs: {
     mode?: string;
     span?: string;
+    roleIds?: string[];
+    tagIds?: string[];
     roleId?: string | null;
     tagId?: string | null;
   } | null = null;
@@ -66,8 +69,25 @@ export default async function TimetablePage({
   // Role/tag: apply cookie as server-side default when the URL has no explicit filter.
   // RoleFilterButton and TagFilterButton both write the cookie before navigating so
   // clearing a filter updates the cookie first — no stuck-filter risk.
-  const rawRoleId = urlRoleId ?? (typeof savedPrefs?.roleId === "string" ? savedPrefs.roleId : null);
-  const rawTagId = urlTagId ?? (typeof savedPrefs?.tagId === "string" ? savedPrefs.tagId : null);
+  let cookieRoleIds: string[] = [];
+  if (savedPrefs?.roleIds && Array.isArray(savedPrefs.roleIds)) {
+    cookieRoleIds = savedPrefs.roleIds;
+  } else if (typeof savedPrefs?.roleId === "string") {
+    cookieRoleIds = [savedPrefs.roleId];
+  }
+
+  let cookieTagIds: string[] = [];
+  if (savedPrefs?.tagIds && Array.isArray(savedPrefs.tagIds)) {
+    cookieTagIds = savedPrefs.tagIds;
+  } else if (typeof savedPrefs?.tagId === "string") {
+    cookieTagIds = [savedPrefs.tagId];
+  }
+
+  const hasUrlRole = rawSearchParams.roleId !== undefined;
+  const hasUrlTag = rawSearchParams.tagId !== undefined;
+
+  const rawRoleIds = hasUrlRole ? urlRoleIds : cookieRoleIds;
+  const rawTagIds = hasUrlTag ? urlTagIds : cookieTagIds;
 
   const isModeExplicit = modeParam === "simple" || modeParam === "calendar";
   const isSpanExplicit = spanParam === "day" || spanParam === "week";
@@ -160,17 +180,17 @@ export default async function TimetablePage({
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  // Validate rawRoleId against the fetched roles to guard against stale cookie IDs.
-  const selectedRoleId = rawRoleId && filterRoles.some((r) => r.id === rawRoleId) ? rawRoleId : null;
+  // Validate rawRoleIds against the fetched roles to guard against stale cookie IDs.
+  const validRoleIds = rawRoleIds.filter((id) => filterRoles.some((r) => r.id === id));
 
-  // Filter instances by task eligibility for the selected role
+  // Filter instances by task eligibility for the selected roles
   let filteredInstances = instances;
-  if (selectedRoleId) {
+  if (validRoleIds.length > 0) {
     const inheritedTaskIds = tasks.map((t) => t.id);
     const eligibleTaskIds = new Set(
       (
         await prisma.taskEligibility.findMany({
-          where: { roleId: selectedRoleId, taskId: { in: inheritedTaskIds } },
+          where: { roleId: { in: validRoleIds }, taskId: { in: inheritedTaskIds } },
           select: { taskId: true },
         })
       ).map((e) => e.taskId),
@@ -180,20 +200,19 @@ export default async function TimetablePage({
     );
   }
 
-  // Filter instances by tag for the selected tag
+  // Filter instances by tag for the selected tags
   const filterTags = orgTags.map((t) => ({
     id: t.id,
     name: t.name,
     color: t.color,
   }));
-  const selectedTagId =
-    rawTagId && filterTags.some((t) => t.id === rawTagId) ? rawTagId : null;
-  if (selectedTagId) {
+  const validTagIds = rawTagIds.filter((id) => filterTags.some((t) => t.id === id));
+  if (validTagIds.length > 0) {
     const inheritedTaskIds = tasks.map((t) => t.id);
     const taggedTaskIds = new Set(
       (
         await prisma.taskTag.findMany({
-          where: { tagId: selectedTagId, taskId: { in: inheritedTaskIds } },
+          where: { tagId: { in: validTagIds }, taskId: { in: inheritedTaskIds } },
           select: { taskId: true },
         })
       ).map((t) => t.taskId),
@@ -250,8 +269,8 @@ export default async function TimetablePage({
   // Map taskId → role color (use filtered role when active, else first eligible)
   const taskRoleColorMap = new Map(
     tasks.map((t) => {
-      if (selectedRoleId) {
-        const filteredRole = t.eligibility.find((e) => e.role.id === selectedRoleId);
+      if (validRoleIds.length > 0) {
+        const filteredRole = t.eligibility.find((e) => validRoleIds.includes(e.role.id));
         return [t.id, filteredRole?.role?.color ?? null];
       }
       return [t.id, t.eligibility[0]?.role?.color ?? null];
@@ -267,11 +286,11 @@ export default async function TimetablePage({
     { color: string | null; roleColor: string | null; tagColor: string | null }
   > = {};
   for (const t of tasks) {
-    const displayRole = selectedRoleId
-      ? t.eligibility.find((e) => e.role.id === selectedRoleId)?.role
+    const displayRole = validRoleIds.length > 0
+      ? t.eligibility.find((e) => validRoleIds.includes(e.role.id))?.role
       : t.eligibility[0]?.role;
-    const displayTag = selectedTagId
-      ? t.tags.find((tt) => tt.tag.id === selectedTagId)?.tag
+    const displayTag = validTagIds.length > 0
+      ? t.tags.find((tt) => validTagIds.includes(tt.tag.id))?.tag
       : t.tags[0]?.tag;
     taskColors[t.id] = {
       color: t.color ?? null,
@@ -280,7 +299,7 @@ export default async function TimetablePage({
     };
   }
 
-  const isFiltersExplicit = !!(urlRoleId || urlTagId);
+  const isFiltersExplicit = !!(rawSearchParams.roleId || rawSearchParams.tagId);
   const templateOptions = templates.map((t) => ({
     id: t.id,
     name: t.name,
@@ -289,8 +308,8 @@ export default async function TimetablePage({
 
   const availableTasks = canManageTimetable
     ? tasks.map((t) => {
-        const displayRole = selectedRoleId
-          ? t.eligibility.find((e) => e.role.id === selectedRoleId)?.role
+        const displayRole = validRoleIds.length > 0
+          ? t.eligibility.find((e) => validRoleIds.includes(e.role.id))?.role
           : t.eligibility[0]?.role;
         return {
           id: t.id,
@@ -318,8 +337,8 @@ export default async function TimetablePage({
         initialSpan={span}
         fillHeight
         todayStr={todayStr}
-        selectedRoleId={rawRoleId}
-        selectedTagId={selectedTagId}
+        selectedRoleIds={validRoleIds}
+        selectedTagIds={validTagIds}
         roles={filterRoles}
         tags={filterTags}
         canManage={canManageTimetable}

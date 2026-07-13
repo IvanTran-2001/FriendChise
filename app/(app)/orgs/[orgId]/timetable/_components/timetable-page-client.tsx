@@ -22,8 +22,8 @@ interface TimetablePageClientProps {
   initialSpan: "day" | "week";
   fillHeight?: boolean;
   todayStr: string;
-  selectedRoleId: string | null;
-  selectedTagId: string | null;
+  selectedRoleIds: string[];
+  selectedTagIds: string[];
   roles: Role[];
   tags: Tag[];
   canManage: boolean;
@@ -50,8 +50,8 @@ export function TimetablePageClient({
   initialSpan,
   fillHeight,
   todayStr,
-  selectedRoleId,
-  selectedTagId,
+  selectedRoleIds,
+  selectedTagIds,
   roles,
   tags,
   canManage,
@@ -76,10 +76,10 @@ export function TimetablePageClient({
             anchor={anchor}
             mode={currentMode}
             span={currentSpan}
-            selectedRoleId={selectedRoleId}
+            selectedRoleIds={selectedRoleIds}
             roles={roles}
             tags={tags}
-            selectedTagId={selectedTagId}
+            selectedTagIds={selectedTagIds}
             canManage={canManage}
             templates={templates}
             todayStr={todayStr}
@@ -104,8 +104,8 @@ export function TimetablePageClient({
         span={currentSpan}
         fillHeight={fillHeight}
         todayStr={todayStr}
-        roleId={selectedRoleId}
-        tagId={selectedTagId}
+        roleIds={selectedRoleIds}
+        tagIds={selectedTagIds}
         canManage={canManage}
         userId={userId}
         availableTasks={tasks}

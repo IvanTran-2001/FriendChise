@@ -46,3 +46,23 @@ export function formatDate(
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
+
+/**
+ * Parses search parameters which can be a single string, array of strings,
+ * or comma-separated lists into a deduplicated array of clean IDs.
+ *
+ * @param value - The raw query param value.
+ * @returns An array of parsed and clean IDs.
+ */
+export function parseMultipleIds(
+  value: string | string[] | undefined,
+): string[] {
+  if (!value) return [];
+  const rawList = Array.isArray(value) ? value : [value];
+  const parsed = rawList
+    .flatMap((item) => item.split(","))
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return Array.from(new Set(parsed));
+}
+

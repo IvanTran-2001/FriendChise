@@ -18,11 +18,12 @@
  */
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { X } from "lucide-react";
 import { RoleFilterButton } from "./role-filter-button";
+import { TagMultiFilterButton } from "./tag-multi-filter-button";
 import { TimetableViewPicker } from "./timetable-view-picker";
 import { useTimetableZoom, MIN_HOUR_HEIGHT, MAX_HOUR_HEIGHT } from "../_shared/timetable-zoom-context";
 import { TimetableActions } from "./timetable-actions";
-import { TagFilterButton } from "@/components/ui/tag-filter-button";
 import { ColorFilterButton } from "./color-filter-button";
 import { type TemplateOption } from "./apply-template-dialog";
 import type { SharedTask } from "../_shared/types";
@@ -32,10 +33,10 @@ interface TimetableSidebarContentProps {
   anchor: string;
   mode: "calendar" | "simple";
   span: "day" | "week";
-  selectedRoleId: string | null;
+  selectedRoleIds: string[];
   roles: { id: string; name: string; color: string | null }[];
   tags: { id: string; name: string; color: string }[];
-  selectedTagId: string | null;
+  selectedTagIds: string[];
   canManage: boolean;
   templates: TemplateOption[];
   todayStr: string;
@@ -80,10 +81,10 @@ export function TimetableSidebarContent({
   anchor,
   mode,
   span,
-  selectedRoleId,
+  selectedRoleIds,
   roles,
   tags,
-  selectedTagId,
+  selectedTagIds,
   canManage,
   templates,
   todayStr,
@@ -112,6 +113,8 @@ export function TimetableSidebarContent({
   function readPrefsCookie(): {
     mode?: string;
     span?: string;
+    roleIds?: string[];
+    tagIds?: string[];
     roleId?: string | null;
     tagId?: string | null;
   } | null {
@@ -136,11 +139,25 @@ export function TimetableSidebarContent({
     const overrides: {
       mode?: "calendar" | "simple";
       span?: "day" | "week";
-      roleId?: string | null;
-      tagId?: string | null;
+      roleIds?: string[];
+      tagIds?: string[];
     } = {};
 
     const cookie = readPrefsCookie();
+
+    let cookieRoleIds: string[] = [];
+    if (cookie?.roleIds && Array.isArray(cookie.roleIds)) {
+      cookieRoleIds = cookie.roleIds;
+    } else if (typeof cookie?.roleId === "string") {
+      cookieRoleIds = [cookie.roleId];
+    }
+
+    let cookieTagIds: string[] = [];
+    if (cookie?.tagIds && Array.isArray(cookie.tagIds)) {
+      cookieTagIds = cookie.tagIds;
+    } else if (typeof cookie?.tagId === "string") {
+      cookieTagIds = [cookie.tagId];
+    }
 
     if (!isModeExplicit) {
       let savedMode: string | null = cookie?.mode ?? null;
@@ -163,15 +180,13 @@ export function TimetableSidebarContent({
     }
 
     if (!isFiltersExplicit && cookie) {
-      if (typeof cookie.roleId === "string" && cookie.roleId !== selectedRoleId) {
-        if (roles.find((r) => r.id === cookie.roleId)) {
-          overrides.roleId = cookie.roleId;
-        }
+      const validRoleIds = cookieRoleIds.filter((id) => roles.some((r) => r.id === id));
+      if (validRoleIds.length > 0) {
+        overrides.roleIds = validRoleIds;
       }
-      if (typeof cookie.tagId === "string" && cookie.tagId !== selectedTagId) {
-        if (tags.find((t) => t.id === cookie.tagId)) {
-          overrides.tagId = cookie.tagId;
-        }
+      const validTagIds = cookieTagIds.filter((id) => tags.some((t) => t.id === id));
+      if (validTagIds.length > 0) {
+        overrides.tagIds = validTagIds;
       }
     }
 
@@ -184,8 +199,8 @@ export function TimetableSidebarContent({
       JSON.stringify({
         mode: overrides.mode ?? mode,
         span: overrides.span ?? span,
-        roleId: overrides.roleId !== undefined ? overrides.roleId : selectedRoleId,
-        tagId: overrides.tagId !== undefined ? overrides.tagId : selectedTagId,
+        roleIds: overrides.roleIds !== undefined ? overrides.roleIds : selectedRoleIds,
+        tagIds: overrides.tagIds !== undefined ? overrides.tagIds : selectedTagIds,
       }),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -198,7 +213,12 @@ export function TimetableSidebarContent({
       isFirstRender.current = false;
       return;
     }
-    const value = JSON.stringify({ mode, span, roleId: selectedRoleId, tagId: selectedTagId });
+    const value = JSON.stringify({
+      mode,
+      span,
+      roleIds: selectedRoleIds,
+      tagIds: selectedTagIds,
+    });
     setPrefsCookie(value);
     try {
       localStorage.setItem(`${PREFS_KEY}:mode`, mode);
@@ -207,19 +227,46 @@ export function TimetableSidebarContent({
       /* ignore */
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, span, selectedRoleId, selectedTagId]);
+  }, [mode, span, selectedRoleIds, selectedTagIds]);
 
   function buildHref(overrides: {
     mode?: "calendar" | "simple";
     span?: "day" | "week";
-    roleId?: string | null;
-    tagId?: string | null;
+    roleIds?: string[];
+    tagIds?: string[];
   }) {
-    const next = { mode, span, roleId: selectedRoleId, tagId: selectedTagId, ...overrides };
+    const next = {
+      mode,
+      span,
+      roleIds: selectedRoleIds,
+      tagIds: selectedTagIds,
+      ...overrides,
+    };
     const params = new URLSearchParams({ anchor, mode: next.mode, span: next.span });
-    if (next.roleId) params.set("roleId", next.roleId);
-    if (next.tagId) params.set("tagId", next.tagId);
+    if (next.roleIds && next.roleIds.length > 0) params.set("roleId", next.roleIds.join(","));
+    if (next.tagIds && next.tagIds.length > 0) params.set("tagId", next.tagIds.join(","));
     return `/orgs/${orgId}/timetable?${params.toString()}`;
+  }
+
+  function handleRoleChange(nextRoleIds: string[]) {
+    setPrefsCookie(
+      JSON.stringify({ mode, span, roleIds: nextRoleIds, tagIds: selectedTagIds }),
+    );
+    router.push(buildHref({ roleIds: nextRoleIds }));
+  }
+
+  function handleTagChange(nextTagIds: string[]) {
+    setPrefsCookie(
+      JSON.stringify({ mode, span, roleIds: selectedRoleIds, tagIds: nextTagIds }),
+    );
+    router.push(buildHref({ tagIds: nextTagIds }));
+  }
+
+  function handleClearAll() {
+    setPrefsCookie(
+      JSON.stringify({ mode, span, roleIds: [], tagIds: [] }),
+    );
+    router.push(buildHref({ roleIds: [], tagIds: [] }));
   }
 
   return (
@@ -235,35 +282,94 @@ export function TimetableSidebarContent({
             anchor={anchor}
             mode={mode}
             span={span}
-            selectedRoleId={selectedRoleId}
-            selectedTagId={selectedTagId}
+            selectedRoleIds={selectedRoleIds}
+            selectedTagIds={selectedTagIds}
             orgId={orgId}
-            onNavigate={(newRoleId) => {
-              setPrefsCookie(
-                JSON.stringify({ mode, span, roleId: newRoleId, tagId: selectedTagId }),
-              );
-            }}
+            onNavigate={handleRoleChange}
           />
           {tags.length > 0 && (
-            <TagFilterButton
+            <TagMultiFilterButton
               tags={tags}
-              selectedTagId={selectedTagId}
+              selectedTagIds={selectedTagIds}
               basePath={`/orgs/${orgId}/timetable`}
               extraParams={{
                 anchor,
                 mode,
                 span,
-                ...(selectedRoleId ? { roleId: selectedRoleId } : {}),
+                ...(selectedRoleIds.length > 0 ? { roleId: selectedRoleIds.join(",") } : {}),
               }}
-              onNavigate={(newTagId) => {
-                setPrefsCookie(
-                  JSON.stringify({ mode, span, roleId: selectedRoleId, tagId: newTagId }),
-                );
-              }}
+              onNavigate={handleTagChange}
             />
           )}
           <ColorFilterButton />
         </div>
+
+        {/* Active filters badges */}
+        {(selectedRoleIds.length > 0 || selectedTagIds.length > 0) && (
+          <div className="flex flex-wrap gap-1.5 mt-3 px-1">
+            {selectedRoleIds.map((id) => {
+              const role = roles.find((r) => r.id === id);
+              if (!role) return null;
+              return (
+                <div
+                  key={role.id}
+                  className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs text-foreground shadow-sm max-w-full"
+                >
+                  {role.color && (
+                    <span
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{ backgroundColor: role.color }}
+                    />
+                  )}
+                  <span className="truncate max-w-[120px]">{role.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = selectedRoleIds.filter((x) => x !== id);
+                      handleRoleChange(next);
+                    }}
+                    className="text-muted-foreground hover:text-foreground active:scale-95 ml-0.5 shrink-0"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
+            {selectedTagIds.map((id) => {
+              const tag = tags.find((t) => t.id === id);
+              if (!tag) return null;
+              return (
+                <div
+                  key={tag.id}
+                  className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs text-foreground shadow-sm max-w-full"
+                >
+                  <span
+                    className="h-2 w-2 rounded-full shrink-0"
+                    style={{ backgroundColor: tag.color }}
+                  />
+                  <span className="truncate max-w-[120px]">{tag.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = selectedTagIds.filter((x) => x !== id);
+                      handleTagChange(next);
+                    }}
+                    className="text-muted-foreground hover:text-foreground active:scale-95 ml-0.5 shrink-0"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="text-[11px] font-medium text-primary hover:underline active:scale-95 px-1 py-0.5"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
       </div>
 
       {/* View section */}
@@ -276,8 +382,8 @@ export function TimetableSidebarContent({
           anchor={anchor}
           mode={mode}
           span={span}
-          roleId={selectedRoleId}
-          tagId={selectedTagId}
+          roleId={selectedRoleIds.join(",")}
+          tagId={selectedTagIds.join(",")}
           onModeChange={onModeChange}
           onSpanChange={onSpanChange}
           className="flex-col items-start"
