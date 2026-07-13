@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
 import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
@@ -33,6 +34,7 @@ export function MenuDetailClient({
   canManage: boolean;
 }) {
   const { open, close } = useActionSidebar();
+  const router = useRouter();
   const openKeyRef = useRef(0);
   const requestSeqRef = useRef(0);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -236,6 +238,7 @@ export function MenuDetailClient({
     }
 
     toast.success(`"${item.title}" deleted.`);
+    router.refresh();
   }
 
   function handleAddCategory() {
