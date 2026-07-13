@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { MoreVertical } from "lucide-react";
 import {
   DropdownMenu,
@@ -37,6 +36,7 @@ interface MemberActionsProps {
   initialRoleIds: string[];
   initialWorkingDays: string[];
   image: string | null;
+  onDeleted: () => void;
 }
 
 /**
@@ -54,8 +54,8 @@ export function MemberActions({
   initialRoleIds,
   initialWorkingDays,
   image,
+  onDeleted,
 }: MemberActionsProps) {
-  const router = useRouter();
   const { open, close } = useActionSidebar();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -87,7 +87,8 @@ export function MemberActions({
         return;
       }
       setConfirmOpen(false);
-      router.refresh();
+      toast.success(`Member deleted successfully!`);
+      onDeleted();
     });
   }
 

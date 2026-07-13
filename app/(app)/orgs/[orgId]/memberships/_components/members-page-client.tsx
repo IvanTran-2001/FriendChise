@@ -262,6 +262,7 @@ export function MembersPageClient({
         hasMore={members.length > 0 && page < totalPages}
         sentinelRef={sentinelRef}
         onMemberSaved={refreshMembers}
+        onMemberDeleted={refreshMembers}
       />
     </>
   );

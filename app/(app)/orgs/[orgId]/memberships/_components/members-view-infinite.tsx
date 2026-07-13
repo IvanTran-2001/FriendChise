@@ -147,6 +147,7 @@ export function MembersView({
   hasMore,
   sentinelRef,
   onMemberSaved,
+  onMemberDeleted,
 }: {
   members: Member[];
   orgId: string;
@@ -161,6 +162,7 @@ export function MembersView({
   hasMore: boolean;
   sentinelRef: RefObject<HTMLDivElement | null>;
   onMemberSaved: () => void;
+  onMemberDeleted: () => void;
 }) {
   const { open } = useActionSidebar();
   const supportsHover = useSupportsHover();
@@ -247,6 +249,7 @@ export function MembersView({
             allRoles={allRoles}
             supportsHover={supportsHover}
             onView={handleView}
+            onMemberDeleted={onMemberDeleted}
           />
         ) : (
           <MemberList
@@ -256,6 +259,7 @@ export function MembersView({
             allRoles={allRoles}
             supportsHover={supportsHover}
             onView={handleView}
+            onMemberDeleted={onMemberDeleted}
           />
         )}
 
@@ -286,6 +290,7 @@ function CardGrid({
   allRoles,
   supportsHover,
   onView,
+  onMemberDeleted,
 }: {
   members: Member[];
   orgId: string;
@@ -293,6 +298,7 @@ function CardGrid({
   allRoles: Role[];
   supportsHover: boolean;
   onView: (member: Member) => void;
+  onMemberDeleted: () => void;
 }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
@@ -350,6 +356,7 @@ function CardGrid({
                   initialRoleIds={member.memberRoles.map(({ role }) => role.id)}
                   initialWorkingDays={member.workingDays}
                   image={member.user?.image ?? null}
+                  onDeleted={onMemberDeleted}
                 />
               </div>
             )}
@@ -367,6 +374,7 @@ function MemberList({
   allRoles,
   supportsHover,
   onView,
+  onMemberDeleted,
 }: {
   members: Member[];
   orgId: string;
@@ -374,6 +382,7 @@ function MemberList({
   allRoles: Role[];
   supportsHover: boolean;
   onView: (member: Member) => void;
+  onMemberDeleted: () => void;
 }) {
   return (
     <ul className="flex flex-col divide-y overflow-hidden rounded-xl border bg-card shadow-sm">
@@ -423,6 +432,7 @@ function MemberList({
                   initialRoleIds={member.memberRoles.map(({ role }) => role.id)}
                   initialWorkingDays={member.workingDays}
                   image={member.user?.image ?? null}
+                  onDeleted={onMemberDeleted}
                 />
               </div>
             )}
