@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { leaveOrgAction } from "@/app/actions/memberships";
-import { 
+import {
   Dialog,
   DialogClose,
   DialogContent,
@@ -11,7 +12,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger 
+  DialogTrigger,
 } from "@/components/ui/dialog";
 
 export function LeaveOrgButton({ orgId }: { orgId: string }) {
@@ -45,9 +46,14 @@ export function LeaveOrgButton({ orgId }: { orgId: string }) {
             disabled={isPending}
             onClick={() => {
               startTransition(async () => {
-                const result = await leaveOrgAction(orgId);
-                if (result && !result.ok) {
-                  alert(result.error);
+                try {
+                  const result = await leaveOrgAction(orgId);
+                  if (result && !result.ok) {
+                    toast.error(result.error);
+                    setOpen(false);
+                  }
+                } catch {
+                  toast.error("Failed to leave organization. Please try again.");
                   setOpen(false);
                 }
               });

@@ -1,4 +1,5 @@
 import { requireOrgMemberPage } from "@/lib/authz";
+import { prisma } from "@/lib/prisma";
 import { LeaveOrgButton } from "./leave-org-button";
 
 export default async function SettingsPage({
@@ -7,8 +8,13 @@ export default async function SettingsPage({
   params: Promise<{ orgId: string }>;
 }) {
   const { orgId } = await params;
+  const { userId } = await requireOrgMemberPage(orgId);
 
-  await requireOrgMemberPage(orgId);
+  const organization = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { ownerId: true },
+  });
+  const canLeaveOrganization = organization?.ownerId !== userId;
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-6 sm:px-6 sm:py-8">
@@ -32,16 +38,18 @@ export default async function SettingsPage({
         </p>
       </section>
 
-      <section className="rounded-3xl border border-destructive/20 bg-destructive/5 p-5 sm:p-6">
-        <h2 className="text-lg font-medium text-destructive">Leave Organization</h2>
-        <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-          If you leave this organization, you will lose access to its content and resources.
-          This action will convert your membership to a placeholder instead of deleting it.
-        </p>
-        <div className="mt-4">
-          <LeaveOrgButton orgId={orgId} />
-        </div>
-      </section>
+      {canLeaveOrganization ? (
+        <section className="rounded-3xl border border-destructive/20 bg-destructive/5 p-5 sm:p-6">
+          <h2 className="text-lg font-medium text-destructive">Leave Organization</h2>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+            If you leave this organization, you will lose access to its content and resources.
+            This action will convert your membership to a placeholder instead of deleting it.
+          </p>
+          <div className="mt-4">
+            <LeaveOrgButton orgId={orgId} />
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
