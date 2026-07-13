@@ -27,6 +27,16 @@ type MenuTabOption = {
   name: string;
 };
 
+type MenuItemDraft = {
+  title: string;
+  description: string;
+  price: string;
+  calories: string;
+  notes: string;
+  imageUrl: string;
+  selectedTabAssignments: { tabId: string; priceOverride: string }[];
+};
+
 export function AddMenuItemPanel({
   orgId,
   menuId,
@@ -36,8 +46,10 @@ export function AddMenuItemPanel({
   defaultTabId,
   defaultTabAssignments,
   initialItem,
+  prefill,
   mode = "create",
   onClose,
+  onSwitchToEdit,
 }: {
   orgId: string;
   menuId: string;
@@ -47,9 +59,14 @@ export function AddMenuItemPanel({
   defaultTabId: string | null;
   defaultTabAssignments?: { tabId: string; priceOverride: number | null }[];
   initialItem?: MenuItemDetail | null;
+  prefill?: MenuItemDraft | null;
   mode?: "create" | "edit";
   onClose: () => void;
+  onSwitchToEdit?: (item: MenuItemDetail, draft: MenuItemDraft) => void;
 }) {
+  const pickPrefill = (draftValue: string | undefined, fallbackValue: string) =>
+    draftValue && draftValue.trim() ? draftValue : fallbackValue;
+
   const initialToolItem = initialItem
     ? {
         id: initialItem.toolItem.id,
@@ -58,9 +75,12 @@ export function AddMenuItemPanel({
         imgUrl: initialItem.toolItem.imgUrl,
       }
     : null;
-  const initialImageUrl = mode === "edit"
-    ? initialItem?.imageUrl ?? ""
-    : initialItem?.imageUrl ?? initialToolItem?.imgUrl ?? "";
+  const initialImageUrl =
+    prefill?.imageUrl && prefill.imageUrl.trim()
+      ? prefill.imageUrl
+      : mode === "edit"
+        ? initialItem?.imageUrl ?? ""
+        : initialItem?.imageUrl ?? initialToolItem?.imgUrl ?? "";
 
   const [editingItem, setEditingItem] = useState<MenuItemDetail | null>(initialItem ?? null);
   const isEditMode = mode === "edit" || editingItem !== null;
@@ -69,17 +89,29 @@ export function AddMenuItemPanel({
     initialToolItem,
   );
   const [localTabs, setLocalTabs] = useState<MenuTabOption[]>(tabs);
-  const [title, setTitle] = useState(initialItem?.title ?? "");
-  const [description, setDescription] = useState(initialItem?.description ?? "");
-  const [price, setPrice] = useState(initialItem?.price?.toString() ?? "");
-  const [calories, setCalories] = useState(initialItem?.calories?.toString() ?? "");
-  const [notes, setNotes] = useState(initialItem?.notes ?? "");
+  const [title, setTitle] = useState(
+    pickPrefill(prefill?.title, initialItem?.title ?? ""),
+  );
+  const [description, setDescription] = useState(
+    pickPrefill(prefill?.description, initialItem?.description ?? ""),
+  );
+  const [price, setPrice] = useState(
+    pickPrefill(prefill?.price, initialItem?.price?.toString() ?? ""),
+  );
+  const [calories, setCalories] = useState(
+    pickPrefill(prefill?.calories, initialItem?.calories?.toString() ?? ""),
+  );
+  const [notes, setNotes] = useState(
+    pickPrefill(prefill?.notes, initialItem?.notes ?? ""),
+  );
   const [imageUrl, setImageUrl] = useState(initialImageUrl);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [selectedTabAssignments, setSelectedTabAssignments] = useState<
     { tabId: string; priceOverride: string }[]
   >(() =>
-    initialItem
+    prefill?.selectedTabAssignments?.length
+      ? prefill.selectedTabAssignments
+      : initialItem
       ? (defaultTabAssignments ?? []).map((assignment) => ({
           tabId: assignment.tabId,
           priceOverride:
@@ -130,14 +162,15 @@ export function AddMenuItemPanel({
   }
 
   function selectToolItem(item: ToolItemOption) {
-    setSelectedToolItem(item);
-    setTitle((current) => (current.trim() ? current : item.name));
-    maybeApplySelectedToolImage(item.imgUrl);
-
     if (mode !== "create") return;
 
     const existingItem = menuItems.find((menuItem) => menuItem.toolItemId === item.id);
-    if (!existingItem) return;
+    if (!existingItem) {
+      setSelectedToolItem(item);
+      setTitle((current) => (current.trim() ? current : item.name));
+      maybeApplySelectedToolImage(item.imgUrl);
+      return;
+    }
 
     const existingAssignments = itemDefaultTabAssignments.get(existingItem.id) ?? [];
     const nextAssignments = new Map<string, string>();
@@ -155,6 +188,26 @@ export function AddMenuItemPanel({
       }
     }
 
+    const draft: MenuItemDraft = {
+      title: title,
+      description,
+      price,
+      calories,
+      notes,
+      imageUrl,
+      selectedTabAssignments: [...nextAssignments.entries()].map(([tabId, priceOverride]) => ({
+        tabId,
+        priceOverride,
+      })),
+    };
+
+    if (onSwitchToEdit) {
+      onSwitchToEdit(existingItem, draft);
+      return;
+    }
+
+    setSelectedToolItem(item);
+    maybeApplySelectedToolImage(item.imgUrl);
     setEditingItem(existingItem);
     setTitle((current) => (current.trim() ? current : existingItem.title));
     setDescription((current) => (current.trim() ? current : (existingItem.description ?? "")));
@@ -162,9 +215,7 @@ export function AddMenuItemPanel({
     setCalories((current) => (current.trim() ? current : (existingItem.calories === null ? "" : String(existingItem.calories))));
     setNotes((current) => (current.trim() ? current : (existingItem.notes ?? "")));
     setImageUrl((current) => (current.trim() ? current : (existingItem.imageUrl ?? existingItem.toolItem.imgUrl ?? "")));
-    setSelectedTabAssignments(
-      [...nextAssignments.entries()].map(([tabId, priceOverride]) => ({ tabId, priceOverride })),
-    );
+    setSelectedTabAssignments([...nextAssignments.entries()].map(([tabId, priceOverride]) => ({ tabId, priceOverride })));
   }
 
   function handleSelectCategory(tabId: string | null) {

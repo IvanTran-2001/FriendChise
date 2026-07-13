@@ -41,6 +41,7 @@ export function MenuDetailClient({
   const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
   const [view, setView] = useState<"card" | "list">("card");
   const [itemSearch, setItemSearch] = useState("");
+  const [debouncedItemSearch, setDebouncedItemSearch] = useState("");
   const [allItems, setAllItems] = useState(menu.items);
   const [page, setPage] = useState(menu.itemsPage ?? 1);
   const [totalPages, setTotalPages] = useState(menu.itemsTotalPages ?? 1);
@@ -79,7 +80,11 @@ export function MenuDetailClient({
 
   const visibleItems = useMemo(() => {
     if (!selectedTab) return allItems;
-    return selectedTab.placements.map((placement) => placement.menuItem);
+
+    const visibleIds = new Set(allItems.map((item) => item.id));
+    return selectedTab.placements
+      .map((placement) => placement.menuItem)
+      .filter((item) => visibleIds.has(item.id));
   }, [allItems, selectedTab]);
 
   const selectedTabPriceByItemId = useMemo(() => {
@@ -93,8 +98,16 @@ export function MenuDetailClient({
     ) as Record<string, number | null>;
   }, [selectedTab]);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedItemSearch(itemSearch.trim());
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [itemSearch]);
+
   const filteredItems = useMemo(() => {
-    const query = itemSearch.trim().toLowerCase();
+    const query = debouncedItemSearch.toLowerCase();
     if (!query) return visibleItems;
 
     return visibleItems.filter((item) => {
@@ -108,14 +121,21 @@ export function MenuDetailClient({
 
       return haystacks.some((value) => value.toLowerCase().includes(query));
     });
-  }, [itemSearch, visibleItems]);
+  }, [debouncedItemSearch, visibleItems]);
 
   const selectedCategoryLabel = selectedTab?.name ?? "ALL";
   const selectedCategoryId = selectedTabId;
-  const searchQuery = itemSearch.trim();
+  const searchQuery = debouncedItemSearch;
   const isSearchingAllItems = selectedTabId === null && searchQuery.length > 0;
 
   const hasMore = selectedTabId === null && page < totalPages;
+
+  useEffect(() => {
+    setAllItems(menu.items);
+    setPage(menu.itemsPage ?? 1);
+    setTotalPages(menu.itemsTotalPages ?? 1);
+    setTotalCount(menu.itemsTotalCount ?? menu.items.length);
+  }, [menu.id, menu.items, menu.itemsPage, menu.itemsTotalCount, menu.itemsTotalPages]);
 
   const loadMoreItems = useCallback(async () => {
     if (selectedTabId !== null || isLoadingMore || page >= totalPages) return;
@@ -196,13 +216,36 @@ export function MenuDetailClient({
         key={key}
         orgId={orgId}
         menuId={menu.id}
-        menuItems={menu.items}
+        menuItems={allItems}
         itemDefaultTabAssignments={itemDefaultTabAssignments}
         tabs={menu.tabs.map((tab) => ({ id: tab.id, name: tab.name }))}
         defaultTabId={selectedTabId}
         defaultTabAssignments={
           selectedTabId ? [{ tabId: selectedTabId, priceOverride: null }] : []
         }
+        onSwitchToEdit={(item, draft) => {
+          const editKey = ++openKeyRef.current;
+          open(
+            "Edit Item",
+            <AddMenuItemPanel
+              key={editKey}
+              orgId={orgId}
+              menuId={menu.id}
+              menuItems={allItems}
+              itemDefaultTabAssignments={itemDefaultTabAssignments}
+              tabs={menu.tabs.map((tab) => ({ id: tab.id, name: tab.name }))}
+              defaultTabId={selectedTabId}
+              defaultTabAssignments={draft.selectedTabAssignments.map((assignment) => ({
+                tabId: assignment.tabId,
+                priceOverride: assignment.priceOverride.trim() === "" ? null : Number(assignment.priceOverride),
+              }))}
+              initialItem={item}
+              prefill={draft}
+              mode="edit"
+              onClose={close}
+            />,
+          );
+        }}
         onClose={close}
       />,
     );
@@ -216,7 +259,7 @@ export function MenuDetailClient({
         key={key}
         orgId={orgId}
         menuId={menu.id}
-        menuItems={menu.items}
+        menuItems={allItems}
         itemDefaultTabAssignments={itemDefaultTabAssignments}
         tabs={menu.tabs.map((tab) => ({ id: tab.id, name: tab.name }))}
         defaultTabId={selectedTabId}
@@ -238,6 +281,7 @@ export function MenuDetailClient({
     }
 
     toast.success(`"${item.title}" deleted.`);
+    setAllItems((current) => current.filter((currentItem) => currentItem.id !== item.id));
     router.refresh();
   }
 
