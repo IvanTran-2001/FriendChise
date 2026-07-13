@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { useActionSidebar } from "@/components/layout/action-sidebar-context";
 import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
 import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
@@ -33,17 +34,21 @@ export function MenuDetailClient({
   canManage: boolean;
 }) {
   const { open, close } = useActionSidebar();
+  const router = useRouter();
   const openKeyRef = useRef(0);
   const requestSeqRef = useRef(0);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
   const [view, setView] = useState<"card" | "list">("card");
   const [itemSearch, setItemSearch] = useState("");
+  const [debouncedItemSearch, setDebouncedItemSearch] = useState("");
   const [allItems, setAllItems] = useState(menu.items);
+  const [deletedItemIds, setDeletedItemIds] = useState<Set<string>>(() => new Set());
   const [page, setPage] = useState(menu.itemsPage ?? 1);
   const [totalPages, setTotalPages] = useState(menu.itemsTotalPages ?? 1);
   const [totalCount, setTotalCount] = useState(menu.itemsTotalCount ?? menu.items.length);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const menuIdRef = useRef(menu.id);
 
   const itemDefaultTabAssignments = useMemo(() => {
     const map = new Map<string, { tabId: string; priceOverride: number | null }[]>();
@@ -77,8 +82,11 @@ export function MenuDetailClient({
 
   const visibleItems = useMemo(() => {
     if (!selectedTab) return allItems;
-    return selectedTab.placements.map((placement) => placement.menuItem);
-  }, [allItems, selectedTab]);
+
+    return selectedTab.placements
+      .map((placement) => placement.menuItem)
+      .filter((item) => !deletedItemIds.has(item.id));
+  }, [allItems, deletedItemIds, selectedTab]);
 
   const selectedTabPriceByItemId = useMemo(() => {
     if (!selectedTab) return undefined;
@@ -91,8 +99,16 @@ export function MenuDetailClient({
     ) as Record<string, number | null>;
   }, [selectedTab]);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedItemSearch(itemSearch.trim());
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [itemSearch]);
+
   const filteredItems = useMemo(() => {
-    const query = itemSearch.trim().toLowerCase();
+    const query = debouncedItemSearch.toLowerCase();
     if (!query) return visibleItems;
 
     return visibleItems.filter((item) => {
@@ -106,14 +122,25 @@ export function MenuDetailClient({
 
       return haystacks.some((value) => value.toLowerCase().includes(query));
     });
-  }, [itemSearch, visibleItems]);
+  }, [debouncedItemSearch, visibleItems]);
 
   const selectedCategoryLabel = selectedTab?.name ?? "ALL";
   const selectedCategoryId = selectedTabId;
-  const searchQuery = itemSearch.trim();
+  const searchQuery = debouncedItemSearch;
   const isSearchingAllItems = selectedTabId === null && searchQuery.length > 0;
 
   const hasMore = selectedTabId === null && page < totalPages;
+
+  useEffect(() => {
+    if (menuIdRef.current === menu.id) return;
+
+    menuIdRef.current = menu.id;
+    setAllItems(menu.items);
+    setDeletedItemIds(new Set());
+    setPage(menu.itemsPage ?? 1);
+    setTotalPages(menu.itemsTotalPages ?? 1);
+    setTotalCount(menu.itemsTotalCount ?? menu.items.length);
+  }, [menu.id, menu.items, menu.itemsPage, menu.itemsTotalCount, menu.itemsTotalPages]);
 
   const loadMoreItems = useCallback(async () => {
     if (selectedTabId !== null || isLoadingMore || page >= totalPages) return;
@@ -146,7 +173,9 @@ export function MenuDetailClient({
       setAllItems((current) => {
         const nextItems = new Map<string, MenuDetail["items"][number]>();
         for (const item of current) nextItems.set(item.id, item);
-        for (const item of data.items) nextItems.set(item.id, item);
+        for (const item of data.items) {
+          if (!deletedItemIds.has(item.id)) nextItems.set(item.id, item);
+        }
         return Array.from(nextItems.values());
       });
       setTotalCount(data.totalCount);
@@ -159,7 +188,7 @@ export function MenuDetailClient({
         setIsLoadingMore(false);
       }
     }
-  }, [isLoadingMore, menu.id, menu.itemsPageSize, orgId, page, selectedTabId, totalPages]);
+  }, [deletedItemIds, isLoadingMore, menu.id, menu.itemsPageSize, orgId, page, selectedTabId, totalPages]);
 
   useEffect(() => {
     if (!isSearchingAllItems || !hasMore || isLoadingMore) return;
@@ -194,13 +223,36 @@ export function MenuDetailClient({
         key={key}
         orgId={orgId}
         menuId={menu.id}
-        menuItems={menu.items}
+        menuItems={allItems}
         itemDefaultTabAssignments={itemDefaultTabAssignments}
         tabs={menu.tabs.map((tab) => ({ id: tab.id, name: tab.name }))}
         defaultTabId={selectedTabId}
         defaultTabAssignments={
           selectedTabId ? [{ tabId: selectedTabId, priceOverride: null }] : []
         }
+        onSwitchToEdit={(item, draft) => {
+          const editKey = ++openKeyRef.current;
+          open(
+            "Edit Item",
+            <AddMenuItemPanel
+              key={editKey}
+              orgId={orgId}
+              menuId={menu.id}
+              menuItems={allItems}
+              itemDefaultTabAssignments={itemDefaultTabAssignments}
+              tabs={menu.tabs.map((tab) => ({ id: tab.id, name: tab.name }))}
+              defaultTabId={selectedTabId}
+              defaultTabAssignments={draft.selectedTabAssignments.map((assignment) => ({
+                tabId: assignment.tabId,
+                priceOverride: assignment.priceOverride.trim() === "" ? null : Number(assignment.priceOverride),
+              }))}
+              initialItem={item}
+              prefill={draft}
+              mode="edit"
+              onClose={close}
+            />,
+          );
+        }}
         onClose={close}
       />,
     );
@@ -214,7 +266,7 @@ export function MenuDetailClient({
         key={key}
         orgId={orgId}
         menuId={menu.id}
-        menuItems={menu.items}
+        menuItems={allItems}
         itemDefaultTabAssignments={itemDefaultTabAssignments}
         tabs={menu.tabs.map((tab) => ({ id: tab.id, name: tab.name }))}
         defaultTabId={selectedTabId}
@@ -236,6 +288,10 @@ export function MenuDetailClient({
     }
 
     toast.success(`"${item.title}" deleted.`);
+    setDeletedItemIds((current) => new Set(current).add(item.id));
+    setAllItems((current) => current.filter((currentItem) => currentItem.id !== item.id));
+    setTotalCount((current) => Math.max(current - 1, 0));
+    router.refresh();
   }
 
   function handleAddCategory() {

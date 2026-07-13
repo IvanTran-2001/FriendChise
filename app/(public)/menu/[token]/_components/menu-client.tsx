@@ -8,6 +8,15 @@ import { MenuSection } from "./menu-section";
 const UNASSIGNED_ID = "__unassigned__";
 const ALL_ID = "__all__";
 
+function hasRenderableItems(
+  tab: ResolvedMenuData["tabs"][number],
+  tabsByParentId: Map<string | null, ResolvedMenuData["tabs"]>,
+): boolean {
+  if (tab.items.length > 0) return true;
+  const children = tabsByParentId.get(tab.id) ?? [];
+  return children.some((child) => hasRenderableItems(child, tabsByParentId));
+}
+
 /**
  * Main client component for the public menu viewer.
  *
@@ -108,6 +117,24 @@ export function MenuClient({
 
   function renderTabTree(tab: (typeof data.tabs)[number], depth = 0): ReactNode {
     const children = tabsByParentId.get(tab.id) ?? [];
+    const hasContent = hasRenderableItems(tab, tabsByParentId);
+    const renderableChildren = children.filter((child) => hasRenderableItems(child, tabsByParentId));
+
+    if (!hasContent) {
+      return (
+        <MenuSection
+          key={tab.id}
+          id={tab.id}
+          name={tab.name}
+          description={tab.description}
+          items={[]}
+          displayMode={tab.displayMode}
+          depth={depth}
+          forceShow
+          showEmptyState
+        />
+      );
+    }
 
     return (
       <div key={tab.id} className="space-y-8">
@@ -118,11 +145,13 @@ export function MenuClient({
           items={tab.items}
           displayMode={tab.displayMode}
           depth={depth}
+          forceShow={tab.items.length === 0}
+          showEmptyState={false}
         />
 
-        {children.length > 0 && (
+        {renderableChildren.length > 0 && (
           <div className="space-y-8">
-            {children.map((child) => renderTabTree(child, depth + 1))}
+            {renderableChildren.map((child) => renderTabTree(child, depth + 1))}
           </div>
         )}
       </div>

@@ -6,15 +6,9 @@
  * previews so the panel can show the same item data in both layouts.
  */
 
-import { useEffect, useMemo, useState, type RefObject } from "react";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode, type RefObject } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { getOrgStorageReadUrl } from "@/app/actions/storage";
 import type { MenuDetail } from "@/lib/services/tools/menus";
 
@@ -200,7 +194,7 @@ function MenuItemCard({
   const fg = `hsl(${hue} 45% 38%)`;
 
   return (
-    <article className="overflow-hidden rounded-2xl border bg-background shadow-sm transition-shadow hover:shadow-md">
+    <article className="group overflow-hidden rounded-2xl border bg-background shadow-sm transition-shadow hover:shadow-md">
       <div className="relative aspect-square w-full overflow-hidden bg-muted/30">
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -211,8 +205,18 @@ function MenuItemCard({
           </div>
         )}
         {canManage ? (
-          <div className="absolute right-2 top-2">
-            <MenuItemActions onEdit={onEdit} onDelete={onDelete} />
+          <div className="absolute right-2 top-2 flex items-center gap-1.5 rounded-full border border-border/70 bg-background/95 p-1 shadow-sm backdrop-blur-sm opacity-100">
+            <MenuItemActionButton
+              label="Edit item"
+              onClick={onEdit}
+              icon={<Pencil className="h-3.5 w-3.5" />}
+            />
+            <MenuItemActionButton
+              label="Delete item"
+              onClick={onDelete}
+              destructive
+              icon={<Trash2 className="h-3.5 w-3.5" />}
+            />
           </div>
         ) : null}
       </div>
@@ -274,7 +278,7 @@ function MenuItemRow({
   const fg = `hsl(${hue} 45% 38%)`;
 
   return (
-    <article className="flex gap-3 p-4 transition-colors hover:bg-muted/30">
+    <article className="group flex gap-3 p-4 transition-colors hover:bg-muted/30">
       <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted/30">
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -300,7 +304,21 @@ function MenuItemRow({
                 {price}
               </span>
             ) : null}
-            {canManage ? <MenuItemActions onEdit={onEdit} onDelete={onDelete} /> : null}
+            {canManage ? (
+              <div className="flex items-center gap-1.5 opacity-100">
+                <MenuItemActionButton
+                  label="Edit item"
+                  onClick={onEdit}
+                  icon={<Pencil className="h-3.5 w-3.5" />}
+                />
+                <MenuItemActionButton
+                  label="Delete item"
+                  onClick={onDelete}
+                  destructive
+                  icon={<Trash2 className="h-3.5 w-3.5" />}
+                />
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -331,36 +349,37 @@ function Badge({ label, value }: { label: string; value: string }) {
   );
 }
 
-function MenuItemActions({
-  onEdit,
-  onDelete,
+function MenuItemActionButton({
+  label,
+  onClick,
+  icon,
+  destructive,
 }: {
-  onEdit: () => void;
-  onDelete: () => void;
+  label: string;
+  onClick: () => void;
+  icon: ReactNode;
+  destructive?: boolean;
 }) {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 shrink-0"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <MoreHorizontal className="h-4 w-4" />
-          <span className="sr-only">Item actions</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-        <DropdownMenuItem onSelect={onEdit}>
-          <Pencil className="mr-2 h-4 w-4" />
-          Edit
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onDelete} className="text-destructive focus:text-destructive">
-          <Trash2 className="mr-2 h-4 w-4" />
-          Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      type="button"
+      variant={destructive ? "destructive" : "secondary"}
+      size="icon"
+      className={[
+        "h-8 w-8 shrink-0 rounded-full border shadow-sm transition-all hover:-translate-y-0.5 active:scale-95",
+        destructive
+          ? "border-destructive/30 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          : "border-border/70 bg-background/95 text-foreground hover:border-primary/20 hover:bg-background",
+      ].join(" ")}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
+      aria-label={label}
+      title={label}
+    >
+      {icon}
+      <span className="sr-only">{label}</span>
+    </Button>
   );
 }

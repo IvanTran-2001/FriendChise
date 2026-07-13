@@ -14,6 +14,8 @@ export function MenuSection({
   items,
   displayMode = "CARDS",
   depth = 0,
+  forceShow = false,
+  showEmptyState = true,
 }: {
   id: string;
   name: string;
@@ -21,8 +23,10 @@ export function MenuSection({
   items: ResolvedMenuItem[];
   displayMode?: "CARDS" | "LIST";
   depth?: number;
+  forceShow?: boolean;
+  showEmptyState?: boolean;
 }) {
-  if (items.length === 0) return null;
+  if (items.length === 0 && !forceShow) return null;
 
   return (
     <section id={id} className="scroll-mt-33" style={{ marginLeft: `${depth * 10}px` }}>
@@ -36,7 +40,13 @@ export function MenuSection({
         ) : null}
       </div>
 
-      {displayMode === "LIST" ? (
+      {items.length === 0 ? (
+        showEmptyState ? (
+          <div className="rounded-2xl border border-dashed border-stone-200 bg-white px-4 py-8 text-sm text-stone-400">
+            No items in this section yet.
+          </div>
+        ) : null
+      ) : displayMode === "LIST" ? (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           {items.map((item) => (
             <article
