@@ -42,7 +42,7 @@ import {
 import {
   getSignedOrgImageUploadUrl,
   saveOrgImageToLibrary,
-  getOrgImagesWithSignedUrls,
+  getOrgImagesPageWithSignedUrls,
   deleteOrgImageAction,
 } from "@/app/actions/storage";
 
@@ -92,24 +92,54 @@ export function OrgImagePicker({
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [libraryError, setLibraryError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [libraryPage, setLibraryPage] = useState(0);
+  const [libraryTotalPages, setLibraryTotalPages] = useState(1);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const requestSeqRef = useRef(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // ── Load library whenever the dialog opens or tab switches to library ──────
-  const loadLibrary = useCallback(async () => {
-    setLibraryLoading(true);
-    setLibraryError(null);
-    const result = await getOrgImagesWithSignedUrls(orgId);
-    setLibraryLoading(false);
-    if (!result.ok) {
-      setLibraryError(result.error);
-      return;
-    }
-    setImages(result.images);
-  }, [orgId]);
+  const trimmedSearch = search.trim();
+
+  // ── Load library page whenever the dialog opens or the search changes ──────
+  const loadLibraryPage = useCallback(
+    async (page: number, append: boolean) => {
+      const requestSeq = ++requestSeqRef.current;
+      setLibraryLoading(true);
+      setLibraryError(null);
+
+      const result = await getOrgImagesPageWithSignedUrls(orgId, {
+        page,
+        pageSize: 24,
+        search: trimmedSearch,
+      });
+
+      if (requestSeq !== requestSeqRef.current) return;
+
+      setLibraryLoading(false);
+      if (!result.ok) {
+        setLibraryError(result.error);
+        return;
+      }
+
+      setLibraryPage(result.page);
+      setLibraryTotalPages(result.totalPages);
+      setImages((current) => (append ? [...current, ...result.images] : result.images));
+    },
+    [orgId, trimmedSearch],
+  );
+
+  const loadMoreLibrary = useCallback(() => {
+    if (libraryLoading || libraryPage >= libraryTotalPages) return;
+    void loadLibraryPage(libraryPage + 1, true);
+  }, [libraryLoading, libraryPage, libraryTotalPages, loadLibraryPage]);
 
   useEffect(() => {
-    if (open && tab === "library") loadLibrary();
-  }, [open, tab, loadLibrary]);
+    if (!open || tab !== "library") return;
+    setImages([]);
+    setLibraryPage(0);
+    setLibraryTotalPages(1);
+    void loadLibraryPage(1, false);
+  }, [loadLibraryPage, open, tab, trimmedSearch]);
 
   // ── Reset upload state when dialog closes ─────────────────────────────────
   useEffect(() => {
@@ -199,15 +229,6 @@ export function OrgImagePicker({
     setImages((prev) => prev.filter((i) => i.id !== img.id));
     setDeletingId(null);
   }
-
-  // ── Filtered images ───────────────────────────────────────────────────────
-  const filtered = images.filter((img) =>
-    search
-      ? (img.name ?? img.storagePath)
-          .toLowerCase()
-          .includes(search.toLowerCase())
-      : true,
-  );
 
   return (
     <>
@@ -321,7 +342,7 @@ export function OrgImagePicker({
               </div>
 
               {/* Grid */}
-              {libraryLoading ? (
+              {libraryLoading && images.length === 0 ? (
                 <div className="flex justify-center py-10">
                   <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
                 </div>
@@ -329,15 +350,15 @@ export function OrgImagePicker({
                 <p className="text-sm text-destructive py-4 text-center">
                   {libraryError}
                 </p>
-              ) : filtered.length === 0 ? (
+              ) : images.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-10 text-muted-foreground">
                   <ImagePlus className="h-8 w-8 opacity-40" />
                   <p className="text-sm">
-                    {search
+                    {trimmedSearch
                       ? "No images match your search."
                       : "No images in the library yet. Upload one!"}
                   </p>
-                  {!search && (
+                  {!trimmedSearch && (
                     <Button
                       type="button"
                       variant="outline"
@@ -350,8 +371,18 @@ export function OrgImagePicker({
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-80 overflow-y-auto pr-1">
-                  {filtered.map((img) => (
+                <div
+                  ref={scrollRef}
+                  className="grid max-h-80 grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3"
+                  onScroll={(event) => {
+                    const el = event.currentTarget;
+                    if (libraryLoading || libraryPage >= libraryTotalPages) return;
+                    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 32) {
+                      loadMoreLibrary();
+                    }
+                  }}
+                >
+                  {images.map((img) => (
                     <button
                       key={img.id}
                       type="button"
@@ -384,6 +415,17 @@ export function OrgImagePicker({
                       </span>
                     </button>
                   ))}
+                  {libraryLoading && images.length > 0 ? (
+                    <div className="col-span-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/20 px-3 py-4 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <p className="text-xs">Loading more…</p>
+                    </div>
+                  ) : null}
+                  {!libraryLoading && libraryPage < libraryTotalPages ? (
+                    <div className="col-span-full rounded-xl border border-dashed border-border/70 bg-muted/10 px-3 py-3 text-center text-xs text-muted-foreground">
+                      Scroll to load more
+                    </div>
+                  ) : null}
                 </div>
               )}
             </div>

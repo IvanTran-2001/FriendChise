@@ -1010,6 +1010,7 @@ model MenuTabPlacement {
   menuTabId  String
   menuItemId String
   position   Int
+  priceOverride Float?
   menuTab    MenuTab  @relation(fields: [menuTabId], references: [id], onDelete: Cascade)
   menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
 

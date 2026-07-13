@@ -33,6 +33,7 @@ export function MenuItemsPanel({
   isLoadingMore,
   sentinelRef,
   searchQuery,
+  priceByItemId,
 }: {
   orgId: string;
   menu: MenuDetail;
@@ -48,6 +49,7 @@ export function MenuItemsPanel({
   isLoadingMore: boolean;
   sentinelRef: RefObject<HTMLDivElement | null>;
   searchQuery: string;
+  priceByItemId?: Record<string, number | null>;
 }) {
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
 
@@ -142,6 +144,7 @@ export function MenuItemsPanel({
                 onDelete={() => onDeleteItem(item)}
                 imageUrl={signedUrls[item.imageUrl || item.toolItem.imgUrl || ""] ?? null}
                 categories={categoryLookup.get(item.id) ?? []}
+                price={priceByItemId?.[item.id] ?? item.price}
               />
             ))}
           </div>
@@ -156,6 +159,7 @@ export function MenuItemsPanel({
                 onDelete={() => onDeleteItem(item)}
                 imageUrl={signedUrls[item.imageUrl || item.toolItem.imgUrl || ""] ?? null}
                 categories={categoryLookup.get(item.id) ?? []}
+                price={priceByItemId?.[item.id] ?? item.price}
               />
             ))}
           </div>
@@ -181,6 +185,7 @@ function MenuItemCard({
   onDelete,
   imageUrl,
   categories,
+  price,
 }: {
   item: MenuDetail["items"][number];
   canManage: boolean;
@@ -188,6 +193,7 @@ function MenuItemCard({
   onDelete: () => void;
   imageUrl: string | null;
   categories: string[];
+  price: number | null;
 }) {
   const hue = [...item.title].reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360;
   const bg = `hsl(${hue} 55% 88%)`;
@@ -219,16 +225,16 @@ function MenuItemCard({
               {item.toolItem.name} · {item.toolItem.unit}
             </p>
           </div>
-          {item.price !== null ? (
+          {price !== null ? (
             <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
-              {item.price}
+              {price}
             </span>
           ) : null}
         </div>
 
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
           {item.calories !== null ? <Badge label="Calories" value={item.calories.toString()} /> : null}
-          {item.price !== null ? <Badge label="Price" value={item.price.toString()} /> : null}
+          {price !== null ? <Badge label="Price" value={price.toString()} /> : null}
           {categories.length > 0 ? <Badge label={categories.length === 1 ? "Category" : "Categories"} value={categories.join(", ")} /> : null}
         </div>
 
@@ -253,6 +259,7 @@ function MenuItemRow({
   onDelete,
   imageUrl,
   categories,
+  price,
 }: {
   item: MenuDetail["items"][number];
   canManage: boolean;
@@ -260,6 +267,7 @@ function MenuItemRow({
   onDelete: () => void;
   imageUrl: string | null;
   categories: string[];
+  price: number | null;
 }) {
   const hue = [...item.title].reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360;
   const bg = `hsl(${hue} 55% 88%)`;
@@ -287,9 +295,9 @@ function MenuItemRow({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {item.price !== null ? (
+            {price !== null ? (
               <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
-                {item.price}
+                {price}
               </span>
             ) : null}
             {canManage ? <MenuItemActions onEdit={onEdit} onDelete={onDelete} /> : null}
@@ -298,7 +306,7 @@ function MenuItemRow({
 
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
           {item.calories !== null ? <Badge label="Calories" value={item.calories.toString()} /> : null}
-          {item.price !== null ? <Badge label="Price" value={item.price.toString()} /> : null}
+          {price !== null ? <Badge label="Price" value={price.toString()} /> : null}
           {categories.length > 0 ? <Badge label={categories.length === 1 ? "Category" : "Categories"} value={categories.join(", ")} /> : null}
         </div>
 
