@@ -95,6 +95,7 @@ export function MarkdownLink({
             src={embed.embedUrl}
             className="absolute inset-0 h-full w-full border-0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
             allowFullScreen
             title={typeof children === "string" ? children : "Embedded video"}
           />

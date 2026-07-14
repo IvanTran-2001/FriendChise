@@ -332,18 +332,32 @@ export async function toggleChecklistEntry(listEntryId: string): Promise<{ check
 export async function createToolItemList(
   orgId: string,
   name: string,
+  gridCols = 4,
+  gridRows = 4,
   description?: string,
 ) {
-  return prisma.toolItemList.create({
-    data: { orgId, name, displayType: "GRID", description: description ?? null },
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      displayType: true,
-      updatedAt: true,
-      _count: { select: { entries: true } },
-    },
+  return prisma.$transaction(async (tx) => {
+    const list = await tx.toolItemList.create({
+      data: { orgId, name, displayType: "GRID", description: description ?? null },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        displayType: true,
+        updatedAt: true,
+        _count: { select: { entries: true } },
+      },
+    });
+
+    await tx.toolItemGridConfig.create({
+      data: {
+        listId: list.id,
+        gridCols,
+        gridRows,
+      },
+    });
+
+    return list;
   });
 }
 

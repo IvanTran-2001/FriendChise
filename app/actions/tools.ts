@@ -794,16 +794,7 @@ export async function createToolItemListAction(
 
   try {
     // New lists always default to GRID display.
-    const list = await createToolItemList(orgId, trimmed);
-    await import("@/lib/prisma").then(({ prisma }) =>
-      prisma.toolItemGridConfig.create({
-        data: {
-          listId: list.id,
-          gridCols: gridCols ?? 4,
-          gridRows: gridRows ?? 4,
-        },
-      }),
-    );
+    const list = await createToolItemList(orgId, trimmed, gridCols ?? 4, gridRows ?? 4);
     revalidatePath(`/orgs/${orgId}/tools/item-list/lists`);
     return { ok: true as const, list };
   } catch (err: unknown) {

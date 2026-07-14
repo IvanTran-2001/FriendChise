@@ -367,6 +367,28 @@ export async function saveOrgImageToLibrary(
   return { ok: true, image: { ...img, signedUrl } };
 }
 
+/** Returns a signed read URL for an org-owned storage path. */
+export async function getOrgStorageReadUrl(
+  orgId: string,
+  storagePath: string,
+): Promise<{ ok: true; signedUrl: string } | { ok: false; error: string }> {
+  const authz = await requireOrgPermissionAction(
+    orgId,
+    PermissionAction.MANAGE_TASKS,
+  );
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+
+  const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
+  if (!normalized.startsWith(`orgs/${orgId}/`)) {
+    return { ok: false, error: "Invalid storage path" };
+  }
+
+  const signedUrl = await createSignedReadUrl(normalized);
+  if (!signedUrl) return { ok: false, error: "Failed to generate signed URL" };
+
+  return { ok: true, signedUrl };
+}
+
 /** Returns all org library images with fresh signed URLs. */
 export async function getOrgImagesWithSignedUrls(
   orgId: string,
