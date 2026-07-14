@@ -24,10 +24,15 @@ import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/services/audit-log";
 import {
   copySectionLayout,
-  createDefaultSectionLayouts,
+  DEFAULT_SECTIONS,
 } from "@/lib/services/task-sections";
 import type { ServiceResult } from "./types";
 import type { CreateTaskInput, UpdateTaskInput } from "@/lib/validators/task";
+
+export type TaskToolLinkInput = {
+  toolPath: string;
+  toolLabel?: string | null;
+};
 
 /**
  * Creates a new task for the given org using validated input.
@@ -40,21 +45,39 @@ export async function createTask(
   actorEmail?: string | null,
   actorName?: string | null,
 ) {
-  const task = await prisma.task.create({
-    data: {
-      orgId,
-      name: data.title,
-      color: data.color,
-      description: data.description ?? null,
-      durationMin: data.durationMin,
-      preferredStartTimeMin: data.preferredStartTimeMin ?? null,
-      minPeople: data.peopleRequired ?? 1,
-      minWaitDays: data.minWaitDays ?? null,
-      maxWaitDays: data.maxWaitDays ?? null,
-      createdById: actorId ?? null,
-      createdByName: actorName ?? null,
-    },
+  const task = await prisma.$transaction(async (tx) => {
+    const created = await tx.task.create({
+      data: {
+        orgId,
+        name: data.title,
+        color: data.color,
+        description: data.description ?? null,
+        durationMin: data.durationMin,
+        preferredStartTimeMin: data.preferredStartTimeMin ?? null,
+        minPeople: data.peopleRequired ?? 1,
+        minWaitDays: data.minWaitDays ?? null,
+        maxWaitDays: data.maxWaitDays ?? null,
+        createdById: actorId ?? null,
+        createdByName: actorName ?? null,
+      },
+    });
+
+    await tx.taskSectionLayout.createMany({
+      data: DEFAULT_SECTIONS.map((section) => ({
+        taskId: created.id,
+        orgId,
+        ...section,
+      })),
+      skipDuplicates: true,
+    });
+
+    await tx.taskInheritance.create({
+      data: { taskId: created.id, orgId },
+    });
+
+    return created;
   });
+
   log.info("Task created", { orgId, taskId: task.id });
   recordAudit({
     orgId,
@@ -70,13 +93,31 @@ export async function createTask(
       durationMin: task.durationMin,
     },
   });
-  // Seed default section layout rows for the owning org.
-  await createDefaultSectionLayouts(task.id, orgId);
-  // The creating org automatically inherits its own task.
-  await prisma.taskInheritance.create({
-    data: { taskId: task.id, orgId },
-  });
   return task;
+}
+
+/**
+ * Replaces all tool links for a task with the provided set.
+ * Intended for create/edit flows that submit the current selection in full.
+ * Atomic: wrapped in a transaction so the delete is rolled back if the insert fails.
+ */
+export async function setTaskToolLinks(
+  orgId: string,
+  taskId: string,
+  tools: TaskToolLinkInput[],
+) {
+  await prisma.$transaction(async (tx) => {
+    await tx.taskToolLink.deleteMany({ where: { orgId, taskId } });
+    await tx.taskToolLink.createMany({
+      data: tools.map((tool) => ({
+        orgId,
+        taskId,
+        toolPath: tool.toolPath,
+        toolLabel: tool.toolLabel ?? null,
+      })),
+      skipDuplicates: true,
+    });
+  });
 }
 
 /**
@@ -143,6 +184,12 @@ const taskInclude = {
       tag: { select: { id: true, name: true, color: true } },
     },
   },
+  taskToolLinks: {
+    select: {
+      toolPath: true,
+      toolLabel: true,
+    },
+  },
   _count: { select: { inheritedBy: true } },
 } as const;
 
@@ -198,11 +245,25 @@ export async function getSharedTasks(orgId: string) {
  * Includes role eligibility data for display in the task table.
  */
 export async function getTasks(orgId: string) {
-  return prisma.task.findMany({
-    where: { orgId },
-    include: taskInclude,
-    orderBy: { createdAt: "desc" },
-  });
+  const pageSize = 100;
+  const totalCount = await prisma.task.count({ where: { orgId } });
+  if (totalCount === 0) return [];
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const tasks = [] as Awaited<ReturnType<typeof prisma.task.findMany>>;
+
+  for (let page = 1; page <= totalPages; page += 1) {
+    const rows = await prisma.task.findMany({
+      where: { orgId },
+      include: taskInclude,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
+    tasks.push(...rows);
+  }
+
+  return tasks;
 }
 
 export type TaskSortOption =
@@ -625,6 +686,35 @@ export async function getTasksSimple(orgId: string) {
   });
 }
 
+export async function getTasksSimplePage(
+  orgId: string,
+  options: { page?: number; pageSize?: number; search?: string } = {},
+) {
+  const pageSize = Math.max(1, options.pageSize ?? 24);
+  const search = options.search?.trim() ?? "";
+
+  const where: Prisma.TaskWhereInput = {
+    orgId,
+    ...(search
+      ? { name: { contains: search, mode: "insensitive" as const } }
+      : {}),
+  };
+
+  const totalCount = await prisma.task.count({ where });
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const page = Math.min(Math.max(1, Math.floor(options.page ?? 1)), totalPages);
+
+  const tasks = await prisma.task.findMany({
+    where,
+    select: { id: true, name: true, color: true },
+    orderBy: [{ name: "asc" }, { id: "asc" }],
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+  });
+
+  return { tasks, totalCount, totalPages, page, pageSize, search };
+}
+
 // ---------------------------------------------------------------------------
 // Task accessibility helpers
 // ---------------------------------------------------------------------------
@@ -648,25 +738,6 @@ export async function canAccessTask(
     }),
   ]);
   return !!(owned || inherited);
-}
-
-/**
- * Returns all tasks accessible to an org — its own tasks plus any tasks it
- * has inherited from its parent. Each result carries an `inherited: boolean`
- * flag so callers can distinguish the two sets.
- */
-export async function getAccessibleTasks(orgId: string) {
-  const [ownTasks, inheritances] = await Promise.all([
-    prisma.task.findMany({ where: { orgId }, include: taskInclude }),
-    prisma.taskInheritance.findMany({
-      where: { orgId, task: { orgId: { not: orgId } } },
-      include: { task: { include: taskInclude } },
-    }),
-  ]);
-  return [
-    ...ownTasks.map((t) => ({ ...t, inherited: false as const })),
-    ...inheritances.map((i) => ({ ...i.task, inherited: true as const })),
-  ];
 }
 
 // ---------------------------------------------------------------------------

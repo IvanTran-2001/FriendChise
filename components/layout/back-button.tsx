@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useBackNavigation } from "@/components/layout/use-back-navigation";
 
 interface BackButtonProps {
   /** Fallback route if there is no browser history to go back to. */
@@ -19,16 +19,7 @@ export function BackButton({
   children,
   className,
 }: BackButtonProps) {
-  const router = useRouter();
-
-  function handleClick() {
-    // history.length starts at 1 for a fresh tab; > 1 means there's something to go back to.
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push(fallbackHref);
-    }
-  }
+  const handleClick = useBackNavigation(fallbackHref);
 
   return (
     <button type="button" onClick={handleClick} className={className}>

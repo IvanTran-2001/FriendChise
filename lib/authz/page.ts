@@ -7,6 +7,7 @@ import {
   isAdminUser,
   isParentOrgOwner,
   isOrgOwner,
+  isOrgOwnerOrParentOrgOwner,
   memberHasPermission,
 } from "./_shared";
 
@@ -122,5 +123,21 @@ export async function requireOrgOwnerPage(
   const userId = await getAuthUserId();
   if (!userId) redirect("/signin");
   if (!(await isOrgOwner(orgId, userId))) redirect(redirectTo ?? `/orgs/${orgId}`);
+  return { userId };
+}
+
+/** Requires the caller to be the owner of the org or the owner of its parent org. */
+export async function requireOrgOwnerOrParentOrgOwnerPage(
+  orgId: string,
+  { redirectTo }: { redirectTo?: string } = {},
+): Promise<{ userId: string }> {
+  const userId = await getAuthUserId();
+  if (!userId) redirect("/signin");
+  if (!(await isOrgOwnerOrParentOrgOwner(orgId, userId))) {
+    const base = redirectTo ?? `/orgs/${orgId}`;
+    redirect(
+      base.includes("?") ? `${base}&unauthorized=1` : `${base}?unauthorized=1`,
+    );
+  }
   return { userId };
 }

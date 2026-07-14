@@ -15,17 +15,20 @@
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
-import { ChevronDown, ChevronRight, X } from "lucide-react";
+import { ChevronDown, ChevronRight, X, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { SearchInput } from "@/components/ui/search-input";
 import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
+import { Button } from "@/components/ui/button";
 import {
   upsertTemplateEntryAction,
   removeTemplateEntryAction,
 } from "@/app/actions/tools";
+import { usePersistedState } from "@/hooks/use-persisted-state";
+import { cn } from "@/lib/utils";
 
 type ToolItem = { id: string; name: string; unit: string };
 type Rate = {
@@ -149,6 +152,17 @@ export function SetDetailClient({
   const [, startTransition] = useTransition();
   const [search, setSearch] = useState("");
   const [expandedToIds, setExpandedToIds] = useState<Set<string>>(new Set());
+
+  const [favoriteIds, setFavoriteIds, hydrated] = usePersistedState<string[]>(
+    `conversion-favorites-${orgId}`,
+    [],
+  );
+  const isFavorite = hydrated && favoriteIds.includes(set.id);
+  const toggleFavorite = () => {
+    setFavoriteIds((prev) =>
+      prev.includes(set.id) ? prev.filter((id) => id !== set.id) : [...prev, set.id]
+    );
+  };
 
   function toggleExpanded(id: string) {
     setExpandedToIds((prev) => {
@@ -359,7 +373,18 @@ export function SetDetailClient({
   return (
     <>
       <RegisterPageToolbar>
-        <h1 className="text-sm font-semibold shrink-0">{set.name}</h1>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <h1 className="text-sm font-semibold">{set.name}</h1>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            onClick={toggleFavorite}
+            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+            className="h-8 w-8 text-muted-foreground hover:text-amber-500 hover:bg-muted/50 cursor-pointer"
+          >
+            <Star className={cn("h-4 w-4", isFavorite && "fill-current text-amber-500")} />
+          </Button>
+        </div>
         {templates.length > 0 && (
           <div className="w-40 shrink-0">
             <SearchableCombobox

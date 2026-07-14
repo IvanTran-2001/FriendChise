@@ -13,9 +13,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
-import { ArrowLeftRight, List, Users } from "lucide-react";
+import { ArrowLeftRight, List, Users, Calculator, Star, ClipboardList } from "lucide-react";
 import { SearchInput } from "@/components/ui/search-input";
 import { cn } from "@/lib/utils";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 
 // Placeholder tool list — replace with DB-driven data once the Tool model exists
 type ToolItem = {
@@ -48,6 +49,15 @@ const PLACEHOLDER_TOOLS: ToolItem[] = [
     activeBar: "bg-sky-500",
   },
   {
+    id: "menu",
+    name: "Menu",
+    icon: ClipboardList,
+    description: "Customer-facing menu layouts",
+    accent: "bg-rose-500/10 text-rose-700 dark:text-rose-300",
+    iconTone: "ring-rose-500/15 text-rose-700 dark:text-rose-300",
+    activeBar: "bg-rose-500",
+  },
+  {
     id: "roster",
     name: "Roster",
     icon: Users,
@@ -56,11 +66,24 @@ const PLACEHOLDER_TOOLS: ToolItem[] = [
     iconTone: "ring-amber-500/15 text-amber-700 dark:text-amber-300",
     activeBar: "bg-amber-500",
   },
+  {
+    id: "calculator",
+    name: "Calculator",
+    icon: Calculator,
+    description: "Quick arithmetic calculations",
+    accent: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
+    iconTone: "ring-indigo-500/15 text-indigo-700 dark:text-indigo-300",
+    activeBar: "bg-indigo-500",
+  },
 ];
 
 export function ToolsSidebarContent({ orgId }: { orgId: string }) {
   const pathname = usePathname();
   const [search, setSearch] = useState("");
+  const [favoriteIds, , hydrated] = usePersistedState<string[]>(
+    `toolhub-favorites-${orgId}`,
+    [],
+  );
 
   const filtered = PLACEHOLDER_TOOLS.filter((t) =>
     t.name.toLowerCase().includes(search.toLowerCase()),
@@ -118,8 +141,11 @@ export function ToolsSidebarContent({ orgId }: { orgId: string }) {
                 </span>
 
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium text-sidebar-foreground">
-                    {tool.name}
+                  <span className="flex items-center gap-1.5 font-medium text-sidebar-foreground">
+                    <span className="truncate">{tool.name}</span>
+                    {hydrated && favoriteIds.includes(tool.id) && (
+                      <Star className="h-3.5 w-3.5 fill-current text-amber-500 shrink-0" />
+                    )}
                   </span>
                   <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
                     {tool.description}

@@ -26,6 +26,7 @@ import { TaskDescription } from "./task-description";
 import { TaskDetailSidebar } from "./task-detail-sidebar";
 import { TaskComments } from "./comments/index";
 import { formatDate } from "@/lib/utils";
+import type { TaskToolSelection } from "../_components/task-tools-picker";
 
 function formatDuration(min: number): string {
   if (min < 60) return `${min} min`;
@@ -81,6 +82,10 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
 
   const eligibleRoles = task.eligibility.map((e) => e.role);
   const taskTags = task.tags.map((t) => t.tag);
+  const taskTools: TaskToolSelection[] = task.taskToolLinks.map((tool) => ({
+    toolPath: tool.toolPath,
+    toolLabel: tool.toolLabel ?? "Tool",
+  }));
   return (
     <>
       <RegisterPageSidebarSubContent
@@ -94,6 +99,7 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
             scope={task.scope as "ORG" | "GLOBAL"}
             sharedBy={sharedBy}
             createdByName={createdByName}
+            taskTools={taskTools}
           />
         }
       />

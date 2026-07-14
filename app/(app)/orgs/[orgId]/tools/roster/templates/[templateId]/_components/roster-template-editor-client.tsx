@@ -1,10 +1,17 @@
 "use client";
 
+/**
+ * Roster template editor client.
+ * Owns the sidebar controls and the editable roster board for a single
+ * template, including week-count changes and clear-week confirmation.
+ */
+
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
+  LayoutGrid,
   Loader2,
   Minus,
   Plus,
@@ -14,7 +21,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
 import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
-import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
+import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
 import {
   updateRosterTemplateCycleWeeksAction,
   clearRosterTemplateWeekAction,
@@ -109,11 +116,15 @@ function RosterTemplateEditorSidebar({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PageSidebarNavItem
+      <BackSidebarNavItem
         title="Back to Templates"
-        url={`/orgs/${orgId}/tools/roster/templates`}
+        fallbackHref={`/orgs/${orgId}/tools/roster/templates`}
         icon={ArrowLeft}
-        isActive={false}
+        secondaryButton={{
+          title: "Toolhub",
+          href: `/orgs/${orgId}/tools`,
+          icon: LayoutGrid,
+        }}
       />
 
       {canManage && (

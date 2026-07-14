@@ -44,7 +44,7 @@ const NAV_ITEMS: AdminNavItem[] = [
   },
 ];
 
-export function AdminNavTabs() {
+export function AdminNavTabs({ onItemClick }: { onItemClick?: () => void }) {
   const pathname = usePathname();
 
   return (
@@ -62,6 +62,7 @@ export function AdminNavTabs() {
             asChild
             className={isActive ? "justify-start gap-2.5 rounded-xl shadow-sm" : "justify-start gap-2.5 rounded-xl"}
             aria-current={isActive ? "page" : undefined}
+            onClick={onItemClick}
           >
             <Link href={item.href}>
               <Icon className="h-4 w-4" />

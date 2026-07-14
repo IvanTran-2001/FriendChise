@@ -121,7 +121,7 @@ export function PageSidebarSlot() {
         </div>
       ) : (
         /* Expanded: in-flow panel, header row holds the collapse button */
-        <div className="hidden md:flex flex-col w-65 shrink-0 border-r border-border bg-sidebar overflow-hidden">
+        <div className="hidden md:flex flex-col w-75 shrink-0 border-r border-border bg-sidebar overflow-hidden">
           {/* Sticky header */}
           <div className="h-12 flex items-center shrink-0 border-b border-border">
             {titleEl}
@@ -142,7 +142,7 @@ export function PageSidebarSlot() {
 
       {/* Mobile: overlay anchored right of the AppSidebar icon strip */}
       {open && (
-        <div className="md:hidden fixed inset-y-0 left-12 z-50 flex flex-col w-65 bg-sidebar border-r border-border">
+        <div className="md:hidden fixed inset-y-0 left-12 z-50 flex flex-col w-75 bg-sidebar border-r border-border">
           {/* Sticky header */}
           <div className="h-12 flex items-center shrink-0 border-b border-border">
             {titleEl}

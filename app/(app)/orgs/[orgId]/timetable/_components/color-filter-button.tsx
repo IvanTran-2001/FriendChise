@@ -17,12 +17,20 @@ const COLOR_OPTIONS = [
   { id: "tag", name: "Color by Tag" },
 ] as const;
 
-export function ColorFilterButton() {
+interface ColorFilterButtonProps {
+  value?: "task" | "role" | "tag";
+  onChange?: (value: "task" | "role" | "tag") => void;
+}
+
+export function ColorFilterButton({ value, onChange }: ColorFilterButtonProps = {}) {
   const [open, setOpen] = useState(false);
-  const [colorFilter, setColorFilter] = usePersistedState<"task" | "role" | "tag">(
+  const [internalColorFilter, setInternalColorFilter] = usePersistedState<"task" | "role" | "tag">(
     "friendchise-color-filter",
-    "task"
+    "task",
   );
+
+  const colorFilter = value !== undefined ? value : internalColorFilter;
+  const setColorFilter = onChange !== undefined ? onChange : setInternalColorFilter;
 
   const selectedOption = COLOR_OPTIONS.find((o) => o.id === colorFilter) ?? COLOR_OPTIONS[0];
 

@@ -2,22 +2,35 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function TaskListSkeleton({ count = 8 }: { count?: number }) {
   return (
-    <div className="rounded-lg border bg-card overflow-hidden shadow-sm divide-y divide-border">
+    <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="flex items-center gap-3 px-4 py-3">
-          {/* Color bar */}
-          <Skeleton className="w-1 h-10 rounded-full shrink-0" />
-          {/* Thumbnail placeholder */}
-          <Skeleton className="w-9 h-9 rounded-md shrink-0 hidden sm:block" />
-          {/* Text */}
-          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-            <Skeleton className="h-4 w-2/5 rounded" />
-            <Skeleton className="h-3 w-3/5 rounded" />
+        <div key={i} className="border-b last:border-b-0 px-4 py-3 md:px-0 md:py-0">
+          <div className="flex flex-col gap-3 md:hidden">
+            <div className="flex items-start gap-3">
+              <Skeleton className="h-10 w-10 rounded-md shrink-0" />
+              <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                <Skeleton className="h-4 w-2/3 rounded" />
+                <Skeleton className="h-3 w-full rounded" />
+                <Skeleton className="h-3 w-5/6 rounded" />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-5 w-12 rounded-full" />
+              <Skeleton className="h-5 w-14 rounded-full" />
+            </div>
           </div>
-          {/* Badges */}
-          <div className="flex items-center gap-2 shrink-0">
-            <Skeleton className="h-5 w-12 rounded-full" />
-            <Skeleton className="h-5 w-10 rounded-full" />
+
+          <div className="hidden items-center gap-3 px-4 py-3 md:flex">
+            <Skeleton className="h-10 w-10 rounded-md shrink-0" />
+            <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+              <Skeleton className="h-4 w-2/5 rounded" />
+              <Skeleton className="h-3 w-3/5 rounded" />
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Skeleton className="h-5 w-12 rounded-full" />
+              <Skeleton className="h-5 w-10 rounded-full" />
+            </div>
           </div>
         </div>
       ))}

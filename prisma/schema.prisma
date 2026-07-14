@@ -81,6 +81,11 @@ enum ListDisplayType {
   GALLERY
 }
 
+enum MenuTabDisplayMode {
+  CARDS
+  LIST
+}
+
 // ─────────────────────────────────────
 // AUTH (NextAuth)
 // ─────────────────────────────────────
@@ -210,6 +215,7 @@ model Organization {
   memberships         Membership[]
   roles               Role[]
   tasks               Task[]
+  taskToolLinks       TaskToolLink[]
   tags                Tag[]
   timetableEntries    TimetableEntry[]
   timetableSettings   TimetableSettings?
@@ -221,6 +227,7 @@ model Organization {
   invites             Invite[]
   announcements       Announcement[]
   auditLogs           AuditLog[]
+  menus               Menu[]
   toolItems           ToolItem[]
   toolItemLists       ToolItemList[]
   conversionSets      ConversionSet[]
@@ -392,6 +399,7 @@ model Task {
 
   eligibility           TaskEligibility[]
   tags                  TaskTag[]
+  taskToolLinks         TaskToolLink[]
   timetableEntries      TimetableEntry[]
   timetableTemplateEntries TimetableTemplateEntry[]
   inheritedBy           TaskInheritance[]
@@ -462,6 +470,33 @@ model TaskTag {
 
   @@id([taskId, tagId])
   @@index([tagId])
+}
+
+// ─────────────────────────────────────
+// TASK TOOL LINK
+// Generic link from a task to any tool route.
+// Example toolPath values:
+//   conversion/<setId>
+//   roster/<boardId>/<templateId>
+//   item-list/<listId>
+// ─────────────────────────────────────
+
+model TaskToolLink {
+  id         String   @id @default(cuid())
+  orgId      String
+  taskId     String
+  toolPath   String
+  toolLabel  String?
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  task         Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([taskId, toolPath])
+  @@index([orgId])
+  @@index([taskId])
 }
 
 // ─────────────────────────────────────
@@ -861,9 +896,127 @@ model ToolItem {
   ratesTo              ConversionRate[]          @relation("RateToItem")
   templateEntries      ConversionTemplateEntry[]
   listEntries          ToolItemListEntry[]
+  menuItems            MenuItem[]
 
   @@unique([orgId, name])
   @@index([orgId])
+}
+
+// ─────────────────────────────────────
+// MENU
+// Org-scoped customer-facing menu collection.
+// Each org can have multiple menus, each with ordered tabs/sections.
+// ─────────────────────────────────────
+
+model Menu {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  publicToken String   @unique @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tabs        MenuTab[]
+  items       MenuItem[]
+  previewDailyViews MenuPreviewDailyView[]
+
+  @@unique([orgId, name])
+  @@index([orgId])
+}
+
+// ─────────────────────────────────────
+// MENU PREVIEW DAILY VIEW
+// Daily preview counter for public menu page views.
+// One row per menu per UTC day.
+// ─────────────────────────────────────
+
+model MenuPreviewDailyView {
+  id        String   @id @default(cuid())
+  menuId    String
+  day       DateTime
+  views     Int      @default(0)
+  menu      Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([menuId, day])
+  @@index([menuId])
+  @@index([day])
+}
+
+// ─────────────────────────────────────
+// MENU TAB
+// A tab/section inside a menu.
+// Items can appear in multiple tabs, and ordering is stored per tab.
+// ─────────────────────────────────────
+
+model MenuTab {
+  id          String   @id @default(cuid())
+  menuId      String
+  parentTabId String?
+  displayMode MenuTabDisplayMode @default(CARDS)
+  name        String
+  description String?
+  position    Int
+  menu        Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parentTab   MenuTab? @relation("MenuTabHierarchy", fields: [parentTabId], references: [id], onDelete: SetNull)
+  children    MenuTab[] @relation("MenuTabHierarchy")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  placements  MenuTabPlacement[]
+
+  @@unique([menuId, name])
+  @@index([menuId])
+}
+
+// ─────────────────────────────────────
+// MENU ITEM
+// Live-linked customer-facing item row.
+// One menu item references one ToolItem and can be reused in multiple sets.
+// ─────────────────────────────────────
+
+model MenuItem {
+  id          String   @id @default(cuid())
+  menuId      String
+  toolItemId  String
+  title       String
+  description String?
+  price       Float?
+  calories    Int?
+  notes       String?
+  imageUrl    String?
+  menu        Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  toolItem    ToolItem @relation(fields: [toolItemId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  placements  MenuTabPlacement[]
+
+  @@unique([menuId, toolItemId])
+  @@index([menuId])
+  @@index([toolItemId])
+}
+
+// ─────────────────────────────────────
+// MENU TAB PLACEMENT
+// Join table for ordering menu items within a tab/section.
+// ─────────────────────────────────────
+
+model MenuTabPlacement {
+  id         String   @id @default(cuid())
+  menuTabId  String
+  menuItemId String
+  position   Int
+  priceOverride Float?
+  menuTab    MenuTab  @relation(fields: [menuTabId], references: [id], onDelete: Cascade)
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@unique([menuTabId, menuItemId])
+  @@index([menuTabId])
+  @@index([menuItemId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

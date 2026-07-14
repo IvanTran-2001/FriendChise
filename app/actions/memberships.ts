@@ -14,6 +14,9 @@ import { auth } from "@/auth";
 import { sendMemberInviteSchema } from "@/lib/validators/membership";
 import { normalizeEmail } from "@/lib/utils";
 import { checkDemoLimit } from "@/lib/demo";
+import { memberToBot } from "@/lib/services/bots";
+import { getOrgMembership } from "@/lib/authz/_shared";
+import { redirect } from "next/navigation";
 
 export async function sendMemberInviteAction(
   orgId: string,
@@ -170,4 +173,30 @@ export async function setMemberStatusAction(
   revalidatePath(`/orgs/${orgId}/memberships`);
   revalidatePath(`/orgs/${orgId}/memberships/${membershipId}`);
   return { ok: true };
+}
+
+/**
+ * Leaves an organization by converting the user's membership to a bot.
+ */
+export async function leaveOrgAction(
+  orgId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await auth();
+  const userId = session?.user?.id;
+  const userEmail = session?.user?.email;
+  if (!userId) return { ok: false, error: "Unauthorized" };
+
+  const membership = await getOrgMembership(orgId, userId);
+  if (!membership) return { ok: false, error: "Membership not found" };
+
+  const result = await memberToBot(
+    orgId,
+    { membershipId: membership.id, overrideName: "placeholder" },
+    userId,
+    userEmail,
+  );
+  if (!result.ok) return { ok: false, error: result.error };
+
+  revalidatePath("/", "layout");
+  redirect("/");
 }

@@ -1,5 +1,6 @@
-import { requireOrgMemberPage } from "@/lib/authz";
+import { requireOrgPermissionPage } from "@/lib/authz";
 import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
+import { PermissionAction } from "@prisma/client";
 import { getConversionSets } from "@/lib/services/tools";
 import { hasRosterActivity } from "@/lib/services/roster";
 import {
@@ -16,7 +17,7 @@ export default async function ToolsPage({
   params: Promise<{ orgId: string }>;
 }) {
   const { orgId } = await params;
-  await requireOrgMemberPage(orgId);
+  await requireOrgPermissionPage(orgId, PermissionAction.MANAGE_TASKS);
 
   const [recentActivity, hasRoster, fallbackSets] = await Promise.all([
     listRecentActivitiesByCategories(

@@ -24,8 +24,8 @@ import {
   updateToolItemAction,
   deleteToolItemAction,
 } from "@/app/actions/tools";
-import { removeToolItemImage, saveToolItemImagePath } from "@/app/actions/storage";
-import { OrgImagePicker } from "@/components/ui/org-image-picker";
+import { removeToolItemImage } from "@/app/actions/storage";
+import { ToolItemImagePicker } from "@/components/ui/tool-item-image-picker";
 import type { ToolItem } from "./item-list-client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -129,8 +129,6 @@ function CreateForm({ orgId, onCreated }: CreateProps) {
 }
 
 // ─── Edit form ────────────────────────────────────────────────────────────────
-
-const ITEM_CROP = { aspect: 1, outputWidth: 512, outputHeight: 512 };
 
 function EditForm({ orgId, item, canManage, onUpdated, onDeleted, onClose: _onClose }: EditProps) {
   const [name, setName] = useState(item.name);
@@ -236,16 +234,11 @@ function EditForm({ orgId, item, canManage, onUpdated, onDeleted, onClose: _onCl
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
-            <OrgImagePicker
+            <ToolItemImagePicker
               orgId={orgId}
-              config={ITEM_CROP}
+              itemId={item.id}
               disabled={isBusy}
-              onSelect={async (storagePath, signedUrl) => {
-                const saveResult = await saveToolItemImagePath(orgId, item.id, storagePath);
-                if (!saveResult.ok) {
-                  toast.error(saveResult.error);
-                  return;
-                }
+              onSelect={(storagePath, signedUrl) => {
                 setPreviewUrl(signedUrl);
                 imgPathRef.current = storagePath;
                 onUpdated({ ...item, name, imgUrl: storagePath, imageSignedUrl: signedUrl });
