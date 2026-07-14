@@ -85,9 +85,16 @@ export function ToolsSidebarContent({ orgId }: { orgId: string }) {
     [],
   );
 
-  const filtered = PLACEHOLDER_TOOLS.filter((t) =>
-    t.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  function filterContent() {
+    return PLACEHOLDER_TOOLS.filter((t) => t.name.toLowerCase().includes(search.toLowerCase()));
+  }
+
+  const sortedTools = [...filterContent()].sort((a, b) => {
+    const aFavorite = favoriteIds.includes(a.id);
+    const bFavorite = favoriteIds.includes(b.id);
+
+    return Number(bFavorite) - Number(aFavorite);
+  });
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -100,12 +107,12 @@ export function ToolsSidebarContent({ orgId }: { orgId: string }) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 py-2">
-        {filtered.length === 0 ? (
+        {sortedTools.length === 0 ? (
           <p className="px-4 py-4 text-xs text-muted-foreground">
             No tools found.
           </p>
         ) : (
-          filtered.map((tool) => {
+          sortedTools.map((tool) => {
             const href = `/orgs/${orgId}/tools/${tool.id}`;
             const isActive = pathname === href;
             const Icon = tool.icon;
