@@ -9,7 +9,6 @@
 
 import { useMemo, type RefObject } from "react";
 import { Loader2, Package, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
 

@@ -22,7 +22,7 @@ import {
   updateMenu,
   updateMenuTab,
   updateMenuItem,
-} from "@/lib/services/tools";
+} from "@/lib/services/tools/menus";
 
 function mapPrismaError(
   err: unknown,

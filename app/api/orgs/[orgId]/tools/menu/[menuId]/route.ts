@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { PermissionAction } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireOrgPermission } from "@/lib/authz";
-import { getMenuPreviewClicksThisMonth } from "@/lib/services/tools";
 import { getMenuItemsPage, menuTabSelect } from "@/lib/services/tools/menus";
+import { getMenuPreviewClicksThisMonth } from "@/lib/services/tools/menus";
 
 const MENU_PAGE_SIZE = 24;
 
