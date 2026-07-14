@@ -15,8 +15,9 @@ export async function GET(
   const { searchParams } = new URL(req.url);
   const page = Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1);
   const pageSize = Math.min(Math.max(1, Number.parseInt(searchParams.get("pageSize") ?? "24", 10) || 24), 100);
+  const search = searchParams.get("search") ?? "";
 
-  const pageData = await getMenuItemsPage(menu.id, { page, pageSize });
+  const pageData = await getMenuItemsPage(menu.id, { page, pageSize, search });
   const privatePaths = new Set<string>();
   for (const item of pageData.items) {
     const imagePath = item.imageUrl ?? item.toolItem.imgUrl;

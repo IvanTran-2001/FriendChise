@@ -30,8 +30,9 @@ export async function GET(
     Math.max(1, Number.parseInt(searchParams.get("pageSize") ?? String(MENU_PAGE_SIZE), 10) || MENU_PAGE_SIZE),
     100,
   );
+  const search = searchParams.get("search") ?? "";
 
-  const pageData = await getMenuItemsPage(menuId, { page, pageSize });
+  const pageData = await getMenuItemsPage(menuId, { page, pageSize, search });
 
   return NextResponse.json({
     items: pageData.items,

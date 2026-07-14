@@ -334,7 +334,14 @@ export async function upsertTemplateEntryAction(
 	}
 
 	try {
+		const template = await prisma.conversionTemplate.findFirst({
+			where: { id: templateId, set: { orgId } },
+			select: { setId: true },
+		});
+		if (!template) return { ok: false as const, error: "Template not found." };
+
 		await upsertTemplateEntry(orgId, templateId, itemId, quantity, pinnedOutput);
+		revalidatePath(`/orgs/${orgId}/tools/conversion/${template.setId}`);
 		return { ok: true as const };
 	} catch (err: unknown) {
 		const mappedError = mapPrismaError(err, {
@@ -454,6 +461,7 @@ export async function applyListToTemplateAction(
 			}
 		});
 
+			revalidatePath(`/orgs/${orgId}/tools/conversion/${setId}`);
 		return { ok: true as const };
 	} catch (err: unknown) {
 		const mappedError = mapPrismaError(err, { P2025: "Template not found." });

@@ -132,6 +132,34 @@ export function MenuDetailClient({
   const hasMore = selectedTabId === null && page < totalPages;
 
   useEffect(() => {
+    if (selectedTabId !== null) return;
+
+    requestSeqRef.current += 1;
+    setDeletedItemIds(new Set());
+
+    if (searchQuery.length === 0) {
+      setAllItems(menu.items);
+      setPage(menu.itemsPage ?? 1);
+      setTotalPages(menu.itemsTotalPages ?? 1);
+      setTotalCount(menu.itemsTotalCount ?? menu.items.length);
+      return;
+    }
+
+    setAllItems([]);
+    setPage(0);
+    setTotalPages(1);
+    setTotalCount(0);
+  }, [
+    menu.id,
+    menu.items,
+    menu.itemsPage,
+    menu.itemsTotalCount,
+    menu.itemsTotalPages,
+    searchQuery,
+    selectedTabId,
+  ]);
+
+  useEffect(() => {
     if (menuIdRef.current === menu.id) return;
 
     menuIdRef.current = menu.id;
@@ -154,6 +182,7 @@ export function MenuDetailClient({
       const params = new URLSearchParams();
       params.set("page", String(nextPage));
       params.set("pageSize", String(menu.itemsPageSize ?? 24));
+      if (searchQuery.length > 0) params.set("search", searchQuery);
 
       const response = await fetch(
         `/api/orgs/${orgId}/tools/menu/${menu.id}/items?${params.toString()}`,
@@ -188,7 +217,7 @@ export function MenuDetailClient({
         setIsLoadingMore(false);
       }
     }
-  }, [deletedItemIds, isLoadingMore, menu.id, menu.itemsPageSize, orgId, page, selectedTabId, totalPages]);
+  }, [deletedItemIds, isLoadingMore, menu.id, menu.itemsPageSize, orgId, page, searchQuery, selectedTabId, totalPages]);
 
   useEffect(() => {
     if (!isSearchingAllItems || !hasMore || isLoadingMore) return;

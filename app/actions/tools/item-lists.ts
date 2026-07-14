@@ -46,8 +46,10 @@ export async function createToolItemListAction(
   const trimmed = name.trim();
   if (!trimmed) return { ok: false as const, error: "Name is required." };
 
-  const normalizedGridCols = Number.isFinite(gridCols) ? gridCols : 4;
-  const normalizedGridRows = Number.isFinite(gridRows) ? gridRows : 4;
+  const normalizedGridCols =
+    Number.isInteger(gridCols) && gridCols >= 1 && gridCols <= 12 ? gridCols : 4;
+  const normalizedGridRows =
+    Number.isInteger(gridRows) && gridRows >= 1 && gridRows <= 20 ? gridRows : 4;
 
   try {
     const list = await createToolItemList(orgId, trimmed, normalizedGridCols, normalizedGridRows);
@@ -117,7 +119,7 @@ export async function toggleChecklistEntryAction(
   if (!auth.ok) return { ok: false as const };
 
   try {
-    const result = await toggleChecklistEntry(listEntryId);
+    const result = await toggleChecklistEntry(orgId, listEntryId);
     revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
     return { ok: true as const, checked: result.checked };
   } catch {
@@ -135,7 +137,7 @@ export async function addToolItemListEntryAction(
   if (!auth.ok) return { ok: false as const };
 
   try {
-    const entry = await addToolItemListEntry(listId, itemId, amount ?? 0);
+    const entry = await addToolItemListEntry(orgId, listId, itemId, amount ?? 0);
     revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
     return { ok: true as const, entry };
   } catch (err: unknown) {
@@ -155,7 +157,7 @@ export async function addToolItemListEntryAtPositionAction(
   if (!auth.ok) return { ok: false as const };
 
   try {
-    const entry = await addToolItemListEntryAtPosition(listId, itemId, position, amount ?? 0);
+    const entry = await addToolItemListEntryAtPosition(orgId, listId, itemId, position, amount ?? 0);
     revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
     return { ok: true as const, entry };
   } catch (err: unknown) {
@@ -174,7 +176,7 @@ export async function moveToolItemListEntryAction(
   if (!auth.ok) return { ok: false as const };
 
   try {
-    await moveToolItemListEntry(listId, fromPosition, toPosition);
+    await moveToolItemListEntry(orgId, listId, fromPosition, toPosition);
     revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
     return { ok: true as const };
   } catch {
@@ -210,7 +212,7 @@ export async function updateToolItemGridConfigAction(
   if (!auth.ok) return { ok: false as const };
 
   try {
-    await updateToolItemGridConfig(listId, gridCols, gridRows);
+    await updateToolItemGridConfig(orgId, listId, gridCols, gridRows);
     revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
     return { ok: true as const };
   } catch {
@@ -227,7 +229,7 @@ export async function removeToolItemListEntryAction(
   if (!auth.ok) return { ok: false as const };
 
   try {
-    await removeToolItemListEntry(listId, entryId);
+    await removeToolItemListEntry(orgId, listId, entryId);
     revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
     return { ok: true as const };
   } catch {
@@ -245,7 +247,7 @@ export async function updateToolItemListEntryAmountAction(
   if (!auth.ok) return { ok: false as const };
 
   try {
-    await updateToolItemListEntryAmount(entryId, amount);
+    await updateToolItemListEntryAmount(orgId, listId, entryId, amount);
     revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
     return { ok: true as const };
   } catch {
