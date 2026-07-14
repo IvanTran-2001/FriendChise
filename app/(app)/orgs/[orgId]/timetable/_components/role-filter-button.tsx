@@ -48,7 +48,9 @@ export function RoleFilterButton({
 
   function handleSelect(roleIds: string[]) {
     onNavigate?.(roleIds);
-    router.push(makeHref(orgId, anchor, mode, span, roleIds, selectedTagIds));
+    if (!onNavigate) {
+      router.push(makeHref(orgId, anchor, mode, span, roleIds, selectedTagIds));
+    }
   }
 
   return (

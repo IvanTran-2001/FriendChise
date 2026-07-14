@@ -321,9 +321,10 @@ export function TimetableSidebarContent({
                       style={{ backgroundColor: role.color }}
                     />
                   )}
-                  <span className="truncate max-w-[120px]">{role.name}</span>
+                  <span className="truncate max-w-30">{role.name}</span>
                   <button
                     type="button"
+                    aria-label={`Remove ${role.name} filter`}
                     onClick={() => {
                       const next = selectedRoleIds.filter((x) => x !== id);
                       handleRoleChange(next);
@@ -347,9 +348,10 @@ export function TimetableSidebarContent({
                     className="h-2 w-2 rounded-full shrink-0"
                     style={{ backgroundColor: tag.color }}
                   />
-                  <span className="truncate max-w-[120px]">{tag.name}</span>
+                  <span className="truncate max-w-30">{tag.name}</span>
                   <button
                     type="button"
+                    aria-label={`Remove ${tag.name} filter`}
                     onClick={() => {
                       const next = selectedTagIds.filter((x) => x !== id);
                       handleTagChange(next);

@@ -299,7 +299,7 @@ export default async function TimetablePage({
     };
   }
 
-  const isFiltersExplicit = !!(rawSearchParams.roleId || rawSearchParams.tagId);
+  const isFiltersExplicit = hasUrlRole || hasUrlTag;
   const templateOptions = templates.map((t) => ({
     id: t.id,
     name: t.name,

@@ -24,14 +24,16 @@ export function TagMultiFilterButton({
 
   function handleSelect(tagIds: string[]) {
     onNavigate?.(tagIds);
-    const params = new URLSearchParams(extraParams);
-    if (tagIds.length > 0) {
-      params.set("tagId", tagIds.join(","));
-    } else {
-      params.delete("tagId");
+    if (!onNavigate) {
+      const params = new URLSearchParams(extraParams);
+      if (tagIds.length > 0) {
+        params.set("tagId", tagIds.join(","));
+      } else {
+        params.delete("tagId");
+      }
+      const qs = params.toString();
+      router.push(`${basePath}${qs ? `?${qs}` : ""}`);
     }
-    const qs = params.toString();
-    router.push(`${basePath}${qs ? `?${qs}` : ""}`);
   }
 
   return (
