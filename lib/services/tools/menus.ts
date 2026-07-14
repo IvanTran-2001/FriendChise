@@ -397,15 +397,29 @@ export async function getPublicMenuDetail(
 
 export async function getMenuItemsPage(
   menuId: string,
-  options: { page?: number; pageSize?: number } = {},
+  options: { page?: number; pageSize?: number; search?: string } = {},
 ): Promise<PublicMenuItemsPage> {
   const pageSize = Math.max(1, options.pageSize ?? 24);
-  const totalCount = await prisma.menuItem.count({ where: { menuId } });
+  const search = options.search?.trim() ?? "";
+  const where = search
+    ? {
+        menuId,
+        OR: [
+          { title: { contains: search, mode: "insensitive" as const } },
+          { description: { contains: search, mode: "insensitive" as const } },
+          { notes: { contains: search, mode: "insensitive" as const } },
+          { toolItem: { name: { contains: search, mode: "insensitive" as const } } },
+          { toolItem: { unit: { contains: search, mode: "insensitive" as const } } },
+        ],
+      }
+    : { menuId };
+
+  const totalCount = await prisma.menuItem.count({ where });
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const page = Math.min(Math.max(1, Math.floor(options.page ?? 1)), totalPages);
 
   const items = await prisma.menuItem.findMany({
-    where: { menuId },
+    where,
     orderBy: [{ title: "asc" }, { id: "asc" }],
     skip: (page - 1) * pageSize,
     take: pageSize,

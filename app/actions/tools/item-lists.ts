@@ -8,7 +8,6 @@
 
 import { revalidatePath } from "next/cache";
 import { PermissionAction, Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
 import { requireOrgPermissionAction } from "@/lib/authz";
 import {
   addToolItemListEntry,
@@ -47,21 +46,13 @@ export async function createToolItemListAction(
   const trimmed = name.trim();
   if (!trimmed) return { ok: false as const, error: "Name is required." };
 
-  const normalizedGridCols = Number.isFinite(gridCols) ? gridCols : 4;
-  const normalizedGridRows = Number.isFinite(gridRows) ? gridRows : 4;
+  const cols = gridCols ?? 4;
+  const rows = gridRows ?? 4;
+  const normalizedGridCols = Number.isInteger(cols) && cols >= 1 && cols <= 12 ? cols : 4;
+  const normalizedGridRows = Number.isInteger(rows) && rows >= 1 && rows <= 20 ? rows : 4;
 
   try {
-    const list = await prisma.$transaction(async (tx) => {
-      const createdList = await createToolItemList(orgId, trimmed, tx);
-      await tx.toolItemGridConfig.create({
-        data: {
-          listId: createdList.id,
-          gridCols: normalizedGridCols,
-          gridRows: normalizedGridRows,
-        },
-      });
-      return createdList;
-    });
+    const list = await createToolItemList(orgId, trimmed, normalizedGridCols, normalizedGridRows);
     revalidatePath(`/orgs/${orgId}/tools/item-list/lists`);
     return { ok: true as const, list };
   } catch (err: unknown) {
@@ -128,7 +119,7 @@ export async function toggleChecklistEntryAction(
   if (!auth.ok) return { ok: false as const };
 
   try {
-    const result = await toggleChecklistEntry(orgId, listEntryId);
+    const result = await toggleChecklistEntry(orgId, listId, listEntryId);
     revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
     return { ok: true as const, checked: result.checked };
   } catch {
@@ -166,13 +157,7 @@ export async function addToolItemListEntryAtPositionAction(
   if (!auth.ok) return { ok: false as const };
 
   try {
-    const entry = await addToolItemListEntryAtPosition(
-      orgId,
-      listId,
-      itemId,
-      position,
-      amount ?? 0,
-    );
+    const entry = await addToolItemListEntryAtPosition(orgId, listId, itemId, position, amount ?? 0);
     revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
     return { ok: true as const, entry };
   } catch (err: unknown) {
@@ -225,6 +210,17 @@ export async function updateToolItemGridConfigAction(
 ) {
   const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!auth.ok) return { ok: false as const };
+
+  if (
+    !Number.isInteger(gridCols) ||
+    gridCols < 1 ||
+    gridCols > 12 ||
+    !Number.isInteger(gridRows) ||
+    gridRows < 1 ||
+    gridRows > 20
+  ) {
+    return { ok: false as const, error: "Invalid grid dimensions." };
+  }
 
   try {
     await updateToolItemGridConfig(orgId, listId, gridCols, gridRows);

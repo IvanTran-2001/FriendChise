@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { Bell, Check, History, Megaphone } from "lucide-react";
+import { Bell, Check, Megaphone } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { AnnouncementScope } from "@prisma/client";

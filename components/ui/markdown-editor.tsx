@@ -10,7 +10,13 @@ import {
   List,
   ListOrdered,
   Heading3,
+  ImagePlus,
+  Video,
+  Loader2,
 } from "lucide-react";
+import { MarkdownImage, MarkdownLink } from "@/components/ui/markdown-media";
+import { useMarkdownImageUpload } from "@/hooks/use-markdown-image-upload";
+import { getVideoEmbed } from "@/lib/markdown-media";
 
 interface MarkdownEditorProps {
   name: string;
@@ -19,6 +25,11 @@ interface MarkdownEditorProps {
   rows?: number;
   ariaInvalid?: boolean;
   ariaDescribedBy?: string;
+  /**
+   * When provided, shows an "Insert image" toolbar button that uploads to
+   * this org's image library. Omit to keep the editor text/link-only.
+   */
+  orgId?: string;
 }
 
 type ToolbarItem =
@@ -32,10 +43,15 @@ export function MarkdownEditor({
   rows = 5,
   ariaInvalid,
   ariaDescribedBy,
+  orgId,
 }: MarkdownEditorProps) {
   const [value, setValue] = useState(defaultValue ?? "");
   const [tab, setTab] = useState<"write" | "preview">("write");
+  const [mediaError, setMediaError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { upload, isPending: isUploadingImage, error: uploadError } =
+    useMarkdownImageUpload(orgId ?? "");
 
   // ── Toolbar actions ──────────────────────────────────────────────────────
 
@@ -79,6 +95,52 @@ export function MarkdownEditor({
     [value],
   );
 
+  const insertAtCursor = useCallback(
+    (text: string) => {
+      const el = textareaRef.current;
+      const pos = el ? el.selectionStart : value.length;
+      const newValue = value.slice(0, pos) + text + value.slice(pos);
+      setValue(newValue);
+      requestAnimationFrame(() => {
+        el?.focus();
+        el?.setSelectionRange(pos + text.length, pos + text.length);
+      });
+    },
+    [value],
+  );
+
+  const handleImageButtonClick = useCallback(() => {
+    setMediaError(null);
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleImageFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = ""; // allow re-selecting the same file
+      if (!file || !orgId) return;
+      upload(file, (storagePath) => {
+        insertAtCursor(`\n![${file.name}](${storagePath})\n`);
+      });
+    },
+    [orgId, upload, insertAtCursor],
+  );
+
+  const handleInsertVideoLink = useCallback(() => {
+    setMediaError(null);
+    const url = window.prompt(
+      "Paste a video link (YouTube, Vimeo, or a direct .mp4/.webm link):",
+    );
+    if (!url) return;
+    if (!getVideoEmbed(url)) {
+      setMediaError(
+        "That doesn't look like a supported video link. Try a YouTube, Vimeo, or direct video file URL.",
+      );
+      return;
+    }
+    insertAtCursor(`\n[Video](${url})\n`);
+  }, [insertAtCursor]);
+
   const toggleHeading = useCallback(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -116,8 +178,14 @@ export function MarkdownEditor({
       },
       null,
       { icon: Heading3, label: "Heading", action: toggleHeading },
+      null,
+      {
+        icon: Video,
+        label: "Insert video link",
+        action: handleInsertVideoLink,
+      },
     ],
-    [wrapSelection, prefixLines, toggleHeading],
+    [wrapSelection, prefixLines, toggleHeading, handleInsertVideoLink],
   );
 
   return (
@@ -168,9 +236,41 @@ export function MarkdownEditor({
                 </button>
               ),
             )}
+            {orgId && (
+              <>
+                <div className="w-px h-3.5 bg-border mx-1" />
+                <button
+                  type="button"
+                  title="Insert image"
+                  onClick={handleImageButtonClick}
+                  disabled={isUploadingImage}
+                  className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                >
+                  {isUploadingImage ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <ImagePlus className="h-3.5 w-3.5" />
+                  )}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleImageFileChange}
+                />
+              </>
+            )}
           </div>
         )}
       </div>
+
+      {/* ── Media error/status banner ────────────────────────────────── */}
+      {tab === "write" && (mediaError || uploadError) && (
+        <p className="px-3 pt-1.5 text-xs text-destructive">
+          {mediaError ?? uploadError}
+        </p>
+      )}
 
       {/* ── Write pane ────────────────────────────────────────────────── */}
       {tab === "write" && (
@@ -217,6 +317,16 @@ export function MarkdownEditor({
                   <h3 className="font-semibold mt-3 mb-1 first:mt-0">
                     {children}
                   </h3>
+                ),
+                img: ({ src, alt }) => (
+                  <MarkdownImage
+                    src={typeof src === "string" ? src : undefined}
+                    alt={alt}
+                    orgId={orgId}
+                  />
+                ),
+                a: ({ href, children }) => (
+                  <MarkdownLink href={href}>{children}</MarkdownLink>
                 ),
               }}
             >

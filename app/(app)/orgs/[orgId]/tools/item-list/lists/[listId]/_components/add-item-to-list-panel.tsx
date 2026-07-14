@@ -56,7 +56,6 @@ export function AddItemToListPanel({
   onPositionChange,
   onItemPicked,
 }: AddItemToListPanelProps) {
-  const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<PickableItem | null>(null);
   const [isPending, startTransition] = useTransition();
   const [mode, setMode] = usePersistedState<"grid" | "manual">(
@@ -71,33 +70,35 @@ export function AddItemToListPanel({
   const [col, setCol] = useState(String(defaultCol));
   const [row, setRow] = useState(String(defaultRow));
 
-  const loadItems = useCallback(async (query: string, page: number, signal: AbortSignal) => {
-    const params = new URLSearchParams({
-      page: String(page),
-      limit: "24",
-      search: query,
-    });
-    const response = await fetch(`/api/orgs/${orgId}/tools/item-list?${params.toString()}`, {
-      signal,
-    });
-    if (!response.ok) throw new Error("Failed to load items.");
+  const loadItems = useCallback(
+    async (search: string, page: number, signal: AbortSignal) => {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: "24",
+        search,
+      });
 
-    const data = (await response.json()) as {
-      items: Array<{ id: string; name: string; unit: string; imgUrl: string | null; imageSignedUrl: string | null }>;
-      hasMore?: boolean;
-      totalPages: number;
-      page: number;
-    };
+      const response = await fetch(`/api/orgs/${orgId}/tools/item-list?${params.toString()}`, {
+        signal,
+      });
+      if (!response.ok) throw new Error("Failed to load items.");
 
-    return {
-      items: data.items.map((item) => ({
-        id: item.id,
-        name: item.name,
-        description: item.unit,
-      })) satisfies ComboboxItem[],
-      hasMore: data.page < data.totalPages,
-    };
-  }, [orgId]);
+      const data = (await response.json()) as {
+        items: Array<{ id: string; name: string; unit: string }>;
+        totalPages: number;
+      };
+
+      return {
+        items: data.items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          description: item.unit,
+        })) satisfies ComboboxItem[],
+        hasMore: page < data.totalPages,
+      };
+    },
+    [orgId],
+  );
 
   // ── Manual position derived value ────────────────────────────────────────────
   const parsedPage = parseInt(page);

@@ -253,7 +253,7 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
               <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
                 Description
               </h2>
-              <TaskDescription description={task.description} />
+              <TaskDescription description={task.description} orgId={orgId} />
             </div>
           )}
 

@@ -44,12 +44,7 @@ export function CreateListPanel({ orgId, onCreated, onClose }: CreateListPanelPr
     e.preventDefault();
     startTransition(async () => {
       // New sets always default to Grid display.
-      const result = await createToolItemListAction(
-        orgId,
-        name,
-        gridCols,
-        gridRows,
-      );
+      const result = await createToolItemListAction(orgId, name, gridCols, gridRows);
       if (!result.ok) {
         toast.error("error" in result ? result.error : "Failed to create set.");
         return;
