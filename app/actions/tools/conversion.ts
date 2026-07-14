@@ -360,3 +360,104 @@ export async function deleteTemplateEntryAction(orgId: string, templateId: strin
 	}
 }
 
+export async function removeTemplateEntryAction(orgId: string, templateId: string, itemId: string) {
+	return deleteTemplateEntryAction(orgId, templateId, itemId);
+}
+
+export async function getListPreviewAction(orgId: string, listId: string) {
+	const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+	if (!auth.ok) return { ok: false as const };
+
+	try {
+		const entries = await prisma.toolItemListEntry.findMany({
+			where: { listId, list: { orgId } },
+			select: {
+				itemId: true,
+				amount: true,
+				item: { select: { id: true, name: true, unit: true } },
+			},
+		});
+
+		const sumByItem = new Map<string, { name: string; unit: string; quantity: number }>();
+		for (const entry of entries) {
+			const existing = sumByItem.get(entry.itemId);
+			if (existing) existing.quantity += entry.amount;
+			else {
+				sumByItem.set(entry.itemId, {
+					name: entry.item.name,
+					unit: entry.item.unit,
+					quantity: entry.amount,
+				});
+			}
+		}
+
+		const items = Array.from(sumByItem.entries()).map(([id, value]) => ({ id, ...value }));
+		return { ok: true as const, items };
+	} catch (err: unknown) {
+		const mappedError = mapPrismaError(err, { P2025: "List not found." });
+		return { ok: false as const, error: mappedError ?? "Failed to load list preview." };
+	}
+}
+
+export async function applyListToTemplateAction(
+	orgId: string,
+	setId: string,
+	templateId: string,
+	listId: string,
+	mode: "replace" | "add",
+) {
+	const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+	if (!auth.ok) return { ok: false as const };
+
+	try {
+		const template = await prisma.conversionTemplate.findFirst({
+			where: { id: templateId, set: { orgId, id: setId } },
+			select: { id: true },
+		});
+		if (!template) return { ok: false as const, error: "Template not found." };
+
+		const listEntries = await prisma.toolItemListEntry.findMany({
+			where: { listId, list: { orgId } },
+			select: { itemId: true, amount: true },
+		});
+		if (listEntries.length === 0) return { ok: false as const, error: "List has no items." };
+
+		const sumByItem = new Map<string, number>();
+		for (const entry of listEntries) {
+			sumByItem.set(entry.itemId, (sumByItem.get(entry.itemId) ?? 0) + entry.amount);
+		}
+
+		await prisma.$transaction(async (tx) => {
+			if (mode === "replace") {
+				await tx.conversionTemplateEntry.deleteMany({
+					where: { templateId, pinnedOutput: 1 },
+				});
+				await tx.conversionTemplateEntry.updateMany({
+					where: { templateId, pinnedOutput: 3 },
+					data: { pinnedOutput: 2, quantity: null },
+				});
+				for (const [itemId, quantity] of sumByItem) {
+					await tx.conversionTemplateEntry.upsert({
+						where: { templateId_itemId: { templateId, itemId } },
+						create: { templateId, itemId, quantity, pinnedOutput: 1 },
+						update: { quantity, pinnedOutput: 1 },
+					});
+				}
+			} else {
+				for (const [itemId, quantity] of sumByItem) {
+					await tx.conversionTemplateEntry.upsert({
+						where: { templateId_itemId: { templateId, itemId } },
+						create: { templateId, itemId, quantity, pinnedOutput: 1 },
+						update: { quantity, pinnedOutput: 1 },
+					});
+				}
+			}
+		});
+
+		return { ok: true as const };
+	} catch (err: unknown) {
+		const mappedError = mapPrismaError(err, { P2025: "Template not found." });
+		return { ok: false as const, error: mappedError ?? "Failed to apply list." };
+	}
+}
+
