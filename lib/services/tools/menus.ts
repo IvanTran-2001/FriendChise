@@ -408,6 +408,8 @@ export async function getMenuItemsPage(
           { title: { contains: search, mode: "insensitive" as const } },
           { description: { contains: search, mode: "insensitive" as const } },
           { notes: { contains: search, mode: "insensitive" as const } },
+          { toolItem: { name: { contains: search, mode: "insensitive" as const } } },
+          { toolItem: { unit: { contains: search, mode: "insensitive" as const } } },
         ],
       }
     : { menuId };

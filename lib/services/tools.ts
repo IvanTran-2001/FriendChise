@@ -312,6 +312,17 @@ export async function updateToolItemGridConfig(
   gridCols: number,
   gridRows: number,
 ) {
+  if (
+    !Number.isInteger(gridCols) ||
+    gridCols < 1 ||
+    gridCols > 12 ||
+    !Number.isInteger(gridRows) ||
+    gridRows < 1 ||
+    gridRows > 20
+  ) {
+    throw new Error("Invalid grid dimensions.");
+  }
+
   const list = await prisma.toolItemList.findFirst({
     where: { id: listId, orgId },
     select: { id: true },
@@ -359,18 +370,18 @@ export async function updateToolItemListEntryAmount(
 /** Toggles the checked state of a list entry (existence = checked). Returns new state. */
 export async function toggleChecklistEntry(
   orgId: string,
+  listId: string,
   listEntryId: string,
 ): Promise<{ checked: boolean }> {
+  const entry = await prisma.toolItemListEntry.findFirst({
+    where: { id: listEntryId, listId, list: { orgId } },
+    select: { id: true },
+  });
+  if (!entry) throw new Error("Entry not found or access denied");
+
   const existing = await prisma.toolItemChecklistEntry.findUnique({
     where: { listEntryId },
   });
-  if (!existing) {
-    const entry = await prisma.toolItemListEntry.findFirst({
-      where: { id: listEntryId, list: { orgId } },
-      select: { id: true },
-    });
-    if (!entry) throw new Error("Entry not found or access denied");
-  }
   if (existing) {
     await prisma.toolItemChecklistEntry.delete({ where: { listEntryId } });
     return { checked: false };

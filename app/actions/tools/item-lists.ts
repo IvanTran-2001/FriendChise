@@ -119,7 +119,7 @@ export async function toggleChecklistEntryAction(
   if (!auth.ok) return { ok: false as const };
 
   try {
-    const result = await toggleChecklistEntry(orgId, listEntryId);
+    const result = await toggleChecklistEntry(orgId, listId, listEntryId);
     revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);
     return { ok: true as const, checked: result.checked };
   } catch {
@@ -210,6 +210,17 @@ export async function updateToolItemGridConfigAction(
 ) {
   const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!auth.ok) return { ok: false as const };
+
+  if (
+    !Number.isInteger(gridCols) ||
+    gridCols < 1 ||
+    gridCols > 12 ||
+    !Number.isInteger(gridRows) ||
+    gridRows < 1 ||
+    gridRows > 20
+  ) {
+    return { ok: false as const, error: "Invalid grid dimensions." };
+  }
 
   try {
     await updateToolItemGridConfig(orgId, listId, gridCols, gridRows);
