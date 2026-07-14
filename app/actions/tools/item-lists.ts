@@ -46,10 +46,10 @@ export async function createToolItemListAction(
   const trimmed = name.trim();
   if (!trimmed) return { ok: false as const, error: "Name is required." };
 
-  const normalizedGridCols =
-    Number.isInteger(gridCols) && gridCols >= 1 && gridCols <= 12 ? gridCols : 4;
-  const normalizedGridRows =
-    Number.isInteger(gridRows) && gridRows >= 1 && gridRows <= 20 ? gridRows : 4;
+  const cols = gridCols ?? 4;
+  const rows = gridRows ?? 4;
+  const normalizedGridCols = Number.isInteger(cols) && cols >= 1 && cols <= 12 ? cols : 4;
+  const normalizedGridRows = Number.isInteger(rows) && rows >= 1 && rows <= 20 ? rows : 4;
 
   try {
     const list = await createToolItemList(orgId, trimmed, normalizedGridCols, normalizedGridRows);
