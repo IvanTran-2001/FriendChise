@@ -154,7 +154,7 @@ export function AddTaskPanel({
   // ── Schedule form ────────────────────────────────────────────────────────
   if (mode === "schedule" && selectedTask) {
     return (
-      <div className="flex flex-col gap-4 p-4">
+      <div className="flex flex-col gap-4 p-4" data-tour-target="add-task-panel">
         <button
           onClick={handleBack}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors -mx-1 px-1 py-0.5 rounded w-fit"
@@ -228,20 +228,22 @@ export function AddTaskPanel({
 
   // ── Task list ────────────────────────────────────────────────────────────
   return (
-    <TaskPanel
-      tasks={[]}
-      loadTasks={loadTasks}
-      onDragStart={(taskId, e) => {
-        const h = getDragHandlers();
-        h.setIsDragging?.(true);
-        e.dataTransfer.setData("timetable/taskId", taskId);
-        e.dataTransfer.effectAllowed = "copy";
-      }}
-      onDragEnd={() => {
-        const h = getDragHandlers();
-        h.setIsDragging?.(false);
-      }}
-      onTaskClick={handleTaskClick}
-    />
+    <div data-tour-target="add-task-panel">
+      <TaskPanel
+        tasks={[]}
+        loadTasks={loadTasks}
+        onDragStart={(taskId, e) => {
+          const h = getDragHandlers();
+          h.setIsDragging?.(true);
+          e.dataTransfer.setData("timetable/taskId", taskId);
+          e.dataTransfer.effectAllowed = "copy";
+        }}
+        onDragEnd={() => {
+          const h = getDragHandlers();
+          h.setIsDragging?.(false);
+        }}
+        onTaskClick={handleTaskClick}
+      />
+    </div>
   );
 }

@@ -246,6 +246,8 @@ export function CalendarView({
   onOpenTaskPanel,
   isDraggingExternal,
 }: CalendarViewProps) {
+  const dropCompletedEventName = "friendchise:timetable-placement-completed";
+
   function effStatus(inst: ClientTimetableInstance) {
     return inst.status === "TODO" && inst.date < todayStr
       ? "SKIPPED"
@@ -598,6 +600,13 @@ export function CalendarView({
         });
         if (!result.ok) { toast.error(result.error ?? "Something went wrong"); return; }
       }
+      window.dispatchEvent(new CustomEvent(dropCompletedEventName, {
+        detail: {
+          kind: data.type,
+          column: col,
+          timeMin,
+        },
+      }));
       router.refresh();
     });
   }
@@ -632,6 +641,14 @@ export function CalendarView({
         return;
       }
       onSelectedTaskIdChange?.(null);
+      window.dispatchEvent(new CustomEvent(dropCompletedEventName, {
+        detail: {
+          kind: "tap",
+          column: col,
+          timeMin,
+          taskId,
+        },
+      }));
       router.refresh();
     });
   }

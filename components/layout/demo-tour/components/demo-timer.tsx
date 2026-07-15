@@ -15,9 +15,14 @@ function formatRemaining(ms: number): string {
   return `${seconds}s`;
 }
 
-export function DemoTimer({ expiresAt }: { expiresAt: string }) {
+export function DemoTimer({
+  expiresAt,
+}: {
+  expiresAt: string;
+}) {
   const expiry = new Date(expiresAt).getTime();
   const [remaining, setRemaining] = useState(() => expiry - Date.now());
+
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -33,7 +38,7 @@ export function DemoTimer({ expiresAt }: { expiresAt: string }) {
   }, [expiry]);
 
   return (
-    <span className="tabular-nums">
+    <span className="tabular-nums" suppressHydrationWarning>
       {formatRemaining(remaining)}
     </span>
   );

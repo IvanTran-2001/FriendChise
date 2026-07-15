@@ -56,6 +56,7 @@ export function MobileSidebarTrigger() {
   return (
     <button
       onClick={() => setOpen(!open)}
+      data-tour-target="sidebar-toggle"
       aria-label={open ? "Close menu" : "Open menu"}
       aria-expanded={open}
       className="md:hidden flex items-center justify-center h-9 w-9 rounded-full border border-border/70 bg-background/85 text-foreground/70 shadow-sm transition-colors duration-150 hover:border-border hover:bg-muted/60 hover:text-foreground"
@@ -72,6 +73,7 @@ type NavItem = {
   url: string;
   icon: React.ComponentType<{ className?: string }>;
   disabled?: boolean;
+  tourTarget?: string;
 };
 
 function getOrgItems(orgId: string): NavItem[] {
@@ -82,6 +84,7 @@ function getOrgItems(orgId: string): NavItem[] {
       title: "Sched",
       url: `/orgs/${orgId}/timetable`,
       icon: Calendar,
+      tourTarget: "sidebar-timetable",
     },
     { title: "Tasks", url: `/orgs/${orgId}/tasks`, icon: ListTodo },
     { title: "Tools", url: `/orgs/${orgId}/tools`, icon: Wrench },
@@ -337,6 +340,7 @@ export function AppSidebar() {
                   title="Org"
                   url="/orgs/new"
                   icon={Building2}
+                  tourTarget="sidebar-org"
                   isActive={isActiveItem("/orgs")}
                 />
 
@@ -389,8 +393,9 @@ export function AppSidebar() {
   return (
     <>
       {/* ── Desktop: fixed width, compact when a page sidebar is present ── */}
-      <div className={cn("hidden md:block relative shrink-0 w-12")}>
+      <div className={cn("hidden md:block relative shrink-0 w-12") }>
         <div
+          data-tour-target="app-sidebar"
           className={cn(
             "absolute inset-y-0 left-0 z-30 flex flex-col bg-sidebar border-r border-sidebar-border overflow-hidden w-12",
           )}

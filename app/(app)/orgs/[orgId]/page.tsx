@@ -242,7 +242,10 @@ const Page = async ({ params }: { params: Promise<{ orgId: string }> }) => {
                   </span>
                 )}
               </div>
-              <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:mt-3 sm:text-4xl">
+              <h1
+                className="mt-2 text-2xl font-semibold tracking-tight sm:mt-3 sm:text-4xl"
+                data-org-name={org.name}
+              >
                 {org.name}
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:mt-3 sm:text-base">

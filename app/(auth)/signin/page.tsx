@@ -277,7 +277,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
                               if (!session) return;
                               await signIn("demo", {
                                 userId: session.userId,
-                                redirectTo: `/orgs/${session.orgId}`,
+                                redirectTo: "/",
                               });
                             }}
                           >
@@ -438,7 +438,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
                                 if (!session) return;
                                 await signIn("demo", {
                                   userId: session.userId,
-                                  redirectTo: `/orgs/${session.orgId}`,
+                                  redirectTo: "/",
                                 });
                               }}
                             >

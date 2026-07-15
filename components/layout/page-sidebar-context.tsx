@@ -115,13 +115,14 @@ export function PageSidebarSlot() {
             onClick={() => setCollapsed(false)}
             className="absolute top-0 left-0 z-10 flex items-center justify-center w-12 h-12 rounded-none bg-sidebar border-r border-b border-border text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60 transition-colors cursor-pointer"
             aria-label="Expand sidebar"
+            data-tour-target="page-sidebar-expand"
           >
             <PanelLeftOpen className="h-5 w-5" />
           </button>
         </div>
       ) : (
         /* Expanded: in-flow panel, header row holds the collapse button */
-        <div className="hidden md:flex flex-col w-75 shrink-0 border-r border-border bg-sidebar overflow-hidden">
+        <div className="hidden md:flex flex-col w-75 shrink-0 border-r border-border bg-sidebar overflow-hidden" data-tour-target="timetable-page-sidebar">
           {/* Sticky header */}
           <div className="h-12 flex items-center shrink-0 border-b border-border">
             {titleEl}
@@ -129,6 +130,7 @@ export function PageSidebarSlot() {
               onClick={() => setCollapsed(true)}
               className="w-12 h-12 shrink-0 flex items-center justify-center rounded-none border-l border-border text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60 transition-colors cursor-pointer"
               aria-label="Collapse sidebar"
+              data-tour-target="page-sidebar-collapse"
             >
               <PanelLeftClose className="h-5 w-5" />
             </button>
@@ -142,7 +144,7 @@ export function PageSidebarSlot() {
 
       {/* Mobile: overlay anchored right of the AppSidebar icon strip */}
       {open && (
-        <div className="md:hidden fixed inset-y-0 left-12 z-50 flex flex-col w-75 bg-sidebar border-r border-border">
+        <div className="md:hidden fixed inset-y-0 left-12 z-50 flex flex-col w-75 bg-sidebar border-r border-border" data-tour-target="timetable-page-sidebar">
           {/* Sticky header */}
           <div className="h-12 flex items-center shrink-0 border-b border-border">
             {titleEl}
@@ -150,6 +152,7 @@ export function PageSidebarSlot() {
               onClick={() => setOpen(false)}
               className="w-12 h-12 shrink-0 flex items-center justify-center rounded-none border-l border-border text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60 transition-colors"
               aria-label="Close"
+              data-tour-target="page-sidebar-collapse"
             >
               <X className="h-4 w-4" />
             </button>

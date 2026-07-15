@@ -67,6 +67,7 @@ export const NavBar = async () => {
     <header
       className="sticky top-0 z-20 border-b border-border/60 bg-card/85 backdrop-blur-xl supports-backdrop-filter:bg-card/70"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      data-tour-target="topbar"
     >
       <div className="flex h-14 w-full items-center justify-between gap-3 px-3 sm:px-4 lg:px-6">
         {/* Left: branded home link + mobile menu trigger + org switcher */}
@@ -96,13 +97,13 @@ export const NavBar = async () => {
             </Link>
           </Button>
           <MobileSidebarTrigger />
-          <div className="min-w-0">
+          <div className="min-w-0" data-tour-target="org-switcher">
             <OrgSwitcher />
           </div>
         </div>
 
         {/* Right: quick actions and user menu */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2" data-tour-target="top-actions">
           {canAccessAdmin && (
             <Button
               variant="outline"

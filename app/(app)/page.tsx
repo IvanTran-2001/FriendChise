@@ -29,6 +29,13 @@ function OrgInitials({ name, color }: { name: string; color: string }) {
   );
 }
 
+function toTourSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 type OrgEntry = {
   id: string;
   name: string;
@@ -41,9 +48,11 @@ type OrgEntry = {
 
 function OrgCard({ org }: { org: OrgEntry }) {
   const color = orgColor(org.name);
+  const tourSlug = toTourSlug(org.name);
   return (
     <Link
       href={`/orgs/${org.id}`}
+      data-tour-target={org.name === "Donut Shop A" ? `org-card-${tourSlug}` : undefined}
       className={cn(
         "group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-all duration-150",
         "hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg",

@@ -225,7 +225,7 @@ export function ApplyTemplateForm({
   }
 
   return (
-    <div className="flex flex-col gap-3 p-4">
+    <div className="flex flex-col gap-3 p-4" data-tour-target="apply-template-panel">
       <div className="flex flex-col gap-3">
         {/* Template select */}
         <div className="flex flex-col gap-1.5">

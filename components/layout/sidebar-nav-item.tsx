@@ -26,6 +26,7 @@ export type SidebarNavItemProps = {
   disabled?: boolean;
   isActive: boolean;
   className?: string;
+  tourTarget?: string;
   /** "app" = fixed w-12 icon wrapper for the collapsible global sidebar.
    *  "page" = standard px-3 gap layout for full-width page sidebars. */
   variant?: "app" | "page";
@@ -101,6 +102,7 @@ export function SidebarNavItem({
   disabled,
   isActive,
   className,
+  tourTarget,
   variant = "page",
   onClick,
 }: SidebarNavItemProps) {
@@ -133,6 +135,7 @@ export function SidebarNavItem({
             className,
             "opacity-40 pointer-events-none text-sidebar-foreground",
           )}
+          data-tour-target={tourTarget}
           role="link"
           aria-disabled="true"
         >
@@ -143,6 +146,7 @@ export function SidebarNavItem({
       <Link
         href={dynamicHref}
         onClick={onClick}
+        data-tour-target={tourTarget}
         className={cn(
           base,
           className,
@@ -185,6 +189,7 @@ export function SidebarNavItem({
           "opacity-40 pointer-events-none text-sidebar-foreground",
           "before:bg-transparent",
         )}
+        data-tour-target={tourTarget}
         role="link"
         aria-disabled="true"
       >
@@ -196,6 +201,7 @@ export function SidebarNavItem({
     <Link
       href={dynamicHref}
       onClick={onClick}
+      data-tour-target={tourTarget}
       className={cn(
         base,
         className,

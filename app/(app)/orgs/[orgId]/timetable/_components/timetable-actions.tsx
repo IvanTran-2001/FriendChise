@@ -66,6 +66,7 @@ export function TimetableActions({
         size="sm"
         onClick={openApplyTemplate}
         className="w-full justify-start gap-2"
+        data-tour-target="timetable-apply-template"
       >
         <CalendarCheck className="h-4 w-4 shrink-0" />
         Apply Template
@@ -74,6 +75,7 @@ export function TimetableActions({
         variant={activeTitle === "Add Task" ? "default" : "outline"}
         size="sm"
         className="w-full justify-start gap-2"
+        data-tour-target="timetable-add-task"
         disabled={!tasks?.length}
         onClick={() => {
           if (!tasks?.length) return;

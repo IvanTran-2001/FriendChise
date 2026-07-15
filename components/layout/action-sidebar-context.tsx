@@ -164,6 +164,7 @@ export function ActionSidebarSlot() {
               onClick={close}
               className="w-10 h-10 shrink-0 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60 transition-colors cursor-pointer"
               aria-label="Close panel"
+              data-tour-target="action-sidebar-close"
             >
               <X className="h-5 w-5" />
             </button>
@@ -205,6 +206,7 @@ export function ActionSidebarSlot() {
           onClick={close}
           className="w-12 h-12 shrink-0 rounded-none border-l border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60 transition-colors cursor-pointer"
           aria-label="Close panel"
+          data-tour-target="action-sidebar-close"
         >
           <X className="h-5 w-5" />
         </button>

@@ -34,7 +34,7 @@ export function TimetableSidebarShell() {
   const subContent = usePageSidebarSubContent();
 
   return (
-    <aside className="flex flex-col flex-1 overflow-y-auto">
+    <aside className="flex flex-col flex-1 overflow-y-auto" data-tour-target="timetable-page-sidebar">
       {/* Nav tabs */}
       <nav className="shrink-0 border-b border-border">
         {tabs.map(({ label, icon: Icon, href, exact }) => {

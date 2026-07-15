@@ -54,6 +54,13 @@ function OrgBadge({ org }: { org: Org }) {
   );
 }
 
+function toTourSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 const RECENT_ORG_KEY = "recentOrgId";
 
 // Save the selected org id to localStorage so it appears at the top next time.
@@ -91,6 +98,10 @@ export function OrgSwitcher() {
   const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const requestSeqRef = useRef(0);
+
+  const notifyDemoTourTargetChange = useCallback(() => {
+    window.dispatchEvent(new Event("friendchise:demo-tour-targets-changed"));
+  }, []);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -240,6 +251,10 @@ export function OrgSwitcher() {
   const currentOrg = activeOrg ?? loadedOrgs.find((org) => org.id === activeOrgId) ?? null;
   const listOrgs = filteredOrgs.filter((org) => org.id !== currentOrg?.id);
 
+  useEffect(() => {
+    notifyDemoTourTargetChange();
+  }, [currentOrg?.id, notifyDemoTourTargetChange, open]);
+
   return (
     <DropdownMenu
       open={open}
@@ -252,6 +267,7 @@ export function OrgSwitcher() {
         <Button
           variant="outline"
           size="sm"
+          data-tour-target="org-selector"
           className="group h-8.5 w-44 rounded-full border-border/70 bg-background/85 pl-1 pr-2 text-left shadow-sm transition-colors duration-150 hover:border-border hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2"
           disabled={isPending}
         >
@@ -317,6 +333,11 @@ export function OrgSwitcher() {
                   </div>
                   <DropdownMenuItem
                     key={currentOrg.id}
+                    data-tour-target={
+                      open && currentOrg.name === "Donut Shop A"
+                        ? `org-selector-item-${toTourSlug(currentOrg.name)}`
+                        : undefined
+                    }
                     onSelect={() => {
                       setOpen(false);
                     }}
@@ -344,9 +365,14 @@ export function OrgSwitcher() {
               ) : (
                 listOrgs.map((org) => {
                   const isActive = org.id === activeOrgId;
+                  const isDonutShopA = org.name === "Donut Shop A";
+                  const tourSlug = toTourSlug(org.name);
                   return (
                     <DropdownMenuItem
                       key={org.id}
+                      data-tour-target={
+                        open && isDonutShopA ? `org-selector-item-${tourSlug}` : undefined
+                      }
                       onSelect={() => {
                         setRecentOrgId(org.id);
                         saveRecentOrg(org.id);
