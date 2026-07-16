@@ -84,9 +84,12 @@ const DEMO_TOUR_ROUTE_ENTRIES: DemoTourRouteEntry[] = routeModules.keys().map((k
 });
 
 // Fast exact-match lookup for static paths like `/` or `/orgs/new`.
-const DEMO_TOUR_EXACT_PATH_CONFIGS = new Map(
-  DEMO_TOUR_ROUTE_ENTRIES.filter((entry) => entry.exactPath !== null).map((entry) => [entry.exactPath, entry.config] as const),
-);
+const DEMO_TOUR_EXACT_PATH_CONFIGS = new Map<string, DemoTourConfig | null>();
+for (const entry of DEMO_TOUR_ROUTE_ENTRIES) {
+  if (entry.exactPath !== null) {
+    DEMO_TOUR_EXACT_PATH_CONFIGS.set(entry.exactPath, entry.config);
+  }
+}
 
 // Resolve the demo-tour config for the current pathname.
 //

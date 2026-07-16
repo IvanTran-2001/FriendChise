@@ -1,5 +1,5 @@
 /**
- * Org-level demo tour config.
+ * Timetable-level demo tour config.
  */
 import type { DemoTourConfig } from "@/components/layout/demo-tour/types";
 
@@ -39,7 +39,8 @@ export const demoTourConfig: DemoTourConfig = {
       forwardAction: null,
       advanceWhenTargetVisible: null,
       retreatWhenTargetNotVisible: "timetable-page-sidebar",
-    },    {
+    },
+    {
       title: "Open Add Task",
       description:
         "Open Add Task in the sidebar.",

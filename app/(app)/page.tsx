@@ -52,7 +52,7 @@ function OrgCard({ org }: { org: OrgEntry }) {
   return (
     <Link
       href={`/orgs/${org.id}`}
-      data-tour-target={org.name === "Donut Shop A" ? `org-card-${tourSlug}` : undefined}
+      data-tour-target={`org-card-${tourSlug}`}
       className={cn(
         "group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-all duration-150",
         "hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg",
