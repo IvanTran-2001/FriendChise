@@ -6,6 +6,7 @@ on:
 
 permissions:
   issues: write
+  pull-requests: write
 
 jobs:
   welcome:
@@ -16,29 +17,33 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const issueNumber = context.payload.pull_request.number;
-            const marker = '<!-- friendchise-pr-welcome -->';
-            const message = `${marker}\nThanks for opening this pull request and for contributing to FriendChise. Please note that reviews can take up to 3 days, and we really appreciate your patience while we look it over.`;
+            try {
+              const issueNumber = context.payload.pull_request.number;
+              const marker = '<!-- friendchise-pr-welcome -->';
+              const message = `${marker}\nThanks for opening this pull request and for contributing to FriendChise. Please note that reviews can take up to 3 days, and we really appreciate your patience while we look it over.`;
 
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber,
-              per_page: 100,
-            });
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                per_page: 100,
+              });
 
-            const alreadyPosted = comments.some((comment) =>
-              comment.body?.includes(marker),
-            );
+              const alreadyPosted = comments.some((comment) =>
+                comment.body?.includes(marker),
+              );
 
-            if (alreadyPosted) {
-              core.info(`Welcome comment already exists on PR #${issueNumber}.`);
-              return;
+              if (alreadyPosted) {
+                core.info(`Welcome comment already exists on PR #${issueNumber}.`);
+                return;
+              }
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: message,
+              });
+            } catch (error) {
+              core.warning(`Skipping PR welcome comment: ${error.message}`);
             }
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber,
-              body: message,
-            });
