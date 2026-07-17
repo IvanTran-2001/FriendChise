@@ -20,6 +20,11 @@ const MINIMIZED_STORAGE_KEY = `${STORAGE_KEY_PREFIX}-minimized`;
 
 type DemoTargetSpec = string | string[];
 
+type DemoTourAdvanceEventDetail = {
+  kind?: string;
+  source?: string;
+};
+
 const TARGET_ATTRIBUTE_NAMES = ["data-tour-target", "data-demo-tour-target"] as const;
 
 function findScrollableAncestor(element: HTMLElement): HTMLElement | null {
@@ -485,7 +490,15 @@ function DemoTourContent({
     const eventName = step.advanceWhenEvent;
     const eventKey = `${stepIndex}:${eventName}`;
 
-    const handleEvent = () => {
+    const handleEvent = (event: Event) => {
+      const detail = (event as CustomEvent<DemoTourAdvanceEventDetail>).detail;
+      const isCreationEvent =
+        detail?.kind === "task" ||
+        detail?.source === "panel" ||
+        detail?.source === "tap" ||
+        detail?.source === "direct-create";
+
+      if (!isCreationEvent) return;
       if (eventAdvanceTriggeredRef.current === eventKey) return;
       eventAdvanceTriggeredRef.current = eventKey;
       goNext();
