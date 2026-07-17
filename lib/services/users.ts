@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { convertMembershipToBot } from "@/lib/services/bots";
 
 /**

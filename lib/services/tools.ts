@@ -11,7 +11,7 @@
  *   ConversionSet  ──< ConversionTemplate ──< ConversionTemplateEntry
  *   ToolItem (org-scoped, shared across all sets)
  */
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 
 // ─── ConversionSet ────────────────────────────────────────────────────────────
 

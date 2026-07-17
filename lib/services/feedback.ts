@@ -6,7 +6,7 @@
  */
 
 import { FeedbackType } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 
 export type FeedbackFilter = "all" | "unreviewed";
 

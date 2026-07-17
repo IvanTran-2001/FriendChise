@@ -1,5 +1,5 @@
-import { log } from "@/lib/observability";
-import { prisma } from "@/lib/prisma";
+import { log } from "@/lib/platform/observability";
+import { prisma } from "@/lib/platform/prisma";
 import { Prisma } from "@prisma/client";
 import type { ServiceResult } from "./types";
 

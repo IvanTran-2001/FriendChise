@@ -6,7 +6,7 @@
  * actions, API routes) are responsible for permission gating before calling
  * these functions.
  */
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 
 /**
  * Conversion service layer.

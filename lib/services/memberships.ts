@@ -1,10 +1,10 @@
-import { log } from "@/lib/observability";
-import { prisma } from "@/lib/prisma";
+import { log } from "@/lib/platform/observability";
+import { prisma } from "@/lib/platform/prisma";
 import { Prisma, InviteType } from "@prisma/client";
 import { recordAudit } from "@/lib/services/audit-log";
 import type { CreateMembershipInput } from "@/lib/validators/membership";
 import type { ServiceResult } from "./types";
-import { ROLE_KEYS } from "@/lib/rbac";
+import { ROLE_KEYS } from "@/lib/auth/rbac";
 
 /**
  * Creates a membership linking a user to an org, then assigns the specified

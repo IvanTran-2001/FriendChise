@@ -2,8 +2,8 @@
  * @file templates.ts
  * Service functions for reading and mutating timetable templates and their entries.
  */
-import { log } from "@/lib/observability";
-import { prisma } from "@/lib/prisma";
+import { log } from "@/lib/platform/observability";
+import { prisma } from "@/lib/platform/prisma";
 import { Prisma } from "@prisma/client";
 import { recordAudit } from "@/lib/services/audit-log";
 import { isSameFranchise } from "@/lib/services/franchise-root";
@@ -13,7 +13,7 @@ import {
   addCalendarDays,
   localToUTC,
   utcToLocal,
-} from "@/lib/date-utils";
+} from "@/lib/core/date-utils";
 
 /**
  * Returns all templates for the given org, ordered newest-first.

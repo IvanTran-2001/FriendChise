@@ -2,7 +2,7 @@
  * @file roster.ts
  * Service functions for reading and mutating roster entries and day configs.
  */
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import type { ServiceResult } from "./types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

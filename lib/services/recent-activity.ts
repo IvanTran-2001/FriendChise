@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 
 export const RECENT_ACTIVITY_CATEGORY = {
   TOOLS: "tools",

@@ -1,10 +1,10 @@
 import crypto from "crypto";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import {
   moveStorageFile,
   copyStorageFile,
   deleteStorageFile,
-} from "@/lib/supabase-storage";
+} from "@/lib/platform/supabase-storage";
 
 type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 

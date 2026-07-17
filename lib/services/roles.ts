@@ -5,10 +5,10 @@
  * automatically when an org is created (Owner, Default Member) and cannot be
  * deleted. Custom roles can be created freely and removed here.
  */
-import { log } from "@/lib/observability";
-import { prisma } from "@/lib/prisma";
+import { log } from "@/lib/platform/observability";
+import { prisma } from "@/lib/platform/prisma";
 import { PermissionAction } from "@prisma/client";
-import { ROLE_KEYS } from "@/lib/rbac";
+import { ROLE_KEYS } from "@/lib/auth/rbac";
 import { recordAudit } from "@/lib/services/audit-log";
 import type { RoleFormInput } from "@/lib/validators/role";
 import type { ServiceResult } from "./types";

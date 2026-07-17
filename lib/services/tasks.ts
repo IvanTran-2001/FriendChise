@@ -19,8 +19,8 @@
  * and copied to franchisee orgs on inheritance.
  */
 import { Prisma, TaskScope } from "@prisma/client";
-import { log } from "@/lib/observability";
-import { prisma } from "@/lib/prisma";
+import { log } from "@/lib/platform/observability";
+import { prisma } from "@/lib/platform/prisma";
 import { recordAudit } from "@/lib/services/audit-log";
 import {
   copySectionLayout,

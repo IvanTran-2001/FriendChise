@@ -4,10 +4,10 @@
  * Every function that mutates is wrapped in a Prisma transaction so partial
  * writes are impossible: either everything succeeds or nothing is persisted.
  */
-import { log } from "@/lib/observability";
-import { prisma } from "@/lib/prisma";
+import { log } from "@/lib/platform/observability";
+import { prisma } from "@/lib/platform/prisma";
 import { PermissionAction } from "@prisma/client";
-import { ROLE_KEYS } from "@/lib/rbac";
+import { ROLE_KEYS } from "@/lib/auth/rbac";
 import { recordAudit } from "@/lib/services/audit-log";
 import type {
   CreateOrgInput,
@@ -64,10 +64,15 @@ async function bootstrapRoles(tx: Tx, orgId: string, userId: string) {
     }),
   ]);
 
+  const roleByKey = {
+    [ROLE_KEYS.OWNER]: ownerRole,
+    [ROLE_KEYS.DEFAULT_MEMBER]: memberRole,
+  } as const;
+
   await tx.permission.createMany({
     data: [
-      ...ownerPermissions.map((action) => ({ roleId: ownerRole.id, action })),
-      ...memberPermissions.map((action) => ({ roleId: memberRole.id, action })),
+      ...ownerPermissions.map((action) => ({ roleId: roleByKey[ROLE_KEYS.OWNER].id, action })),
+      ...memberPermissions.map((action) => ({ roleId: roleByKey[ROLE_KEYS.DEFAULT_MEMBER].id, action })),
     ],
     skipDuplicates: true,
   });
