@@ -20,7 +20,7 @@ export function DevUserPicker({
   callbackUrl: string;
   users: DevUser[];
 }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [query, setQuery] = useState("");
   const [pending, startTransition] = useTransition();
   const [signingIn, setSigningIn] = useState<string | null>(null);
@@ -51,7 +51,7 @@ export function DevUserPicker({
         onClick={() => setIsCollapsed(false)}
         aria-label="Expand dev sign in"
         title="Expand dev sign in"
-        className="fixed left-4 top-4 z-50 inline-flex items-center gap-2 rounded-full border border-yellow-500/40 bg-yellow-500/15 px-3 py-2 text-xs font-semibold text-yellow-700 shadow-lg shadow-amber-500/10 backdrop-blur-sm transition-all duration-200 hover:scale-105 hover:bg-yellow-500/20 focus:outline-none focus:ring-2 focus:ring-yellow-500/40 dark:text-yellow-300"
+        className="fixed bottom-4 left-4 z-50 inline-flex items-center gap-2 rounded-full border border-yellow-500/40 bg-yellow-500/15 px-3 py-2 text-xs font-semibold text-yellow-700 shadow-lg shadow-amber-500/10 backdrop-blur-sm transition-all duration-200 hover:scale-105 hover:bg-yellow-500/20 focus:outline-none focus:ring-2 focus:ring-yellow-500/40 dark:text-yellow-300"
       >
         <Users className="h-4 w-4" />
         <span>Dev sign in</span>
@@ -63,7 +63,7 @@ export function DevUserPicker({
   }
 
   return (
-    <div className="fixed left-4 top-4 z-50 w-88 max-w-[calc(100vw-2rem)] rounded-2xl border border-dashed border-yellow-500/50 bg-yellow-500/8 p-4 shadow-xl backdrop-blur-sm">
+    <div className="fixed bottom-4 left-4 z-50 w-88 max-w-[calc(100vw-2rem)] rounded-2xl border border-dashed border-yellow-500/50 bg-yellow-500/8 p-4 shadow-xl backdrop-blur-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-yellow-600 dark:text-yellow-400">
