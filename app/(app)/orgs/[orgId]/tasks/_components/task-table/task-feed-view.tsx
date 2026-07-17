@@ -12,6 +12,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Task } from "./task-types";
 import { formatDuration, ownershipBadge, stripMd } from "./task-format-utils";
+import { TaskDescriptionMarkdown } from "../task-description-markdown";
 
 interface TaskFeedViewProps {
   orgId: string;
@@ -165,9 +166,12 @@ function TaskFeedCard({
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                 Description
               </p>
-              <div className="max-h-28 overflow-y-auto pr-1 text-sm leading-relaxed text-foreground/90 sm:max-h-32">
-                <p>{stripMd(task.description)}</p>
-              </div>
+              <TaskDescriptionMarkdown
+                description={task.description}
+                orgId={orgId}
+                interactiveLinks={false}
+                className="max-h-28 overflow-y-auto pr-1 text-sm leading-relaxed text-foreground/90 sm:max-h-32"
+              />
             </div>
           )}
         </div>
