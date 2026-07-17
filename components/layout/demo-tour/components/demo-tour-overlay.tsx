@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { useEffect, useState } from "react";
 
 export type DemoTourHighlightRect = {
@@ -74,7 +74,7 @@ export function DemoTourOverlay({ maskId, targetRects }: DemoTourOverlayProps) {
             ))}
           </mask>
         </defs>
-        <rect x="0" y="0" width="100%" height="100%" fill="rgba(15, 23, 42, 0.48)" mask={`url(#${maskId})`} />
+        <rect x="0" y="0" width="100%" height="100%" fill="rgba(15, 23, 42, 0.28)" mask={`url(#${maskId})`} />
       </svg>
 
       {/* Bright outline boxes. These are the actual visible highlight frames. */}

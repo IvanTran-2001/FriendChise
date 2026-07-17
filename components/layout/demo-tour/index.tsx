@@ -4,10 +4,11 @@
  */
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useMobileSidebar } from "@/components/layout/sidebar";
+import { usePersistedState } from "@/hooks/use-persisted-state";
+import { useMobileSidebar } from "@/components/layout/sidebar/sidebar";
 import { getDemoTourConfig, STORAGE_KEY_PREFIX } from "./config";
 import type { DemoTourConfig, DemoTourStepAction } from "./types";
 import { DemoTourLaunchers } from "./components/demo-tour-launchers";
@@ -21,10 +22,58 @@ type DemoTargetSpec = string | string[];
 
 const TARGET_ATTRIBUTE_NAMES = ["data-tour-target", "data-demo-tour-target"] as const;
 
+function findScrollableAncestor(element: HTMLElement): HTMLElement | null {
+  let node: HTMLElement | null = element.parentElement;
+
+  while (node) {
+    const style = window.getComputedStyle(node);
+    const canScrollY = style.overflowY === "auto" || style.overflowY === "scroll";
+    if (canScrollY && node.scrollHeight > node.clientHeight + 1) {
+      return node;
+    }
+    node = node.parentElement;
+  }
+
+  return null;
+}
+
+function scrollTargetIntoView(targetSpec: DemoTargetSpec | undefined) {
+  const targetName = resolveTargetNames(targetSpec)[0];
+  if (!targetName) return false;
+
+  const element = queryTargetElement(targetName);
+  if (!element) return false;
+
+  // Only scroll within a genuinely scrollable ancestor. Falling back to
+  // document.scrollingElement/documentElement scrolls the whole page (hiding
+  // the sticky header/sidebar) when the target lives outside <main>, e.g.
+  // inside the page-sidebar panel, which has its own internal scroll region.
+  const scrollContainer = findScrollableAncestor(element);
+  if (!scrollContainer || scrollContainer === element) return false;
+
+  const elementRect = element.getBoundingClientRect();
+  const containerRect = scrollContainer.getBoundingClientRect();
+  const nextTop =
+    scrollContainer.scrollTop +
+    (elementRect.top - containerRect.top) -
+    16;
+
+  scrollContainer.scrollTo({
+    top: Math.max(0, nextTop),
+    behavior: "auto",
+  });
+  return true;
+}
+
 function queryTargetElement(targetName: string): HTMLElement | null {
   for (const attributeName of TARGET_ATTRIBUTE_NAMES) {
-    const element = document.querySelector<HTMLElement>(`[${attributeName}="${targetName}"]`);
-    if (element) return element;
+    const elements = document.querySelectorAll<HTMLElement>(`[${attributeName}="${targetName}"]`);
+    for (const element of elements) {
+      const rect = element.getBoundingClientRect();
+      if (rect.width && rect.height) return element;
+    }
+
+    if (elements[0]) return elements[0];
   }
 
   return null;
@@ -52,6 +101,18 @@ function readTargetRect(targetName: string | null): DemoTourHighlightRect | null
     width: rect.width,
     height: rect.height,
   };
+}
+
+function clickTargetElement(targetName: string) {
+  const targetElement = queryTargetElement(targetName);
+  if (!targetElement) return;
+
+  const clickableElement =
+    targetElement.matches("button, a[href], [role='button']")
+      ? targetElement
+      : targetElement.querySelector<HTMLElement>("button, a[href], [role='button']");
+
+  (clickableElement ?? targetElement).click();
 }
 
 function resolveVisibleTargetNames(targetSpec: DemoTargetSpec | undefined): string[] {
@@ -100,8 +161,7 @@ async function runStepAction(action: DemoTourStepAction, router: ReturnType<type
     return true;
   }
 
-  const element = queryTargetElement(action.target);
-  element?.click();
+  clickTargetElement(action.target);
 
   if (action.waitForTarget) {
     return await waitForTargets(action.waitForTarget);
@@ -129,20 +189,28 @@ function DemoTourContent({
   const isMobile = useIsMobile();
   const { open: sidebarOpen, setOpen: setSidebarOpen } = useMobileSidebar();
   const router = useRouter();
-  const maskId = useId();
+  const maskId = "friendchise-demo-tour-mask";
 
   const [dismissed, setDismissed] = useState(false);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted, mutedHydrated] = usePersistedState<boolean>(MUTED_STORAGE_KEY, false);
   const [minimized, setMinimized] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [targetRects, setTargetRects] = useState<DemoTourHighlightRect[]>([]);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const autoAdvanceTriggeredRef = useRef<string | null>(null);
   const eventAdvanceTriggeredRef = useRef<string | null>(null);
+  const suppressRetreatRef = useRef(false);
+  const transitionPendingRef = useRef(false);
+  const minimizedRef = useRef(false);
+  const autoScrollTriggeredRef = useRef<string | null>(null);
 
   const steps = config.steps;
   const step = steps[stepIndex];
-  const active = enabled && !muted && !dismissed;
+  const isFirstStep = stepIndex === 0;
+  const isLastStep = stepIndex === steps.length - 1;
+
+  const active = enabled && !dismissed && !muted;
   const panelVisible = active && !minimized;
   const stepDescription = useMemo(() => {
     if (!step) return "";
@@ -167,11 +235,16 @@ function DemoTourContent({
     if (!active || !step) return;
 
     const targetSpec = isMobile ? step.mobileTarget ?? step.desktopTarget : step.desktopTarget;
+    const targetKey = `${stepIndex}:${Array.isArray(targetSpec) ? targetSpec.join("|") : targetSpec}`;
 
     let raf = 0;
     const update = () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
+        if (autoScrollTriggeredRef.current !== targetKey && scrollTargetIntoView(targetSpec)) {
+          autoScrollTriggeredRef.current = targetKey;
+        }
+
         const nextTargetRects = resolveVisibleTargetNames(targetSpec)
           .map((targetName) => readTargetRect(targetName))
           .filter((rect): rect is DemoTourHighlightRect => rect !== null);
@@ -207,7 +280,7 @@ function DemoTourContent({
       resizeObserver.disconnect();
       mutationObserver.disconnect();
     };
-  }, [active, isMobile, step]);
+  }, [active, isMobile, step, stepIndex]);
 
   const runAction = useCallback(
     async (action: DemoTourStepAction | null) => {
@@ -237,28 +310,14 @@ function DemoTourContent({
   }, []);
 
   const toggleMute = useCallback(() => {
-    setMuted((current) => {
-      const next = !current;
-      try {
-        if (next) {
-          window.sessionStorage.setItem(MUTED_STORAGE_KEY, "muted");
-        } else {
-          window.sessionStorage.removeItem(MUTED_STORAGE_KEY);
-        }
-      } catch {
-        // Ignore storage failures.
-      }
-      return next;
-    });
-  }, []);
+    setMuted((current) => !current);
+  }, [setMuted]);
 
   const reopen = useCallback(() => {
     setDismissed(false);
-    setMuted(false);
     setMinimized(false);
     setStepIndex(0);
     try {
-      window.sessionStorage.removeItem(MUTED_STORAGE_KEY);
       window.sessionStorage.removeItem(MINIMIZED_STORAGE_KEY);
     } catch {
       // Ignore storage failures.
@@ -274,6 +333,10 @@ function DemoTourContent({
     }
   }, []);
 
+  useEffect(() => {
+    minimizedRef.current = minimized;
+  }, [minimized]);
+
   const goNext = useCallback(() => {
     setStepIndex((current) => Math.min(current + 1, Math.max(steps.length - 1, 0)));
   }, [steps.length]);
@@ -281,6 +344,25 @@ function DemoTourContent({
   const goBack = useCallback(() => {
     setStepIndex((current) => Math.max(current - 1, 0));
   }, []);
+
+  const releaseTransitionLock = useCallback(() => {
+    transitionPendingRef.current = false;
+    setIsTransitioning(false);
+  }, []);
+
+  const releaseTransitionLockSoon = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      releaseTransitionLock();
+    });
+  }, [releaseTransitionLock]);
+
+  useEffect(() => {
+    suppressRetreatRef.current = false;
+  }, [stepIndex]);
+
+  useEffect(() => {
+    autoScrollTriggeredRef.current = null;
+  }, [stepIndex]);
 
   const findNearestValidStepIndex = useCallback(
     (startIndex: number) => {
@@ -358,6 +440,8 @@ function DemoTourContent({
     const update = () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
+        if (step?.advanceWhenTargetVisible && hasVisibleTarget(step.advanceWhenTargetVisible)) return;
+        if (suppressRetreatRef.current) return;
         const nextIndex = findNearestValidStepIndex(stepIndex);
         if (nextIndex !== stepIndex) {
           setStepIndex(nextIndex);
@@ -392,7 +476,7 @@ function DemoTourContent({
       resizeObserver.disconnect();
       mutationObserver.disconnect();
     };
-  }, [findNearestValidStepIndex, active, step?.retreatWhenTargetNotVisible, stepIndex]);
+  }, [findNearestValidStepIndex, active, step?.advanceWhenTargetVisible, step?.retreatWhenTargetNotVisible, stepIndex]);
 
   useEffect(() => {
     if (!active || !step?.advanceWhenEvent) return;
@@ -414,30 +498,53 @@ function DemoTourContent({
   }, [goNext, active, step?.advanceWhenEvent, stepIndex]);
 
   const runCurrentStep = useCallback(async () => {
+    if (transitionPendingRef.current) return;
+
+    transitionPendingRef.current = true;
+    setIsTransitioning(true);
+
     const forwardAction = step?.forwardAction ?? null;
 
     if (forwardAction) {
+      suppressRetreatRef.current = true;
       const success = await runAction(forwardAction);
-      if (!success) return;
+      if (!success) {
+        suppressRetreatRef.current = false;
+        releaseTransitionLock();
+        return;
+      }
       if (forwardAction.type === "navigate") return;
     }
 
     if (!step?.advanceWhenTargetVisible) {
       goNext();
+      releaseTransitionLockSoon();
+      return;
     }
-  }, [goNext, runAction, step]);
+
+    releaseTransitionLockSoon();
+  }, [goNext, releaseTransitionLock, releaseTransitionLockSoon, runAction, step]);
 
   const runPreviousStep = useCallback(async () => {
+    if (transitionPendingRef.current) return;
+
+    transitionPendingRef.current = true;
+    setIsTransitioning(true);
+
     const backAction = step?.backAction ?? null;
 
     if (backAction) {
       const success = await runAction(backAction);
-      if (!success) return;
+      if (!success) {
+        releaseTransitionLock();
+        return;
+      }
       if (backAction.type === "navigate") return;
     }
 
     goBack();
-  }, [goBack, runAction, step]);
+    releaseTransitionLockSoon();
+  }, [goBack, releaseTransitionLock, releaseTransitionLockSoon, runAction, step]);
 
   useEffect(() => {
     if (!active) return;
@@ -455,12 +562,32 @@ function DemoTourContent({
       }
 
       if (event.key === "ArrowLeft") {
+        if (transitionPendingRef.current) return;
         event.preventDefault();
         void runPreviousStep();
         return;
       }
 
+      if (event.key === "ArrowUp") {
+        if (transitionPendingRef.current) return;
+        event.preventDefault();
+        if (!minimizedRef.current) {
+          minimize();
+        }
+        return;
+      }
+
+      if (event.key === "ArrowDown") {
+        if (transitionPendingRef.current) return;
+        event.preventDefault();
+        if (minimizedRef.current) {
+          restore();
+        }
+        return;
+      }
+
       if (event.key === "ArrowRight" || event.key === " ") {
+        if (transitionPendingRef.current) return;
         event.preventDefault();
         void runCurrentStep();
         return;
@@ -483,7 +610,9 @@ function DemoTourContent({
     return () => {
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [active, dismiss, runCurrentStep, runPreviousStep, stepIndex, steps.length, toggleMute]);
+  }, [active, dismiss, minimize, restore, runCurrentStep, runPreviousStep, stepIndex, steps.length, toggleMute]);
+
+  if (!mutedHydrated) return null;
 
   if (!step) return null;
 
@@ -498,6 +627,9 @@ function DemoTourContent({
         stepIndex={stepIndex}
         totalSteps={steps.length}
         label={config.label}
+        canGoBack={!isFirstStep || !!step.backAction}
+        canGoNext={!isLastStep || !!step.forwardAction}
+        isTransitioning={isTransitioning}
         onOpenSidebar={() => setSidebarOpen(true)}
         onToggleMute={toggleMute}
         onMinimize={minimize}
@@ -518,29 +650,27 @@ function DemoTourContent({
       <DemoTourOverlay maskId={maskId} targetRects={targetRects} />
 
       {panelVisible && (() => {
-        const isFirstStep = stepIndex === 0;
-        const isLastStep = stepIndex === steps.length - 1;
-
         return (
-      <DemoTourPanel
-        label={config.label}
-        title={step.title}
-        description={stepDescription}
-        stepIndex={stepIndex}
-        totalSteps={steps.length}
-        canGoBack={!isFirstStep || !!step.backAction}
-        canGoNext={!isLastStep || !!step.forwardAction}
-        muted={muted}
-        onToggleMute={toggleMute}
-        onMinimize={minimize}
-        onClose={dismiss}
-        onPrevious={() => {
-          void runPreviousStep();
-        }}
-        onNext={() => {
-          void runCurrentStep();
-        }}
-      />
+          <DemoTourPanel
+            label={config.label}
+            title={step.title}
+            description={stepDescription}
+            stepIndex={stepIndex}
+            totalSteps={steps.length}
+            canGoBack={!isFirstStep || !!step.backAction}
+            canGoNext={!isLastStep || !!step.forwardAction}
+            isTransitioning={isTransitioning}
+            muted={muted}
+            onToggleMute={toggleMute}
+            onMinimize={minimize}
+            onClose={dismiss}
+            onPrevious={() => {
+              void runPreviousStep();
+            }}
+            onNext={() => {
+              void runCurrentStep();
+            }}
+          />
         );
       })()}
 
@@ -554,6 +684,9 @@ function DemoTourContent({
           stepIndex={stepIndex}
           totalSteps={steps.length}
           label={config.label}
+          canGoBack={!isFirstStep || !!step.backAction}
+          canGoNext={!isLastStep || !!step.forwardAction}
+          isTransitioning={isTransitioning}
           onOpenSidebar={() => setSidebarOpen(true)}
           onToggleMute={toggleMute}
           onMinimize={minimize}
@@ -578,6 +711,9 @@ function DemoTourContent({
           stepIndex={stepIndex}
           totalSteps={steps.length}
           label={config.label}
+          canGoBack={!isFirstStep || !!step.backAction}
+          canGoNext={!isLastStep || !!step.forwardAction}
+          isTransitioning={isTransitioning}
           onOpenSidebar={() => setSidebarOpen(true)}
           onToggleMute={toggleMute}
           onMinimize={minimize}

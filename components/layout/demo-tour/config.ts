@@ -50,7 +50,17 @@ function routePatternFromKey(key: string): RegExp {
 
   const pattern = normalized
     .split("/")
-    .map((segment) => (segment.startsWith("[") && segment.endsWith("]") ? "[^/]+" : escapeRegExp(segment)))
+    .map((segment) => {
+      if (segment.startsWith("[...") && segment.endsWith("]")) {
+        return ".+";
+      }
+
+      if (segment.startsWith("[") && segment.endsWith("]")) {
+        return "[^/]+";
+      }
+
+      return escapeRegExp(segment);
+    })
     .join("/");
 
   return new RegExp(`^/${pattern}/?$`);

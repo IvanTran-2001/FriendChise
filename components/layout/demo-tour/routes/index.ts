@@ -13,10 +13,7 @@ export const demoTourConfig: DemoTourConfig = {
         "Click the Org button in the sidebar to create or join as a franchisee.",
       desktopTarget: "sidebar-org",
       mobileTarget: "sidebar-org",
-      backAction: {
-        type: "navigate",
-        href: "__history_back__",
-      },
+      backAction: null,
       forwardAction: null,
       advanceWhenTargetVisible: null,
       retreatWhenTargetNotVisible: null,

@@ -10,6 +10,9 @@ type DemoTourLaunchersProps = {
   muted: boolean;
   stepIndex: number;
   totalSteps: number;
+  canGoBack: boolean;
+  canGoNext: boolean;
+  isTransitioning: boolean;
   label: string;
   onOpenSidebar: () => void;
   onToggleMute: () => void;
@@ -28,6 +31,9 @@ export function DemoTourLaunchers({
   muted,
   stepIndex,
   totalSteps,
+  canGoBack,
+  canGoNext,
+  isTransitioning,
   label,
   onOpenSidebar,
   onToggleMute,
@@ -94,7 +100,8 @@ export function DemoTourLaunchers({
       <button
         type="button"
         onClick={onPrevious}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-card/95 text-foreground shadow-sm backdrop-blur-xl cursor-pointer transition-all hover:-translate-y-0.5 hover:bg-card hover:shadow-md"
+        disabled={!canGoBack || isTransitioning}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-card/95 text-foreground shadow-sm backdrop-blur-xl cursor-pointer transition-all hover:-translate-y-0.5 hover:bg-card hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:bg-card/95 disabled:hover:shadow-sm"
         aria-label={`Previous step ${stepIndex + 1} of ${totalSteps}`}
       >
         <ArrowLeft className="h-3.5 w-3.5" />
@@ -108,7 +115,8 @@ export function DemoTourLaunchers({
       <button
         type="button"
         onClick={onNext}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-card/95 text-foreground shadow-sm backdrop-blur-xl cursor-pointer transition-all hover:-translate-y-0.5 hover:bg-card hover:shadow-md"
+        disabled={!canGoNext || isTransitioning}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-card/95 text-foreground shadow-sm backdrop-blur-xl cursor-pointer transition-all hover:-translate-y-0.5 hover:bg-card hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:bg-card/95 disabled:hover:shadow-sm"
         aria-label={`Next step ${stepIndex + 1} of ${totalSteps}`}
       >
         <ArrowRight className="h-3.5 w-3.5" />
@@ -127,7 +135,7 @@ export function DemoTourLaunchers({
   const bannerButton = (
     <button
       type="button"
-      onClick={!isActive ? onReopen : minimized ? onRestore : onMinimize}
+      onClick={muted ? onToggleMute : !isActive ? onReopen : minimized ? onRestore : onMinimize}
       className={
         "pointer-events-auto inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-medium shadow-sm backdrop-blur-xl cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md " +
         (muted

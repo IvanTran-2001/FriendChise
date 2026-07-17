@@ -10,6 +10,7 @@ type DemoTourPanelProps = {
   totalSteps: number;
   canGoBack: boolean;
   canGoNext: boolean;
+  isTransitioning: boolean;
   muted: boolean;
   onToggleMute: () => void;
   onMinimize: () => void;
@@ -26,6 +27,7 @@ export function DemoTourPanel({
   totalSteps,
   canGoBack,
   canGoNext,
+  isTransitioning,
   muted,
   onToggleMute,
   onMinimize,
@@ -130,7 +132,7 @@ export function DemoTourPanel({
               type="button"
               variant="outline"
               onClick={onPrevious}
-              disabled={!canGoBack}
+              disabled={!canGoBack || isTransitioning}
               className="h-10 rounded-full px-3"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -142,7 +144,7 @@ export function DemoTourPanel({
             <Button
               type="button"
               onClick={onNext}
-              disabled={!canGoNext}
+              disabled={!canGoNext || isTransitioning}
               variant="outline"
               className="h-10 rounded-full px-3"
             >
