@@ -25,11 +25,11 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import { SearchInput } from "@/components/ui/search-input";
+import { SearchInput } from "@/components/ui/controls/search-input";
 import { useState, useTransition, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,14 +46,14 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/dialogs/alert-dialog";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialogs/dialog";
 import {
   renameTemplateAction,
   duplicateTemplateAction,
@@ -64,7 +64,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
+} from "@/components/ui/dialogs/sheet";
 import { CreateTemplateForm } from "./_components/create-template-form";
 
 type Template = {

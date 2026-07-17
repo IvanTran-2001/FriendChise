@@ -10,7 +10,7 @@
 import { useRef } from "react";
 import { CalendarCheck, ListPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import {
   ApplyTemplateForm,
   type TemplateOption,

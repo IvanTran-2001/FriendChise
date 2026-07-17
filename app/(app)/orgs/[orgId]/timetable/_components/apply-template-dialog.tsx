@@ -20,13 +20,13 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
+} from "@/components/ui/dialogs/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   SearchableCombobox,
   type ComboboxItem,
-} from "@/components/ui/searchable-combobox";
+} from "@/components/ui/comboboxes/searchable-combobox";
 import {
   applyTemplateAction,
   countTimetableEntriesInRangeAction,
@@ -237,6 +237,7 @@ export function ApplyTemplateForm({
             placeholder="Search templates…"
             emptyText="No templates found."
             disabled={templates.length === 0}
+            triggerDataTourTarget="timetable-template-selector"
           />
         </div>
 

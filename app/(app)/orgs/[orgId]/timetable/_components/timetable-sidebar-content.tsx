@@ -272,7 +272,7 @@ export function TimetableSidebarContent({
   return (
     <div className="flex flex-col flex-1 overflow-y-auto">
       {/* Filters section */}
-      <div className="px-3 pt-3 pb-2">
+      <div className="px-3 pt-3 pb-2" data-tour-target="page-filters-panel">
         <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
           Filters
         </p>

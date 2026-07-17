@@ -1,7 +1,7 @@
 import { requireOrgPermissionPage } from "@/lib/authz";
 import { getTimetableTemplates } from "@/lib/services/templates";
 import { PermissionAction } from "@prisma/client";
-import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
+import { RegisterPageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
 import { TemplatesSidebarContent } from "./_components/templates-sidebar-content";
 import { TemplatesClient } from "./templates-client";
 

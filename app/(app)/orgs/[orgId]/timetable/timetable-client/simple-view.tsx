@@ -4,11 +4,11 @@ import { useState, useTransition, useCallback } from "react";
 import { useRouter } from "next/navigation";
 // Title no longer links to task detail here; use the icon button instead.
 import { CalendarDays, ExternalLink } from "lucide-react";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { useSupportsHover } from "@/hooks/use-hover-capability";
 import { toast } from "sonner";
 import { createTimetableEntryAction } from "@/app/actions/timetable-entries";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import {
   addDays,
@@ -191,6 +191,17 @@ export function SimpleView({
                           toast.error(res.error ?? "Failed to add task to timetable");
                           return;
                         }
+                        window.dispatchEvent(
+                          new CustomEvent("friendchise:timetable-entry-created", {
+                            detail: {
+                              orgId,
+                              taskId,
+                              date: dayStr,
+                              startTimeMin: defaultStartMin,
+                              source: "direct-create",
+                            },
+                          }),
+                        );
                         router.refresh();
                       });
                     }

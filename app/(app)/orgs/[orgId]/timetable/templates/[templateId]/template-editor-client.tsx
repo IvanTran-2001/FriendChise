@@ -44,14 +44,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
+} from "@/components/ui/dialogs/sheet";
 import { addTemplateInstanceAction, updateTemplateInstanceAction, updateTemplateInstancesBatchAction } from "@/app/actions/templates";
 import { TimeGrid } from "../../_shared/time-grid";
 import type { DragDataRef } from "../../_shared/time-grid";
@@ -59,7 +59,7 @@ import { TaskPanel } from "../../_shared/task-panel";
 import { minToHHMM } from "../../_shared/grid-utils";
 import { useTimetableZoom } from "../../_shared/timetable-zoom-context";
 import type { SharedTask, SharedMembership } from "../../_shared/types";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { registerDragHandlers, unregisterDragHandlers } from "../../_shared/drag-registry";
 import Link from "next/link";
 

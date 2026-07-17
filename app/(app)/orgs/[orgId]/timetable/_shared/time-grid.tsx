@@ -32,7 +32,7 @@ function withAlpha(color: string, alpha: number): string {
 export type GridInstance = {
   id: string;
   startTimeMin: number;
-  task: { durationMin: number };
+  task: { durationMin: number; title?: string };
 };
 
 type DragData<TInstance extends GridInstance = GridInstance> =
@@ -507,6 +507,11 @@ export function TimeGrid<
                                   e.stopPropagation();
                                   onBlockMenuClick(inst);
                                 }}
+                                data-tour-target={
+                                  inst.task.title === "Fry Morning Batches"
+                                    ? "timetable-fry-morning-batches-open-task"
+                                    : undefined
+                                }
                                 className="absolute top-0.5 right-0.5 flex items-center justify-center w-5 h-5 rounded text-muted-foreground/60 hover:text-foreground hover:bg-black/10 transition-colors cursor-pointer"
                                 aria-label="Open task"
                               >

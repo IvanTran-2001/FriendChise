@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
+import { RegisterPageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import { TemplateEditorSidebarContent } from "./_components/template-editor-sidebar-content";
 import {

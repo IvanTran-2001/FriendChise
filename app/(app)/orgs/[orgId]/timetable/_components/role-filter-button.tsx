@@ -5,7 +5,7 @@
  */
 
 import { useRouter } from "next/navigation";
-import { MultiFilterCombobox } from "@/components/ui/multi-filter-combobox";
+import { MultiFilterCombobox } from "@/components/ui/comboboxes/multi-filter-combobox";
 
 interface RoleFilterButtonProps {
   roles: { id: string; name: string; color: string | null }[];

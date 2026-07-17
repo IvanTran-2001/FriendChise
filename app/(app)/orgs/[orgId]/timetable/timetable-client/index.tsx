@@ -36,13 +36,13 @@ import { useState, useTransition, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, LayoutList, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
+} from "@/components/ui/dialogs/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { TaskPanel } from "../_shared/task-panel";
 import { registerDragHandlers, unregisterDragHandlers } from "../_shared/drag-registry";

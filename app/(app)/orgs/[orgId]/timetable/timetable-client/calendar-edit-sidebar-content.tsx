@@ -23,8 +23,8 @@
 
 import { useState, useTransition } from "react";
 import { X, Clock, CalendarIcon, Trash2, Check, ChevronLeft } from "lucide-react";
-import { SearchableCombobox } from "@/components/ui/searchable-combobox";
-import type { ComboboxItem } from "@/components/ui/searchable-combobox";
+import { SearchableCombobox } from "@/components/ui/comboboxes/searchable-combobox";
+import type { ComboboxItem } from "@/components/ui/comboboxes/searchable-combobox";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -35,7 +35,7 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
   AlertDialogAction,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/dialogs/alert-dialog";
 import {
   updateTimetableEntryAction,
   updateTimetableEntryStatusAction,

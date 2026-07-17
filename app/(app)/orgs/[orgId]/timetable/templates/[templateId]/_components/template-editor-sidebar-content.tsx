@@ -9,7 +9,7 @@ import { ColorFilterButton } from "../../../_components/color-filter-button";
 import { useTimetableZoom, MIN_HOUR_HEIGHT, MAX_HOUR_HEIGHT } from "../../../_shared/timetable-zoom-context";
 import { AddTemplateTaskPanel } from "./add-template-task-panel";
 import { updateTemplateDaysAction } from "@/app/actions/templates";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import type { SharedTask } from "../../../_shared/types";
 
 interface TemplateEditorSidebarContentProps {

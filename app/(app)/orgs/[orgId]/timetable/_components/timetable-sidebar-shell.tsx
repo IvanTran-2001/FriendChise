@@ -10,8 +10,8 @@
  */
 import { useParams, usePathname } from "next/navigation";
 import { Calendar, LayoutList } from "lucide-react";
-import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
-import { usePageSidebarSubContent } from "@/components/layout/page-sidebar-context";
+import { PageSidebarNavItem } from "@/components/layout/sidebar/page-sidebar-nav-item";
+import { usePageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
 
 const tabs = [
   {
@@ -25,6 +25,7 @@ const tabs = [
     icon: LayoutList,
     href: (orgId: string) => `/orgs/${orgId}/timetable/templates`,
     exact: false,
+    tourTarget: "timetable-templates-navitem",
   },
 ];
 
@@ -34,10 +35,10 @@ export function TimetableSidebarShell() {
   const subContent = usePageSidebarSubContent();
 
   return (
-    <aside className="flex flex-col flex-1 overflow-y-auto" data-tour-target="timetable-page-sidebar">
+    <aside className="flex flex-col flex-1 overflow-y-auto" data-tour-target="page-sidebar">
       {/* Nav tabs */}
       <nav className="shrink-0 border-b border-border">
-        {tabs.map(({ label, icon: Icon, href, exact }) => {
+        {tabs.map(({ label, icon: Icon, href, exact, tourTarget }) => {
           const url = href(orgId);
           const isActive = exact ? pathname === url : pathname.startsWith(url);
           return (
@@ -47,6 +48,7 @@ export function TimetableSidebarShell() {
               url={url}
               icon={Icon}
               isActive={isActive}
+              tourTarget={tourTarget}
             />
           );
         })}

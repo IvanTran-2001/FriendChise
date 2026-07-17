@@ -14,10 +14,10 @@ import { getInheritedTasks } from "@/lib/services/tasks";
 import { getMemberships } from "@/lib/services/memberships";
 import { getRoles } from "@/lib/services/roles";
 import { getOrgTags } from "@/lib/services/tags";
-import { prisma } from "@/lib/prisma";
-import { parseMultipleIds } from "@/lib/utils";
+import { prisma } from "@/lib/platform/prisma";
+import { parseMultipleIds } from "@/lib/core/utils";
 import { TimetablePageClient } from "./_components/timetable-page-client";
-import { toLocalDateStr, addCalendarDays } from "@/lib/date-utils";
+import { toLocalDateStr, addCalendarDays } from "@/lib/core/date-utils";
 
 export default async function TimetablePage({
   params,

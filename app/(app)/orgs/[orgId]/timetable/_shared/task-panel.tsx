@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GripVertical, Clock, MapPin } from "lucide-react";
-import { SearchInput } from "@/components/ui/search-input";
+import { SearchInput } from "@/components/ui/controls/search-input";
 import type { SharedTask } from "./types";
 
 type LoadTasksResult = {

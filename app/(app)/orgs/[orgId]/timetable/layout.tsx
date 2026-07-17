@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
+import { RegisterPageSidebar } from "@/components/layout/contexts/page-sidebar-context";
 import { TimetableSidebarShell } from "./_components/timetable-sidebar-shell";
 import { TimetableZoomProviderWrapper } from "./_components/timetable-zoom-provider-wrapper";
 

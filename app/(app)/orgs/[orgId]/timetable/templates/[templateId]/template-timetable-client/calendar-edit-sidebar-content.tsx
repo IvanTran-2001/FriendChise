@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { SearchableCombobox, type ComboboxItem } from "@/components/ui/searchable-combobox";
+import { SearchableCombobox, type ComboboxItem } from "@/components/ui/comboboxes/searchable-combobox";
 import { addInstanceAssigneeAction, removeInstanceAssigneeAction, updateTemplateInstanceAction, removeTemplateInstanceAction } from "@/app/actions/templates";
 import { minToHHMM, hhmmToMin } from "../../../_shared/grid-utils";
 import type { ClientTemplateInstance, ClientMembership } from "../template-editor-client";

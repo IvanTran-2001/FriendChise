@@ -140,6 +140,17 @@ export function AddTaskPanel({
           toast.error(result.error ?? "Something went wrong");
           return;
         }
+        window.dispatchEvent(
+          new CustomEvent("friendchise:timetable-entry-created", {
+            detail: {
+              orgId,
+              taskId: selectedTask.id,
+              date,
+              startTimeMin,
+              source: "panel",
+            },
+          }),
+        );
         router.refresh();
         setMode("list");
         setSelectedTask(null);

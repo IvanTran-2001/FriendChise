@@ -16,8 +16,8 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
   AlertDialogAction,
-} from "@/components/ui/alert-dialog";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+} from "@/components/ui/dialogs/alert-dialog";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import {
   createTimetableEntryAction,
   updateTimetableEntryAction,
@@ -246,7 +246,7 @@ export function CalendarView({
   onOpenTaskPanel,
   isDraggingExternal,
 }: CalendarViewProps) {
-  const dropCompletedEventName = "friendchise:timetable-placement-completed";
+  const dropCompletedEventName = "friendchise:timetable-entry-created";
 
   function effStatus(inst: ClientTimetableInstance) {
     return inst.status === "TODO" && inst.date < todayStr
@@ -605,6 +605,7 @@ export function CalendarView({
           kind: data.type,
           column: col,
           timeMin,
+            source: "drag",
         },
       }));
       router.refresh();
@@ -647,6 +648,7 @@ export function CalendarView({
           column: col,
           timeMin,
           taskId,
+          source: "tap",
         },
       }));
       router.refresh();

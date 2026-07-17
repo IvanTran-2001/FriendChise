@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
+import { RegisterPageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
 import type { TemplateOption } from "./apply-template-dialog";
 import type { SharedTask } from "../_shared/types";
 import type { ClientMembership, ClientTimetableInstance } from "../timetable-client";
