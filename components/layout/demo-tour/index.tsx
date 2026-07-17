@@ -18,11 +18,6 @@ import { DemoTourPanel } from "./components/demo-tour-panel";
 const MUTED_STORAGE_KEY = `${STORAGE_KEY_PREFIX}-muted`;
 const MINIMIZED_STORAGE_KEY = `${STORAGE_KEY_PREFIX}-minimized`;
 
-const ADVANCE_EVENT_ALIASES: Record<string, string[]> = {
-  "friendchise:timetable-entry-created": ["friendchise:timetable-placement-completed"],
-  "friendchise:timetable-placement-completed": ["friendchise:timetable-entry-created"],
-};
-
 type DemoTargetSpec = string | string[];
 
 const TARGET_ATTRIBUTE_NAMES = ["data-tour-target", "data-demo-tour-target"] as const;
@@ -153,10 +148,6 @@ function waitForTargets(targetSpec: string | string[], timeoutMs = 3000) {
       attributes: true,
     });
   });
-}
-
-function getAdvanceEventNames(eventName: string): string[] {
-  return [eventName, ...(ADVANCE_EVENT_ALIASES[eventName] ?? [])];
 }
 
 async function runStepAction(action: DemoTourStepAction, router: ReturnType<typeof useRouter>) {
@@ -492,8 +483,7 @@ function DemoTourContent({
 
     eventAdvanceTriggeredRef.current = null;
     const eventName = step.advanceWhenEvent;
-    const eventNames = getAdvanceEventNames(eventName);
-    const eventKey = `${stepIndex}:${eventNames.join("|")}`;
+    const eventKey = `${stepIndex}:${eventName}`;
 
     const handleEvent = () => {
       if (eventAdvanceTriggeredRef.current === eventKey) return;
@@ -501,13 +491,9 @@ function DemoTourContent({
       goNext();
     };
 
-    for (const eventType of eventNames) {
-      window.addEventListener(eventType, handleEvent);
-    }
+    window.addEventListener(eventName, handleEvent);
     return () => {
-      for (const eventType of eventNames) {
-        window.removeEventListener(eventType, handleEvent);
-      }
+      window.removeEventListener(eventName, handleEvent);
     };
   }, [goNext, active, step?.advanceWhenEvent, stepIndex]);
 

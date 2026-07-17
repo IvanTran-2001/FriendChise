@@ -576,6 +576,15 @@ export function CalendarView({
             />,
           );
         }
+
+        window.dispatchEvent(new CustomEvent(dropCompletedEventName, {
+          detail: {
+            kind: data.type,
+            column: col,
+            timeMin,
+            source: "drag",
+          },
+        }));
       } else if (data.type === "group") {
         let delta = timeMin - data.groupStartMin;
         const insts = data.instances ?? data.instanceIds.map((id) => instances.find((i) => i.id === id)).filter(Boolean) as ClientTimetableInstance[];
@@ -600,14 +609,6 @@ export function CalendarView({
         });
         if (!result.ok) { toast.error(result.error ?? "Something went wrong"); return; }
       }
-      window.dispatchEvent(new CustomEvent(dropCompletedEventName, {
-        detail: {
-          kind: data.type,
-          column: col,
-          timeMin,
-            source: "drag",
-        },
-      }));
       router.refresh();
     });
   }
