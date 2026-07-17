@@ -19,7 +19,7 @@ import { useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { type PermissionAction } from "@/lib/constants";
+import { type PermissionAction } from "@/lib/core/constants";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -38,12 +38,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+} from "@/components/ui/dialogs/alert-dialog";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { deleteRoleAction } from "@/app/actions/roles";
 import type { RoleWithPermissions } from "@/lib/services/roles";
-import { ROLE_KEYS } from "@/lib/rbac";
-import { cn } from "@/lib/utils";
+import { ROLE_KEYS } from "@/lib/auth/rbac";
+import { cn } from "@/lib/core/utils";
 import { RoleForm } from "./_components/role-form";
 
 // ─── Permission label formatter ──────────────────────────────────────────────

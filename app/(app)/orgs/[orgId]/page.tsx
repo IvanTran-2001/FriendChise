@@ -13,18 +13,18 @@ import {
   ArrowLeftRight,
   LayoutList,
 } from "lucide-react";
-import { orgColor } from "@/lib/org-color";
+import { orgColor } from "@/lib/core/org-color";
 import { requireOrgMemberPage } from "@/lib/authz";
 import { getAuthUserId } from "@/lib/authz/_shared";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { getRangeTimetableInstances } from "@/lib/services/timetable-entries";
 import {
   listRecentActivitiesByCategories,
   RECENT_ACTIVITY_CATEGORY,
   type RecentActivityRecord,
 } from "@/lib/services/recent-activity";
-import { toLocalDateStr } from "@/lib/date-utils";
-import { cn } from "@/lib/utils";
+import { toLocalDateStr } from "@/lib/core/date-utils";
+import { cn } from "@/lib/core/utils";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 

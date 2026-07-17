@@ -1,7 +1,7 @@
 "use client";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
+import { RegisterPageSidebar } from "@/components/layout/contexts/page-sidebar-context";
 
 function RolesSidebarSkeleton() {
   return (

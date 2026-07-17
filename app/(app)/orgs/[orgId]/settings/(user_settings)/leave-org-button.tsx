@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialogs/dialog";
 
 export function LeaveOrgButton({ orgId }: { orgId: string }) {
   const [open, setOpen] = useState(false);

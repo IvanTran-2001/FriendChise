@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { SegmentedControl } from "@/components/ui/segmented-control";
+import { SegmentedControl } from "@/components/ui/controls/segmented-control";
 import { AnnouncementActions } from "./announcement-actions";
 
 export type AnnouncementOrder = "newest" | "oldest";

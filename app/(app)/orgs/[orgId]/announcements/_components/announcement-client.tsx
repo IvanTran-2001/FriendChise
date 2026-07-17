@@ -32,8 +32,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+} from "@/components/ui/dialogs/alert-dialog";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { AddAnnouncementPanel } from "./add-announcement-panel";
 import {
   deleteAnnouncementAction,

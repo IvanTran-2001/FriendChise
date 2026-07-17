@@ -11,7 +11,7 @@
 import { useRef } from "react";
 import { UserPlus, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { InviteMemberPanel } from "./invite-member-panel";
 import { AddBotPanel } from "./add-bot-panel";
 

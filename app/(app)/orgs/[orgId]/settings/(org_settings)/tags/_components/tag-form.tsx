@@ -13,8 +13,8 @@ import { Input } from "@/components/ui/input";
 import {
   SearchableCombobox,
   type ComboboxItem,
-} from "@/components/ui/searchable-combobox";
-import { ColorPicker, randomColor } from "@/components/ui/color-picker";
+} from "@/components/ui/comboboxes/searchable-combobox";
+import { ColorPicker, randomColor } from "@/components/ui/pickers/color-picker";
 
 // Tag forms support two modes:
 // - create: collect local task IDs and submit them with the new tag

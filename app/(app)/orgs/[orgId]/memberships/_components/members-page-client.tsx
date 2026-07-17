@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
+import { RegisterPageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
 import { MembersSidebarContent } from "./members-sidebar-content";
 import { MembersView } from "./members-view-infinite";
 import { usePersistedState } from "@/hooks/use-persisted-state";

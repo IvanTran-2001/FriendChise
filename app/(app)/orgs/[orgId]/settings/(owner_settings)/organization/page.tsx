@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { requireOrgOwnerOrParentOrgOwnerPage } from "@/lib/authz";
 import { OrgSettingsClient } from "./organization-client";
-import { TIMEZONES } from "@/lib/timezones";
+import { TIMEZONES } from "@/lib/core/timezones";
 
 export default async function OrgSettingsOrganizationPage({
   params,

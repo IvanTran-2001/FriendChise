@@ -2,7 +2,7 @@ import { PermissionAction } from "@prisma/client";
 import { requireOrgPermissionPage } from "@/lib/authz";
 import { getRoles } from "@/lib/services/roles";
 import { getTasks } from "@/lib/services/tasks";
-import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
+import { RegisterPageSidebar } from "@/components/layout/contexts/page-sidebar-context";
 import { RolesSidebarContent } from "./_components/roles-sidebar-content";
 import { RolesClient } from "./roles-client";
 

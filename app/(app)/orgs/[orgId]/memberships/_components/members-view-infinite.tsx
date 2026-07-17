@@ -3,12 +3,12 @@
 import { useMemo, type RefObject } from "react";
 import Image from "next/image";
 import { Users } from "lucide-react";
-import { SearchInput } from "@/components/ui/search-input";
+import { SearchInput } from "@/components/ui/controls/search-input";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { useSupportsHover } from "@/hooks/use-hover-capability";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { MemberActions } from "./member-actions";
 import { MemberViewPanel } from "./member-view-panel";
 

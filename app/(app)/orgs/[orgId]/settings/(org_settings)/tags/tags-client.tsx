@@ -2,11 +2,11 @@
 
 import { useTransition, useRef, useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
-import { SearchInput } from "@/components/ui/search-input";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
+import { SearchInput } from "@/components/ui/controls/search-input";
 import { toast } from "sonner";
 import { deleteTagAction } from "@/app/actions/tags";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -18,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/dialogs/alert-dialog";
 import { EditTagForm } from "./_components/tag-form";
 
 // The tags table stays simple: a searchable client-side filter over the

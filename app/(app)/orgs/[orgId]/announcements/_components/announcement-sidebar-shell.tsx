@@ -2,8 +2,8 @@
 
 import { useParams, usePathname } from "next/navigation";
 import { Megaphone } from "lucide-react";
-import { usePageSidebarSubContent } from "@/components/layout/page-sidebar-context";
-import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
+import { usePageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
+import { PageSidebarNavItem } from "@/components/layout/sidebar/page-sidebar-nav-item";
 
 export function AnnouncementSidebarShell() {
   const subContent = usePageSidebarSubContent();

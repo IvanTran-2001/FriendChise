@@ -5,11 +5,11 @@ import { useParams } from "next/navigation";
 import { AlertTriangle, ImageIcon, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchableCombobox, type ComboboxItem } from "@/components/ui/searchable-combobox";
-import { TimezoneSelect } from "@/components/ui/timezone-select";
-import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
-import type { ImageCropConfig } from "@/components/ui/image-crop-dialog";
-import type { TimezoneOption } from "@/lib/timezones";
+import { SearchableCombobox, type ComboboxItem } from "@/components/ui/comboboxes/searchable-combobox";
+import { TimezoneSelect } from "@/components/ui/pickers/timezone-select";
+import { ImageCropDialog } from "@/components/ui/dialogs/image-crop-dialog";
+import type { ImageCropConfig } from "@/components/ui/dialogs/image-crop-dialog";
+import type { TimezoneOption } from "@/lib/core/timezones";
 import {
   updateOrgSettings,
   transferOrgOwnership,

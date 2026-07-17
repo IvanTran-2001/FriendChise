@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
-import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
+import { RegisterPageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
 import { requireUserPage } from "@/lib/authz";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { getAnnouncementsPage } from "@/lib/services/announcements";
 import { AnnouncementSidebarContent, type AnnouncementOrder } from "./_components/announcement-sidebar-content";
 import { AnnouncementClient } from "./_components/announcement-client";

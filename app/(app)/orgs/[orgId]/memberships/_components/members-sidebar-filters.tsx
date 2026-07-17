@@ -1,6 +1,6 @@
 "use client";
 
-import { FilterCombobox } from "@/components/ui/filter-combobox";
+import { FilterCombobox } from "@/components/ui/comboboxes/filter-combobox";
 
 type Role = { id: string; name: string; color: string };
 

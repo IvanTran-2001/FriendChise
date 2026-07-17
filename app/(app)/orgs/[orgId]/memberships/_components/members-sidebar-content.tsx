@@ -12,7 +12,7 @@ import Link from "next/link";
 import { LayoutGrid, List, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MembersActions } from "./members-panel-triggers";
-import { SegmentedControl } from "@/components/ui/segmented-control";
+import { SegmentedControl } from "@/components/ui/controls/segmented-control";
 
 type Role = { id: string; name: string; color: string };
 

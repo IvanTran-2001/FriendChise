@@ -1,5 +1,5 @@
 import { requireOrgMemberPage } from "@/lib/authz";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { LeaveOrgButton } from "./leave-org-button";
 
 export default async function SettingsPage({

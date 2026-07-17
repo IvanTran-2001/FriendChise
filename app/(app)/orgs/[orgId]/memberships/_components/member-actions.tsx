@@ -18,10 +18,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/dialogs/alert-dialog";
 import { toast } from "sonner";
 import { deleteMembershipAction } from "@/app/actions/memberships";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { MemberForm } from "./member-form";
 
 type Role = { id: string; name: string; color: string };

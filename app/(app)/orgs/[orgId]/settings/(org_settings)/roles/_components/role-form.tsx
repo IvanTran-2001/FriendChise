@@ -24,11 +24,11 @@
  */
 import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { PERMISSION_ACTIONS, type PermissionAction } from "@/lib/constants";
+import { PERMISSION_ACTIONS, type PermissionAction } from "@/lib/core/constants";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ColorPicker, randomColor } from "@/components/ui/color-picker";
+import { ColorPicker, randomColor } from "@/components/ui/pickers/color-picker";
 import { createRoleAction, updateRoleAction } from "@/app/actions/roles";
 import type { RoleWithPermissions } from "@/lib/services/roles";
 

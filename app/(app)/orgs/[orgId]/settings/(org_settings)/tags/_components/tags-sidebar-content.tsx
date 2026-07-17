@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { CreateTagForm } from "./tag-form";
 
 // The sidebar only needs to open the create form; the tag list itself lives in

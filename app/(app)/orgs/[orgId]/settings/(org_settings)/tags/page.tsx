@@ -1,7 +1,7 @@
 import { PermissionAction } from "@prisma/client";
 import { requireOrgPermissionPage } from "@/lib/authz";
 import { getOrgTags } from "@/lib/services/tags";
-import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
+import { RegisterPageSidebar } from "@/components/layout/contexts/page-sidebar-context";
 import { TagsSidebarContent } from "./_components/tags-sidebar-content";
 import { TagsClient } from "./tags-client";
 
