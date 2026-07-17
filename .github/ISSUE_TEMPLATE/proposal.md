@@ -8,31 +8,30 @@ labels: enhancement, UI, design, architecture, refactor
 # 🎨 Proposal: <short summary>
 **Type:** Design / Refactor Proposal
 
-Use this template for larger changes that should be discussed before coding begins, such as a full app redesign, major UI consistency work, reusable component cleanup, or broader refactoring across multiple pages.
+Use this template for larger changes that should be discussed before implementation, such as a full redesign, shared component cleanup, or a cross-page refactor.
 
 ## ⭐ Before You Start
-⭐ Please star the project to support FriendChise. Every star helps future development and encourages more open-source contributions.
 If you need setup help, start with quick-start: https://friendchise.app/doc/development/quick-start
 Please wait for maintainer approval before starting implementation.
 
 ---
 
 ## 📌 Summary
-Briefly describe the idea and the problem it solves.
+Describe the proposal and the problem it addresses.
 
 ## 🎯 Goals
 
 - What should improve?
-- What should feel better for users?
-- What should stay consistent across the app?
+- What user experience should be better?
+- What should remain consistent across the app?
 
 ## 🚫 Non-Goals
 
-- What is not included in this proposal?
-- What should stay unchanged for now?
+- What is explicitly out of scope?
+- What should remain unchanged for now?
 
 ## 💡 Proposed Direction
-Describe the suggested design, refactor, or UX direction.
+Describe the proposed design, refactor, or UX direction.
 
 ## 🧩 Key Areas Affected
 List the pages, components, or systems that may be involved.
@@ -41,7 +40,7 @@ List the pages, components, or systems that may be involved.
 Add screenshots, wireframes, references, or links if available.
 
 ## 🔁 Reuse / Consistency Plan
-Explain how this should improve grouping, reusable components, or consistency across the site.
+Explain how this should improve reuse, grouping, or consistency across the site.
 
 ## ✅ Approval Checklist
 
@@ -50,7 +49,7 @@ Explain how this should improve grouping, reusable components, or consistency ac
 - [ ] Implementation can begin
 
 ## 📌 Expected Outcome
-Describe what the final result should feel like after approval and implementation.
+Describe what the final result should look or feel like after implementation.
 
 ## 💡 Notes
 Possible files:

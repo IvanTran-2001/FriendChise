@@ -4,17 +4,21 @@ about: A feature improvement or new functionality
 labels: enhancement
 ---
 
-## Problem
+## Summary
 
-<!-- What's missing or frustrating about the current behavior? -->
+<!-- Describe the user-facing gap or improvement opportunity. -->
 
-## Expected Behavior
+## Proposed Improvement
 
-<!-- What should it do instead? -->
+<!-- Describe the intended behavior. -->
 
-## Proposed Solution
+## User Impact
 
-<!-- Optional — how would you solve it? -->
+<!-- What improves for users or maintainers if this is implemented? -->
+
+## Scope
+
+<!-- Clarify what is in scope and what is not. -->
 
 ## Affected Pages / Components
 
@@ -22,18 +26,17 @@ labels: enhancement
 
 - `app/(app)/orgs/[orgId]/...`
 
-## Device / Browser
+## Constraints
 
-- [ ] All
-- [ ] Desktop only
-- [ ] Mobile only
+<!-- Note any design, data, or technical constraints. -->
 
-## Priority
+## Acceptance Criteria
 
-- [ ] 🔴 Must have — blocks release
-- [ ] 🟡 Should have — improves UX significantly
-- [ ] 🟢 Nice to have — polish
+<!-- List the conditions that should be true when this is done. -->
+
+- [ ] ...
+- [ ] ...
 
 ## Smoke Test Reference
 
-<!-- e.g. V1 Round 1 — #16 -->
+<!-- Optional: link to a related smoke test or issue. -->

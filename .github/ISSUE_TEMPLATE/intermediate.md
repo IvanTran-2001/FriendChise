@@ -2,20 +2,19 @@
 name: 🟡 Intermediate
 about: Contributor-friendly task with setup notes, requirements, and submission checklist
 title: "🟡 [Intermediate] Add a Logs sidebar to the admin panel"
-labels: enhancement, Intermediate, help wanted, UI, good first issue
+labels: enhancement, Intermediate, help wanted, UI
 ---
 
-# 🟡 Good First Issue: Add a Logs sidebar to the admin panel
-**Difficulty:** Good First Issue
+# 🟡 Intermediate: Add a Logs sidebar to the admin panel
+**Difficulty:** Intermediate
 
-**Skill Level:** Contributors comfortable with admin UI and data filtering
+**Skill Level:** Contributors comfortable with admin UI and basic filtering
 
-Add a new `Logs` section to the admin panel so admins can browse audit logs in a simple list view, search logs, and filter by day or month.
+Add a `Logs` section to the admin panel so admins can browse audit logs, search entries, and filter by day or month.
 
 ## ⭐ Before You Start
-⭐ Please star the project to support FriendChise. Every star helps future development and encourages more open-source contributions.
 If you need setup help, start with quick-start: https://friendchise.app/doc/development/quick-start
-To claim this issue, comment with `I want to take this`. If you run into any issues, message here.
+To claim this issue, comment with `I want to take this`. If you run into issues, leave a comment on the thread.
 
 ---
 
@@ -31,7 +30,7 @@ Build an admin logs page that shows audit log entries in UTC, with a sidebar ent
 - Allow searching through logs.
 - Allow filtering by day or month.
 - Show all dates and times in UTC.
-- Keep the UI simple and readable.
+- Keep the UI simple, readable, and consistent with the existing admin layout.
 
 ---
 
