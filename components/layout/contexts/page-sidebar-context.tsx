@@ -113,7 +113,7 @@ export function PageSidebarSlot() {
         <div className="hidden md:block relative w-0 shrink-0">
           <button
             onClick={() => setCollapsed(false)}
-            className="absolute top-0 left-0 z-10 flex items-center justify-center w-12 h-12 rounded-none bg-sidebar border-r border-b border-border text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60 transition-colors cursor-pointer"
+            className="absolute top-0 left-0 z-50 flex items-center justify-center w-12 h-12 rounded-none bg-sidebar border-r border-b border-border text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60 transition-colors cursor-pointer"
             aria-label="Expand sidebar"
             data-tour-target="page-sidebar-expand"
           >

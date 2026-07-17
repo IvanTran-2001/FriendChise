@@ -21,9 +21,10 @@ import {
   inheritTaskAction,
 } from "@/app/actions/tasks";
 import { TaskCardSkeleton, TaskListSkeleton } from "../task-skeletons";
-import type { SortOption } from "../tasks-config";
+import type { SortOption, TaskView } from "../tasks-config";
 import { TaskCardGrid } from "./task-card-grid";
 import { TaskEmptyState } from "./task-empty-state";
+import { TaskFeedSkeleton, TaskFeedView } from "./task-feed-view";
 import { TaskListView } from "./task-list-view";
 import { TaskRemoveDialog } from "./task-remove-dialog";
 import { useTaskTablePagination } from "./use-task-table-pagination";
@@ -36,7 +37,7 @@ interface TaskTableProps {
   sort: SortOption;
   filterRoleId: string | null;
   filterTagId: string | null;
-  view: "list" | "card";
+  view: TaskView;
   initialTasks: Task[];
   initialNextCursor: string | null;
 }
@@ -155,7 +156,13 @@ export function TaskTable({
 
       <div>
         {showSkeleton ? (
-          view === "list" ? <TaskListSkeleton count={8} /> : <TaskCardSkeleton count={6} />
+          view === "list" ? (
+            <TaskListSkeleton count={8} />
+          ) : view === "feed" ? (
+            <TaskFeedSkeleton count={8} />
+          ) : (
+            <TaskCardSkeleton count={6} />
+          )
         ) : isEmpty ? (
           <TaskEmptyState
             orgId={orgId}
@@ -166,6 +173,15 @@ export function TaskTable({
         ) : (
           view === "list" ? (
             <TaskListView
+              orgId={orgId}
+              tasks={tasks}
+              canManageTasks={canManageTasks}
+              isPending={isPending}
+              onAddToList={handleAddToList}
+              onDeleteClick={handleDeleteClick}
+            />
+          ) : view === "feed" ? (
+            <TaskFeedView
               orgId={orgId}
               tasks={tasks}
               canManageTasks={canManageTasks}

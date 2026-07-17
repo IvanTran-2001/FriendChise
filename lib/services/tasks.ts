@@ -190,6 +190,19 @@ const taskInclude = {
       toolLabel: true,
     },
   },
+  comments: {
+    where: { parentId: null, isPinned: true },
+    orderBy: [{ pinnedAt: "desc" as const }, { createdAt: "asc" as const }],
+    take: 3,
+    select: {
+      id: true,
+      content: true,
+      authorName: true,
+      authorImage: true,
+      createdAt: true,
+      pinnedAt: true,
+    },
+  },
   _count: { select: { inheritedBy: true } },
 } as const;
 

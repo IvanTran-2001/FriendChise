@@ -12,7 +12,7 @@ import { PermissionAction } from "@prisma/client";
 import { cookies } from "next/headers";
 
 import { TasksPageClient } from "./_components/tasks-page-client";
-import { SORT_OPTIONS, type SortOption } from "./_components/tasks-config";
+import { SORT_OPTIONS, type SortOption, type TaskView } from "./_components/tasks-config";
 
 /**
  * Tasks list page — server component.
@@ -112,10 +112,12 @@ const TasksPage = async ({
       : typeof savedPrefs?.roleId === "string" && roles.some((r) => r.id === savedPrefs!.roleId)
         ? (savedPrefs!.roleId as string)
         : null;
-  const view: "list" | "card" =
+  const view: TaskView =
     sp.view === "card" ? "card" :
+    sp.view === "feed" ? "feed" :
     sp.view === "list" ? "list" :
-    savedPrefs?.view === "card" ? "card" : "list";
+    savedPrefs?.view === "card" ? "card" :
+    savedPrefs?.view === "feed" ? "feed" : "list";
 
   const tags = orgTags.map((t) => ({ id: t.id, name: t.name, color: t.color }));
   const tagId =

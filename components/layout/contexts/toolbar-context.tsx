@@ -71,12 +71,24 @@ export function ToolbarSlot() {
     };
   }, [hasContent, setMountNode]);
 
+  // Keep the mobile fixed-overlay spacer (`.app-header-spacer` in globals.css)
+  // in sync with the toolbar's actual rendered height.
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      "--toolbar-h",
+      hasContent ? `${height}px` : "0px",
+    );
+    return () => {
+      document.documentElement.style.setProperty("--toolbar-h", "0px");
+    };
+  }, [hasContent, height]);
+
   if (!hasContent) return null;
 
   return (
     <div
-      style={{ height }}
-      className={`border-b bg-card shrink-0 flex items-center px-4 sm:px-6${sidebarCollapsed ? " md:pl-18" : ""}`}
+      style={{ height, top: "var(--safe-header-height)" }}
+      className={`fixed inset-x-0 z-30 md:static md:inset-auto border-b bg-card shrink-0 flex items-center px-4 sm:px-6${sidebarCollapsed ? " md:pl-18" : ""}`}
     >
       <div ref={innerRef} className="flex flex-wrap items-center gap-2 w-full">
       </div>

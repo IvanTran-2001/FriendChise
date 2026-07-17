@@ -3,6 +3,7 @@ export type Task = {
   name: string;
   color: string;
   description: string | null;
+  createdAt: Date;
   durationMin: number;
   minPeople: number;
   orgId: string;
@@ -11,4 +12,12 @@ export type Task = {
   eligibility: { role: { id: string; name: string; color: string | null } }[];
   tags: { tag: { id: string; name: string; color: string } }[];
   imageSignedUrl?: string | null;
+  comments?: {
+    id: string;
+    content: string;
+    authorName: string;
+    authorImage: string | null;
+    createdAt: Date;
+    pinnedAt: Date | null;
+  }[];
 };
