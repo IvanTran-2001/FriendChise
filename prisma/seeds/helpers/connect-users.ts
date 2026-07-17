@@ -1,5 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
-import type { Users } from "./users";
+import type { Users } from "../shared/users";
 
 type ConnectSeedUsersOptions = {
   workingDays?: string[];

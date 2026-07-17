@@ -1,5 +1,5 @@
 import { Prisma, PrismaClient } from "@prisma/client";
-import type { Users } from "./users";
+import type { Users } from "../shared/users";
 
 type Actor = {
   userId: string;

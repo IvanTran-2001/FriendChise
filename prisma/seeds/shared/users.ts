@@ -1,7 +1,10 @@
-import type { SeedPlan } from "./seed-plan";
-import { seedDisplayName, seedEmail } from "@/lib/seed-namespace";
+import type { SeedPlan } from "../seed-plan";
+import { seedDisplayName, seedEmail } from "@/lib/demo/seed-namespace";
 
 /**
+ * Shared seed user fixture set used by the demo database and any seed modules
+ * that need the canonical seeded users.
+ *
  * Helper function to resolve the seed email for the E2E test user.
  * Treats empty or whitespace-only strings as unset values.
  */
@@ -10,6 +13,7 @@ function resolveSeedEmail(): string {
   return envEmail || seedEmail("riley");
 }
 
+// These are the canonical seed users for the demo database.
 export async function seedUsers(prisma: import("@prisma/client").PrismaClient) {
   const [owner, jordan, casey, riley, morgan, alex, taylor, sam, quinn] =
     await Promise.all([

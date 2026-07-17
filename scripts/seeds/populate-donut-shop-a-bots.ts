@@ -14,7 +14,7 @@ dotenv.config({ path: ".env.local", override: true, quiet: true });
 
 import { PrismaClient, MembershipStatus } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { seedDisplayName } from "@/lib/seed-namespace";
+import { seedDisplayName } from "@/lib/demo/seed-namespace";
 
 const dbUrl = process.env.DATABASE_URL;
 if (!dbUrl) {

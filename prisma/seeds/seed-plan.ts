@@ -1,11 +1,8 @@
 import type { PrismaClient } from "@prisma/client";
-import { seedRandomAuditLogs } from "./audit-logs";
-import { seedConversionData } from "./orgs/walker's doughnut/walkers-doughnuts";
-import { registerEmptyOrgSeeds } from "./dummies/empty-orgs";
-import { registerInviteSeeds } from "./notification/invites";
-import { registerNotificationSeeds } from "./notification/notifications";
-import { registerDonutShopASeeds, seedDonutShopA } from "./orgs/donut-shop-a/donut-shop-a";
-import { registerSeedUsers, type Users } from "./users";
+import { registerDemoSeedModules } from "./demo-seed";
+import { registerDevSeedModules } from "./dev-seed";
+import { seedDonutShopA } from "./orgs/donut-shop-a/donut-shop-a";
+import type { Users } from "./shared/users";
 
 export type SeedContext = {
   users: Users;
@@ -29,6 +26,8 @@ export type SeedPlan = {
   afterOrg: AfterOrgSeeder[];
 };
 
+// Seed plan is orchestration only.
+// It does not define fixture content; it only collects seed modules and runs them in order.
 export function createSeedPlan(): SeedPlan {
   return {
     users: [],
@@ -38,19 +37,10 @@ export function createSeedPlan(): SeedPlan {
 }
 
 export function registerSeedModules(plan: SeedPlan) {
-  // Register seed modules in dependency order so users and orgs exist before any related activity seeds run.
-  registerSeedUsers(plan);
-  registerDonutShopASeeds(plan);
-  // Conversion data depends on the seeded org, so it runs after the org seed finishes.
-  plan.afterOrg.push(async (prisma, _users, donutShopA) => {
-    await seedConversionData(prisma, donutShopA.org.id);
-  });
-  plan.afterOrg.push(async (prisma, users, donutShopA) => {
-    await seedRandomAuditLogs(prisma, donutShopA.org.id, users);
-  });
-  registerEmptyOrgSeeds(plan);
-  registerInviteSeeds(plan);
-  registerNotificationSeeds(plan);
+  // Demo seed modules build the shared demo database fixtures.
+  registerDemoSeedModules(plan);
+  // Dev seed modules are intentionally empty unless a local override is needed.
+  registerDevSeedModules(plan);
 }
 
 export function buildSeedPlan(): SeedPlan {

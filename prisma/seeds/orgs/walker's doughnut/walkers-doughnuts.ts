@@ -7,10 +7,10 @@
  */
 
 import { PrismaClient, PermissionAction } from "@prisma/client";
-import { ROLE_KEYS } from "@/lib/rbac";
-import { seedDisplayName } from "@/lib/seed-namespace";
-import { connectSeedUsersToOrg } from "../../connect-users";
-import type { Users } from "../../users";
+import { ROLE_KEYS } from "@/lib/auth/rbac";
+import { seedDisplayName } from "@/lib/demo/seed-namespace";
+import { connectSeedUsersToOrg } from "../../helpers/connect-users";
+import type { Users } from "../../shared/users";
 
 const ALL_OWNER_PERMISSIONS = Object.values(PermissionAction);
 

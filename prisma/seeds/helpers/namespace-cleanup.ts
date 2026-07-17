@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { resolveSeedNamespace } from "@/lib/seed-namespace";
+import { resolveSeedNamespace } from "@/lib/demo/seed-namespace";
 
 export async function cleanupSeedNamespace(prisma: PrismaClient) {
   const namespace = resolveSeedNamespace();

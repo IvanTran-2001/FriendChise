@@ -6,9 +6,10 @@ import {
 } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { runSeedPlan } from "./seeds/seed-plan";
-import { cleanupSeedNamespace } from "./seeds/namespace-cleanup";
+import { cleanupSeedNamespace } from "./seeds/helpers/namespace-cleanup";
 
-// Adapter and Prisma client will be initialized after validation
+// This is the seed entrypoint: it validates the target DB, clears namespace-scoped
+// seed data, then hands off to the seed plan.
 let prisma: PrismaClient;
 let dbUrl: string;
 const seedStartedAt = Date.now();

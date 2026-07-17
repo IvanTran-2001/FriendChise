@@ -1,5 +1,5 @@
 import { PermissionAction } from "@prisma/client";
-import { localToUTC } from "@/lib/date-utils";
+import { localToUTC } from "@/lib/core/date-utils";
 
 export function timeToMin(hhmm: string): number {
   const [h, m] = hhmm.split(":").map(Number);

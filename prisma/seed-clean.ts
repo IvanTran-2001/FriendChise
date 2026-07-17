@@ -3,7 +3,7 @@ dotenv.config({ path: ".env", quiet: true });
 
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { cleanupSeedNamespace } from "./seeds/namespace-cleanup";
+import { cleanupSeedNamespace } from "./seeds/helpers/namespace-cleanup";
 
 let prisma: PrismaClient;
 const startedAt = Date.now();
