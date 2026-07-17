@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MoreHorizontal, Pin, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -108,11 +109,7 @@ function TaskFeedCard({
       className="overflow-hidden rounded-[28px] border border-border/60 bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
       data-tour-target={task.name.toLowerCase().includes("fry morning batches") ? "task-fry-morning-batches" : undefined}
     >
-      <button
-        type="button"
-        className="block w-full text-left"
-        onClick={() => router.push(`/orgs/${orgId}/tasks/${task.id}`)}
-      >
+      <Link href={`/orgs/${orgId}/tasks/${task.id}`} className="block w-full text-left">
         <div className="relative aspect-4/3 w-full overflow-hidden bg-linear-to-br from-amber-50 via-stone-100 to-stone-200">
           {task.imageSignedUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -149,33 +146,33 @@ function TaskFeedCard({
             </div>
           </div>
         </div>
+      </Link>
 
-        <div className="px-3.5 pt-3.5">
-          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-            {ownershipBadge(task, orgId)}
-            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground">
-              {formatDuration(task.durationMin)}
-            </span>
-            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground">
-              {task.minPeople}+ ppl
-            </span>
-          </div>
-
-          {task.description && (
-            <div className="mt-3 rounded-2xl border border-border/60 bg-background/70 px-3 py-2.5">
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                Description
-              </p>
-              <TaskDescriptionMarkdown
-                description={task.description}
-                orgId={orgId}
-                interactiveLinks={false}
-                className="max-h-28 overflow-y-auto pr-1 text-sm leading-relaxed text-foreground/90 sm:max-h-32"
-              />
-            </div>
-          )}
+      <div className="px-3.5 pt-3.5">
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+          {ownershipBadge(task, orgId)}
+          <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground">
+            {formatDuration(task.durationMin)}
+          </span>
+          <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground">
+            {task.minPeople}+ ppl
+          </span>
         </div>
-      </button>
+
+        {task.description && (
+          <div className="mt-3 rounded-2xl border border-border/60 bg-background/70 px-3 py-2.5">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+              Description
+            </p>
+            <TaskDescriptionMarkdown
+              description={task.description}
+              orgId={orgId}
+              interactiveLinks={false}
+              className="max-h-28 overflow-y-auto pr-1 text-sm leading-relaxed text-foreground/90 sm:max-h-32"
+            />
+          </div>
+        )}
+      </div>
 
       {pinnedComments.length > 0 && (
         <div className="border-t border-border/60 px-3.5 py-3.5">
