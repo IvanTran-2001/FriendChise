@@ -5,7 +5,7 @@ import { useState } from "react";
 import { RegisterPageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
 import { TaskTable } from "./task-table";
 import { TasksSidebarContent } from "./tasks-sidebar-content";
-import type { SortOption } from "./tasks-config";
+import type { SortOption, TaskView } from "./tasks-config";
 
 type Role = { id: string; name: string; color?: string | null };
 type Tag = { id: string; name: string; color: string };
@@ -18,7 +18,7 @@ interface TasksPageClientProps {
   sort: SortOption;
   roleId: string | null;
   tagId: string | null;
-  view: "list" | "card";
+  view: TaskView;
   mode: "list" | "shared" | "available";
   isModeExplicit: boolean;
   isFiltersExplicit: boolean;
@@ -41,7 +41,7 @@ export function TasksPageClient({
   initialTasks,
   initialNextCursor,
 }: TasksPageClientProps) {
-  const [currentView, setCurrentView] = useState<"list" | "card">(view);
+  const [currentView, setCurrentView] = useState<TaskView>(view);
   const [currentMode, setCurrentMode] = useState<"list" | "shared" | "available">(mode);
 
   return (

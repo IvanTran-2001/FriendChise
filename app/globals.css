@@ -15,6 +15,25 @@
   }
 }
 
+/*
+ * On mobile the navbar + toolbar become `position: fixed` overlays (see
+ * navbar.tsx / toolbar-context.tsx) so they truly stay pinned regardless of
+ * scroll-container nesting. This spacer reserves the equivalent height right
+ * before <main> so page content isn't rendered underneath them. It collapses
+ * to nothing on desktop, where the navbar/toolbar stay in normal flow.
+ */
+.app-header-spacer {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .app-header-spacer {
+    display: block;
+    height: calc(var(--safe-header-height) + var(--toolbar-h, 0px));
+    flex-shrink: 0;
+  }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 html,
@@ -129,6 +148,9 @@ body {
 
   /* Safe area — accounts for macOS fullscreen menu bar zone */
   --safe-header-height: calc(3.5rem + env(safe-area-inset-top, 0px));
+  /* Rendered height of the page toolbar, kept in sync from JS. Only consumed
+     on mobile, where the navbar/toolbar are fixed overlays (see .app-header-spacer). */
+  --toolbar-h: 0px;
 }
 
 .dark {

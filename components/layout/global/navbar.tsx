@@ -65,7 +65,7 @@ export const NavBar = async () => {
 
   return (
     <header
-      className="sticky top-0 z-20 border-b border-border/60 bg-card/85 backdrop-blur-xl supports-backdrop-filter:bg-card/70"
+      className="fixed inset-x-0 top-0 z-40 md:sticky md:inset-auto md:top-0 md:z-20 border-b border-border/60 bg-card/85 backdrop-blur-xl supports-backdrop-filter:bg-card/70"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       data-tour-target="topbar"
     >

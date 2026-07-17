@@ -44,12 +44,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   <DemoBanner session={session} />
                   <DemoTour enabled={isDemo} />
                   <NavBar />
-                  <div className="flex flex-1 min-h-0 overflow-hidden">
+                  <div className="flex flex-1 min-h-0 overflow-visible md:overflow-hidden">
                     <AppSidebar />
                     <PageSidebarSlot />
                     <ActionSidebarSlot />
-                    <div className="flex flex-col flex-1 overflow-hidden">
+                    <div className="flex flex-col flex-1 overflow-visible md:overflow-hidden">
                       <ToolbarSlot />
+                      <div className="app-header-spacer" aria-hidden="true" />
                       <main className="flex-1 min-h-0 overflow-x-hidden flex flex-col p-4 sm:p-6 touch-pan-y md:overflow-y-auto" data-tour-target="workspace">
                         {children}
                       </main>

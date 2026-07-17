@@ -5,9 +5,8 @@ import { DemoSubmitButton } from "@/components/marketing/demo-submit-button";
 import { startDemoSessionAction } from "@/app/actions/demo";
 
 const ROADMAP = [
-  "Warehouse-linked stock tracking",
-  "Cross-location performance benchmarking",
-  "Hiring workflows",
+  "Unified AI tool integrations",
+  "Native mobile app",
 ];
 
 /**

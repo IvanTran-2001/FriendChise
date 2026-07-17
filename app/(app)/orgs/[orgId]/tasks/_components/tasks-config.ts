@@ -13,6 +13,8 @@ export type SortOption =
   | "people-asc"
   | "people-desc";
 
+export type TaskView = "list" | "card" | "feed";
+
 export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "name-asc", label: "Name A–Z" },
   { value: "name-desc", label: "Name Z–A" },
