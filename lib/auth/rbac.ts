@@ -8,6 +8,6 @@
  * - DEFAULT_MEMBER: baseline role assigned to newly invited members
  */
 export const ROLE_KEYS = {
-  OWNER: "owner",
-  DEFAULT_MEMBER: "default_member",
+	OWNER: "owner",
+	DEFAULT_MEMBER: "default_member",
 } as const;
