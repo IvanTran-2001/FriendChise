@@ -1,7 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 import LinkedIn from "next-auth/providers/linkedin";
-import { normalizeEmail } from "@/lib/utils";
+import { normalizeEmail } from "@/lib/core/utils";
 
 /**
  * Edge-compatible Auth.js config.

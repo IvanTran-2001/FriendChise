@@ -1,9 +1,9 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { authConfig } from "@/auth.config";
-import { log } from "@/lib/observability";
+import { log } from "@/lib/platform/observability";
 import { isDemoEmail, DEMO_JWT_TTL_MS } from "@/lib/demo";
 
 /**
