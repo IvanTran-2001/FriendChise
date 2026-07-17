@@ -3,7 +3,7 @@ export type Task = {
   name: string;
   color: string;
   description: string | null;
-  createdAt: Date;
+  createdAt: Date | string;
   durationMin: number;
   minPeople: number;
   orgId: string;
@@ -17,7 +17,7 @@ export type Task = {
     content: string;
     authorName: string;
     authorImage: string | null;
-    createdAt: Date;
-    pinnedAt: Date | null;
+    createdAt: Date | string;
+    pinnedAt: Date | string | null;
   }[];
 };

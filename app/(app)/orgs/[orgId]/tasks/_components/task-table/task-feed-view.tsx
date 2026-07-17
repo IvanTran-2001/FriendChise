@@ -12,7 +12,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Task } from "./task-types";
 import { formatDuration, ownershipBadge, stripMd } from "./task-format-utils";
-import { TaskDescription } from "../../[taskId]/task-description";
 
 interface TaskFeedViewProps {
   orgId: string;
@@ -25,7 +24,8 @@ interface TaskFeedViewProps {
 
 function formatFeedTime(value: Date | string): string {
   const date = typeof value === "string" ? new Date(value) : value;
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
     month: "short",
     day: "numeric",
     hour: "numeric",
@@ -165,7 +165,9 @@ function TaskFeedCard({
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                 Description
               </p>
-              <TaskDescription description={task.description} orgId={orgId} />
+              <p className="line-clamp-3 text-sm leading-relaxed text-foreground/90">
+                {stripMd(task.description)}
+              </p>
             </div>
           )}
         </div>
@@ -178,8 +180,8 @@ function TaskFeedCard({
             Pinned notes
           </div>
           <div className="space-y-1.5">
-            {pinnedComments.map((comment, index) => (
-              <FeedComment key={comment.id} comment={comment} isPinned={index === 0} />
+            {pinnedComments.map((comment) => (
+              <FeedComment key={comment.id} comment={comment} isPinned />
             ))}
           </div>
         </div>
