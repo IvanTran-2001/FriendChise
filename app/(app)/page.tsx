@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { requireUserPage } from "@/lib/authz";
+import { getAuthUserId } from "@/lib/authz";
 import { prisma } from "@/lib/platform/prisma";
 import { getPublicUrl } from "@/lib/platform/supabase-storage";
 import { Building2, Plus, Network, Users, Globe, ChevronRight } from "lucide-react";
@@ -12,6 +12,7 @@ import { OrgNotFoundToast } from "./org-not-found-toast";
 import { RecentOrgBanner } from "./recent-org-banner";
 import { HubInviteSection } from "./hub-invite-section";
 import { getPaginatedInvitesForUser } from "@/lib/services/invites";
+import { MarketingHome } from "@/components/marketing/marketing-home";
 
 // ─── Org card ─────────────────────────────────────────────────────────────────
 
@@ -187,7 +188,11 @@ export default async function HubPage({
   searchParams: Promise<{ orgNotFound?: string }>;
 }) {
   const { orgNotFound } = await searchParams;
-  const { userId } = await requireUserPage();
+  const userId = await getAuthUserId();
+
+  // Anonymous visitors see the public marketing homepage instead of being
+  // bounced to /signin — authenticated users keep the existing Hub below.
+  if (!userId) return <MarketingHome />;
 
   const [memberships, invitePage] = await Promise.all([
     prisma.membership.findMany({

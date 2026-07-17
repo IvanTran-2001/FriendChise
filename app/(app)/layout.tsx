@@ -27,6 +27,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const session = await auth();
   const isDemo = isDemoEmail(session?.user?.email ?? null);
 
+  // Anonymous visitors only ever reach this layout via `/` (every other
+  // `(app)` route redirects to /signin before rendering) where they see the
+  // public marketing homepage — skip the authenticated app shell entirely.
+  if (!session?.user) return <>{children}</>;
+
   return (
     <PageSidebarProvider>
       <ActionSidebarProvider>
