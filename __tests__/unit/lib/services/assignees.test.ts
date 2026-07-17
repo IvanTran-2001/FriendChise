@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { createAssignee, deleteAssignee } from "@/lib/services/assignees";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/platform/prisma", () => ({
   prisma: {
     timetableEntry: {
       findFirst: vi.fn(),

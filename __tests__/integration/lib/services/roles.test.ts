@@ -5,10 +5,10 @@
  * in a single transaction, system role guards (Owner/DefaultMember not deletable),
  * cross-org scoping, and cascade cleanup.
  */
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { createRole, deleteRole, updateRole } from "@/lib/services/roles";
 import { PermissionAction } from "@prisma/client";
-import { ROLE_KEYS } from "@/lib/rbac";
+import { ROLE_KEYS } from "@/lib/auth/rbac";
 import { SEED_USER_EMAIL } from "../../helpers";
 
 async function getSeedOrg() {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseMultipleIds } from "@/lib/utils";
+import { parseMultipleIds } from "@/lib/core/utils";
 
 describe("parseMultipleIds", () => {
   it("handles undefined, null, or empty string", () => {

@@ -4,9 +4,9 @@
  * These tests run against the real dev database (seeded fresh before the run).
  * No mocks — every assertion reflects actual DB state.
  */
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { createOrg } from "@/lib/services/orgs";
-import { ROLE_KEYS } from "@/lib/rbac";
+import { ROLE_KEYS } from "@/lib/auth/rbac";
 import { SEED_USER_EMAIL } from "../../helpers";
 
 describe("createOrg", () => {

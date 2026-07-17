@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import {
   moveStorageFile,
   copyStorageFile,
   deleteStorageFile,
-} from "@/lib/supabase-storage";
+} from "@/lib/platform/supabase-storage";
 import {
   sanitizeFilename,
   renameTaskImageIfNeeded,
@@ -12,14 +12,14 @@ import {
 } from "@/lib/services/images";
 
 // Mock Supabase storage
-vi.mock("@/lib/supabase-storage", () => ({
+vi.mock("@/lib/platform/supabase-storage", () => ({
   moveStorageFile: vi.fn(),
   copyStorageFile: vi.fn(),
   deleteStorageFile: vi.fn(),
 }));
 
 // Mock Prisma client
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/platform/prisma", () => ({
   prisma: {
     task: {
       findFirst: vi.fn(),

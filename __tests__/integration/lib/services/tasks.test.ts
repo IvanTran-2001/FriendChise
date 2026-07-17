@@ -4,7 +4,7 @@
  * Tests real DB behaviour: persisted rows, org scoping, NOT_FOUND guards,
  * and cascade cleanup when a task is deleted while eligibility rows exist.
  */
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import {
   createTask,
   deleteTask,

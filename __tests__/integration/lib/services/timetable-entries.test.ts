@@ -4,7 +4,7 @@
  * Tests the core CRUD operations and assignee management against the real DB.
  * Uses seeded tasks and memberships from Donut Shop A — no extra setup users needed.
  */
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import {
   createTimetableEntry,
   listTimetableEntries,

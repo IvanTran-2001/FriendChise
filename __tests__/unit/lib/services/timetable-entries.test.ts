@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import {
   createTimetableEntry,
   updateTimetableEntry,
@@ -8,7 +8,7 @@ import {
   removeTimetableEntryAssignee,
 } from "@/lib/services/timetable-entries";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/platform/prisma", () => ({
   prisma: {
     task: { findUnique: vi.fn() },
     organization: { findUnique: vi.fn() },
@@ -30,7 +30,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 // Mock date-utils so tests are timezone-independent
-vi.mock("@/lib/date-utils", () => ({
+vi.mock("@/lib/core/date-utils", () => ({
   localToUTC: vi.fn(() => ({
     utcDate: new Date("2026-04-20T00:00:00Z"),
     utcStartTimeMin: 360,

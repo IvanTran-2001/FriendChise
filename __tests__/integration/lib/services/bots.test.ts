@@ -5,7 +5,7 @@
  * the real database. Tests that fill a bot slot with a real user use
  * createTempUser() + cleanup so the seeded non-member pool is not depleted.
  */
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import {
   createBot,
   deleteBot,
@@ -13,7 +13,7 @@ import {
   botToMember,
   updateBot,
 } from "@/lib/services/bots";
-import { ROLE_KEYS } from "@/lib/rbac";
+import { ROLE_KEYS } from "@/lib/auth/rbac";
 import {
   getSeedOrg,
   getSeedUser,

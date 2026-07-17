@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { createOrg, joinFranchise } from "@/lib/services/orgs";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/platform/prisma", () => ({
   prisma: {
     $transaction: vi.fn(),
     organization: { create: vi.fn() },
