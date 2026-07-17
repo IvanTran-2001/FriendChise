@@ -165,9 +165,9 @@ function TaskFeedCard({
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                 Description
               </p>
-              <p className="line-clamp-3 text-sm leading-relaxed text-foreground/90">
-                {stripMd(task.description)}
-              </p>
+              <div className="max-h-28 overflow-y-auto pr-1 text-sm leading-relaxed text-foreground/90 sm:max-h-32">
+                <p>{stripMd(task.description)}</p>
+              </div>
             </div>
           )}
         </div>
