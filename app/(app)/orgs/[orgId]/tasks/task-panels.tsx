@@ -19,11 +19,11 @@ import {
   createTagOnlyAction,
 } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
-import { SearchableCombobox, type ComboboxItem } from "@/components/ui/searchable-combobox";
+import { SearchableCombobox, type ComboboxItem } from "@/components/ui/comboboxes/searchable-combobox";
 import { useImageUpload } from "@/hooks/use-image-upload";
 import { saveTaskImagePath } from "@/app/actions/storage";
-import { OrgImagePicker } from "@/components/ui/org-image-picker";
-import { TaskToolList, type TaskToolSelection } from "@/components/ui/task-tools";
+import { OrgImagePicker } from "@/components/ui/pickers/org-image-picker";
+import { TaskToolList, type TaskToolSelection } from "@/components/ui/controls/task-tools";
 
 export type Role = { id: string; name: string; color: string | null };
 export type Tag = { id: string; name: string; color: string };

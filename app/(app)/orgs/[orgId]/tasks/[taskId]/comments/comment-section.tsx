@@ -107,7 +107,7 @@ export function CommentSection({
   );
 
   return (
-    <div className="rounded-lg border bg-card">
+    <div className="rounded-lg border bg-card scroll-mt-24" data-tour-target="task-comments-panel">
       {/* Header */}
       <div className="px-5 py-3 border-b border-border flex items-center justify-between gap-3">
         <h2 className="text-sm font-medium">

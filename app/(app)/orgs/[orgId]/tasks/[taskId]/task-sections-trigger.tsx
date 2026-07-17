@@ -7,7 +7,7 @@
  */
 import { LayoutList } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { TaskSectionsPanel, type SectionRow } from "./task-sections-panel";
 
 interface TaskSectionsTriggerProps {

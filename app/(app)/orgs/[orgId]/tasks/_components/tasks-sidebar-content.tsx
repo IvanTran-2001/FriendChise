@@ -29,10 +29,10 @@ import {
   Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SegmentedControl } from "@/components/ui/segmented-control";
-import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
-import { FilterCombobox } from "@/components/ui/filter-combobox";
-import { TagFilterButton } from "@/components/ui/tag-filter-button";
+import { SegmentedControl } from "@/components/ui/controls/segmented-control";
+import { PageSidebarNavItem } from "@/components/layout/sidebar/page-sidebar-nav-item";
+import { FilterCombobox } from "@/components/ui/comboboxes/filter-combobox";
+import { TagFilterButton } from "@/components/ui/controls/tag-filter-button";
 import { SORT_OPTIONS, type SortOption } from "./tasks-config";
 
 type Role = { id: string; name: string; color?: string | null };
@@ -236,7 +236,7 @@ export function TasksSidebarContent({
       </div>
 
       {/* Filters section */}
-      <div className="px-3 pt-3 pb-2 border-t border-border">
+      <div className="px-3 pt-3 pb-2 border-t border-border" data-tour-target="page-filters-panel">
         <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
           Filters
         </p>

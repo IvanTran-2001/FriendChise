@@ -17,15 +17,15 @@ import { PermissionAction } from "@prisma/client";
 import { requireOrgMemberPage } from "@/lib/authz";
 import { getOrgMembership, memberHasPermission } from "@/lib/authz/_shared";
 import { getAccessibleTaskById } from "@/lib/services/tasks";
-import { createSignedReadUrl } from "@/lib/supabase-storage";
-import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
-import { BackButton } from "@/components/layout/back-button";
+import { createSignedReadUrl } from "@/lib/platform/supabase-storage";
+import { RegisterPageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
+import { BackButton } from "@/components/layout/sidebar/back-button";
 import { Clock, Users, AlarmClock, RefreshCw, Globe, Lock } from "lucide-react";
 import { TaskDescription } from "./task-description";
 import { TaskDetailSidebar } from "./task-detail-sidebar";
 import { TaskComments } from "./comments/index";
-import { formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/core/utils";
 import type { TaskToolSelection } from "../_components/task-tools-picker";
 
 function formatDuration(min: number): string {
@@ -148,7 +148,10 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
         </div>
 
         {/* Main unified card */}
-        <div className="rounded-lg border bg-card overflow-hidden">
+        <div
+          className="rounded-lg border bg-card overflow-hidden"
+          data-tour-target="task-summary-panel"
+        >
           {/* Color accent bar */}
           <div className="h-1.5" style={{ backgroundColor: task.color }} />
 
@@ -249,7 +252,10 @@ const ViewTaskPage = async ({ params, searchParams }: Props) => {
 
           {/* Description */}
           {task.description && (
-            <div className="border-t border-border px-6 py-5">
+            <div
+              className="border-t border-border px-6 py-5 scroll-mt-24"
+              data-tour-target="task-description-panel"
+            >
               <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
                 Description
               </h2>

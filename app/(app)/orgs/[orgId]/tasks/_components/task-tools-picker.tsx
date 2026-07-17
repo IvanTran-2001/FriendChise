@@ -11,12 +11,12 @@
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { Button } from "@/components/ui/button";
-import { SearchableCombobox, type ComboboxItem } from "@/components/ui/searchable-combobox";
-import type { TaskToolSelection } from "@/components/ui/task-tools";
+import { SearchableCombobox, type ComboboxItem } from "@/components/ui/comboboxes/searchable-combobox";
+import type { TaskToolSelection } from "@/components/ui/controls/task-tools";
 
-export type { TaskToolSelection } from "@/components/ui/task-tools";
+export type { TaskToolSelection } from "@/components/ui/controls/task-tools";
 
 type ToolKind = "conversion" | "item-list" | "roster";
 

@@ -2,7 +2,7 @@
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { MarkdownImage, MarkdownLink } from "@/components/ui/markdown-media";
+import { MarkdownImage, MarkdownLink } from "@/components/ui/editors/markdown-media";
 
 export function TaskDescription({
   description,

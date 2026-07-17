@@ -12,10 +12,10 @@ import type { ReactNode } from "react";
 import { AlarmClock, Clock, ImagePlus, RefreshCw, Trash2, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { ColorPicker } from "@/components/ui/color-picker";
-import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { ColorPicker } from "@/components/ui/pickers/color-picker";
+import { CollapsibleSection } from "@/components/ui/controls/collapsible-section";
 import { Input } from "@/components/ui/input";
-import { OrgImagePicker } from "@/components/ui/org-image-picker";
+import { OrgImagePicker } from "@/components/ui/pickers/org-image-picker";
 
 import {
   TaskToolsPicker,

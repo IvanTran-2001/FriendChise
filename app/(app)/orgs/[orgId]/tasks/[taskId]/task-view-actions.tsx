@@ -25,7 +25,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/dialogs/alert-dialog";
 import { deleteTaskAction } from "@/app/actions/tasks";
 
 interface Props {
@@ -56,6 +56,7 @@ export function TaskViewActions({ orgId, taskId, taskName }: Props) {
       <div
         className="flex items-center gap-2 shrink-0 ml-auto"
         data-testid="task-actions"
+        data-tour-target="task-view-actions"
       >
         <Button variant="outline" size="sm" asChild>
           <Link href={`/orgs/${orgId}/tasks/${taskId}/edit`}>

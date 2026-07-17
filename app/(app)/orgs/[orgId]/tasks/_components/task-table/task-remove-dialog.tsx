@@ -9,7 +9,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/dialogs/alert-dialog";
 import type { Task } from "./task-types";
 
 interface TaskRemoveDialogProps {

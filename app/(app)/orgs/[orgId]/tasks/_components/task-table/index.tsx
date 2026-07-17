@@ -13,8 +13,8 @@ import { useState, useTransition, useEffect } from "react";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
+import { SearchInput } from "@/components/ui/controls/search-input";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
 import {
   deleteTaskAction,
   removeTaskFromListAction,
@@ -136,20 +136,24 @@ export function TaskTable({
   const showSkeleton = initialLoad || (isFetching && tasks.length === 0);
   const trimmedSearch = search.trim();
   const hasSearch = trimmedSearch !== "";
+  const displayCount = `${tasks.length} task${tasks.length === 1 ? "" : "s"}`;
 
   return (
     <>
       <RegisterPageToolbar>
-        <Input
+        <SearchInput
           aria-label="Search tasks by title"
           placeholder="Search by title..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 h-7 min-w-50"
+          data-tour-target="task-toolbar-search"
+          className="h-7"
+          containerClassName="flex-1 min-w-50"
         />
+        <span className="ml-auto shrink-0 text-xs text-muted-foreground">{displayCount}</span>
       </RegisterPageToolbar>
 
-      <div className="flex flex-col min-w-0">
+      <div>
         {showSkeleton ? (
           view === "list" ? <TaskListSkeleton count={8} /> : <TaskCardSkeleton count={6} />
         ) : isEmpty ? (

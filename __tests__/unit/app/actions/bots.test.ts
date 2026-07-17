@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/lib/authz", () => ({ requireOrgPermissionAction: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/platform/prisma", () => ({
   prisma: {
     role: { findFirst: vi.fn() },
     membership: { findUnique: vi.fn() },
@@ -25,7 +25,7 @@ vi.mock("@/lib/services/invites", () => ({
 import { requireOrgPermissionAction } from "@/lib/authz";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import {
   createBot as createBotService,
   deleteBot as deleteBotService,

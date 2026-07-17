@@ -2,7 +2,7 @@ import { getRoles } from "@/lib/services/roles";
 import { getOrgTags } from "@/lib/services/tags";
 import { getTasksPaginated } from "@/lib/services/tasks";
 import { requireOrgMemberPage } from "@/lib/authz";
-import { createSignedReadUrls } from "@/lib/supabase-storage";
+import { createSignedReadUrls } from "@/lib/platform/supabase-storage";
 import {
   getOrgMembership,
   memberHasPermission,

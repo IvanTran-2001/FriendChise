@@ -30,6 +30,7 @@ export function TaskCardGrid({
   onDeleteClick,
 }: TaskCardGridProps) {
   const router = useRouter();
+  const isFryMorningBatchesTask = (name: string) => name.toLowerCase().includes("fry morning batches");
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -47,6 +48,7 @@ export function TaskCardGrid({
               router.push(`/orgs/${orgId}/tasks/${task.id}`);
             }
           }}
+          data-tour-target={isFryMorningBatchesTask(task.name) ? "task-fry-morning-batches" : undefined}
         >
           {task.imageSignedUrl ? (
             // eslint-disable-next-line @next/next/no-img-element

@@ -3,8 +3,8 @@
 import { type ReactNode } from "react";
 import { AlarmClock, Clock, RefreshCw, Users } from "lucide-react";
 
-import { ColorPicker } from "@/components/ui/color-picker";
-import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { ColorPicker } from "@/components/ui/pickers/color-picker";
+import { CollapsibleSection } from "@/components/ui/controls/collapsible-section";
 import { Input } from "@/components/ui/input";
 
 import { TaskToolsPicker, type TaskToolSelection } from "../../../_components/task-tools-picker";

@@ -30,12 +30,17 @@ export function TaskListView({
   onDeleteClick,
 }: TaskListViewProps) {
   const router = useRouter();
+  const isFryMorningBatchesTask = (name: string) => name.toLowerCase().includes("fry morning batches");
 
   return (
     <>
       <ul className="md:hidden flex flex-col divide-y rounded-2xl border border-border/70 bg-card overflow-hidden shadow-sm touch-pan-y">
         {tasks.map((task) => (
-          <li key={task.id} className="px-3 py-2 transition-colors hover:bg-muted/40">
+          <li
+            key={task.id}
+            className="px-3 py-2 transition-colors hover:bg-muted/40"
+            data-tour-target={isFryMorningBatchesTask(task.name) ? "task-fry-morning-batches" : undefined}
+          >
             <div className="flex items-start gap-2">
               <button
                 type="button"
@@ -163,166 +168,142 @@ export function TaskListView({
         ))}
       </ul>
 
-      <div className="hidden overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm md:block">
-        <table className="w-full border-collapse text-sm">
-        <thead className="bg-muted/50 text-muted-foreground">
-          <tr className="border-b">
-            <th className="px-4 py-3 text-left font-medium">Task</th>
-            <th className="px-4 py-3 text-left font-medium">Roles</th>
-            <th className="px-4 py-3 text-left font-medium">Tags</th>
-            <th className="px-4 py-3 text-left font-medium whitespace-nowrap">Duration</th>
-            <th className="px-4 py-3 text-left font-medium whitespace-nowrap">People</th>
-            <th className="px-4 py-3 text-right font-medium">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tasks.map((task) => (
-            <tr
-              key={task.id}
-              className="border-b border-border/70 last:border-b-0 hover:bg-muted/40 transition-colors"
+      <ul className="hidden flex-col divide-y rounded-2xl border border-border/70 bg-card overflow-hidden shadow-sm md:flex">
+        {tasks.map((task) => (
+          <li
+            key={task.id}
+            className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/40"
+            data-tour-target={isFryMorningBatchesTask(task.name) ? "task-fry-morning-batches" : undefined}
+          >
+            <button
+              type="button"
+              className="flex min-w-0 flex-[1.4] items-start gap-3 text-left cursor-pointer"
+              onClick={() => router.push(`/orgs/${orgId}/tasks/${task.id}`)}
             >
-              <td className="px-4 py-3 align-top">
-                <button
-                  type="button"
-                  className="flex w-full items-start gap-3 text-left cursor-pointer"
-                  onClick={() => router.push(`/orgs/${orgId}/tasks/${task.id}`)}
+              {task.imageSignedUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={task.imageSignedUrl}
+                  alt=""
+                  className="h-10 w-10 rounded-md object-cover shrink-0"
+                />
+              ) : (
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-md text-sm font-semibold shrink-0"
+                  style={{
+                    backgroundColor: task.color + "25",
+                    color: task.color,
+                  }}
                 >
-                  {task.imageSignedUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={task.imageSignedUrl}
-                      alt=""
-                      className="h-10 w-10 rounded-md object-cover shrink-0"
-                    />
-                  ) : (
-                    <div
-                      className="flex h-10 w-10 items-center justify-center rounded-md text-sm font-semibold shrink-0"
-                      style={{
-                        backgroundColor: task.color + "25",
-                        color: task.color,
-                      }}
-                    >
-                      {task.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium text-foreground">{task.name}</div>
-                    {task.description && (
-                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground leading-relaxed">
-                        {stripMd(task.description)}
-                      </p>
+                  {task.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium text-foreground">{task.name}</div>
+                {task.description && (
+                  <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground leading-relaxed">
+                    {stripMd(task.description)}
+                  </p>
+                )}
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {ownershipBadge(task, orgId)}
+                  <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                    {formatDuration(task.durationMin)}
+                  </span>
+                  <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                    {task.minPeople}+ ppl
+                  </span>
+                </div>
+              </div>
+            </button>
+
+            <div className="hidden flex-1 flex-wrap gap-1.5 self-start pt-1 text-muted-foreground lg:flex">
+              {task.eligibility.length > 0 ? (
+                task.eligibility.map((e) => (
+                  <span
+                    key={e.role.id}
+                    className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium text-foreground"
+                  >
+                    {e.role.color && (
+                      <span
+                        className="h-1.5 w-1.5 rounded-full shrink-0"
+                        style={{ backgroundColor: e.role.color }}
+                      />
                     )}
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {ownershipBadge(task, orgId)}
-                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                        {formatDuration(task.durationMin)}
-                      </span>
-                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                        {task.minPeople}+ ppl
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              </td>
-              <td className="px-4 py-3 align-top text-muted-foreground">
-                {task.eligibility.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {task.eligibility.map((e) => (
-                      <span
-                        key={e.role.id}
-                        className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium text-foreground"
-                      >
-                        {e.role.color && (
-                          <span
-                            className="h-1.5 w-1.5 rounded-full shrink-0"
-                            style={{ backgroundColor: e.role.color }}
-                          />
-                        )}
-                        {e.role.name}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="text-xs">All roles</span>
-                )}
-              </td>
-              <td className="px-4 py-3 align-top text-muted-foreground">
-                {task.tags.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {task.tags.map((tt) => (
-                      <span
-                        key={tt.tag.id}
-                        className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium text-foreground"
-                      >
-                        <span
-                          className="inline-block h-1.5 w-1.5 rounded-full shrink-0"
-                          style={{ backgroundColor: tt.tag.color }}
-                        />
-                        {tt.tag.name}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="text-xs">No tags</span>
-                )}
-              </td>
-              <td className="px-4 py-3 align-top whitespace-nowrap text-muted-foreground">
-                {formatDuration(task.durationMin)}
-              </td>
-              <td className="px-4 py-3 align-top whitespace-nowrap text-muted-foreground">
-                {task.minPeople}+ people
-              </td>
-              <td className="px-4 py-3 align-top text-right">
-                <div className="inline-flex items-center gap-2">
-                  {canManageTasks && task._available && (
+                    {e.role.name}
+                  </span>
+                ))
+              ) : (
+                <span className="text-xs">All roles</span>
+              )}
+            </div>
+
+            <div className="hidden flex-1 flex-wrap gap-1.5 self-start pt-1 text-muted-foreground lg:flex">
+              {task.tags.length > 0 ? (
+                task.tags.map((tt) => (
+                  <span
+                    key={tt.tag.id}
+                    className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium text-foreground"
+                  >
+                    <span
+                      className="inline-block h-1.5 w-1.5 rounded-full shrink-0"
+                      style={{ backgroundColor: tt.tag.color }}
+                    />
+                    {tt.tag.name}
+                  </span>
+                ))
+              ) : (
+                <span className="text-xs">No tags</span>
+              )}
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2">
+              {canManageTasks && task._available && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0 cursor-pointer"
+                  disabled={isPending}
+                  title="Add to my list"
+                  onClick={() => onAddToList(task)}
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="sr-only">Add to list</span>
+                </Button>
+              )}
+
+              {canManageTasks && !task._available && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 cursor-pointer"
+                      className="h-8 w-8 shrink-0 cursor-pointer"
                       disabled={isPending}
-                      title="Add to my list"
-                      onClick={() => onAddToList(task)}
                     >
-                      <Plus className="h-4 w-4" />
-                      <span className="sr-only">Add to list</span>
+                      <MoreHorizontal className="h-4 w-4" />
+                      <span className="sr-only">Task actions</span>
                     </Button>
-                  )}
-                  {canManageTasks && !task._available && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 cursor-pointer"
-                          disabled={isPending}
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Task actions</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => router.push(`/orgs/${orgId}/tasks/${task.id}/edit`)}
-                        >
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem disabled>Duplicate</DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => onDeleteClick(task)}
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-        </table>
-      </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => router.push(`/orgs/${orgId}/tasks/${task.id}/edit`)}>
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem disabled>Duplicate</DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => onDeleteClick(task)}
+                    >
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
     </>
   );
 }

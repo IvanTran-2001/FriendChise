@@ -25,7 +25,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/dialogs/alert-dialog";
 import { publishTaskAction, unpublishTaskAction } from "@/app/actions/tasks";
 
 type TaskScope = "ORG" | "GLOBAL";

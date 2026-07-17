@@ -13,8 +13,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { randomColor } from "@/components/ui/color-picker";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { randomColor } from "@/components/ui/pickers/color-picker";
+import { RichTextEditor } from "@/components/ui/editors/rich-text-editor";
 import { createTaskAction } from "@/app/actions/tasks";
 import type { CreateTaskFormState } from "@/app/actions/tasks";
 import { TagPanel, EligibilityPanel } from "../task-panels";
@@ -31,7 +31,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/dialogs/alert-dialog";
 
 type TaskCreateDraft = {
   title: string;
