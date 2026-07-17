@@ -18,7 +18,7 @@ Originally developed to solve operational problems within a real Walker’s Doug
 [Report an Issue](https://github.com/IvanTran-2001/FriendChise/issues) ·
 [Contribute](CONTRIBUTING.md)
 
-![FriendChise dashboard overview](docs/images/friendchise-dashboard.png)
+![FriendChise dashboard overview](public/docs/friendchise-dashboard.png)
 
 ## Help you and me by staring the repo!
 The more stars this project gets, the more recognition and weight this project will hold which will benefit all of us contributing. So, if you like the project:

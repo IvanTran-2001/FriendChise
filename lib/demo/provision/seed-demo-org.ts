@@ -352,7 +352,11 @@ export async function seedDemoOrg(ownerId: string, tx: Prisma.TransactionClient)
   const seededVoteUserIds = new Map<string, string>([
     ["owner", ownerId],
   ]);
-  const voteUserKeys = ["jordan", "casey", "riley", "morgan", "alex", "taylor", "sam", "quinn"] as const;
+  // Only resolve the vote-user keys that commentVotes actually references —
+  // avoids failing demo provisioning over unrelated fixture accounts that
+  // aren't referenced by any vote (those depend on the shared dev/CI seed
+  // namespace and are not guaranteed to exist in every environment).
+  const voteUserKeys = Array.from(new Set(commentVotes.map((vote) => vote.user))).filter((key) => key !== "owner");
   await Promise.all(
     voteUserKeys.map(async (key) => {
       const user = await tx.user.findUnique({
