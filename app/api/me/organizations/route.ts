@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
-import { getPublicUrl } from "@/lib/supabase-storage";
+import { prisma } from "@/lib/platform/prisma";
+import { getPublicUrl } from "@/lib/platform/supabase-storage";
 
 type Org = { id: string; name: string; image: string | null };
 

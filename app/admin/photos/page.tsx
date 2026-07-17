@@ -1,8 +1,8 @@
 import { FeedbackType } from "@prisma/client";
 import { requireSuperAdminPage } from "@/lib/authz";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { getAllFeedback } from "@/lib/services/feedback";
-import { createSignedReadUrls, getPublicUrl } from "@/lib/supabase-storage";
+import { createSignedReadUrls, getPublicUrl } from "@/lib/platform/supabase-storage";
 import {
   Card,
   CardContent,

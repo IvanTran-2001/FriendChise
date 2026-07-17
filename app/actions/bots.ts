@@ -16,9 +16,9 @@ import {
   inviteBotSlotSchema,
 } from "@/lib/validators/bot";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { auth } from "@/auth";
-import { normalizeEmail } from "@/lib/utils";
+import { normalizeEmail } from "@/lib/core/utils";
 
 export async function createBotAction(
   orgId: string,

@@ -10,7 +10,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import { SearchInput } from "@/components/ui/search-input";
+import { SearchInput } from "@/components/ui/controls/search-input";
 import type { DocNavItem, DocNavTreeNode } from "@/lib/docs";
 
 type DocSidebarTreeProps = {

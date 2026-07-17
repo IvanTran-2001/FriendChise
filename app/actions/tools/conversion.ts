@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { PermissionAction, Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { requireOrgPermissionAction } from "@/lib/authz";
 import { renameToolItemImageIfNeeded } from "@/lib/services/images";
 import {

@@ -9,7 +9,7 @@ import {
   MessageSquareWarning,
   ShieldAlert,
 } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { isDemoEmail } from "@/lib/demo";
 import { requireSuperAdminPage } from "@/lib/authz";
 import { getAllFeedback } from "@/lib/services/feedback";

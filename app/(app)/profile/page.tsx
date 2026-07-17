@@ -4,7 +4,7 @@ import { requireUserPage } from "@/lib/authz";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, ThumbsUp } from "lucide-react";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 
 export default async function ProfilePage() {
   await requireUserPage();

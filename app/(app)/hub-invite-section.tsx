@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Users, Network, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import {
   acceptMemberInviteAction,
   declineMemberInviteAction,

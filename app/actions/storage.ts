@@ -27,7 +27,7 @@ import {
   createSignedReadUrls,
   deleteStorageFile,
   deletePublicFile,
-} from "@/lib/supabase-storage";
+} from "@/lib/platform/supabase-storage";
 import { updateTaskImageUrl } from "@/lib/services/tasks";
 import { updateToolItemImageUrl } from "@/lib/services/tools";
 import { updateOrgImage } from "@/lib/services/orgs";
@@ -39,7 +39,7 @@ import {
   renameTaskImageIfNeeded,
   renameToolItemImageIfNeeded,
 } from "@/lib/services/images";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { isDemoEmail } from "@/lib/demo";
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
@@ -606,7 +606,7 @@ export async function getFeedbackImageReadUrl(
     return { ok: false, error: "Invalid path" };
   }
 
-  const { createSignedReadUrl } = await import("@/lib/supabase-storage");
+  const { createSignedReadUrl } = await import("@/lib/platform/supabase-storage");
   const signedUrl = await createSignedReadUrl(storagePath, 3600);
   if (!signedUrl) return { ok: false, error: "Failed to generate signed URL" };
 

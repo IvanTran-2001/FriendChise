@@ -13,7 +13,7 @@
 // can render the item list without loading the full dataset.
 import { NextResponse } from "next/server";
 import { requireOrgMember } from "@/lib/authz";
-import { createSignedReadUrls } from "@/lib/supabase-storage";
+import { createSignedReadUrls } from "@/lib/platform/supabase-storage";
 import { getToolItemsPage } from "@/lib/services/tools";
 
 export async function GET(

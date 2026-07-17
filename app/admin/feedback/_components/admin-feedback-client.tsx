@@ -16,7 +16,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { AlertCircle, Lightbulb, Check, Loader2 } from "lucide-react";
 import { FeedbackType } from "@prisma/client";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { Button } from "@/components/ui/button";
 import { toggleFeedbackReviewedAction } from "@/app/actions/feedback";
 import { getFeedbackImageReadUrl } from "@/app/actions/storage";

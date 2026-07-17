@@ -1,7 +1,7 @@
 import { encode } from "next-auth/jwt";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 
 /**
  * Test-only endpoint that creates a real Auth.js JWT session cookie for a

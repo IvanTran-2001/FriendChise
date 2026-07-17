@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getMenuItemsPage, getPublicMenuDetail } from "@/lib/services/tools";
-import { createSignedReadUrls, getPublicUrl } from "@/lib/supabase-storage";
+import { createSignedReadUrls, getPublicUrl } from "@/lib/platform/supabase-storage";
 
 export async function GET(
   req: Request,

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { getPublicMenuDetail, recordMenuPreviewDailyView } from "@/lib/services/tools/menus";
-import { createSignedReadUrls, getPublicUrl } from "@/lib/supabase-storage";
+import { createSignedReadUrls, getPublicUrl } from "@/lib/platform/supabase-storage";
 import { MenuNavbar } from "./_components/menu-navbar";
 import { MenuClient } from "./_components/menu-client";
 import type { ResolvedMenuData, ResolvedMenuItem, ResolvedMenuTab } from "./_components/types";

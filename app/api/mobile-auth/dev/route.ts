@@ -1,6 +1,6 @@
 import { encode } from "next-auth/jwt";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { getDevUsers } from "@/app/(auth)/signin/get-dev-users";
 
 const MOBILE_TOKEN_COOKIE_NAME = "friendchise.mobile-session-token";

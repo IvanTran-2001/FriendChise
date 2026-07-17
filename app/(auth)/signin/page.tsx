@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { type ComponentType } from "react";
 import { auth, signIn } from "@/auth";
-import { Logo } from "@/components/layout/logo";
+import { Logo } from "@/components/layout/global/logo";
 import { Button } from "@/components/ui/button";
 import {
   Card,

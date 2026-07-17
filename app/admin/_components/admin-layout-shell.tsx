@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { Shield, Menu, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/dialogs/sheet";
 import { AdminNavTabs } from "./admin-nav-tabs";
 
 export function AdminLayoutShell({ children }: { children: React.ReactNode }) {

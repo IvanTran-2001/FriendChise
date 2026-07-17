@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { PermissionAction } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { requireOrgPermission } from "@/lib/authz";
 import { getMenuItemsPage } from "@/lib/services/tools/menus";
 

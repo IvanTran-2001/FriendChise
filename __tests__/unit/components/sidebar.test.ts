@@ -38,7 +38,7 @@ vi.mock("react", async (importOriginal) => {
   };
 });
 
-import { AppSidebar } from "@/components/layout/sidebar";
+import { AppSidebar } from "@/components/layout/sidebar/sidebar";
 
 vi.mock("next/navigation", () => ({
   useParams: vi.fn(),
@@ -49,7 +49,7 @@ vi.mock("next/link", () => ({
   default: ({ children, ...props }: any) => React.createElement("a", props, children),
 }));
 
-vi.mock("@/components/layout/org-settings-permissions-context", () => ({
+vi.mock("@/components/layout/contexts/org-settings-permissions-context", () => ({
   useOrgSettingsPermissions: () => mockOrgSettingsPermissions,
 }));
 

@@ -11,7 +11,7 @@
  */
 
 import { PermissionAction, VoteType } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { requireOrgMemberAction } from "@/lib/authz";
 import { memberHasPermission } from "@/lib/authz/_shared";
 import {

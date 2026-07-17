@@ -8,11 +8,11 @@ import {
   setMembershipStatus,
 } from "@/lib/services/memberships";
 import { createMemberInvite } from "@/lib/services/invites";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { sendMemberInviteSchema } from "@/lib/validators/membership";
-import { normalizeEmail } from "@/lib/utils";
+import { normalizeEmail } from "@/lib/core/utils";
 import { checkDemoLimit } from "@/lib/demo";
 import { memberToBot } from "@/lib/services/bots";
 import { getOrgMembership } from "@/lib/authz/_shared";
