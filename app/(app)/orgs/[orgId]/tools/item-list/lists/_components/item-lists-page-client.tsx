@@ -2,8 +2,8 @@
 
 import { useRef, useState } from "react";
 import { ListDisplayType } from "@prisma/client";
-import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { RegisterPageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { ItemListsSidebarContent } from "./item-lists-sidebar-content";
 import { ItemListsClient } from "./item-lists-client";
 import { CreateListPanel } from "./create-list-panel";

@@ -13,13 +13,13 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { Clock, FolderOpen, Layers, Pencil, Star } from "lucide-react";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
-import { BackButton } from "@/components/layout/back-button";
-import { SearchInput } from "@/components/ui/search-input";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
+import { BackButton } from "@/components/layout/sidebar/back-button";
+import { SearchInput } from "@/components/ui/controls/search-input";
 import { Button } from "@/components/ui/button";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { EditSetForm } from "./_components/edit-set-form";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 
 interface ConversionSet {

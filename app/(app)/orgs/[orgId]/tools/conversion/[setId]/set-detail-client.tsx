@@ -19,16 +19,16 @@ import { ChevronDown, ChevronRight, X, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { SearchableCombobox } from "@/components/ui/searchable-combobox";
-import { SearchInput } from "@/components/ui/search-input";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
+import { SearchableCombobox } from "@/components/ui/comboboxes/searchable-combobox";
+import { SearchInput } from "@/components/ui/controls/search-input";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
 import { Button } from "@/components/ui/button";
 import {
   upsertTemplateEntryAction,
   removeTemplateEntryAction,
 } from "@/app/actions/tools";
 import { usePersistedState } from "@/hooks/use-persisted-state";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 
 type ToolItem = { id: string; name: string; unit: string };
 type Rate = {

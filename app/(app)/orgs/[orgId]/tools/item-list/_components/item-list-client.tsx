@@ -10,7 +10,7 @@
 import { useMemo, type RefObject } from "react";
 import { Loader2, Package, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
 
 export type ToolItem = {
   id: string;

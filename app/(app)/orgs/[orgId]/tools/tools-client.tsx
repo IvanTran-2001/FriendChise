@@ -14,7 +14,7 @@
 
 import Link from "next/link";
 import { ArrowLeftRight, ArrowRight, LayoutList, List, Users, Calculator, Star, ClipboardList } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 
 const TOOLS = [

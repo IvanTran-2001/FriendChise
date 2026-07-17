@@ -24,9 +24,9 @@ import {
   Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SegmentedControl } from "@/components/ui/segmented-control";
-import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { SegmentedControl } from "@/components/ui/controls/segmented-control";
+import { BackSidebarNavItem } from "@/components/layout/sidebar/back-sidebar-nav-item";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { AddItemForm } from "./add-item-form";
 import { AddRateForm } from "./add-rate-form";
 import { AddTemplateForm } from "./add-template-form";

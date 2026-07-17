@@ -1,6 +1,6 @@
 import { requireOrgPermissionPage } from "@/lib/authz";
 import { PermissionAction } from "@prisma/client";
-import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
+import { RegisterPageSidebar } from "@/components/layout/contexts/page-sidebar-context";
 import { ItemListSidebarShell } from "./_components/item-list-sidebar-shell";
 import { ItemListPageClient } from "./_components/item-list-page-client";
 

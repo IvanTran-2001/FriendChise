@@ -27,7 +27,7 @@ import {
   deleteToolItemAction,
 } from "@/app/actions/tools/conversion";
 import { removeToolItemImage } from "@/app/actions/storage";
-import { ToolItemImagePicker } from "@/components/ui/tool-item-image-picker";
+import { ToolItemImagePicker } from "@/components/ui/pickers/tool-item-image-picker";
 import type { ToolItem } from "./item-list-client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

@@ -4,8 +4,8 @@ import { useMemo, useState, useTransition } from "react";
 import { Check, ChevronDown, ChevronRight, List, Pencil, Search, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
-import { cn } from "@/lib/utils";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
+import { cn } from "@/lib/core/utils";
 import { toast } from "sonner";
 import {
   toggleChecklistEntryAction,

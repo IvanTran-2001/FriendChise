@@ -3,14 +3,14 @@ import { cookies } from "next/headers";
 import { requireOrgPermissionPage } from "@/lib/authz";
 import { PermissionAction } from "@prisma/client";
 import { getToolItemListDetail, getConversionSets, getConversionRates } from "@/lib/services/tools";
-import { createSignedReadUrls } from "@/lib/supabase-storage";
+import { createSignedReadUrls } from "@/lib/platform/supabase-storage";
 import {
   RECENT_ACTIVITY_CATEGORY,
   recordRecentActivity,
 } from "@/lib/services/recent-activity";
 import {
   RegisterPageSidebar,
-} from "@/components/layout/page-sidebar-context";
+} from "@/components/layout/contexts/page-sidebar-context";
 import { ItemListSidebarShell } from "../../_components/item-list-sidebar-shell";
 import { ListDetailClient, type ListDetail } from "./_components/list-detail-client";
 

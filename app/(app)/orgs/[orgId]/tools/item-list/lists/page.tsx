@@ -5,7 +5,7 @@ import {
   listRecentActivitiesByCategory,
   RECENT_ACTIVITY_CATEGORY,
 } from "@/lib/services/recent-activity";
-import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
+import { RegisterPageSidebar } from "@/components/layout/contexts/page-sidebar-context";
 import { ItemListSidebarShell } from "../_components/item-list-sidebar-shell";
 import { ItemListsPageClient } from "./_components/item-lists-page-client";
 

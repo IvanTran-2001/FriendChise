@@ -7,7 +7,7 @@
 
 import { ArrowLeft } from "lucide-react";
 import { LayoutGrid } from "lucide-react";
-import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
+import { BackSidebarNavItem } from "@/components/layout/sidebar/back-sidebar-nav-item";
 
 export function CalculatorSidebarContent({ orgId }: { orgId: string }) {
   return (

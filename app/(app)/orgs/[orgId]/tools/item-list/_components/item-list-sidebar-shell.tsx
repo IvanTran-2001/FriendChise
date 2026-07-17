@@ -8,9 +8,9 @@
 
 import { useParams, usePathname } from "next/navigation";
 import { ArrowLeft, LayoutGrid, LayoutList, Package } from "lucide-react";
-import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
-import { usePageSidebarSubContent } from "@/components/layout/page-sidebar-context";
-import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
+import { BackSidebarNavItem } from "@/components/layout/sidebar/back-sidebar-nav-item";
+import { usePageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
+import { PageSidebarNavItem } from "@/components/layout/sidebar/page-sidebar-nav-item";
 
 const tabs = [
   {

@@ -10,9 +10,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { SearchableCombobox, type ComboboxItem } from "@/components/ui/searchable-combobox";
+import { SearchableCombobox, type ComboboxItem } from "@/components/ui/comboboxes/searchable-combobox";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { addToolItemListEntryAtPositionAction } from "@/app/actions/tools";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 

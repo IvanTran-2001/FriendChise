@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { requireOrgPermissionPage } from "@/lib/authz";
 import { PermissionAction } from "@prisma/client";
-import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
-import { prisma } from "@/lib/prisma";
-import { createSignedReadUrls } from "@/lib/supabase-storage";
+import { RegisterPageSidebar } from "@/components/layout/contexts/page-sidebar-context";
+import { prisma } from "@/lib/platform/prisma";
+import { createSignedReadUrls } from "@/lib/platform/supabase-storage";
 import {
   getConversionSet,
   getConversionRates,

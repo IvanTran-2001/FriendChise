@@ -1,5 +1,5 @@
 import { requireOrgPermissionPage } from "@/lib/authz";
-import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
+import { RegisterPageSidebar } from "@/components/layout/contexts/page-sidebar-context";
 import { PermissionAction } from "@prisma/client";
 import { getConversionSets } from "@/lib/services/tools";
 import { hasRosterActivity } from "@/lib/services/roster";

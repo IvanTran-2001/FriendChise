@@ -14,8 +14,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
 import { ArrowLeftRight, List, Users, Calculator, Star, ClipboardList } from "lucide-react";
-import { SearchInput } from "@/components/ui/search-input";
-import { cn } from "@/lib/utils";
+import { SearchInput } from "@/components/ui/controls/search-input";
+import { cn } from "@/lib/core/utils";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 
 // Placeholder tool list — replace with DB-driven data once the Tool model exists

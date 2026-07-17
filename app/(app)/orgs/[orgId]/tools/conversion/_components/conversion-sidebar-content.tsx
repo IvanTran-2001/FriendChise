@@ -9,9 +9,9 @@
 
 import { useRef } from "react";
 import { ArrowLeft, LayoutGrid, Plus } from "lucide-react";
-import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
+import { BackSidebarNavItem } from "@/components/layout/sidebar/back-sidebar-nav-item";
 import { Button } from "@/components/ui/button";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { AddSetForm } from "./add-set-form";
 
 export function ConversionSidebarContent({ orgId }: { orgId: string }) {

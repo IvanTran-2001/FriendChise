@@ -8,8 +8,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { RegisterPageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { ItemListSidebarContent } from "./item-list-sidebar-content";
 import { ItemListClient, type ToolItem } from "./item-list-client";
 import { ItemDetailPanel } from "./item-detail-panel";

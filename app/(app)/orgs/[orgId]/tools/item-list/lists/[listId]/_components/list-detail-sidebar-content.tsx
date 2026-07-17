@@ -5,9 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CheckSquare, LayoutGrid, Minus, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { SegmentedControl } from "@/components/ui/segmented-control";
-import { SearchableCombobox } from "@/components/ui/searchable-combobox";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { SegmentedControl } from "@/components/ui/controls/segmented-control";
+import { SearchableCombobox } from "@/components/ui/comboboxes/searchable-combobox";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { updateToolItemGridConfigAction } from "@/app/actions/tools";
 
 const MIN_COLS = 1, MAX_COLS = 8, MIN_ROWS = 1, MAX_ROWS = 8;

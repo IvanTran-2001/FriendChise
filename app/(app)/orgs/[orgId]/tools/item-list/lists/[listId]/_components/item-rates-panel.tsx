@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Eye, EyeOff, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 
 export type ConversionRate = {
   id: string;

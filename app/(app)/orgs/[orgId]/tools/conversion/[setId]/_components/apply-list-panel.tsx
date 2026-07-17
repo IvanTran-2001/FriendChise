@@ -4,7 +4,7 @@ import { useState, useTransition, useRef } from "react";
 import { ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { SearchableCombobox } from "@/components/ui/searchable-combobox";
+import { SearchableCombobox } from "@/components/ui/comboboxes/searchable-combobox";
 import {
   getListPreviewAction,
   applyListToTemplateAction,

@@ -18,8 +18,8 @@ import { ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchableCombobox, type ComboboxItem } from "@/components/ui/searchable-combobox";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { SearchableCombobox, type ComboboxItem } from "@/components/ui/comboboxes/searchable-combobox";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import {
   createConversionRateAction,
   deleteConversionRateAction,
