@@ -6,13 +6,13 @@
  * same page-sidebar stack used by the rest of the tool pages.
  */
 
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { ExternalLink, LayoutGrid, List, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MenuDetailActionsPanel } from "./menu-detail-actions-panel";
-import { SegmentedControl } from "@/components/ui/segmented-control";
+import { SegmentedControl } from "@/components/ui/controls/segmented-control";
 import { MenuSharePanel } from "./menu-share-panel";
-import { FilterCombobox, type FilterComboboxItem } from "@/components/ui/filter-combobox";
+import { FilterCombobox, type FilterComboboxItem } from "@/components/ui/comboboxes/filter-combobox";
 
 /**
  * Menu detail page sidebar controls.

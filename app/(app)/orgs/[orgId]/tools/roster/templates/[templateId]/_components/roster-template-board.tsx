@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { cn } from "@/lib/core/utils";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import {
   DAY_LABELS,
   ROSTER_DAY_LABEL_WIDTH,

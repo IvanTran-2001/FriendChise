@@ -19,9 +19,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
-import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
-import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
+import { RegisterPageSidebar } from "@/components/layout/contexts/page-sidebar-context";
+import { BackSidebarNavItem } from "@/components/layout/sidebar/back-sidebar-nav-item";
 import {
   updateRosterTemplateCycleWeeksAction,
   clearRosterTemplateWeekAction,

@@ -8,7 +8,7 @@
 
 import type { ReactElement, ReactNode } from "react";
 import { LayoutGrid, List } from "lucide-react";
-import { SegmentedControl } from "@/components/ui/segmented-control";
+import { SegmentedControl } from "@/components/ui/controls/segmented-control";
 
 type ViewOption = {
   value: "card" | "list";

@@ -1,4 +1,4 @@
-import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
+import { RegisterPageSidebar } from "@/components/layout/contexts/page-sidebar-context";
 import { MenuSidebarShell } from "./_components/menu-sidebar-shell";
 
 /**

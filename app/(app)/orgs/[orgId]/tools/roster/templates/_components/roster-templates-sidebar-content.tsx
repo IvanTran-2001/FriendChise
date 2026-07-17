@@ -10,11 +10,11 @@ import { useState, useTransition } from "react";
 import { ArrowLeft, LayoutGrid, LayoutTemplate, Plus, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
-import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
+import { BackSidebarNavItem } from "@/components/layout/sidebar/back-sidebar-nav-item";
+import { PageSidebarNavItem } from "@/components/layout/sidebar/page-sidebar-nav-item";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { createRosterTemplateAction } from "@/app/actions/roster";
 
 function AddTemplatePanel({ orgId }: { orgId: string }) {

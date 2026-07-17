@@ -15,11 +15,11 @@ import {
 } from "@/app/actions/tools";
 import { createToolItemAction } from "@/app/actions/tools/conversion";
 import { getOrgStorageReadUrl } from "@/app/actions/storage";
-import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { CollapsibleSection } from "@/components/ui/controls/collapsible-section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchableCombobox } from "@/components/ui/searchable-combobox";
-import { OrgImagePicker } from "@/components/ui/org-image-picker";
+import { SearchableCombobox } from "@/components/ui/comboboxes/searchable-combobox";
+import { OrgImagePicker } from "@/components/ui/pickers/org-image-picker";
 import type { MenuItemDetail, ToolItemOption } from "@/lib/services/tools/menus";
 
 type MenuTabOption = {

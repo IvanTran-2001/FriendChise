@@ -11,15 +11,15 @@
 
 import { useRef } from "react";
 import { ArrowLeft, LayoutGrid, LayoutTemplate } from "lucide-react";
-import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
-import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
+import { BackSidebarNavItem } from "@/components/layout/sidebar/back-sidebar-nav-item";
+import { PageSidebarNavItem } from "@/components/layout/sidebar/page-sidebar-nav-item";
 import { Button } from "@/components/ui/button";
 import { MembersActions } from "../../../memberships/_components/members-panel-triggers";
 import {
   SearchableCombobox,
   type ComboboxItem,
-} from "@/components/ui/searchable-combobox";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+} from "@/components/ui/comboboxes/searchable-combobox";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { ApplyTemplatePanel } from "./apply-template-panel";
 
 type Role = { id: string; name: string; color: string };

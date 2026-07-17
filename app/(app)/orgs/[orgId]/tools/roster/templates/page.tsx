@@ -2,8 +2,8 @@ import { requireOrgMemberPage } from "@/lib/authz";
 import { memberHasPermission, getOrgMembership } from "@/lib/authz/_shared";
 import { PermissionAction } from "@prisma/client";
 import { getRosterTemplates } from "@/lib/services/roster";
-import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
+import { RegisterPageSidebar } from "@/components/layout/contexts/page-sidebar-context";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
 import { RosterTemplatesSidebarContent } from "./_components/roster-templates-sidebar-content";
 import { RosterTemplatesClient } from "./_components/roster-templates-client";
 

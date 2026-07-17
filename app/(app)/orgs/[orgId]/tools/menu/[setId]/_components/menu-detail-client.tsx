@@ -9,11 +9,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
-import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
+import { RegisterPageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
 import { Input } from "@/components/ui/input";
-import { type FilterComboboxItem } from "@/components/ui/filter-combobox";
+import { type FilterComboboxItem } from "@/components/ui/comboboxes/filter-combobox";
 import { MenuDetailSidebarContent } from "./menu-detail-sidebar-content";
 import { AddMenuCategoryPanel } from "./add-menu-category-panel";
 import { AddMenuItemPanel } from "./add-menu-item-panel";

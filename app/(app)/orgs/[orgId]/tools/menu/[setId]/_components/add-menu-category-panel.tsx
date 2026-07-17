@@ -20,7 +20,7 @@ import {
 import {
   FilterCombobox,
   type FilterComboboxItem,
-} from "@/components/ui/filter-combobox";
+} from "@/components/ui/comboboxes/filter-combobox";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

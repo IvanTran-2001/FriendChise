@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import {
   SearchableCombobox,
   type ComboboxItem,
-} from "@/components/ui/searchable-combobox";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+} from "@/components/ui/comboboxes/searchable-combobox";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { applyRosterTemplateAction } from "@/app/actions/roster";
 
 type RosterTemplate = { id: string; name: string; cycleWeeks: number };

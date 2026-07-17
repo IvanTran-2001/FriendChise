@@ -5,9 +5,9 @@ import { toast } from "sonner";
 import { Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchableCombobox } from "@/components/ui/searchable-combobox";
+import { SearchableCombobox } from "@/components/ui/comboboxes/searchable-combobox";
 import { setRosterCellMembersAction } from "@/app/actions/roster";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import type { RosterEntryRow, OrgMember, DayConfigRow } from "./roster-board";
 import type { SavedRosterEntry } from "@/lib/services/roster";
 import {

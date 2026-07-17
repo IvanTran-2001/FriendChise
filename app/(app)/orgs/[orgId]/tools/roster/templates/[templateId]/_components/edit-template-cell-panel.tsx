@@ -5,9 +5,9 @@ import { Minus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchableCombobox } from "@/components/ui/searchable-combobox";
+import { SearchableCombobox } from "@/components/ui/comboboxes/searchable-combobox";
 import { setRosterTemplateCellMembersAction } from "@/app/actions/roster";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import type { OrgMember } from "@/app/(app)/orgs/[orgId]/tools/roster/_components/roster-board";
 import {
   formatMinutes,

@@ -7,7 +7,7 @@ import { LayoutTemplate, Pencil, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { deleteRosterTemplateAction } from "@/app/actions/roster";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 
 type TemplateRow = {
   id: string;

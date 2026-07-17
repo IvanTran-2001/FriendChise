@@ -8,8 +8,8 @@
 
 import { useParams } from "next/navigation";
 import { ArrowLeft, LayoutGrid } from "lucide-react";
-import { BackSidebarNavItem } from "@/components/layout/back-sidebar-nav-item";
-import { usePageSidebarSubContent } from "@/components/layout/page-sidebar-context";
+import { BackSidebarNavItem } from "@/components/layout/sidebar/back-sidebar-nav-item";
+import { usePageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
 
 export function MenuSidebarShell() {
   const { orgId } = useParams<{ orgId: string }>();

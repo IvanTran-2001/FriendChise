@@ -17,9 +17,9 @@ import {
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
-import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
+import { RegisterPageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { duplicateMenuAction, deleteMenuAction } from "@/app/actions/tools";
