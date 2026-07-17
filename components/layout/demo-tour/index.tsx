@@ -42,6 +42,30 @@ function findScrollableAncestor(element: HTMLElement): HTMLElement | null {
   return null;
 }
 
+function animateScrollTo(container: HTMLElement, targetTop: number, durationMs = 650) {
+  const startTop = container.scrollTop;
+  const delta = targetTop - startTop;
+  if (Math.abs(delta) < 1) return;
+
+  const startTime = performance.now();
+  const easeInOutCubic = (progress: number) =>
+    progress < 0.5
+      ? 4 * progress * progress * progress
+      : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+  const tick = (now: number) => {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / durationMs, 1);
+    container.scrollTop = startTop + delta * easeInOutCubic(progress);
+
+    if (progress < 1) {
+      requestAnimationFrame(tick);
+    }
+  };
+
+  requestAnimationFrame(tick);
+}
+
 function scrollTargetIntoView(targetSpec: DemoTargetSpec | undefined) {
   const targetName = resolveTargetNames(targetSpec)[0];
   if (!targetName) return false;
@@ -63,10 +87,7 @@ function scrollTargetIntoView(targetSpec: DemoTargetSpec | undefined) {
     (elementRect.top - containerRect.top) -
     16;
 
-  scrollContainer.scrollTo({
-    top: Math.max(0, nextTop),
-    behavior: "auto",
-  });
+  animateScrollTo(scrollContainer, Math.max(0, nextTop));
   return true;
 }
 
