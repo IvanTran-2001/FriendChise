@@ -171,7 +171,7 @@ export async function deleteTask(
   return { ok: true, data: null };
 }
 
-const taskInclude = {
+const taskInclude = Prisma.validator<Prisma.TaskInclude>()({
   organization: { select: { id: true, name: true } },
   createdBy: { select: { id: true, name: true, image: true } },
   eligibility: {
@@ -192,7 +192,7 @@ const taskInclude = {
   },
   comments: {
     where: { parentId: null, isPinned: true },
-    orderBy: [{ pinnedAt: "desc" as const }, { createdAt: "asc" as const }],
+    orderBy: [{ pinnedAt: "desc" }, { createdAt: "asc" }],
     take: 3,
     select: {
       id: true,
@@ -204,7 +204,7 @@ const taskInclude = {
     },
   },
   _count: { select: { inheritedBy: true } },
-} as const;
+});
 
 /**
  * Returns all tasks accessible to the org via TaskInheritance.
