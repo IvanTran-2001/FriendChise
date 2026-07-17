@@ -73,6 +73,40 @@ function isDynamicRouteKey(key: string): boolean {
     .some((segment) => segment.startsWith("[") && segment.endsWith("]"));
 }
 
+function getRouteSpecificityScore(key: string) {
+  const segments = normalizeContextKey(key).split("/").filter(Boolean);
+
+  let staticSegmentCount = 0;
+  let dynamicSegmentCount = 0;
+
+  for (const segment of segments) {
+    if (segment.startsWith("[") && segment.endsWith("]")) {
+      dynamicSegmentCount += 1;
+      continue;
+    }
+
+    staticSegmentCount += 1;
+  }
+
+  return {
+    staticSegmentCount,
+    dynamicSegmentCount,
+    segmentCount: segments.length,
+  };
+}
+
+function compareRouteSpecificity(a: DemoTourRouteEntry, b: DemoTourRouteEntry): number {
+  const aScore = getRouteSpecificityScore(a.key);
+  const bScore = getRouteSpecificityScore(b.key);
+
+  return (
+    bScore.staticSegmentCount - aScore.staticSegmentCount ||
+    aScore.dynamicSegmentCount - bScore.dynamicSegmentCount ||
+    bScore.segmentCount - aScore.segmentCount ||
+    a.key.localeCompare(b.key)
+  );
+}
+
 // Scan the demo-tour route tree and collect every `index.ts` / `index.tsx`
 // file under `components/layout/demo-tour/routes`.
 const routeModules = (require as unknown as { context: (...args: unknown[]) => WebpackRequireContext }).context(
@@ -92,6 +126,10 @@ const DEMO_TOUR_ROUTE_ENTRIES: DemoTourRouteEntry[] = routeModules.keys().map((k
     config: routeModule.demoTourConfig,
   };
 });
+
+const DEMO_TOUR_DYNAMIC_ROUTE_ENTRIES = DEMO_TOUR_ROUTE_ENTRIES.filter((entry) => entry.exactPath === null).sort(
+  compareRouteSpecificity,
+);
 
 // Fast exact-match lookup for static paths like `/` or `/orgs/new`.
 const DEMO_TOUR_EXACT_PATH_CONFIGS = new Map<string, DemoTourConfig | null>();
@@ -113,7 +151,7 @@ export function getDemoTourConfig(pathname: string): DemoTourConfig | null {
     return DEMO_TOUR_EXACT_PATH_CONFIGS.get(exactPath) ?? null;
   }
 
-  for (const entry of DEMO_TOUR_ROUTE_ENTRIES) {
+  for (const entry of DEMO_TOUR_DYNAMIC_ROUTE_ENTRIES) {
     if (entry.exactPath) continue;
     if (entry.config === null) continue;
     if (entry.pattern.test(pathname)) {
