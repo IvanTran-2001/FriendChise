@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { SignInToast } from "./sign-in-toast";
 import { prepareDemoSession } from "@/lib/demo";
+import { DemoProvisionError } from "@/lib/demo";
 import { TryDemoButton } from "./try-demo-button";
 import { DevUserPicker } from "./dev-user-picker";
 import { getDevUsers } from "./get-dev-users";
@@ -272,6 +273,9 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
                                 session = await prepareDemoSession();
                               } catch (err) {
                                 console.error("[demo] prepareDemoSession failed:", err);
+                                if (err instanceof DemoProvisionError) {
+                                  redirect(`/signin?hint=${err.code}`);
+                                }
                                 redirect("/signin?hint=demo_unavailable");
                               }
                               if (!session) return;
@@ -433,6 +437,9 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
                                   session = await prepareDemoSession();
                                 } catch (err) {
                                   console.error("[demo] prepareDemoSession failed:", err);
+                                  if (err instanceof DemoProvisionError) {
+                                    redirect(`/signin?hint=${err.code}`);
+                                  }
                                   redirect("/signin?hint=demo_unavailable");
                                 }
                                 if (!session) return;

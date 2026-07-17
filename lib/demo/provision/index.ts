@@ -7,6 +7,18 @@ import { DEMO_GLOBAL_TASK_HARD_CAP, DEMO_GLOBAL_TASK_SOFT_CAP, DEMO_LIMITS, DEMO
 import { cleanupExpiredDemos, withDemoProvisionLock } from "./helpers";
 import { seedDemoOrg } from "./seed-demo-org";
 
+export type DemoProvisionErrorCode = "demo_capacity" | "demo_high_load";
+
+export class DemoProvisionError extends Error {
+  code: DemoProvisionErrorCode;
+
+  constructor(code: DemoProvisionErrorCode, message: string) {
+    super(message);
+    this.name = "DemoProvisionError";
+    this.code = code;
+  }
+}
+
 /**
  * Checks whether a demo user has hit a per-entity resource limit.
  */
@@ -46,7 +58,9 @@ export async function prepareDemoSession(): Promise<{ userId: string; orgId: str
       if (globalTaskCount >= DEMO_GLOBAL_TASK_SOFT_CAP) {
         await cleanupExpiredDemos(tx, true);
         const rechecked = await tx.task.count({ where: { organization: { owner: { email: { endsWith: "@demo.friendchise.app" } } } } });
-        if (rechecked >= DEMO_GLOBAL_TASK_HARD_CAP) throw new Error("Demo is under high load. Please try again in 10 minutes.");
+        if (rechecked >= DEMO_GLOBAL_TASK_HARD_CAP) {
+          throw new DemoProvisionError("demo_high_load", "Demo is under high load. Please try again in 10 minutes.");
+        }
       }
 
       const active = await tx.demoSession.count({
@@ -54,7 +68,9 @@ export async function prepareDemoSession(): Promise<{ userId: string; orgId: str
           expiresAt: { gt: new Date() },
         },
       });
-      if (active >= DEMO_MAX_CONCURRENT) throw new Error("Demo capacity reached. Please try again in a few minutes.");
+      if (active >= DEMO_MAX_CONCURRENT) {
+        throw new DemoProvisionError("demo_capacity", "Demo capacity reached. Please try again in a few minutes.");
+      }
 
       const demoId = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
       const email = `demo-${demoId}@demo.friendchise.app`;

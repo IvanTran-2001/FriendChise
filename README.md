@@ -5,9 +5,20 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black?logo=next.js)](https://nextjs.org)
 [![Deploy](https://img.shields.io/badge/deploy-friendchise.app-brightgreen)](https://friendchise.app)
 
-The idea of friendchise is to **"make every location your best one"**. A software built to help make franchising easier!
+# FriendChise
 
-Production deployment: **[friendchise.app](https://friendchise.app)**
+A production multi-tenant operations platform for franchise and repetitive-workplace teams.
+
+FriendChise helps businesses manage scheduling, tasks, procedures, permissions, communication, and operational knowledge across multiple locations from one central platform.
+
+Originally developed to solve operational problems within a real Walker’s Doughnuts franchise, FriendChise is now maintained as an open-source project with contributions from developers around the world.
+
+[Live Demo](https://friendchise.app) ·
+[Portfolio Case Study](https://ivantran-2001.github.io/projects/friendchise.html) ·
+[Report an Issue](https://github.com/IvanTran-2001/FriendChise/issues) ·
+[Contribute](CONTRIBUTING.md)
+
+![FriendChise dashboard overview](docs/images/friendchise-dashboard.png)
 
 ## Help you and me by staring the repo!
 The more stars this project gets, the more recognition and weight this project will hold which will benefit all of us contributing. So, if you like the project:
@@ -18,7 +29,7 @@ The more stars this project gets, the more recognition and weight this project w
 
 ## Quick-Setup
 
-Read the setup flow in [quick-setup](https://friendchise.app/doc/contributing/getting-started). 
+Read the setup flow in [quick-setup](https://friendchise.app/doc/contributing/getting-started).
 
 ## Contribute
 
@@ -41,4 +52,4 @@ If something is missing from the doc related to the project, post a discussion a
 - pnpm, Prisma ORM v7, PostgreSQL (local or Supabase-hosted), Supabase Storage
 - Auth.js v5, Tailwind CSS v4, shadcn/ui, Radix UI
 - Vitest, Playwright, Sentry, Upstash Redis
-  
+

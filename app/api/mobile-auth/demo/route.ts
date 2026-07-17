@@ -1,7 +1,7 @@
 import { encode } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/platform/prisma";
-import { prepareDemoSession } from "@/lib/demo";
+import { DemoProvisionError, prepareDemoSession } from "@/lib/demo";
 
 const MOBILE_TOKEN_COOKIE_NAME = "friendchise.mobile-session-token";
 
@@ -44,7 +44,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid callbackUrl" }, { status: 400 });
   }
 
-  const session = await prepareDemoSession();
+  let session;
+  try {
+    session = await prepareDemoSession();
+  } catch (error) {
+    if (error instanceof DemoProvisionError) {
+      return NextResponse.json({ error: error.message, code: error.code }, { status: 429 });
+    }
+    throw error;
+  }
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
     select: { id: true, email: true, name: true, image: true },
