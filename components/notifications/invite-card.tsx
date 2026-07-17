@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { X, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { getInviteConfig, getInviteSubtype } from "./invite-config";
 import type { InviteItem } from "@/lib/services/invites";
 

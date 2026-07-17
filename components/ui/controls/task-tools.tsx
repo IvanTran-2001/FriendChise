@@ -13,7 +13,7 @@ import { ArrowLeftRight, Link2, List, Users } from "lucide-react";
 import type { ComponentType } from "react";
 
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 
 export type TaskToolSelection = {
   toolPath: string;

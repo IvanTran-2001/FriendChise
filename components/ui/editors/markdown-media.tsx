@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ImageOff } from "lucide-react";
-import { getVideoEmbed, isStoragePath } from "@/lib/markdown-media";
+import { getVideoEmbed, isStoragePath } from "@/lib/markdown/markdown-media";
 import { getOrgStorageReadUrl } from "@/app/actions/storage";
 
 /**

@@ -8,7 +8,7 @@
  * `basePath` + `extraParams` + the chosen tagId.
  */
 import { useRouter } from "next/navigation";
-import { FilterCombobox } from "@/components/ui/filter-combobox";
+import { FilterCombobox } from "@/components/ui/comboboxes/filter-combobox";
 
 type Tag = { id: string; name: string; color: string };
 

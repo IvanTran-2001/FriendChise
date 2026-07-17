@@ -32,13 +32,13 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialogs/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   ImageCropDialog,
   type ImageCropConfig,
-} from "@/components/ui/image-crop-dialog";
+} from "@/components/ui/dialogs/image-crop-dialog";
 import {
   getSignedOrgImageUploadUrl,
   saveOrgImageToLibrary,

@@ -37,6 +37,7 @@ type SearchableComboboxProps = {
   placeholder?: string;
   emptyText?: string;
   disabled?: boolean;
+  triggerDataTourTarget?: string;
 };
 
 export function SearchableCombobox({
@@ -50,6 +51,7 @@ export function SearchableCombobox({
   placeholder = "Search…",
   emptyText = "No results",
   disabled,
+  triggerDataTourTarget,
 }: SearchableComboboxProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -170,6 +172,7 @@ export function SearchableCombobox({
           type="button"
           className="h-9 w-full justify-between gap-2 overflow-hidden rounded-full border-border/70 bg-background/85 px-3.5 text-left shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background hover:shadow-md"
           disabled={disabled}
+          data-tour-target={triggerDataTourTarget}
         >
           <span className="truncate text-sm font-medium">{triggerLabel}</span>
           <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />

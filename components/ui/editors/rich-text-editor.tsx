@@ -28,7 +28,7 @@ import {
   ListOrdered,
   Heading3,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 
 // ── Toolbar button ────────────────────────────────────────────────────────────
 

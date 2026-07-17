@@ -5,7 +5,7 @@
  * smoothly auto-scrolls right-to-left when the text overflows its container.
  */
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 
 const PIXELS_PER_SECOND = 18;
 const MIN_DURATION_SECONDS = 3;

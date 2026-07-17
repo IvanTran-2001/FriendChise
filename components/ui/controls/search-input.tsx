@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Search } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Input } from "./input";
+import { cn } from "@/lib/core/utils";
+import { Input } from "../input";
 
 export function SearchInput({
   className,

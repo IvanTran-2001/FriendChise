@@ -14,9 +14,9 @@ import {
   Video,
   Loader2,
 } from "lucide-react";
-import { MarkdownImage, MarkdownLink } from "@/components/ui/markdown-media";
+import { MarkdownImage, MarkdownLink } from "@/components/ui/editors/markdown-media";
 import { useMarkdownImageUpload } from "@/hooks/use-markdown-image-upload";
-import { getVideoEmbed } from "@/lib/markdown-media";
+import { getVideoEmbed } from "@/lib/markdown/markdown-media";
 
 interface MarkdownEditorProps {
   name: string;

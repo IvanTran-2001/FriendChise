@@ -5,7 +5,7 @@ import { Check } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { markNotificationSeenAction } from "@/app/actions/notifications";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import type { NotificationItem } from "@/lib/services/invites";
 
 function formatRelativeTime(date: Date): string {

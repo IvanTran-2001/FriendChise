@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { AnnouncementScope } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { markAnnouncementSeenAction } from "@/app/actions/notifications";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { InviteCard } from "./invite-card";
 import { NotificationCard } from "./notification-card";
 import type { NotificationFeedItem } from "@/lib/services/notification-feed";

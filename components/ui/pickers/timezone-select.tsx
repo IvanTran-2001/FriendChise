@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import type { TimezoneOption } from "@/lib/timezones";
+import type { TimezoneOption } from "@/lib/core/timezones";
 
 export function TimezoneSelect({
   value,

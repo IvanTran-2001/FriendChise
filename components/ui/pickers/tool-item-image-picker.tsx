@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { toast } from "sonner";
-import { OrgImagePicker } from "@/components/ui/org-image-picker";
+import { OrgImagePicker } from "@/components/ui/pickers/org-image-picker";
 import { saveToolItemImagePath } from "@/app/actions/storage";
 
 const ITEM_CROP = { aspect: 1, outputWidth: 512, outputHeight: 512 };

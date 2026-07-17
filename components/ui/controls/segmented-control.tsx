@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 
 export type SegmentOption<T extends string = string> = {
   label: React.ReactNode;
