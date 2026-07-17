@@ -26,12 +26,12 @@ export const authConfig: NextAuthConfig = {
     authorized({ auth, request }) {
       const isAuthed = !!auth?.user;
       if (!isAuthed) {
-        const { pathname, origin } = new URL(request.url);
+        const { pathname, search, origin } = new URL(request.url);
         // The home page is public — anonymous visitors see the marketing
         // homepage there instead of being redirected to /signin.
         if (pathname === "/") return true;
         const url = new URL("/signin", origin);
-        url.searchParams.set("callbackUrl", pathname);
+        url.searchParams.set("callbackUrl", pathname + search);
         return Response.redirect(url);
       }
       return true;

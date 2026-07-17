@@ -7,14 +7,25 @@
  */
 import { useSyncExternalStore } from "react";
 
+const MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+let mediaQueryList: MediaQueryList | null = null;
+
+function getMediaQueryList() {
+  if (typeof window === "undefined") return null;
+  mediaQueryList ??= window.matchMedia(MOTION_QUERY);
+  return mediaQueryList;
+}
+
 function subscribe(onChange: () => void) {
-  const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const query = getMediaQueryList();
+  if (!query) return () => undefined;
   query.addEventListener("change", onChange);
   return () => query.removeEventListener("change", onChange);
 }
 
 function getSnapshot() {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return getMediaQueryList()?.matches ?? false;
 }
 
 function getServerSnapshot() {

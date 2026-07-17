@@ -51,7 +51,7 @@ export function ProductDeepDive() {
         media={
           <MediaLoop
             gifSrc="/docs/task.gif"
-            posterSrc="/docs/timetable.png"
+            posterSrc="/docs/task.png"
             alt="Creating and completing a task in FriendChise"
           />
         }
@@ -118,7 +118,7 @@ export function ProductDeepDive() {
           />
           <MediaLoop
             gifSrc="/docs/menu.gif"
-            posterSrc="/docs/menu.gif"
+            posterSrc="/docs/menu.png"
             alt="Customer scanning a FriendChise QR menu"
           />
         </div>

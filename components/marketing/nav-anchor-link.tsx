@@ -25,9 +25,13 @@ export function NavAnchorLink({
       className={className}
       onClick={(e) => {
         e.preventDefault();
-        document
-          .getElementById(targetId)
-          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (target instanceof HTMLElement) {
+          target.tabIndex = -1;
+          target.focus({ preventScroll: true });
+        }
       }}
     >
       {children}

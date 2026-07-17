@@ -36,8 +36,9 @@ export function Counter({
       ([entry]) => {
         if (!entry.isIntersecting) return;
         observer.disconnect();
-        const start = performance.now();
+        let start: number | undefined;
         const tick = (now: number) => {
+          if (start === undefined) start = now;
           const progress = Math.min((now - start) / DURATION_MS, 1);
           const eased = 1 - (1 - progress) * (1 - progress);
           setDisplay(Math.round(value * eased));

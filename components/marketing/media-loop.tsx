@@ -47,6 +47,8 @@ export function MediaLoop({
           alt={alt}
           loading="lazy"
           decoding="async"
+          width={1200}
+          height={800}
           className="h-auto w-full object-cover"
         />
       )}
