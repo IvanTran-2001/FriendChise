@@ -72,7 +72,7 @@ function InviteHubCard({
   }
 
   return (
-    <div className="flex items-center gap-4 rounded-xl border bg-card px-4 py-3.5 shadow-sm">
+    <div className="flex flex-col gap-3 rounded-xl border bg-card px-4 py-3.5 shadow-sm sm:flex-row sm:items-center sm:gap-4">
       {/* Icon */}
       <div
         className={cn(
@@ -113,18 +113,18 @@ function InviteHubCard({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex w-full flex-col gap-2 shrink-0 sm:w-auto sm:flex-row">
         <Button
           size="sm"
           variant="ghost"
-          className="h-8 text-muted-foreground hover:text-destructive"
+          className="h-8 w-full text-muted-foreground hover:text-destructive sm:w-auto"
           disabled={isPending}
           onClick={handleDecline}
         >
           <X className="h-3.5 w-3.5" />
           Decline
         </Button>
-        <Button size="sm" disabled={isPending} onClick={handleAccept}>
+        <Button size="sm" className="w-full sm:w-auto" disabled={isPending} onClick={handleAccept}>
           <Check className="h-3.5 w-3.5" />
           {isFranchise ? "Join Franchise" : "Accept"}
         </Button>

@@ -224,7 +224,7 @@ export default async function HubPage({
   }));
 
   return (
-    <div className="max-w-4xl mx-auto w-full">
+    <div className="mx-auto w-full max-w-4xl px-3 sm:px-0">
       {orgNotFound && (
         <Suspense>
           <OrgNotFoundToast />
@@ -232,7 +232,7 @@ export default async function HubPage({
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-8">
+      <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-semibold tracking-tight">
@@ -251,7 +251,7 @@ export default async function HubPage({
           </p>
         </div>
         {orgs.length > 0 && (
-          <div className="flex gap-2 shrink-0">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <Button variant="outline" size="sm" asChild>
               <Link href="/orgs/join">
                 <Network className="h-4 w-4" />

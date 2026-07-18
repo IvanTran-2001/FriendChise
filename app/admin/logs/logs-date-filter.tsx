@@ -117,14 +117,14 @@ export function LogsDateFilter({ date, dateFrom, dateTo }: LogsDateFilterProps) 
           name="dateFrom"
           type="date"
           defaultValue={dateFrom}
-          className="rounded-lg border border-border/70 bg-background/80 px-2 py-1 text-xs shadow-sm outline-none transition focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
+          className="rounded-lg border border-border/70 bg-background/80 px-2 py-1 text-base shadow-sm outline-none transition focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
         />
         <span className="text-xs text-muted-foreground">to</span>
         <input
           name="dateTo"
           type="date"
           defaultValue={dateTo}
-          className="rounded-lg border border-border/70 bg-background/80 px-2 py-1 text-xs shadow-sm outline-none transition focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
+          className="rounded-lg border border-border/70 bg-background/80 px-2 py-1 text-base shadow-sm outline-none transition focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
         />
         <Button
           type="button"

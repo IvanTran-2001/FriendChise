@@ -34,7 +34,7 @@ export function TaskListView({
 
   return (
     <>
-      <ul className="md:hidden flex flex-col divide-y rounded-2xl border border-border/70 bg-card overflow-hidden shadow-sm touch-pan-y">
+      <ul className="md:hidden flex flex-col divide-y rounded-2xl border border-border/70 bg-card overflow-hidden shadow-sm touch-manipulation">
         {tasks.map((task) => (
           <li
             key={task.id}
@@ -44,7 +44,7 @@ export function TaskListView({
             <div className="flex items-start gap-2">
               <button
                 type="button"
-                className="flex min-w-0 flex-1 items-start gap-2 text-left touch-pan-y cursor-pointer"
+                className="flex min-w-0 flex-1 items-start gap-2 text-left touch-manipulation cursor-pointer"
                 onClick={() => router.push(`/orgs/${orgId}/tasks/${task.id}`)}
               >
                 {task.imageSignedUrl ? (
@@ -81,7 +81,7 @@ export function TaskListView({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 shrink-0 touch-pan-y cursor-pointer"
+                  className="h-8 w-8 shrink-0 touch-manipulation cursor-pointer"
                   disabled={isPending}
                   title="Add to my list"
                   onClick={() => onAddToList(task)}
@@ -97,7 +97,7 @@ export function TaskListView({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 shrink-0 touch-pan-y cursor-pointer"
+                      className="h-8 w-8 shrink-0 touch-manipulation cursor-pointer"
                       disabled={isPending}
                     >
                       <MoreHorizontal className="h-4 w-4" />

@@ -215,7 +215,7 @@ export function SearchableCombobox({
               }
             }}
             placeholder={placeholder}
-            className="h-9 rounded-xl border-border/70 bg-background/90 text-sm shadow-sm focus-visible:ring-0"
+            className="h-9 rounded-xl border-border/70 bg-background/90 text-base shadow-sm focus-visible:ring-0 md:text-sm"
           />
         </div>
 

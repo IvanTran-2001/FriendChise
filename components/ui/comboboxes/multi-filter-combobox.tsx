@@ -137,7 +137,7 @@ export function MultiFilterCombobox({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={placeholder}
-              className="h-7 border-0 shadow-none focus-visible:ring-0 text-sm"
+              className="h-7 border-0 shadow-none focus-visible:ring-0 text-base md:text-sm"
             />
           </div>
         )}
