@@ -14,7 +14,7 @@
  * always re-triggers the loading/fade sequence instead of reusing stale state.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/core/utils";
 
 interface ItemImageProps {
@@ -37,13 +37,29 @@ export function ItemImage({
   imgClassName,
   fallbackTextClassName = "text-4xl",
 }: ItemImageProps) {
+  const imageKey = src ?? "__fallback__";
+
+  return (
+    <ItemImageInner
+      key={imageKey}
+      src={src}
+      name={name}
+      className={className}
+      imgClassName={imgClassName}
+      fallbackTextClassName={fallbackTextClassName}
+    />
+  );
+}
+
+function ItemImageInner({
+  src,
+  name,
+  className,
+  imgClassName,
+  fallbackTextClassName,
+}: ItemImageProps) {
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
-
-  useEffect(() => {
-    setLoaded(false);
-    setErrored(false);
-  }, [src]);
 
   const hue = hueForName(name);
   const bg = `hsl(${hue} 55% 88%)`;
