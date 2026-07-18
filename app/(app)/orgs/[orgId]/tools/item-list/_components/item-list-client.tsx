@@ -10,6 +10,10 @@
 import { useMemo, type RefObject } from "react";
 import { Loader2, Package, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ItemImage } from "@/components/ui/item-image";
+import { unitPillClasses } from "@/lib/core/measurement";
+import { cn } from "@/lib/core/utils";
 import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
 
 export type ToolItem = {
@@ -77,9 +81,29 @@ export function ItemListClient({
 
       <div>
         {isLoadingInitial ? (
-          <div className="flex items-center justify-center border rounded-lg py-24">
-            <p className="text-sm text-muted-foreground">Loading items…</p>
-          </div>
+          view === "grid" ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="flex flex-col rounded-xl border bg-card shadow-sm overflow-hidden">
+                  <Skeleton className="w-full h-36 rounded-none" />
+                  <div className="px-3 py-2.5 flex items-center justify-between gap-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-10 rounded-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col divide-y rounded-lg border overflow-hidden">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 px-3 py-2.5 bg-card">
+                  <Skeleton className="h-10 w-10 rounded-md shrink-0" />
+                  <Skeleton className="h-4 flex-1" />
+                  <Skeleton className="h-4 w-10 rounded-full shrink-0" />
+                </div>
+              ))}
+            </div>
+          )
         ) : items.length === 0 && !search.trim() ? (
           <div className="flex items-center justify-center border rounded-lg py-24">
             <div className="flex flex-col items-center gap-3 text-center">
@@ -146,37 +170,17 @@ export function ItemListClient({
 // ─── Item Card ────────────────────────────────────────────────────────────────
 
 function ItemCard({ item, onClick }: { item: ToolItem; onClick: () => void }) {
-  const hue = [...item.name].reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360;
-  const bg = `hsl(${hue} 55% 88%)`;
-  const fg = `hsl(${hue} 45% 38%)`;
-
   return (
     <button
       type="button"
       onClick={onClick}
       className="group flex flex-col rounded-xl border bg-card shadow-sm hover:shadow-md hover:border-primary/30 transition-all overflow-hidden text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <div className="relative w-full h-36 overflow-hidden">
-        {item.imageSignedUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={item.imageSignedUrl}
-            alt={item.name}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div
-            className="w-full h-full flex items-center justify-center text-4xl font-bold select-none"
-            style={{ backgroundColor: bg, color: fg }}
-          >
-            {item.name.charAt(0).toUpperCase()}
-          </div>
-        )}
-      </div>
+      <ItemImage src={item.imageSignedUrl} name={item.name} className="h-36" />
 
       <div className="px-3 py-2.5 flex items-center justify-between gap-2">
         <span className="font-medium text-sm truncate">{item.name}</span>
-        <span className="shrink-0 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground font-medium">
+        <span className={cn("shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium", unitPillClasses(item.unit))}>
           {item.unit}
         </span>
       </div>
@@ -187,35 +191,15 @@ function ItemCard({ item, onClick }: { item: ToolItem; onClick: () => void }) {
 // ─── Item Row (list view) ─────────────────────────────────────────────────────
 
 function ItemRow({ item, onClick }: { item: ToolItem; onClick: () => void }) {
-  const hue = [...item.name].reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360;
-  const bg = `hsl(${hue} 55% 88%)`;
-  const fg = `hsl(${hue} 45% 38%)`;
-
   return (
     <button
       type="button"
       onClick={onClick}
       className="flex items-center gap-3 w-full px-3 py-2.5 hover:bg-muted/50 transition-colors text-left bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
     >
-      <div className="h-10 w-10 rounded-md overflow-hidden shrink-0">
-        {item.imageSignedUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={item.imageSignedUrl}
-            alt={item.name}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div
-            className="w-full h-full flex items-center justify-center text-base font-bold select-none"
-            style={{ backgroundColor: bg, color: fg }}
-          >
-            {item.name.charAt(0).toUpperCase()}
-          </div>
-        )}
-      </div>
+      <ItemImage src={item.imageSignedUrl} name={item.name} className="h-10 w-10 rounded-md shrink-0" fallbackTextClassName="text-base" />
       <span className="flex-1 font-medium text-sm truncate">{item.name}</span>
-      <span className="shrink-0 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground font-medium">
+      <span className={cn("shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium", unitPillClasses(item.unit))}>
         {item.unit}
       </span>
     </button>

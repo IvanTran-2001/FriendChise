@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useTransition, useRef, useEffect } from "react";
-import Image from "next/image";
 import { ChevronLeft, ChevronRight, Plus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ItemImage } from "@/components/ui/item-image";
 import { useSupportsHover } from "@/hooks/use-hover-capability";
 import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
 import { cn } from "@/lib/core/utils";
@@ -493,21 +493,11 @@ export function ListGridView({
                       sized by available height but capped by cell width */}
                   <div className="flex-1 min-h-0 bg-muted flex items-center justify-center overflow-hidden">
                     <div className="relative h-full aspect-square max-w-full overflow-hidden">
-                      {entry.item.imageSignedUrl ? (
-                        <Image
-                          src={entry.item.imageSignedUrl}
-                          alt={entry.item.name}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 768px) 50vw, 25vw"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-2xl font-semibold text-muted-foreground/40 uppercase select-none">
-                            {entry.item.name.charAt(0)}
-                          </span>
-                        </div>
-                      )}
+                      <ItemImage
+                        src={entry.item.imageSignedUrl}
+                        name={entry.item.name}
+                        fallbackTextClassName="text-2xl"
+                      />
                     </div>
                   </div>
                   <div className="px-1.5 py-1 shrink-0 border-t border-border flex flex-col gap-0.5">

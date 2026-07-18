@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Image from "next/image";
 import {
   ChevronLeft,
   ChevronRight,
   LayoutGrid,
   Eye,
   EyeOff,
+  Minus,
+  Plus,
   Pencil,
   Search,
   Trash2,
@@ -15,6 +16,19 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ItemImage } from "@/components/ui/item-image";
+import { unitPillClasses } from "@/lib/core/measurement";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/dialogs/alert-dialog";
 import { cn } from "@/lib/core/utils";
 import {
   removeToolItemListEntryAction,
@@ -164,21 +178,7 @@ export function ItemDetailPanel({
   return (
     <div className="flex h-full flex-col bg-card">
       <div className="relative aspect-video w-full overflow-hidden bg-muted">
-        {item.imageSignedUrl ? (
-          <Image
-            src={item.imageSignedUrl}
-            alt={item.name}
-            fill
-            className="object-cover"
-            sizes="300px"
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="select-none text-5xl font-semibold uppercase text-muted-foreground/20">
-              {item.name.charAt(0)}
-            </span>
-          </div>
-        )}
+        <ItemImage src={item.imageSignedUrl} name={item.name} fallbackTextClassName="text-5xl" />
 
         {totalInCell > 1 && (
           <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-linear-to-t from-black/60 to-transparent px-2 py-1.5">
@@ -230,14 +230,38 @@ export function ItemDetailPanel({
                 <span className="text-[10px] text-muted-foreground/70">Edit and save</span>
               </div>
               <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8 shrink-0"
+                  disabled={parsedAmount <= 0 || Number.isNaN(parsedAmount)}
+                  onClick={() => setAmountVal(String(Math.max(0, parsedAmount - 1)))}
+                  aria-label="Decrease quantity"
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                </Button>
                 <Input
                   type="number"
                   min="0"
                   step="any"
                   value={amountVal}
                   onChange={(e) => setAmountVal(e.target.value)}
-                  className="h-8 text-sm"
+                  className="h-8 text-sm text-center"
                 />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8 shrink-0"
+                  onClick={() => setAmountVal(String((Number.isNaN(parsedAmount) ? 0 : parsedAmount) + 1))}
+                  aria-label="Increase quantity"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+                <span className={cn("shrink-0 rounded-full px-2 py-1 text-xs font-medium", unitPillClasses(item.unit))}>
+                  {item.unit}
+                </span>
                 <Button
                   size="sm"
                   className="shrink-0"
@@ -319,15 +343,36 @@ export function ItemDetailPanel({
               </BlueActionButton>
             </div>
             <div className="mt-3 flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="shrink-0 text-destructive hover:text-destructive"
-                disabled={isDeletePending}
-                onClick={handleDelete}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0 text-destructive hover:text-destructive"
+                    disabled={isDeletePending}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Remove &ldquo;{item.name}&rdquo; from this list?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This removes the entry and its quantity/position from this list. The
+                      item stays in your catalog and can be added back later.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={handleDelete}
+                    >
+                      Remove
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </div>

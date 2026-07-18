@@ -19,7 +19,7 @@ export default async function ItemListPage({
 
   return (
     <>
-      <RegisterPageSidebar title="Item List" content={<ItemListSidebarShell />} />
+      <RegisterPageSidebar title="Items" content={<ItemListSidebarShell />} />
       <ItemListPageClient orgId={orgId} canManage={canManage} view={view} />
     </>
   );

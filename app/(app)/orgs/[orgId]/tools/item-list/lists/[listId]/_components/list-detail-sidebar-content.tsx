@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckSquare, LayoutGrid, Minus, Plus, X } from "lucide-react";
+import { CheckSquare, ChevronDown, ChevronRight, LayoutGrid, Minus, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/controls/segmented-control";
@@ -46,6 +46,7 @@ export function ListDetailSidebarContent({
   const [cols, setCols] = useState(initialCols);
   const [rows, setRows] = useState(initialRows);
   const [isGridPending, startGridTransition] = useTransition();
+  const [isLayoutSettingsOpen, setIsLayoutSettingsOpen] = useState(false);
 
   /**
    * Persists the selected conversion set to a 1-year cookie so the server can
@@ -100,7 +101,7 @@ export function ListDetailSidebarContent({
                 label: (
                   <span className="flex items-center gap-1.5">
                     <LayoutGrid className="h-3.5 w-3.5" />
-                    Grid
+                    Station Layout
                   </span>
                 ),
               },
@@ -163,38 +164,9 @@ export function ListDetailSidebarContent({
       {canManage && view === "grid" && (
         <div className="px-3 py-3 flex flex-col gap-3 border-t border-border">
           <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1">
-            Grid
+            Station Layout
           </span>
 
-          {/* Grid size */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground px-1">Cols</span>
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-6 w-6" disabled={cols <= MIN_COLS || isGridPending} onClick={() => changeGrid(cols - 1, rows)}>
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <span className="tabular-nums text-sm w-5 text-center">{cols}</span>
-                <Button variant="ghost" size="icon" className="h-6 w-6" disabled={cols >= MAX_COLS || isGridPending} onClick={() => changeGrid(cols + 1, rows)}>
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground px-1">Rows</span>
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-6 w-6" disabled={rows <= MIN_ROWS || isGridPending} onClick={() => changeGrid(cols, rows - 1)}>
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <span className="tabular-nums text-sm w-5 text-center">{rows}</span>
-                <Button variant="ghost" size="icon" className="h-6 w-6" disabled={rows >= MAX_ROWS || isGridPending} onClick={() => changeGrid(cols, rows + 1)}>
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Grid actions */}
           <Button
             size="sm"
             variant={activeTitle === "Add Item" ? "default" : "outline"}
@@ -204,6 +176,46 @@ export function ListDetailSidebarContent({
             <Plus className="h-4 w-4" />
             Add Item
           </Button>
+
+          {/* Layout settings — collapsed by default since it's rarely touched */}
+          <div className="rounded-md border border-border/60">
+            <button
+              type="button"
+              onClick={() => setIsLayoutSettingsOpen((v) => !v)}
+              className="flex w-full items-center justify-between px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted/40 transition-colors rounded-md"
+            >
+              <span>Layout settings</span>
+              {isLayoutSettingsOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+            </button>
+            {isLayoutSettingsOpen && (
+              <div className="flex flex-col gap-1.5 border-t border-border/60 px-2 py-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground px-1">Cols</span>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-6 w-6" disabled={cols <= MIN_COLS || isGridPending} onClick={() => changeGrid(cols - 1, rows)}>
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <span className="tabular-nums text-sm w-5 text-center">{cols}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" disabled={cols >= MAX_COLS || isGridPending} onClick={() => changeGrid(cols + 1, rows)}>
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground px-1">Rows</span>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-6 w-6" disabled={rows <= MIN_ROWS || isGridPending} onClick={() => changeGrid(cols, rows - 1)}>
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <span className="tabular-nums text-sm w-5 text-center">{rows}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" disabled={rows >= MAX_ROWS || isGridPending} onClick={() => changeGrid(cols, rows + 1)}>
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

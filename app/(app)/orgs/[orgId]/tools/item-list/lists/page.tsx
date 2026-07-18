@@ -29,7 +29,7 @@ export default async function ItemListsPage({
 
   return (
     <>
-      <RegisterPageSidebar title="Item List" content={<ItemListSidebarShell />} />
+      <RegisterPageSidebar title="Items" content={<ItemListSidebarShell />} />
       {/* ItemListsPageClient owns the lists state so create/edit/delete update immediately.
           Previously this page rendered ItemListsSidebarContent + ItemListsClient separately
           with no shared state between them. */}
