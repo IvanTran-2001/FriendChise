@@ -38,7 +38,7 @@ export function CalculatorClient({ orgId }: CalculatorClientProps) {
     recentCalculations: state.recentCalculations ?? [],
   } satisfies CalculatorState;
 
-  const { display, equation, isNewNumber, recentCalculations } = normalizedState;
+  const { display, equation, recentCalculations } = normalizedState;
 
   const updateState = useCallback(
     (updater: (prev: CalculatorState) => CalculatorState) => {
