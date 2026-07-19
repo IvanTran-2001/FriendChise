@@ -100,7 +100,7 @@ export function ItemDetailPanel({
 
   const parsedAmount = Number.parseFloat(amountVal);
   const amountChanged =
-    !Number.isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount !== initialAmount;
+    !Number.isNaN(parsedAmount) && parsedAmount >= 0 && parsedAmount !== initialAmount;
 
   function handleDelete() {
     startDeleteTransition(async () => {

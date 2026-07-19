@@ -108,7 +108,7 @@ export function ListChecklistView({
     const raw = nextValue ?? editingAmount;
     const parsed = Number.parseFloat(raw);
     setEditingAmountId(null);
-    if (Number.isNaN(parsed) || parsed <= 0 || parsed === entry.amount) return;
+    if (Number.isNaN(parsed) || parsed < 0 || parsed === entry.amount) return;
     setPendingAmountId(entry.id);
     startTransition(async () => {
       const result = await updateToolItemListEntryAmountAction(orgId, list.id, entry.id, parsed);
@@ -183,10 +183,18 @@ export function ListChecklistView({
               onKeyDown={(e) => e.stopPropagation()}
             >
               {isEditingAmount ? (
-                <div className={cn(
-                  "flex items-center gap-1 rounded-md border border-primary/30 bg-background px-1 py-1",
-                  pendingAmountId === entry.id && "opacity-70",
-                )}>
+                <div
+                  onBlur={(e) => {
+                    const next = e.relatedTarget;
+                    if (!(next instanceof Node) || !e.currentTarget.contains(next)) {
+                      commitAmount(entry);
+                    }
+                  }}
+                  className={cn(
+                    "flex items-center gap-1 rounded-md border border-primary/30 bg-background px-1 py-1",
+                    pendingAmountId === entry.id && "opacity-70",
+                  )}
+                >
                   <Button
                     type="button"
                     size="icon-sm"
@@ -210,7 +218,6 @@ export function ListChecklistView({
                       if (e.key === "Enter") commitAmount(entry);
                       if (e.key === "Escape") setEditingAmountId(null);
                     }}
-                    onBlur={() => commitAmount(entry)}
                     className="h-7 w-12 border-0 bg-transparent p-0 text-center text-sm shadow-none focus-visible:ring-0"
                   />
                   <Button
@@ -241,20 +248,22 @@ export function ListChecklistView({
                   </span>
                 </Button>
               )}
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 px-2 text-muted-foreground"
-                onClick={() =>
-                  setExpandedRates((prev) => ({
-                    ...prev,
-                    [entry.id]: !prev[entry.id],
-                  }))
-                }
-              >
-                {isRatesOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                <span className="ml-1 hidden sm:inline">Rates</span>
-              </Button>
+              {rates.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-muted-foreground"
+                  onClick={() =>
+                    setExpandedRates((prev) => ({
+                      ...prev,
+                      [entry.id]: !prev[entry.id],
+                    }))
+                  }
+                >
+                  {isRatesOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                  <span className="ml-1 hidden sm:inline">Rates</span>
+                </Button>
+              )}
             </div>
           ) : null}
         </div>
@@ -290,14 +299,6 @@ export function ListChecklistView({
                         {label} {otherItem.unit}
                       </p>
                     </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 shrink-0"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </Button>
                   </div>
                 );
               })}
