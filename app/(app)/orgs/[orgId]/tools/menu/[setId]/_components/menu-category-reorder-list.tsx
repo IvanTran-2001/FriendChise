@@ -10,6 +10,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/dialogs/alert-dialog";
 
 type MenuCategoryTab = {
   id: string;
@@ -43,6 +53,9 @@ export function MenuCategoryReorderList({
 }) {
   const [draftTabs, setDraftTabs] = useState<MenuCategoryTab[] | null>(null);
   const [draggedTabId, setDraggedTabId] = useState<string | null>(null);
+  const [pendingDeleteTab, setPendingDeleteTab] = useState<{ id: string; name: string } | null>(
+    null,
+  );
   const draftTabsRef = useRef<MenuCategoryTab[] | null>(null);
   const tabCardRefs = useRef(new Map<string, HTMLDivElement>());
   const previousRectsRef = useRef(new Map<string, DOMRect>());
@@ -302,7 +315,7 @@ export function MenuCategoryReorderList({
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           variant="destructive"
-                          onSelect={() => onDeleteTab(tab.id, tab.name)}
+                          onSelect={() => setPendingDeleteTab({ id: tab.id, name: tab.name })}
                           disabled={isPending}
                         >
                           Delete
@@ -334,6 +347,38 @@ export function MenuCategoryReorderList({
           })}
         </div>
       )}
+
+      <AlertDialog
+        open={pendingDeleteTab !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteTab(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete category &quot;{pendingDeleteTab?.name}&quot;?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingDeleteTab) {
+                  onDeleteTab(pendingDeleteTab.id, pendingDeleteTab.name);
+                }
+                setPendingDeleteTab(null);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

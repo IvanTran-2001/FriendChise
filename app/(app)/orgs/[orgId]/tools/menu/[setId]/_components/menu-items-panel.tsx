@@ -10,6 +10,16 @@ import { useEffect, useMemo, useState, type ReactNode, type RefObject } from "re
 import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getOrgStorageReadUrl } from "@/app/actions/storage";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/dialogs/alert-dialog";
 import type { MenuDetail } from "@/lib/services/tools/menus";
 
 export function MenuItemsPanel({
@@ -46,6 +56,9 @@ export function MenuItemsPanel({
   priceByItemId?: Record<string, number | null>;
 }) {
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const [pendingDeleteItem, setPendingDeleteItem] = useState<
+    MenuDetail["items"][number] | null
+  >(null);
 
   const categoryLookup = useMemo(() => {
     const lookup = new Map<string, string[]>();
@@ -135,7 +148,7 @@ export function MenuItemsPanel({
                 item={item}
                 canManage={canManage}
                 onEdit={() => onEditItem(item)}
-                onDelete={() => onDeleteItem(item)}
+                onDelete={() => setPendingDeleteItem(item)}
                 imageUrl={signedUrls[item.imageUrl || item.toolItem.imgUrl || ""] ?? null}
                 categories={categoryLookup.get(item.id) ?? []}
                 price={priceByItemId?.[item.id] ?? item.price}
@@ -150,7 +163,7 @@ export function MenuItemsPanel({
                 item={item}
                 canManage={canManage}
                 onEdit={() => onEditItem(item)}
-                onDelete={() => onDeleteItem(item)}
+                onDelete={() => setPendingDeleteItem(item)}
                 imageUrl={signedUrls[item.imageUrl || item.toolItem.imgUrl || ""] ?? null}
                 categories={categoryLookup.get(item.id) ?? []}
                 price={priceByItemId?.[item.id] ?? item.price}
@@ -168,6 +181,36 @@ export function MenuItemsPanel({
           </div>
         )}
       </div>
+
+      <AlertDialog
+        open={pendingDeleteItem !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteItem(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete &quot;{pendingDeleteItem?.title}&quot;?
+            </AlertDialogTitle>
+            <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingDeleteItem) {
+                  onDeleteItem(pendingDeleteItem);
+                }
+                setPendingDeleteItem(null);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }

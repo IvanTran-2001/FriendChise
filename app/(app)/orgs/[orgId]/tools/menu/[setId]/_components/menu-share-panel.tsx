@@ -75,7 +75,7 @@ export function MenuSharePanel({
             className="min-w-0 flex-1 bg-transparent text-xs text-foreground outline-none"
             aria-label="Share link"
           />
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={handleCopy}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={handleCopy} aria-label="Copy share link">
             {copyState === "copied" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           </Button>
         </div>

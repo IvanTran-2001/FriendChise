@@ -17,7 +17,9 @@ import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-contex
 import { BackButton } from "@/components/layout/sidebar/back-button";
 import { SearchInput } from "@/components/ui/controls/search-input";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
+import { AddSetForm } from "./_components/add-set-form";
 import { EditSetForm } from "./_components/edit-set-form";
 import { cn } from "@/lib/core/utils";
 import { usePersistedState } from "@/hooks/use-persisted-state";
@@ -95,6 +97,16 @@ export function ConversionClient({
       `Edit: ${set.name}`,
       <div key={k} className="p-4">
         <EditSetForm orgId={orgId} set={set} onClose={close} />
+      </div>,
+    );
+  }
+
+  function handleAddSet() {
+    const k = ++formKeyRef.current;
+    open(
+      "Add Set",
+      <div key={k} className="p-4">
+        <AddSetForm orgId={orgId} onSuccess={close} onCancel={close} />
       </div>,
     );
   }
@@ -230,14 +242,19 @@ export function ConversionClient({
           </div>
 
           {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center gap-2 rounded-xl border border-dashed">
-              <FolderOpen className="h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">
-                {sets.length === 0
-                  ? `No sets yet. Use "+ Add Set" to create one.`
-                  : "No sets match your search."}
-              </p>
-            </div>
+            sets.length === 0 ? (
+              <EmptyState
+                icon={FolderOpen}
+                title="No sets yet"
+                action={{ label: "Create your first set", onClick: handleAddSet }}
+              />
+            ) : (
+              <div className="flex items-center justify-center border rounded-lg py-16">
+                <p className="text-sm text-muted-foreground">
+                  No sets match your search.
+                </p>
+              </div>
+            )
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {filtered.map((set) => {
