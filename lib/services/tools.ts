@@ -358,6 +358,10 @@ export async function updateToolItemListEntryAmount(
   entryId: string,
   amount: number,
 ) {
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw new Error("Invalid amount");
+  }
+
   const entry = await prisma.toolItemListEntry.findFirst({
     where: { id: entryId, listId, list: { orgId } },
     select: { id: true },

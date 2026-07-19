@@ -259,6 +259,10 @@ export async function updateToolItemListEntryAmountAction(
   const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!auth.ok) return { ok: false as const };
 
+  if (!Number.isFinite(amount) || amount < 0) {
+    return { ok: false as const };
+  }
+
   try {
     await updateToolItemListEntryAmount(orgId, listId, entryId, amount);
     revalidatePath(`/orgs/${orgId}/tools/item-list/lists/${listId}`);

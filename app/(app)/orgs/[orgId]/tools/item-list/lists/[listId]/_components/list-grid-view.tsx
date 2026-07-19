@@ -180,7 +180,7 @@ export function ListGridView({
   function commitAmount(entry: ListDetail["entries"][number]) {
     setEditingEntryId(null);
     const parsed = parseFloat(editingAmount);
-    if (isNaN(parsed) || parsed === entry.amount) return;
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed === entry.amount) return;
     startTransition(async () => {
       const result = await updateToolItemListEntryAmountAction(
         orgId,

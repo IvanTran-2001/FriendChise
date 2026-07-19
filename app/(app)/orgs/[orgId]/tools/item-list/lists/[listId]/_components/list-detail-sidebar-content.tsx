@@ -182,6 +182,7 @@ export function ListDetailSidebarContent({
             <button
               type="button"
               onClick={() => setIsLayoutSettingsOpen((v) => !v)}
+              aria-expanded={isLayoutSettingsOpen}
               className="flex w-full items-center justify-between px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted/40 transition-colors rounded-md"
             >
               <span>Layout settings</span>
