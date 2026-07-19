@@ -33,24 +33,9 @@ export function ItemListSidebarContent({
 
   return (
     <>
-      {/* View toggle */}
-      <div className="px-3 pt-2.5 pb-3 flex flex-col gap-2 border-t border-border">
-        <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1">
-          View
-        </span>
-        <SegmentedControl
-          value={view}
-          onChange={(v) => router.push(buildHref({ view: v as "grid" | "list" }))}
-          options={[
-            { value: "grid", label: <span className="flex items-center gap-1.5"><LayoutGrid className="h-3.5 w-3.5" />Grid</span> },
-            { value: "list", label: <span className="flex items-center gap-1.5"><List className="h-3.5 w-3.5" />List</span> },
-          ]}
-        />
-      </div>
-
       {/* Actions */}
       {canManage && (
-        <div className="px-3 py-3 flex flex-col gap-2 border-t border-border">
+        <div className="px-3 pt-2.5 pb-3 flex flex-col gap-2 border-t border-border">
           <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1">
             Actions
           </span>
@@ -65,6 +50,21 @@ export function ItemListSidebarContent({
           </Button>
         </div>
       )}
+
+      {/* View toggle */}
+      <div className="px-3 py-3 flex flex-col gap-2 border-t border-border">
+        <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1">
+          View
+        </span>
+        <SegmentedControl
+          value={view}
+          onChange={(v) => router.push(buildHref({ view: v as "grid" | "list" }))}
+          options={[
+            { value: "grid", label: <span className="flex items-center gap-1.5"><LayoutGrid className="h-3.5 w-3.5" />Grid</span> },
+            { value: "list", label: <span className="flex items-center gap-1.5"><List className="h-3.5 w-3.5" />List</span> },
+          ]}
+        />
+      </div>
     </>
   );
 }

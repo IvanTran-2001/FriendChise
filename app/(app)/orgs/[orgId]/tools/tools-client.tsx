@@ -20,7 +20,7 @@ import { usePersistedState } from "@/hooks/use-persisted-state";
 const TOOLS = [
   {
     id: "item-list",
-    name: "Item List",
+    name: "Items",
     icon: List,
     description: "Manage your ingredient and product catalog",
     accent: "bg-emerald-500/10 text-emerald-700 ring-emerald-500/15 dark:text-emerald-300",

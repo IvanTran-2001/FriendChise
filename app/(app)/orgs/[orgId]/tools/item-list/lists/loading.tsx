@@ -18,7 +18,7 @@ function ListsSidebarSkeleton() {
 export default function ItemListsLoading() {
   return (
     <>
-      <RegisterPageSidebar title="Item List" content={<ItemListSidebarShell />} />
+      <RegisterPageSidebar title="Items" content={<ItemListSidebarShell />} />
       <RegisterPageSidebarSubContent content={<ListsSidebarSkeleton />} />
 
       <div className="flex flex-col h-full">

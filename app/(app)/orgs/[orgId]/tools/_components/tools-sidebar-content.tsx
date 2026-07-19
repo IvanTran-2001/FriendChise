@@ -32,7 +32,7 @@ type ToolItem = {
 const PLACEHOLDER_TOOLS: ToolItem[] = [
   {
     id: "item-list",
-    name: "Item List",
+    name: "Items",
     icon: List,
     description: "Catalogs and inventory",
     accent: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",

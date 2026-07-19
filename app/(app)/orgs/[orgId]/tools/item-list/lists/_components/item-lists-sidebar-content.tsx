@@ -25,8 +25,26 @@ export function ItemListsSidebarContent({ orgId, canManage, view, onCreateList }
 
   return (
     <>
+      {/* Actions */}
+      {canManage && (
+        <div className="px-3 pt-2.5 pb-3 flex flex-col gap-2 border-t border-border">
+          <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1">
+            Actions
+          </span>
+          <Button
+            size="sm"
+            variant={activeTitle === "New List" ? "default" : "outline"}
+            className="w-full justify-start gap-2"
+            onClick={onCreateList}
+          >
+            <Plus className="h-4 w-4" />
+            New Set
+          </Button>
+        </div>
+      )}
+
       {/* View toggle */}
-      <div className="px-3 pt-2.5 pb-3 flex flex-col gap-2 border-t border-border">
+      <div className="px-3 py-3 flex flex-col gap-2 border-t border-border">
         <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1">
           View
         </span>
@@ -55,24 +73,6 @@ export function ItemListsSidebarContent({ orgId, canManage, view, onCreateList }
           ]}
         />
       </div>
-
-      {/* Actions */}
-      {canManage && (
-        <div className="px-3 py-3 flex flex-col gap-2 border-t border-border">
-          <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1">
-            Actions
-          </span>
-          <Button
-            size="sm"
-            variant={activeTitle === "New List" ? "default" : "outline"}
-            className="w-full justify-start gap-2"
-            onClick={onCreateList}
-          >
-            <Plus className="h-4 w-4" />
-            New Set
-          </Button>
-        </div>
-      )}
     </>
   );
 }

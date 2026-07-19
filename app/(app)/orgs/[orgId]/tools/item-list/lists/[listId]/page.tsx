@@ -88,7 +88,7 @@ export default async function ListDetailPage({
 
   return (
     <>
-      <RegisterPageSidebar title="Item List" content={<ItemListSidebarShell />} />
+      <RegisterPageSidebar title="Items" content={<ItemListSidebarShell />} />
       <ListDetailClient
         orgId={orgId}
         list={listWithSignedUrls}

@@ -358,6 +358,10 @@ export async function updateToolItemListEntryAmount(
   entryId: string,
   amount: number,
 ) {
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw new Error("Invalid amount");
+  }
+
   const entry = await prisma.toolItemListEntry.findFirst({
     where: { id: entryId, listId, list: { orgId } },
     select: { id: true },
@@ -390,17 +394,23 @@ export async function toggleChecklistEntry(
   return { checked: true };
 }
 
-/** Creates a new ToolItemList for an org. New lists always default to GRID display. */
+/**
+ * Creates a new ToolItemList for an org.
+ * `displayType` is limited to GRID (station layout) or CHECKLIST — TABLE and
+ * GALLERY exist in the schema/enum but have no implemented UI yet, so they are
+ * not creatable. A gridConfig row is only created for GRID lists.
+ */
 export async function createToolItemList(
   orgId: string,
   name: string,
+  displayType: "GRID" | "CHECKLIST" = "GRID",
   gridCols = 4,
   gridRows = 4,
   description?: string,
 ) {
   return prisma.$transaction(async (tx) => {
     const list = await tx.toolItemList.create({
-      data: { orgId, name, displayType: "GRID", description: description ?? null },
+      data: { orgId, name, displayType, description: description ?? null },
       select: {
         id: true,
         name: true,
@@ -411,13 +421,15 @@ export async function createToolItemList(
       },
     });
 
-    await tx.toolItemGridConfig.create({
-      data: {
-        listId: list.id,
-        gridCols,
-        gridRows,
-      },
-    });
+    if (displayType === "GRID") {
+      await tx.toolItemGridConfig.create({
+        data: {
+          listId: list.id,
+          gridCols,
+          gridRows,
+        },
+      });
+    }
 
     return list;
   });

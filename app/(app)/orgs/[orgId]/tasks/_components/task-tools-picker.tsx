@@ -37,7 +37,7 @@ const KIND_META: Record<
     hubHref: "/tools/conversion",
   },
   "item-list": {
-    label: "Item List",
+    label: "Items",
     emptyLabel: "No item lists yet",
     hubHref: "/tools/item-list",
   },

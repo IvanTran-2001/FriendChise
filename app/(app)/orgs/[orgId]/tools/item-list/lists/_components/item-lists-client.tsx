@@ -60,7 +60,7 @@ interface ItemListsClientProps {
 
 const DISPLAY_TYPE_LABEL: Record<ListDisplayType, string> = {
   TABLE: "Table",
-  GRID: "Grid",
+  GRID: "Station Layout",
   CHECKLIST: "Checklist",
   GALLERY: "Gallery",
 };

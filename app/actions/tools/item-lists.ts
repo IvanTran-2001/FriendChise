@@ -37,6 +37,7 @@ function mapPrismaError(
 export async function createToolItemListAction(
   orgId: string,
   name: string,
+  displayType?: "GRID" | "CHECKLIST",
   gridCols?: number,
   gridRows?: number,
 ) {
@@ -46,13 +47,14 @@ export async function createToolItemListAction(
   const trimmed = name.trim();
   if (!trimmed) return { ok: false as const, error: "Name is required." };
 
+  const normalizedDisplayType = displayType === "CHECKLIST" ? "CHECKLIST" : "GRID";
   const cols = gridCols ?? 4;
   const rows = gridRows ?? 4;
   const normalizedGridCols = Number.isInteger(cols) && cols >= 1 && cols <= 12 ? cols : 4;
   const normalizedGridRows = Number.isInteger(rows) && rows >= 1 && rows <= 20 ? rows : 4;
 
   try {
-    const list = await createToolItemList(orgId, trimmed, normalizedGridCols, normalizedGridRows);
+    const list = await createToolItemList(orgId, trimmed, normalizedDisplayType, normalizedGridCols, normalizedGridRows);
     revalidatePath(`/orgs/${orgId}/tools/item-list/lists`);
     return { ok: true as const, list };
   } catch (err: unknown) {
@@ -256,6 +258,10 @@ export async function updateToolItemListEntryAmountAction(
 ) {
   const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!auth.ok) return { ok: false as const };
+
+  if (!Number.isFinite(amount) || amount < 0) {
+    return { ok: false as const };
+  }
 
   try {
     await updateToolItemListEntryAmount(orgId, listId, entryId, amount);
