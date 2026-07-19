@@ -18,12 +18,57 @@ export type OrgImagePage = {
   pageSize: number;
 };
 
+/**
+ * @deprecated For super-admin global views use `getGlobalOrgImagesPage()` instead.
+ * This function returns all images for a single org without pagination and is
+ * only appropriate for org-scoped contexts where the set is bounded.
+ */
 export async function getOrgImages(orgId: string): Promise<OrgImageRow[]> {
   return prisma.orgImage.findMany({
     where: { orgId },
     orderBy: { createdAt: "desc" },
     select: { id: true, storagePath: true, name: true, createdAt: true },
   });
+}
+
+type GlobalOrgImageRow = OrgImageRow & { org: { name: string } | null };
+
+export type GlobalOrgImagesPage = {
+  images: GlobalOrgImageRow[];
+  totalCount: number;
+  totalPages: number;
+  page: number;
+  pageSize: number;
+};
+
+/**
+ * Returns a paginated slice of ALL org gallery images across every organization.
+ * Intended for super-admin use only (does not scope to a single orgId).
+ * Only the rows for the requested page are loaded into memory, so this stays
+ * efficient regardless of how many images exist globally.
+ */
+export async function getGlobalOrgImagesPage(
+  options: { page?: number; pageSize?: number } = {},
+): Promise<GlobalOrgImagesPage> {
+  const pageSize = Math.max(1, Math.floor(options.pageSize ?? 12));
+  const totalCount = await prisma.orgImage.count();
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const page = Math.min(Math.max(1, Math.floor(options.page ?? 1)), totalPages);
+
+  const images = await prisma.orgImage.findMany({
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    select: {
+      id: true,
+      storagePath: true,
+      name: true,
+      createdAt: true,
+      org: { select: { name: true } },
+    },
+  });
+
+  return { images, totalCount, totalPages, page, pageSize };
 }
 
 export async function getOrgImagesPage(

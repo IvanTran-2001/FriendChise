@@ -254,8 +254,10 @@ export async function getSharedTasks(orgId: string) {
 }
 
 /**
- * Returns all tasks for the given org, sorted newest-first.
- * Includes role eligibility data for display in the task table.
+ * @deprecated Prefer `getTasksPaginated()` for new callers. This function
+ * loops through all pages and loads every task into memory, which is expensive
+ * for orgs with large task libraries. It is retained only for existing callers
+ * that have not yet been migrated.
  */
 export async function getTasks(orgId: string) {
   const pageSize = 100;

@@ -10,6 +10,83 @@ import { prisma } from "@/lib/platform/prisma";
 
 export type FeedbackFilter = "all" | "unreviewed";
 
+// ─── Counts ─────────────────────────────────────────────────────────────────
+
+export type FeedbackCounts = {
+  total: number;
+  unreviewed: number;
+  issues: number;
+  ideas: number;
+};
+
+/**
+ * Returns database-level counts for the admin dashboard overview.
+ * All four counts run in parallel — no full-table scan into memory.
+ */
+export async function getFeedbackCounts(): Promise<FeedbackCounts> {
+  const [total, unreviewed, issues, ideas] = await Promise.all([
+    prisma.feedback.count(),
+    prisma.feedback.count({ where: { reviewed: false } }),
+    prisma.feedback.count({ where: { type: FeedbackType.ISSUE } }),
+    prisma.feedback.count({ where: { type: FeedbackType.IDEA } }),
+  ]);
+  return { total, unreviewed, issues, ideas };
+}
+
+// ─── Paginated feedback images ───────────────────────────────────────────────
+
+export type FeedbackImageRow = {
+  id: string;
+  createdAt: Date;
+  type: FeedbackType;
+  imageUrl: string; // guaranteed non-null by the query filter
+  user: { email: string | null; name: string | null };
+  org: { name: string } | null;
+};
+
+export type FeedbackImagesPage = {
+  items: FeedbackImageRow[];
+  totalCount: number;
+  totalPages: number;
+  page: number;
+  pageSize: number;
+};
+
+/**
+ * Returns a paginated slice of feedback items that have a screenshot,
+ * ordered newest-first. Only the current page's rows are loaded into memory.
+ * Used by the admin photos page to batch-sign URLs one page at a time.
+ */
+export async function getFeedbackImagesPage(
+  page: number,
+  pageSize: number,
+): Promise<FeedbackImagesPage> {
+  const where = { imageUrl: { not: null } } as const;
+  const totalCount = await prisma.feedback.count({ where });
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const currentPage = Math.min(Math.max(1, Math.floor(page)), totalPages);
+
+  const rawItems = await prisma.feedback.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    skip: (currentPage - 1) * pageSize,
+    take: pageSize,
+    select: {
+      id: true,
+      createdAt: true,
+      type: true,
+      imageUrl: true,
+      user: { select: { email: true, name: true } },
+      org: { select: { name: true } },
+    },
+  });
+
+  // Cast is safe: the where filter guarantees imageUrl is non-null
+  const items = rawItems as FeedbackImageRow[];
+
+  return { items, totalCount, totalPages, page: currentPage, pageSize };
+}
+
 export type FeedbackRow = {
   id: string;
   createdAt: Date;
@@ -81,9 +158,9 @@ export async function getFeedbackPage(
 }
 
 /**
- * Returns all feedback ordered newest-first by loading it in bounded pages.
- * Existing admin pages still consume the full list, but the underlying reads
- * are chunked so the query path stays bounded.
+ * @deprecated Use `getFeedbackCounts()` for dashboard stats or `getFeedbackPage()`
+ * for paginated access. This function loads all feedback rows into memory and
+ * exists only for callers that have not yet been migrated.
  */
 export async function getAllFeedback() {
   const pageSize = 100;
