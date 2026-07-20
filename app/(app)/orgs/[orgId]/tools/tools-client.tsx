@@ -16,6 +16,7 @@ import Link from "next/link";
 import { ArrowLeftRight, ArrowRight, LayoutList, List, Users, Calculator, Star, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { usePersistedState } from "@/hooks/use-persisted-state";
+import { useSupportsHover } from "@/hooks/use-hover-capability";
 
 const TOOLS = [
   {
@@ -86,6 +87,7 @@ export function ToolsClient({
   );
 
   const favoriteTools = hydrated ? TOOLS.filter((tool) => favoriteIds.includes(tool.id)) : [];
+  const supportsHover = useSupportsHover();
 
   const toggleFavorite = (toolId: string) => {
     setFavoriteIds((prev) => {
@@ -344,7 +346,10 @@ export function ToolsClient({
                       "absolute right-4 top-4 z-10 rounded-full p-1.5 transition-all duration-200",
                       isFavorite
                         ? "text-amber-500 bg-amber-500/5 hover:bg-amber-500/10"
-                        : "text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:text-amber-500 hover:bg-amber-500/5"
+                        : cn(
+                            "text-muted-foreground/40 hover:text-amber-500 hover:bg-amber-500/5",
+                            supportsHover ? "opacity-0 group-hover:opacity-100" : "opacity-100",
+                          ),
                     )}
                     aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
                   >

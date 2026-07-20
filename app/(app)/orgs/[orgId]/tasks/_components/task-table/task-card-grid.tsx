@@ -39,7 +39,7 @@ export function TaskCardGrid({
           key={task.id}
           tabIndex={0}
           role="button"
-          className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden relative group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="rounded-2xl border border-border/70 bg-card shadow-sm hover:border-primary/40 hover:shadow-md transition-all overflow-hidden relative group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           onClick={() => router.push(`/orgs/${orgId}/tasks/${task.id}`)}
           onKeyDown={(e) => {
             if (e.target !== e.currentTarget) return;

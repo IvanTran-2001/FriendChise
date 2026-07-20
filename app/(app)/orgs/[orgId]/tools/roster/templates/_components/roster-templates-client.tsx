@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { deleteRosterTemplateAction } from "@/app/actions/roster";
 import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
+import { useSupportsHover } from "@/hooks/use-hover-capability";
+import { cn } from "@/lib/core/utils";
 
 type TemplateRow = {
   id: string;
@@ -82,6 +84,7 @@ export function RosterTemplatesClient({
 }: RosterTemplatesClientProps) {
   const sidebar = useActionSidebar();
   const router = useRouter();
+  const supportsHover = useSupportsHover();
 
   if (templates.length === 0) {
     return (
@@ -117,7 +120,12 @@ export function RosterTemplatesClient({
             </div>
 
             {canManage && (
-              <div className="relative flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div
+                className={cn(
+                  "relative flex items-center gap-1 shrink-0 transition-opacity",
+                  supportsHover ? "opacity-0 group-hover:opacity-100" : "opacity-100",
+                )}
+              >
                 <Button
                   variant="ghost"
                   size="sm"

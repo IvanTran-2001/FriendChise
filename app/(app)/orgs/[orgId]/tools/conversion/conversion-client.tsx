@@ -18,6 +18,7 @@ import { BackButton } from "@/components/layout/sidebar/back-button";
 import { SearchInput } from "@/components/ui/controls/search-input";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useSupportsHover } from "@/hooks/use-hover-capability";
 import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { AddSetForm } from "./_components/add-set-form";
 import { EditSetForm } from "./_components/edit-set-form";
@@ -67,6 +68,7 @@ export function ConversionClient({
   const [search, setSearch] = useState("");
   const { open, close, activeTitle } = useActionSidebar();
   const formKeyRef = useRef(0);
+  const supportsHover = useSupportsHover();
 
   const [favoriteIds, setFavoriteIds, hydrated] = usePersistedState<string[]>(
     `conversion-favorites-${orgId}`,
@@ -219,7 +221,10 @@ export function ConversionClient({
                           variant="ghost"
                           onClick={(e) => handleEdit(e, set)}
                           aria-label={`Edit ${set.name}`}
-                          className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-muted-foreground hover:text-foreground"
+                          className={cn(
+                            "h-8 w-8 shrink-0 transition-opacity cursor-pointer text-muted-foreground hover:text-foreground",
+                            supportsHover ? "opacity-0 group-hover:opacity-100" : "opacity-100",
+                          )}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -249,7 +254,7 @@ export function ConversionClient({
                 action={{ label: "Create your first set", onClick: handleAddSet }}
               />
             ) : (
-              <div className="flex items-center justify-center border rounded-lg py-16">
+              <div className="flex items-center justify-center rounded-2xl border border-border/70 bg-card/30 py-16">
                 <p className="text-sm text-muted-foreground">
                   No sets match your search.
                 </p>
@@ -290,7 +295,9 @@ export function ConversionClient({
                           "h-8 w-8 text-muted-foreground hover:text-amber-500 hover:bg-muted/50 transition-all cursor-pointer",
                           isFav
                             ? "text-amber-500 fill-current opacity-100"
-                            : "opacity-0 group-hover:opacity-100"
+                            : supportsHover
+                              ? "opacity-0 group-hover:opacity-100"
+                              : "opacity-100",
                         )}
                       >
                         <Star className={cn("h-4 w-4", isFav && "fill-current")} />
@@ -300,7 +307,10 @@ export function ConversionClient({
                         variant="ghost"
                         onClick={(e) => handleEdit(e, set)}
                         aria-label={`Edit ${set.name}`}
-                        className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-muted-foreground hover:text-foreground"
+                        className={cn(
+                          "h-8 w-8 shrink-0 transition-opacity cursor-pointer text-muted-foreground hover:text-foreground",
+                          supportsHover ? "opacity-0 group-hover:opacity-100" : "opacity-100",
+                        )}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
