@@ -16,6 +16,7 @@ import { AnnouncementScope } from "@prisma/client";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -183,13 +184,11 @@ export function AnnouncementClient({
           </CardHeader>
           <CardContent className="px-0 pb-0">
             {items.length === 0 ? (
-              <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
-                <CalendarClock className="h-10 w-10 text-muted-foreground/30" />
-                <p className="mt-3 text-sm font-medium">Nothing to show yet</p>
-                <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                  Check back later for updates.
-                </p>
-              </div>
+              <EmptyState
+                icon={CalendarClock}
+                title="Nothing to show yet"
+                description="Check back later for updates."
+              />
             ) : (
               <div className="flex flex-col gap-4 px-4 pb-4 sm:px-6 sm:pb-6">
                 {items.map((announcement) => (

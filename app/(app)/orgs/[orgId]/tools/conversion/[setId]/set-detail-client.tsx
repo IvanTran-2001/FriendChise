@@ -449,19 +449,21 @@ export function SetDetailClient({
                     disabled={fromOptions.length === 0}
                   />
                   {visibleFromItems.length > 0 && (
-                    <div className="rounded-lg border divide-y overflow-hidden">
+                    <div className="rounded-2xl border border-border/70 bg-card divide-y overflow-hidden shadow-sm">
                       {visibleFromItems.map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-center gap-2 px-3 py-2 bg-card"
+                          className="flex items-center gap-2 px-3 py-2 transition-colors hover:bg-muted/40"
                         >
-                          <button
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
                             onClick={() => removeFrom(item.id)}
-                            className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                            className="text-muted-foreground hover:text-destructive shrink-0"
                             aria-label={`Remove ${item.name}`}
                           >
                             <X className="h-3.5 w-3.5" />
-                          </button>
+                          </Button>
                           <span className="flex-1 text-sm font-medium truncate">
                             {item.name}
                           </span>
@@ -506,7 +508,7 @@ export function SetDetailClient({
                       Add a To item to see calculations.
                     </p>
                   ) : visibleToItems.length > 0 && (
-                    <div className="rounded-lg border divide-y overflow-hidden">
+                    <div className="rounded-2xl border border-border/70 bg-card divide-y overflow-hidden shadow-sm">
                       {visibleToItems.map((item) => {
                         const total = calcTotal(item) ?? 0;
                         const subItems = getDirectSubItems(item.id, toIds, rates, itemMap);
@@ -514,14 +516,16 @@ export function SetDetailClient({
                         const isExpanded = expandedToIds.has(item.id);
                         return (
                           <div key={item.id}>
-                            <div className="flex items-center gap-2 px-3 py-2 bg-card">
-                              <button
+                            <div className="flex items-center gap-2 px-3 py-2 transition-colors hover:bg-muted/40">
+                              <Button
+                                size="icon-sm"
+                                variant="ghost"
                                 onClick={() => removeTo(item.id)}
-                                className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                                className="text-muted-foreground hover:text-destructive shrink-0"
                                 aria-label={`Remove ${item.name}`}
                               >
                                 <X className="h-3.5 w-3.5" />
-                              </button>
+                              </Button>
                               <span className="flex-1 text-sm font-medium truncate">
                                 {item.name}
                               </span>
@@ -532,9 +536,11 @@ export function SetDetailClient({
                                 </span>
                               </span>
                               {hasSubItems && (
-                                <button
+                                <Button
+                                  size="icon-sm"
+                                  variant="ghost"
                                   onClick={() => toggleExpanded(item.id)}
-                                  className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                                  className="text-muted-foreground hover:text-foreground shrink-0"
                                   aria-label={isExpanded ? "Collapse" : "Expand"}
                                 >
                                   {isExpanded ? (
@@ -542,7 +548,7 @@ export function SetDetailClient({
                                   ) : (
                                     <ChevronRight className="h-3.5 w-3.5" />
                                   )}
-                                </button>
+                                </Button>
                               )}
                             </div>
                             {hasSubItems && isExpanded && (
@@ -601,16 +607,18 @@ export function SetDetailClient({
                       return (
                         <div
                           key={item.id}
-                          className="relative rounded-xl border bg-card overflow-hidden flex flex-col shadow-sm"
+                          className="group relative rounded-xl border border-border/70 bg-card overflow-hidden flex flex-col shadow-sm transition-shadow hover:shadow-md"
                         >
                           {/* Remove button */}
-                          <button
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
                             onClick={() => removeFrom(item.id)}
-                            className="absolute top-1.5 right-1.5 z-10 rounded-full bg-background/80 backdrop-blur-sm p-0.5 text-muted-foreground hover:text-destructive transition-colors"
+                            className="absolute top-1 right-1 z-10 rounded-full bg-background/85 backdrop-blur-sm text-muted-foreground hover:bg-background hover:text-destructive shadow-sm"
                             aria-label={`Remove ${item.name}`}
                           >
-                            <X className="h-3 w-3" />
-                          </button>
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
                           {/* Image */}
                           <div className="relative aspect-square bg-muted">
                             {imgUrl ? (
@@ -681,16 +689,18 @@ export function SetDetailClient({
                       return (
                         <div
                           key={item.id}
-                          className="relative rounded-xl border bg-card overflow-hidden flex flex-col shadow-sm"
+                          className="group relative rounded-xl border border-border/70 bg-card overflow-hidden flex flex-col shadow-sm transition-shadow hover:shadow-md"
                         >
                           {/* Remove button */}
-                          <button
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
                             onClick={() => removeTo(item.id)}
-                            className="absolute top-1.5 right-1.5 z-10 rounded-full bg-background/80 backdrop-blur-sm p-0.5 text-muted-foreground hover:text-destructive transition-colors"
+                            className="absolute top-1 right-1 z-10 rounded-full bg-background/85 backdrop-blur-sm text-muted-foreground hover:bg-background hover:text-destructive shadow-sm"
                             aria-label={`Remove ${item.name}`}
                           >
-                            <X className="h-3 w-3" />
-                          </button>
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
                           {/* Image */}
                           <div className="relative aspect-square bg-muted">
                             {imgUrl ? (

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { CalendarDays, ExternalLink } from "lucide-react";
 import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { useSupportsHover } from "@/hooks/use-hover-capability";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { createTimetableEntryAction } from "@/app/actions/timetable-entries";
 import { cn } from "@/lib/core/utils";
@@ -376,17 +377,17 @@ export function SimpleView({
                         </span>
 
                         {/* Status badge (sm+) / dot (mobile) */}
-                        <span
-                          className={cn(
-                            "hidden sm:inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0",
+                        <Badge
+                          className="hidden sm:inline-flex shrink-0"
+                          variant={
                             effectiveStatus === "IN_PROGRESS"
-                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                              ? "warning"
                               : effectiveStatus === "DONE"
-                                ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                                ? "success"
                                 : effectiveStatus === "SKIPPED"
-                                  ? "bg-red-500/10 text-red-500"
-                                  : "bg-muted text-muted-foreground",
-                          )}
+                                  ? "error"
+                                  : "neutral"
+                          }
                         >
                           {effectiveStatus === "IN_PROGRESS"
                             ? "In progress"
@@ -395,7 +396,7 @@ export function SimpleView({
                               : effectiveStatus === "SKIPPED"
                                 ? "Skipped"
                                 : "To do"}
-                        </span>
+                        </Badge>
                         <span className="sm:hidden inline-flex items-center gap-1 shrink-0">
                           <span
                             className={cn(

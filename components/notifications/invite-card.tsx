@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { X, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/core/utils";
 import { getInviteConfig, getInviteSubtype } from "./invite-config";
 import type { InviteItem } from "@/lib/services/invites";
@@ -90,15 +91,10 @@ export function InviteCard({
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             {/* Type badge — driven by config */}
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md mb-1",
-                config.badgeClassName,
-              )}
-            >
+            <Badge variant={config.badgeVariant} size="sm" className="mb-1">
               <Icon className="size-2.5" />
               {config.label}
-            </span>
+            </Badge>
             <p className="text-sm font-medium leading-snug truncate">
               {invite.orgName}
             </p>

@@ -1,4 +1,5 @@
 import type { Task } from "./task-types";
+import { Badge } from "@/components/ui/badge";
 
 export function formatDuration(min: number): string {
   if (min < 60) return `${min}m`;
@@ -9,25 +10,17 @@ export function formatDuration(min: number): string {
 
 export function ownershipBadge(task: Task, orgId: string) {
   if (task._available) {
-    return (
-      <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400">
-        Available
-      </span>
-    );
+    return <Badge variant="emerald">Available</Badge>;
   }
 
   if (task.orgId !== orgId) {
-    return (
-      <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400">
-        Franchise
-      </span>
-    );
+    return <Badge variant="blue">Franchise</Badge>;
   }
 
   return (
-    <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium whitespace-nowrap text-muted-foreground">
+    <Badge variant="neutral" className="border border-border">
       Mine
-    </span>
+    </Badge>
   );
 }
 

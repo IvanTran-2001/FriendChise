@@ -5,6 +5,8 @@ import Image from "next/image";
 import { Users } from "lucide-react";
 import { SearchInput } from "@/components/ui/controls/search-input";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/core/utils";
 import { useSupportsHover } from "@/hooks/use-hover-capability";
 import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
@@ -80,11 +82,7 @@ function Avatar({
 
 function StatusBadge({ status }: { status: "ACTIVE" | "RESTRICTED" }) {
   if (status === "ACTIVE") return null;
-  return (
-    <span className="inline-flex items-center rounded-md bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive ring-1 ring-destructive/20 ring-inset">
-      Restricted
-    </span>
-  );
+  return <Badge variant="destructive-outline">Restricted</Badge>;
 }
 
 function RolesBadge({
@@ -104,14 +102,9 @@ function RolesBadge({
     return (
       <div className={cn("flex flex-wrap gap-1", justifyClass)}>
         {roles.map((role) => (
-          <span
-            key={role.id}
-            title={role.name}
-            className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-            style={{ backgroundColor: `${role.color}22`, color: role.color }}
-          >
+          <Badge key={role.id} title={role.name} color={role.color} shape="circle" className="h-6 w-6">
             {role.name[0].toUpperCase()}
-          </span>
+          </Badge>
         ))}
       </div>
     );
@@ -120,14 +113,10 @@ function RolesBadge({
   return (
     <div className={cn("flex flex-wrap gap-1", justifyClass)}>
       {roles.map((role) => (
-        <span
-          key={role.id}
-          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-          style={{ backgroundColor: `${role.color}22`, color: role.color }}
-        >
+        <Badge key={role.id} color={role.color}>
           <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: role.color }} />
           {role.name}
-        </span>
+        </Badge>
       ))}
     </div>
   );
@@ -228,19 +217,15 @@ export function MembersView({
             </div>
           </div>
         ) : members.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-            <div className="rounded-full bg-muted p-4">
-              <Users className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-sm font-medium">{totalCount === 0 ? "No members yet" : "No members found"}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {totalCount === 0
-                  ? "Invite someone to get started."
-                  : "Try adjusting your search or role filter."}
-              </p>
-            </div>
-          </div>
+          <EmptyState
+            icon={Users}
+            title={totalCount === 0 ? "No members yet" : "No members found"}
+            description={
+              totalCount === 0
+                ? "Invite someone to get started."
+                : "Try adjusting your search or role filter."
+            }
+          />
         ) : view === "card" ? (
           <CardGrid
             members={members}
@@ -332,9 +317,9 @@ function CardGrid({
                 <CardTitle className="flex w-full flex-wrap items-center justify-center gap-1.5 text-sm leading-tight">
                   <span className="truncate">{member.user?.name ?? member.botName ?? "Unnamed"}</span>
                   {member.userId === null && (
-                    <span className="inline-flex shrink-0 items-center rounded-full bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-600 dark:text-violet-400">
+                    <Badge variant="violet" size="sm">
                       Bot
-                    </span>
+                    </Badge>
                   )}
                 </CardTitle>
                 <RolesBadge roles={roles} />
@@ -404,9 +389,9 @@ function MemberList({
                 <div className="mb-0.5 flex items-center gap-1.5">
                   <p className="truncate text-sm font-medium">{member.user?.name ?? member.botName ?? "Unnamed"}</p>
                   {member.userId === null && (
-                    <span className="inline-flex shrink-0 items-center rounded-full bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-600 dark:text-violet-400">
+                    <Badge variant="violet" size="sm">
                       Bot
-                    </span>
+                    </Badge>
                   )}
                 </div>
                 <RolesBadge roles={roles} align="start" />

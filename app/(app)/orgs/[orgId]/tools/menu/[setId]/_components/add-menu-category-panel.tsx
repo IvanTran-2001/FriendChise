@@ -215,8 +215,6 @@ export function AddMenuCategoryPanel({
   }
 
   function handleDelete(tabId: string, tabName: string) {
-    if (!window.confirm(`Delete category "${tabName}"?`)) return;
-
     startTransition(async () => {
       const result = await deleteMenuTabAction(orgId, menuId, tabId);
       if (!result.ok) {

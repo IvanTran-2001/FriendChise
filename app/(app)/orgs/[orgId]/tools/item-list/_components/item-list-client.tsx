@@ -11,6 +11,7 @@ import { useMemo, type RefObject } from "react";
 import { Loader2, Package, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ItemImage } from "@/components/ui/item-image";
 import { unitPillClasses } from "@/lib/core/measurement";
 import { cn } from "@/lib/core/utils";
@@ -105,20 +106,11 @@ export function ItemListClient({
             </div>
           )
         ) : items.length === 0 && !search.trim() ? (
-          <div className="flex items-center justify-center border rounded-lg py-24">
-            <div className="flex flex-col items-center gap-3 text-center">
-              <Package className="h-10 w-10 text-muted-foreground/40" />
-              <p className="text-2xl font-semibold">No items yet</p>
-              {canManage && (
-                <button
-                  onClick={onCreateItem}
-                  className="text-sm text-primary hover:underline"
-                >
-                  Create your first item
-                </button>
-              )}
-            </div>
-          </div>
+          <EmptyState
+            icon={Package}
+            title="No items yet"
+            action={canManage ? { label: "Create your first item", onClick: onCreateItem } : undefined}
+          />
         ) : items.length === 0 ? (
           <div className="flex items-center justify-center border rounded-lg py-16">
             <p className="text-sm text-muted-foreground">
