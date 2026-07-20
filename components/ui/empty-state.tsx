@@ -9,6 +9,7 @@
  * instead of this component — it's intentionally lighter-weight than the
  * first-time empty state.
  */
+import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/core/utils";
@@ -34,6 +35,8 @@ export function EmptyState({
   action,
   className,
 }: EmptyStateProps) {
+  const isExternalHref = action?.href ? /^https?:\/\//i.test(action.href) : false;
+
   return (
     <div
       className={cn(
@@ -49,12 +52,20 @@ export function EmptyState({
         )}
         {action &&
           (action.href ? (
-            <a
-              href={action.href}
-              className="text-sm text-primary hover:underline"
-            >
-              {action.label}
-            </a>
+            isExternalHref ? (
+              <a
+                href={action.href}
+                className="text-sm text-primary hover:underline"
+                target="_blank"
+                rel="noreferrer"
+              >
+                {action.label}
+              </a>
+            ) : (
+              <Link href={action.href} className="text-sm text-primary hover:underline">
+                {action.label}
+              </Link>
+            )
           ) : (
             <button
               type="button"

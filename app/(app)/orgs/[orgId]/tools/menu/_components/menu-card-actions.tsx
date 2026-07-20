@@ -7,6 +7,7 @@
  */
 
 import { Copy, Pencil, MoreHorizontal, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -24,7 +25,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/dialogs/alert-dialog";
 
 type MenuCardMenu = {
@@ -50,8 +50,10 @@ export function MenuCardActions({
   onDuplicate: (menuId: string) => void;
   onDelete: (menuId: string) => void;
 }) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
   return (
-    <AlertDialog>
+    <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -76,15 +78,16 @@ export function MenuCardActions({
             Duplicate
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <AlertDialogTrigger asChild>
-            <DropdownMenuItem
-              onSelect={(e) => e.preventDefault()}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </AlertDialogTrigger>
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              setDeleteDialogOpen(true);
+            }}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
