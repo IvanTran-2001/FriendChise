@@ -314,3 +314,14 @@ a:active,
   margin-top: 0.5rem;
   margin-bottom: 0.25rem;
 }
+.tiptap a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.tiptap a[data-video] {
+  font-weight: 500;
+}
+.tiptap a[data-video]::before {
+  font-size: 0.75rem;
+  margin-right: 0.25rem;
+}
