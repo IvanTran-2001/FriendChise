@@ -32,7 +32,6 @@ import {
   ImagePlus,
   Video,
 } from "lucide-react";
-import { getVideoEmbed } from "@/lib/markdown/markdown-media";
 import { cn } from "@/lib/core/utils";
 
 // ── Toolbar button ────────────────────────────────────────────────────────────
@@ -228,7 +227,7 @@ export function RichTextEditor({
         </ToolbarBtn>
         <ToolbarBtn
           onClick={handleInsertVideo}
-          active={editor?.isActive("link") ?? false}
+          active={editor?.isActive("link", { "data-video": "true" }) ?? false}
           title="Insert Video markdown"
         >
           <Video className="h-3.5 w-3.5" />

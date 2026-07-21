@@ -322,6 +322,7 @@ a:active,
   font-weight: 500;
 }
 .tiptap a[data-video]::before {
+  content: "▶";
   font-size: 0.75rem;
   margin-right: 0.25rem;
 }
