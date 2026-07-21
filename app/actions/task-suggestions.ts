@@ -1,3 +1,34 @@
 "use server";
 
-export * from "./ai/task-suggestions";
+import { buildTaskSuggestion } from "@/lib/ai/task-suggestions";
+
+type TaskSuggestionInput = {
+	title: string;
+	description?: string | null;
+	durationMin: number;
+	peopleRequired: number;
+	minWaitDays: number;
+	maxWaitDays: number;
+};
+
+type TaskSuggestionActionState =
+	| { ok: true; suggestion: ReturnType<typeof buildTaskSuggestion> }
+	| { ok: false; error: string };
+
+export async function suggestTaskDetailsAction(
+	_orgId: string,
+	input: TaskSuggestionInput,
+): Promise<TaskSuggestionActionState> {
+	const title = input.title.trim();
+	if (!title && !(input.description ?? "").trim()) {
+		return {
+			ok: false,
+			error: "Add a task title or description before asking for suggestions.",
+		};
+	}
+
+	return {
+		ok: true,
+		suggestion: buildTaskSuggestion(input),
+	};
+}
