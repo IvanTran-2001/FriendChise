@@ -1,152 +1,259 @@
-/** 
-* Handles basic calculation.
-* Uses a stack to handle the maths equation.
-* Supports undoing the last character entered.
-*/
+/**
+ * Handles basic calculation.
+ * Uses a stack to handle the maths equation.
+ * Supports undoing the last character entered.
+ */
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { Divide, X, Minus, Plus, Delete } from "lucide-react";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 
-export function CalculatorClient() {
-  const [display, setDisplay] = useState("0");
-  const [equation, setEquation] = useState("");
-  const [isNewNumber, setIsNewNumber] = useState(true);
+type CalculatorState = {
+  display: string;
+  equation: string;
+  isNewNumber: boolean;
+  recentCalculations: string[];
+};
+
+type CalculatorClientProps = {
+  orgId: string;
+};
+
+const INITIAL_STATE: CalculatorState = {
+  display: "0",
+  equation: "",
+  isNewNumber: true,
+  recentCalculations: [],
+};
+
+export function CalculatorClient({ orgId }: CalculatorClientProps) {
+  const storageKey = `calculator-state-${orgId}`;
+  const [state, setState] = usePersistedState<CalculatorState>(storageKey, INITIAL_STATE);
+
+  const normalizedState = {
+    ...INITIAL_STATE,
+    ...state,
+    recentCalculations: state.recentCalculations ?? [],
+  } satisfies CalculatorState;
+
+  const { display, equation, recentCalculations } = normalizedState;
+
+  const updateState = useCallback(
+    (updater: (prev: CalculatorState) => CalculatorState) => {
+      setState((prev) => {
+        const normalizedPrev = {
+          ...INITIAL_STATE,
+          ...prev,
+          recentCalculations: prev.recentCalculations ?? [],
+        } satisfies CalculatorState;
+
+        return updater(normalizedPrev);
+      });
+    },
+    [setState],
+  );
 
   const handleNumber = useCallback((num: string) => {
-    if (num === "." && display.includes(".") && !isNewNumber) return;
+    updateState((prev) => {
+      if (num === "." && prev.display.includes(".") && !prev.isNewNumber) {
+        return prev;
+      }
 
-    if (isNewNumber) {
-      setDisplay(num === "." ? "0." : num);
-      setIsNewNumber(false);
-    } else {
-      setDisplay(display === "0" && num !== "." ? num : display + num);
-    }
-  }, [display, isNewNumber]);
+      const nextDisplay = prev.isNewNumber
+        ? num === "." ? "0." : num
+        : prev.display === "0" && num !== "." ? num : prev.display + num;
+
+      return {
+        ...prev,
+        display: nextDisplay,
+        isNewNumber: false,
+      };
+    });
+  }, [updateState]);
 
   const handleOperator = useCallback((op: string) => {
-    if (equation.trim().endsWith(")")) {
-      setEquation(equation + op + " ");
-    } else {
-      setEquation(equation + display + " " + op + " ");
-    }
-    setIsNewNumber(true);
-  }, [display, equation]);
+    updateState((prev) => {
+      const nextEquation = prev.equation.trim().endsWith(")")
+        ? prev.equation + op + " "
+        : prev.equation + prev.display + " " + op + " ";
+
+      return {
+        ...prev,
+        equation: nextEquation,
+        isNewNumber: true,
+      };
+    });
+  }, [updateState]);
 
   const handleBracket = useCallback((bracket: string) => {
-    if (bracket === "(") {
-      setEquation(equation + "( ");
-    } else {
-      if (!isNewNumber && !equation.trim().endsWith(")")) {
-        setEquation(equation + display + " ) ");
+    updateState((prev) => {
+      let nextEquation = prev.equation;
+
+      if (bracket === "(") {
+        nextEquation = prev.equation + "( ";
+      } else if (!prev.isNewNumber && !prev.equation.trim().endsWith(")")) {
+        nextEquation = prev.equation + prev.display + " ) ";
       } else {
-        setEquation(equation + ") ");
+        nextEquation = prev.equation + ") ";
       }
-    }
-    setIsNewNumber(true);
-  }, [display, equation, isNewNumber]);
+
+      return {
+        ...prev,
+        equation: nextEquation,
+        isNewNumber: true,
+      };
+    });
+  }, [updateState]);
 
   const handleEqual = useCallback(() => {
-    try {
-      let fullEquation = equation;
-      if (!equation.trim().endsWith(")")) {
-        fullEquation += display;
-      }
-      const tokens = fullEquation.split(" ").filter(Boolean);
-      
-      const values: number[] = [];
-      const ops: string[] = [];
-      
-      const precedence = (op: string) => {
-        if (op === "+" || op === "-") return 1;
-        if (op === "*" || op === "/") return 2;
-        return 0;
-      };
-      
-      const applyOp = (a: number, b: number, op: string) => {
-        const numA = a ?? 0;
-        const numB = b ?? 0;
-        switch (op) {
-          case "+": return numA + numB;
-          case "-": return numA - numB;
-          case "*": return numA * numB;
-          case "/": return numA / numB;
+    updateState((prev) => {
+      try {
+        let fullEquation = prev.equation;
+        if (!prev.equation.trim().endsWith(")")) {
+          fullEquation += prev.display;
         }
-        return 0;
-      };
 
-      for (let i = 0; i < tokens.length; i++) {
-        const token = tokens[i];
-        if (token === "(") {
-          ops.push(token);
-        } else if (token === ")") {
-          while (ops.length > 0 && ops[ops.length - 1] !== "(") {
-            const b = values.pop()!;
-            const a = values.pop()!;
-            const op = ops.pop()!;
-            values.push(applyOp(a, b, op));
+        const tokens = fullEquation.split(" ").filter(Boolean);
+        const values: number[] = [];
+        const ops: string[] = [];
+
+        const precedence = (op: string) => {
+          if (op === "+" || op === "-") return 1;
+          if (op === "*" || op === "/") return 2;
+          return 0;
+        };
+
+        const applyOp = (a: number, b: number, op: string) => {
+          const numA = a ?? 0;
+          const numB = b ?? 0;
+          switch (op) {
+            case "+": return numA + numB;
+            case "-": return numA - numB;
+            case "*": return numA * numB;
+            case "/": return numA / numB;
           }
-          ops.pop(); // Pop '('
-        } else if (token === "+" || token === "-" || token === "*" || token === "/") {
-          while (ops.length > 0 && precedence(ops[ops.length - 1]) >= precedence(token)) {
-            const b = values.pop()!;
-            const a = values.pop()!;
-            const op = ops.pop()!;
-            values.push(applyOp(a, b, op));
+          return 0;
+        };
+
+        for (let i = 0; i < tokens.length; i++) {
+          const token = tokens[i];
+          if (token === "(") {
+            ops.push(token);
+          } else if (token === ")") {
+            while (ops.length > 0 && ops[ops.length - 1] !== "(") {
+              const b = values.pop()!;
+              const a = values.pop()!;
+              const op = ops.pop()!;
+              values.push(applyOp(a, b, op));
+            }
+            ops.pop();
+          } else if (token === "+" || token === "-" || token === "*" || token === "/") {
+            while (ops.length > 0 && precedence(ops[ops.length - 1]) >= precedence(token)) {
+              const b = values.pop()!;
+              const a = values.pop()!;
+              const op = ops.pop()!;
+              values.push(applyOp(a, b, op));
+            }
+            ops.push(token);
+          } else {
+            values.push(parseFloat(token));
           }
-          ops.push(token);
-        } else {
-          values.push(parseFloat(token));
         }
-      }
 
-      while (ops.length > 0) {
-        const b = values.pop()!;
-        const a = values.pop()!;
-        const op = ops.pop()!;
-        values.push(applyOp(a, b, op));
-      }
+        while (ops.length > 0) {
+          const b = values.pop()!;
+          const a = values.pop()!;
+          const op = ops.pop()!;
+          values.push(applyOp(a, b, op));
+        }
 
-      const result = values[0] ?? 0;
-      if (!Number.isFinite(result)) {
-        setDisplay("Error");
-        setEquation("");
-        setIsNewNumber(true);
-        return;
-      }
+        const result = values[0] ?? 0;
+        if (!Number.isFinite(result)) {
+          return {
+            ...prev,
+            display: "Error",
+            equation: "",
+            isNewNumber: true,
+          };
+        }
 
-      setDisplay(String(result));
-      setEquation("");
-      setIsNewNumber(true);
-    } catch {
-      setDisplay("Error");
-      setIsNewNumber(true);
-    }
-  }, [display, equation]);
+        const displayedEquation = prev.equation.trim().endsWith(")")
+          ? prev.equation.trim()
+          : prev.equation
+            ? prev.equation + prev.display
+            : prev.display;
+        const hasRealCalculation = prev.equation.trim().length > 0 || (prev.display !== "0" && !prev.isNewNumber);
+        const nextRecentCalculations = hasRealCalculation
+          ? [
+              `${displayedEquation} = ${String(result)}`,
+              ...prev.recentCalculations,
+            ].slice(0, 6)
+          : prev.recentCalculations;
+
+        return {
+          ...prev,
+          display: String(result),
+          equation: "",
+          isNewNumber: true,
+          recentCalculations: nextRecentCalculations,
+        };
+      } catch {
+        return {
+          ...prev,
+          display: "Error",
+          isNewNumber: true,
+        };
+      }
+    });
+  }, [updateState]);
 
   const handleClear = useCallback(() => {
-    setDisplay("0");
-    setEquation("");
-    setIsNewNumber(true);
-  }, []);
+    updateState((prev) => ({
+      ...prev,
+      display: "0",
+      equation: "",
+      isNewNumber: true,
+    }));
+  }, [updateState]);
 
   const handleDelete = useCallback(() => {
-    if (isNewNumber) {
-      if (equation.length > 0) {
-        const parts = equation.trim().split(" ");
-        parts.pop();
-        setEquation(parts.length > 0 ? parts.join(" ") + " " : "");
+    updateState((prev) => {
+      if (prev.isNewNumber) {
+        if (prev.equation.length > 0) {
+          const parts = prev.equation.trim().split(" ");
+          parts.pop();
+          return {
+            ...prev,
+            equation: parts.length > 0 ? parts.join(" ") + " " : "",
+          };
+        }
+
+        return prev;
       }
-    } else {
-      if (display.length > 1) {
-        setDisplay(display.slice(0, -1));
-      } else {
-        setDisplay("0");
-        setIsNewNumber(true);
+
+      if (prev.display.length > 1) {
+        return {
+          ...prev,
+          display: prev.display.slice(0, -1),
+        };
       }
-    }
-  }, [display, equation, isNewNumber]);
+
+      return {
+        ...prev,
+        display: "0",
+        isNewNumber: true,
+      };
+    });
+  }, [updateState]);
+
+  const handleRemoveRecentCalculation = useCallback((indexToRemove: number) => {
+    updateState((prev) => ({
+      ...prev,
+      recentCalculations: prev.recentCalculations.filter((_, index) => index !== indexToRemove),
+    }));
+  }, [updateState]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -187,7 +294,6 @@ export function CalculatorClient() {
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-6 bg-muted/30">
       <div className="w-full max-w-sm bg-card p-6 rounded-3xl shadow-sm border border-border">
-        {/* Display */}
         <div className="bg-muted/50 p-4 rounded-2xl mb-6 text-right">
           <div className="text-sm text-muted-foreground min-h-5 mb-1">
             {equation.replace(/\//g, "÷").replace(/\*/g, "×").replace(/\-/g, "−")}
@@ -195,7 +301,6 @@ export function CalculatorClient() {
           <div className="text-4xl font-semibold tracking-tight truncate">{display}</div>
         </div>
 
-        {/* Keypad */}
         <div className="grid grid-cols-4 gap-3">
           <button onClick={handleClear} className={`${buttonClass} text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20`}>C</button>
           <button onClick={() => handleBracket("(")} className={buttonClass}>(</button>
@@ -222,6 +327,29 @@ export function CalculatorClient() {
           <button onClick={handleEqual} className={`${opButtonClass} bg-indigo-600 text-white hover:bg-indigo-700 hover:text-white dark:text-white`}>=</button>
           <button onClick={() => handleOperator("+")} className={opButtonClass}><Plus className="w-5 h-5" /></button>
         </div>
+
+        {recentCalculations.length > 0 ? (
+          <div className="mt-4 rounded-2xl border border-border/70 bg-background/70 p-3">
+            <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+              Recent
+            </div>
+            <div className="space-y-1">
+              {recentCalculations.map((entry, index) => (
+                <div key={`${entry}-${index}`} className="flex items-center justify-between gap-2 rounded-lg border border-border/70 bg-background px-3 py-2 text-sm text-muted-foreground">
+                  <span className="min-w-0 flex-1 wrap-break-word">{entry}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveRecentCalculation(index)}
+                    className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    aria-label={`Delete recent calculation ${entry}`}
+                  >
+                    <Delete className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

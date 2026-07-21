@@ -18,7 +18,7 @@ export default async function CalculatorPage({
         title="Calculator"
         content={<CalculatorSidebarContent orgId={orgId} />}
       />
-      <CalculatorClient />
+      <CalculatorClient orgId={orgId} />
     </>
   );
 }
