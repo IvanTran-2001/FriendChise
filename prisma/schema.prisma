@@ -240,6 +240,7 @@ model Organization {
   taskComments        TaskComment[]
   orgImages           OrgImage[]
   demoSessions       DemoSession[] @relation("DemoSessionOrg")
+  notePages           NotePage[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -1318,6 +1319,23 @@ model OrgImage {
   storagePath String       // Path in friendchise-private bucket: orgs/{orgId}/images/{uuid}.{ext}
   name        String?      // Optional display name
   createdAt   DateTime     @default(now())
+
+  @@index([orgId])
+}
+
+// ─────────────────────────────────────
+// NOTE PAGE
+// ─────────────────────────────────────
+
+model NotePage {
+  id        String       @id @default(cuid())
+  title     String
+  content   String       @default("")
+  position  Int          @default(0)
+  orgId     String
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
   @@index([orgId])
 }
