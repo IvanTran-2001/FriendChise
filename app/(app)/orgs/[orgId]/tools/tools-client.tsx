@@ -13,7 +13,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeftRight, ArrowRight, LayoutList, List, Users, Calculator, Star, ClipboardList } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, LayoutList, List, Users, Calculator, Star, ClipboardList, FileScan } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import { useSupportsHover } from "@/hooks/use-hover-capability";
@@ -54,6 +54,14 @@ const TOOLS = [
     description: "Quick arithmetic calculations",
     accent: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
     topBar: "bg-indigo-500/70",
+  },
+  {
+    id: "scan-to-task",
+    name: "Scan to Task",
+    icon: FileScan,
+    description: "Convert files into task items",
+    accent: "bg-cyan-500/10 text-cyan-700 ring-cyan-500/15 dark:text-cyan-300",
+    topBar: "bg-cyan-500/70",
   },
 ];
 

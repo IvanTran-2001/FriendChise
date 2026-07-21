@@ -17,6 +17,7 @@ import { randomColor } from "@/components/ui/pickers/color-picker";
 import { RichTextEditor } from "@/components/ui/editors/rich-text-editor";
 import { createTaskAction } from "@/app/actions/tasks";
 import type { CreateTaskFormState } from "@/app/actions/tasks";
+import { suggestTaskDetailsAction } from "@/app/actions/task-suggestions";
 import { TagPanel, EligibilityPanel } from "../task-panels";
 import type { Role, Tag } from "../task-panels";
 import type { TaskToolSelection } from "../_components/task-tools-picker";
@@ -207,6 +208,7 @@ export function TaskCreateClient({
     isTaskToolSelectionArray(storedDraft?.toolLinks) ? storedDraft.toolLinks : [],
   );
   const [discardOpen, setDiscardOpen] = useState(false);
+  const [isSuggesting, setIsSuggesting] = useState(false);
   const [navTarget, setNavTarget] = useState(`/orgs/${orgId}/tasks`);
   const [state, dispatch, pending] = useActionState<
     CreateTaskFormState,
@@ -329,6 +331,42 @@ export function TaskCreateClient({
 
   const err = (field: string): string | null =>
     state && !state.ok ? (state.errors[field]?.[0] ?? null) : null;
+
+  const handleSuggestDetails = async () => {
+    if (pending || isSuggesting) return;
+
+    setIsSuggesting(true);
+    try {
+      const result = await suggestTaskDetailsAction(orgId, {
+        title,
+        description,
+        durationMin,
+        peopleRequired,
+        minWaitDays: Number(normalizeWaitDays(minWaitDays)),
+        maxWaitDays: Number(normalizeWaitDays(maxWaitDays)),
+      });
+
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+
+      const suggestion = result.suggestion;
+      if (!title.trim()) setTitle(suggestion.title);
+      if (!description.trim()) setDescription(suggestion.description);
+      if (durationMin === 30) setDurationMin(suggestion.durationMin);
+      if (peopleRequired === 1) setPeopleRequired(suggestion.peopleRequired);
+      if (normalizeWaitDays(minWaitDays) === "1") {
+        setMinWaitDays(String(suggestion.minWaitDays));
+      }
+      if (normalizeWaitDays(maxWaitDays) === "1") {
+        setMaxWaitDays(String(suggestion.maxWaitDays));
+      }
+      toast.success("Suggested task details.");
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
 
   const attemptLeave = useCallback(
     (href: string) => {
@@ -537,6 +575,24 @@ export function TaskCreateClient({
               <label htmlFor="description" className="text-sm font-medium">
                 Description
               </label>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground">
+                  Use the task assistant to draft a clearer description and sane defaults.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSuggestDetails}
+                  disabled={
+                    pending ||
+                    isSuggesting ||
+                    (!title.trim() && !description.trim())
+                  }
+                >
+                  {isSuggesting ? "Suggesting…" : "Suggest details"}
+                </Button>
+              </div>
               <RichTextEditor
                 key={orgId}
                 name="description"
