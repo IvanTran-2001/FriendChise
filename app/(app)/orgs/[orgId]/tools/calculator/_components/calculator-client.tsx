@@ -179,10 +179,15 @@ export function CalculatorClient({ orgId }: CalculatorClientProps) {
           };
         }
 
+        const displayedEquation = prev.equation.trim().endsWith(")")
+          ? prev.equation.trim()
+          : prev.equation
+            ? prev.equation + prev.display
+            : prev.display;
         const hasRealCalculation = prev.equation.trim().length > 0 || (prev.display !== "0" && !prev.isNewNumber);
         const nextRecentCalculations = hasRealCalculation
           ? [
-              `${prev.equation ? prev.equation + prev.display : prev.display} = ${String(result)}`,
+              `${displayedEquation} = ${String(result)}`,
               ...prev.recentCalculations,
             ].slice(0, 6)
           : prev.recentCalculations;
@@ -243,10 +248,10 @@ export function CalculatorClient({ orgId }: CalculatorClientProps) {
     });
   }, [updateState]);
 
-  const handleRemoveRecentCalculation = useCallback((entryToRemove: string) => {
+  const handleRemoveRecentCalculation = useCallback((indexToRemove: number) => {
     updateState((prev) => ({
       ...prev,
-      recentCalculations: prev.recentCalculations.filter((entry) => entry !== entryToRemove),
+      recentCalculations: prev.recentCalculations.filter((_, index) => index !== indexToRemove),
     }));
   }, [updateState]);
 
@@ -331,10 +336,10 @@ export function CalculatorClient({ orgId }: CalculatorClientProps) {
             <div className="space-y-1">
               {recentCalculations.map((entry, index) => (
                 <div key={`${entry}-${index}`} className="flex items-center justify-between gap-2 rounded-lg border border-border/70 bg-background px-3 py-2 text-sm text-muted-foreground">
-                  <span className="min-w-0 flex-1 break-words">{entry}</span>
+                  <span className="min-w-0 flex-1 wrap-break-word">{entry}</span>
                   <button
                     type="button"
-                    onClick={() => handleRemoveRecentCalculation(entry)}
+                    onClick={() => handleRemoveRecentCalculation(index)}
                     className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                     aria-label={`Delete recent calculation ${entry}`}
                   >
