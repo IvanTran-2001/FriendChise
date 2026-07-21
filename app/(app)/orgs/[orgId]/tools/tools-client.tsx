@@ -343,8 +343,8 @@ export function ToolsClient({
                     className={cn(
                       "absolute right-4 top-4 z-10 rounded-full p-1.5 transition-all duration-200",
                       isFavorite
-                        ? "text-amber-500 bg-amber-500/5 hover:bg-amber-500/10"
-                        : "text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:text-amber-500 hover:bg-amber-500/5"
+                        ? "text-amber-500 bg-amber-500/5 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:none)]:opacity-100 bg-amber-500/5 hover:bg-amber-500/10 transition-opacity"
+                        : "text-muted-foreground/40 opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:none)]:opacity-100 hover:text-amber-500 hover:bg-amber-500/5"
                     )}
                     aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
                   >
