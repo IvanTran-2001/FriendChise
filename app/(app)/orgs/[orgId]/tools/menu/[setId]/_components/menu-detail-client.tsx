@@ -308,8 +308,6 @@ export function MenuDetailClient({
   }
 
   async function handleDeleteItem(item: MenuDetail["items"][number]) {
-    if (!window.confirm(`Delete "${item.title}"?`)) return;
-
     const result = await deleteMenuItemAction(orgId, menu.id, item.id);
     if (!result.ok) {
       toast.error("error" in result ? result.error : "Failed to delete item.");

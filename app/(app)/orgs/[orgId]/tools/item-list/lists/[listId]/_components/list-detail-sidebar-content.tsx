@@ -193,11 +193,11 @@ export function ListDetailSidebarContent({
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground px-1">Cols</span>
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-6 w-6" disabled={cols <= MIN_COLS || isGridPending} onClick={() => changeGrid(cols - 1, rows)}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" disabled={cols <= MIN_COLS || isGridPending} onClick={() => changeGrid(cols - 1, rows)} aria-label="Decrease columns">
                       <Minus className="h-3 w-3" />
                     </Button>
                     <span className="tabular-nums text-sm w-5 text-center">{cols}</span>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" disabled={cols >= MAX_COLS || isGridPending} onClick={() => changeGrid(cols + 1, rows)}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" disabled={cols >= MAX_COLS || isGridPending} onClick={() => changeGrid(cols + 1, rows)} aria-label="Increase columns">
                       <Plus className="h-3 w-3" />
                     </Button>
                   </div>
@@ -205,11 +205,11 @@ export function ListDetailSidebarContent({
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground px-1">Rows</span>
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-6 w-6" disabled={rows <= MIN_ROWS || isGridPending} onClick={() => changeGrid(cols, rows - 1)}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" disabled={rows <= MIN_ROWS || isGridPending} onClick={() => changeGrid(cols, rows - 1)} aria-label="Decrease rows">
                       <Minus className="h-3 w-3" />
                     </Button>
                     <span className="tabular-nums text-sm w-5 text-center">{rows}</span>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" disabled={rows >= MAX_ROWS || isGridPending} onClick={() => changeGrid(cols, rows + 1)}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" disabled={rows >= MAX_ROWS || isGridPending} onClick={() => changeGrid(cols, rows + 1)} aria-label="Increase rows">
                       <Plus className="h-3 w-3" />
                     </Button>
                   </div>

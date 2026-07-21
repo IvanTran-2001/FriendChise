@@ -30,8 +30,8 @@ export type InviteHandlerResult = { ok: true } | { ok: false; error: string };
 export type InviteConfig = {
   /** Short label shown in the badge */
   label: string;
-  /** Tailwind classes for the type badge */
-  badgeClassName: string;
+  /** Badge variant for the type badge */
+  badgeVariant: "info" | "violet" | "warning";
   /** Icon component to render in the badge */
   Icon: React.ElementType;
   /**
@@ -52,7 +52,7 @@ export type InviteConfig = {
 
 const memberConfig: InviteConfig = {
   label: "Member",
-  badgeClassName: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  badgeVariant: "info",
   Icon: Users,
   onAccept: async (invite) => acceptMemberInviteAction(invite.id),
   onDecline: async (invite) => declineMemberInviteAction(invite.id),
@@ -61,7 +61,7 @@ const memberConfig: InviteConfig = {
 
 const franchiseConfig: InviteConfig = {
   label: "Franchisee",
-  badgeClassName: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  badgeVariant: "violet",
   Icon: Building2,
   onAccept: async (invite, router) => {
     const token = (invite.metadata as { token?: string } | null)?.token ?? "";
@@ -78,7 +78,7 @@ const franchiseConfig: InviteConfig = {
 
 const botSlotConfig: InviteConfig = {
   label: "Fill Bot Slot",
-  badgeClassName: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  badgeVariant: "warning",
   Icon: Bot,
   onAccept: async (invite) => acceptBotSlotInviteAction(invite.id),
   onDecline: async (invite) => declineBotSlotInviteAction(invite.id),

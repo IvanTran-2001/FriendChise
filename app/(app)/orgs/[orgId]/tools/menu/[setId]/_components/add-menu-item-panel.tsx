@@ -20,6 +20,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchableCombobox } from "@/components/ui/comboboxes/searchable-combobox";
 import { OrgImagePicker } from "@/components/ui/pickers/org-image-picker";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/dialogs/alert-dialog";
 import type { MenuItemDetail, ToolItemOption } from "@/lib/services/tools/menus";
 
 type MenuTabOption = {
@@ -122,6 +132,7 @@ export function AddMenuItemPanel({
         : [],
   );
   const [isPending, startTransition] = useTransition();
+  const [pendingImageReplace, setPendingImageReplace] = useState<string | null>(null);
 
   const selectedTabs = useMemo(
     () =>
@@ -151,14 +162,7 @@ export function AddMenuItemPanel({
 
     if (imageUrl === nextImageUrl) return;
 
-    const shouldReplace = window.confirm(
-      "Replace the current image with this item's image?",
-    );
-
-    if (shouldReplace) {
-      setImageUrl(nextImageUrl);
-      setImagePreviewUrl(null);
-    }
+    setPendingImageReplace(nextImageUrl);
   }
 
   function selectToolItem(item: ToolItemOption) {
@@ -422,7 +426,8 @@ export function AddMenuItemPanel({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
+    <>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
       <div className="rounded-2xl border border-border/70 bg-muted/20 p-3 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -648,5 +653,38 @@ export function AddMenuItemPanel({
         {isPending ? "Saving…" : isEditMode ? "Save changes" : "Add item"}
       </Button>
     </form>
+
+      <AlertDialog
+        open={pendingImageReplace !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingImageReplace(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace image?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Replace the current image with this item&apos;s image?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingImageReplace(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingImageReplace) {
+                  setImageUrl(pendingImageReplace);
+                  setImagePreviewUrl(null);
+                }
+                setPendingImageReplace(null);
+              }}
+            >
+              Replace
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
