@@ -129,10 +129,8 @@ export function ToolsSidebarContent({ orgId }: { orgId: string }) {
             const isFavorite = hydrated && favoriteIds.includes(tool.id);
             const Icon = tool.icon;
             return (
-              <Link
+              <div
                 key={tool.id}
-                href={href}
-                aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "group relative mx-2 my-1 flex items-center gap-3 overflow-hidden rounded-2xl border px-3 py-3 text-[13px] transition-all duration-150",
                   isActive
@@ -147,49 +145,49 @@ export function ToolsSidebarContent({ orgId }: { orgId: string }) {
                   )}
                 />
 
-                <span
-                  className={cn(
-                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ring-1 transition-all duration-150",
-                    tool.accent,
-                    isActive
-                      ? `${tool.iconTone} shadow-sm`
-                      : `${tool.iconTone} bg-background/70 shadow-sm group-hover:-translate-y-0.5`,
-                  )}
+                <Link
+                  href={href}
+                  aria-current={isActive ? "page" : undefined}
+                  className="group/link flex min-w-0 flex-1 items-center gap-3"
                 >
-                  <Icon className="h-4.5 w-4.5" />
-                </span>
-
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1.5 font-medium text-sidebar-foreground">
-                    <span className="truncate">{tool.name}</span>
-
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        toggleFavorite(tool.id);
-                      }}
-                      className={cn(
-                        "z-10 rounded-full p-1.5 transition-all duration-200",
-                        isFavorite
-                          ? "text-amber-500 bg-amber-500/5 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:none)]:opacity-100 bg-amber-500/5 hover:bg-amber-500/10 transition-opacity"
-                          : "text-muted-foreground/40 opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:none)]:opacity-100 hover:text-amber-500 hover:bg-amber-500/5"
-                      )}
-                      aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                    >
-                    <Star className={cn("h-4 w-4", isFavorite && "fill-current")} />
-                  </button>
-
+                  <span
+                    className={cn(
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ring-1 transition-all duration-150",
+                      tool.accent,
+                      isActive
+                        ? `${tool.iconTone} shadow-sm`
+                        : `${tool.iconTone} bg-background/70 shadow-sm group-hover:-translate-y-0.5`,
+                    )}
+                  >
+                    <Icon className="h-4.5 w-4.5" />
                   </span>
-                </span>
-                
+
+                  <span className="min-w-0 flex-1 truncate font-medium text-sidebar-foreground">
+                    {tool.name}
+                  </span>
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => toggleFavorite(tool.id)}
+                  className={cn(
+                    "z-10 rounded-full p-1.5 transition-all duration-200",
+                    isFavorite
+                      ? "text-amber-500 bg-amber-500/5 hover:bg-amber-500/10"
+                      : "text-muted-foreground/40 opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:none)]:opacity-100 hover:text-amber-500 hover:bg-amber-500/5",
+                  )}
+                  aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                >
+                  <Star className={cn("h-4 w-4", isFavorite && "fill-current")} />
+                </button>
+
                 <span
                   className={cn(
                     "h-2.5 w-2.5 shrink-0 rounded-full transition-colors",
                     isActive ? tool.activeBar : "bg-muted-foreground/20 group-hover:bg-muted-foreground/35",
                   )}
                 />
-              </Link>
+              </div>
             );
           })
         )}
