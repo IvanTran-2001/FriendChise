@@ -2,13 +2,27 @@
 
 import { PermissionAction } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { createTask } from "@/lib/services/tasks";
 import {
   getScanSourceKind,
-  inferScanTaskDraftFromStorage,
+  inferScanTaskDraftsFromStorage,
   type ScanTaskDraft,
 } from "@/lib/ai/scan-to-task";
+import {
+  MAX_FILE_BYTES,
+  MAX_FILES,
+  buildTempUploadPath,
+  cleanupUploads,
+  colorFromSeed,
+  normalizeInstruction,
+} from "@/lib/services/scan-to-task";
+import {
+  confirmScanToTaskSchema,
+  deleteUploadsSchema,
+  getUploadUrlSchema,
+  type ScanSourceInput,
+  scanSourceSchema,
+} from "@/lib/validators/scan-to-task";
 import { prisma } from "@/lib/platform/prisma";
 import { requireOrgPermissionAction } from "@/lib/authz";
 import { checkDemoLimit } from "@/lib/demo";
@@ -16,37 +30,6 @@ import {
   createSignedUploadUrl,
   deleteStorageFile,
 } from "@/lib/platform/supabase-storage";
-
-const MAX_FILES = 12;
-const MAX_FILE_BYTES = 15 * 1024 * 1024;
-const SCAN_UPLOAD_PREFIX = "scan-to-task";
-
-const scanSourceSchema = z.object({
-  storagePath: z.string().min(1),
-  fileName: z.string().min(1),
-  mimeType: z.string().min(1),
-});
-
-const confirmScanToTaskSchema = z.object({
-  resultId: z.string().min(1),
-  fileName: z.string().min(1),
-  title: z.string().min(1).max(200),
-  description: z.string().max(5000),
-  summary: z.string().max(500),
-  durationMin: z.coerce.number().int().positive().max(24 * 60),
-  peopleRequired: z.coerce.number().int().min(1).max(50),
-  minWaitDays: z.coerce.number().int().min(0).max(3650),
-  maxWaitDays: z.coerce.number().int().min(0).max(3650),
-});
-
-const getUploadUrlSchema = z.object({
-  fileName: z.string().min(1),
-  mimeType: z.string().min(1),
-});
-
-const deleteUploadsSchema = z.object({
-  storagePaths: z.array(z.string().min(1)).min(1),
-});
 
 export type ScanToTaskUploadUrlActionState =
   | { ok: true; signedUrl: string; path: string }
@@ -57,12 +40,14 @@ export type ScanToTaskResultItem =
       ok: true;
       fileName: string;
       fileKind: string;
+      fileSize: number;
       draft: ScanTaskDraft;
     }
   | {
       ok: false;
       fileName: string;
       fileKind: string;
+      fileSize: number;
       error: string;
     };
 
@@ -79,46 +64,11 @@ export type ConfirmScanToTaskActionState =
     }
   | { ok: false; error: string };
 
-function normalizeInstruction(value: FormDataEntryValue | null) {
-  if (typeof value !== "string") return "";
-  return value.trim();
-}
-
-function colorFromSeed(seed: string) {
-  const palette = [
-    "#0EA5E9",
-    "#14B8A6",
-    "#22C55E",
-    "#F59E0B",
-    "#F97316",
-    "#EC4899",
-    "#8B5CF6",
-    "#6366F1",
-  ];
-  let hash = 0;
-  for (const char of seed) {
-    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  }
-  return palette[hash % palette.length];
-}
-
-function buildTempUploadPath(orgId: string, fileName: string, mimeType: string) {
-  const kind = getScanSourceKind(fileName, mimeType);
-  const extByKind: Record<string, string> = {
-    image: mimeType.split("/")[1] || "png",
-    pdf: "pdf",
-    docx: "docx",
-    text: fileName.toLowerCase().endsWith(".md") ? "md" : fileName.toLowerCase().endsWith(".csv") ? "csv" : fileName.toLowerCase().endsWith(".json") ? "json" : fileName.toLowerCase().endsWith(".xml") ? "xml" : "txt",
-    unknown: "bin",
-  };
-  const ext = extByKind[kind] ?? "bin";
-  return `orgs/${orgId}/${SCAN_UPLOAD_PREFIX}/${crypto.randomUUID()}.${ext}`;
-}
-
-async function cleanupUploads(storagePaths: string[]) {
-  await Promise.allSettled(storagePaths.map((storagePath) => deleteStorageFile(storagePath)));
-}
-
+/**
+ * Creates a signed upload URL for a temporary scan file.
+ * The client uploads the selected file directly to storage, then passes the
+ * resulting path back into the scan action.
+ */
 export async function getScanToTaskUploadUrlAction(
   orgId: string,
   _prevState: ScanToTaskUploadUrlActionState | null,
@@ -142,6 +92,10 @@ export async function getScanToTaskUploadUrlAction(
   return { ok: true, signedUrl: signed.signedUrl, path: signed.path };
 }
 
+/**
+ * Deletes one or more temporary upload objects.
+ * Used both for explicit cleanup and for rollback after an upload or scan fails.
+ */
 export async function deleteScanToTaskUploadsAction(
   orgId: string,
   _prevState: { ok: true } | { ok: false; error: string } | null,
@@ -159,6 +113,11 @@ export async function deleteScanToTaskUploadsAction(
   return { ok: true };
 }
 
+/**
+ * Scans uploaded files into draft task suggestions.
+ * The action never creates tasks directly; it only returns draft data and removes
+ * the temporary upload objects after processing each file.
+ */
 export async function scanToTaskAction(
   orgId: string,
   _prevState: ScanToTaskActionState | null,
@@ -178,7 +137,7 @@ export async function scanToTaskAction(
         return null;
       }
     })
-    .filter((value): value is z.infer<typeof scanSourceSchema> => value !== null);
+    .filter((value): value is ScanSourceInput => value !== null);
 
   if (sources.length === 0) {
     return { ok: false, error: "Upload at least one file." };
@@ -187,30 +146,37 @@ export async function scanToTaskAction(
     return { ok: false, error: `Upload at most ${MAX_FILES} files at a time.` };
   }
 
+  const demoCheck = await checkDemoLimit(auth.userEmail, "scan", orgId, auth.userId);
+  if (!demoCheck.ok) return { ok: false, error: demoCheck.error };
+
   const results: ScanToTaskResultItem[] = [];
 
   for (const source of sources) {
     const fileKind = getScanSourceKind(source.fileName, source.mimeType);
 
     try {
-      const draft = await inferScanTaskDraftFromStorage(
+      const drafts = await inferScanTaskDraftsFromStorage(
         source.storagePath,
         source.fileName,
         source.mimeType,
         instruction,
       );
 
-      results.push({
-        ok: true,
-        fileName: source.fileName,
-        fileKind,
-        draft,
-      });
+      for (const draft of drafts) {
+        results.push({
+          ok: true,
+          fileName: source.fileName,
+          fileKind,
+          fileSize: source.fileSize,
+          draft,
+        });
+      }
     } catch (error) {
       results.push({
         ok: false,
         fileName: source.fileName,
         fileKind,
+        fileSize: source.fileSize,
         error: error instanceof Error ? error.message : "Failed to scan file.",
       });
     } finally {
@@ -223,6 +189,11 @@ export async function scanToTaskAction(
   return { ok: true, results };
 }
 
+/**
+ * Confirms one reviewed draft and creates the real task record.
+ * The submitted form contains the user's edits, which are validated and then
+ * forwarded to the shared task creation service.
+ */
 export async function confirmScanToTaskAction(
   orgId: string,
   _prevState: ConfirmScanToTaskActionState | null,

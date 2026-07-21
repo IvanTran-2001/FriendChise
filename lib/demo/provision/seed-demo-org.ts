@@ -31,6 +31,9 @@ import {
 } from "../data";
 import { createSeedRows, makeDateUtils, randImg, timeToMin } from "./helpers";
 
+const FMB_TASK_NAME = "Fry Morning Batches";
+const FMB_ISOLATED_TIME = "08:30";
+
 export async function seedDemoOrg(ownerId: string, tx: Prisma.TransactionClient): Promise<string> {
   const { utcEntry } = makeDateUtils("Australia/Sydney");
   const now = new Date();
@@ -242,8 +245,8 @@ export async function seedDemoOrg(ownerId: string, tx: Prisma.TransactionClient)
       templateId: templateByName[entry.templateName]!,
       taskId: t(entry.taskName).id,
       dayIndex: entry.dayIndex,
-      startTimeMin: timeToMin(entry.startTime),
-      endTimeMin: timeToMin(entry.endTime),
+      startTimeMin: timeToMin(entry.taskName === FMB_TASK_NAME ? FMB_ISOLATED_TIME : entry.startTime),
+      endTimeMin: timeToMin(entry.taskName === FMB_TASK_NAME ? "09:30" : entry.endTime),
     })),
   });
 
@@ -262,13 +265,14 @@ export async function seedDemoOrg(ownerId: string, tx: Prisma.TransactionClient)
 
   for (const entry of DEMO_ENTRY_PLAN) {
     const task = t(entry.taskName);
+    const hhmm = entry.taskName === FMB_TASK_NAME ? FMB_ISOLATED_TIME : entry.hhmm;
     entryData.push({
       orgId: org!.id,
       taskId: task.id,
       taskName: task.name,
       taskDescription: task.description,
       durationMin: task.durationMin,
-      ...utcEntry(entry.offsetDays, entry.hhmm, task.durationMin),
+      ...utcEntry(entry.offsetDays, hhmm, task.durationMin),
       status: entry.status as EntryStatus,
     });
     entryMembershipIds.push(membershipByKey[entry.membership].id);

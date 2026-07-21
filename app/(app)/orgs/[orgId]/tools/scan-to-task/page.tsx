@@ -15,8 +15,8 @@ export default async function ScanToTaskPage({
   return (
     <>
       <RegisterPageSidebar
-        title="Scan to Task"
-        content={<ScanToTaskSidebarContent />}
+        title="Tools"
+        content={<ScanToTaskSidebarContent orgId={orgId} />}
       />
       <ScanToTaskClient orgId={orgId} />
     </>

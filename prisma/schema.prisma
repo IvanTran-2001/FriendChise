@@ -138,6 +138,7 @@ model VerificationToken {
 
 model DemoSession {
   id        String   @id @default(cuid())
+  launchId  String?  @unique
 
   userId    String?
   user      User?         @relation("DemoSessionUser", fields: [userId], references: [id], onDelete: SetNull)
@@ -164,6 +165,7 @@ model User {
   emailVerified DateTime?
   name          String?
   image         String?
+  demoScanToTaskUsedAt DateTime?
 
   memberships               Membership[]
   ownedOrgs                 Organization[] @relation("OrgOwner")

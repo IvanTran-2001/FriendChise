@@ -2,9 +2,6 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { BackButton } from "@/components/layout/sidebar/back-button";
-import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
-import { SegmentedControl } from "@/components/ui/controls/segmented-control";
 import {
   confirmScanToTaskAction,
   deleteScanToTaskUploadsAction,
@@ -12,24 +9,36 @@ import {
   scanToTaskAction,
 } from "@/app/actions/tools/scan-to-task";
 import type { ScanTaskDraft } from "@/lib/ai/scan-to-task";
+import { getScanToTaskUploadContentType, resolveScanUploadMimeType } from "@/lib/services/scan-to-task-shared";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 import { ScanToTaskUploadSection } from "./_components/scan-to-task-upload-section";
-import {
-  ScanToTaskResultsSection,
-  type DraftScanResultItem,
-} from "./_components/scan-to-task-results-section";
+import { ScanToTaskResultsSection, type DraftScanResultItem } from "./_components/scan-to-task-results-section";
 import { ScanToTaskInspector } from "./_components/scan-to-task-inspector";
 
 type ViewMode = "feed" | "list";
-type ScanSourceRef = { storagePath: string; fileName: string; mimeType: string };
+type ScanSourceRef = { storagePath: string; fileName: string; mimeType: string; fileSize: number };
+
+function createScanResultClientId(resultIndex: number, fileName: string, ok: boolean) {
+  return `${Date.now()}:${crypto.randomUUID()}:${resultIndex}:${fileName}:${ok ? "ready" : "error"}`;
+}
 
 export function ScanToTaskClient({ orgId }: { orgId: string }) {
   const formRef = useRef<HTMLFormElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [view, setView] = useState<ViewMode>("feed");
-  const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
+  const [view, setView] = usePersistedState<ViewMode>(`scan-to-task:${orgId}:view`, "feed", { broadcast: true });
+  const [selectedResultId, setSelectedResultId] = usePersistedState<string | null>(`scan-to-task:${orgId}:selected-result`, null, {
+    broadcast: false,
+  });
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [scannedResults, setScannedResults] = useState<DraftScanResultItem[]>([]);
-  const [draftsById, setDraftsById] = useState<Record<string, ScanTaskDraft>>({});
+  const [instructionText, setInstructionText] = usePersistedState<string>(`scan-to-task:${orgId}:instruction`, "", {
+    broadcast: false,
+  });
+  const [scannedResults, setScannedResults] = usePersistedState<DraftScanResultItem[]>(`scan-to-task:${orgId}:results`, [], {
+    broadcast: false,
+  });
+  const [draftsById, setDraftsById] = usePersistedState<Record<string, ScanTaskDraft>>(`scan-to-task:${orgId}:drafts`, {}, {
+    broadcast: false,
+  });
   const [confirmedTasksById, setConfirmedTasksById] = useState<Record<string, { taskId: string; taskHref: string }>>({});
   const [scanPending, setScanPending] = useState(false);
   const [confirmPending, setConfirmPending] = useState(false);
@@ -43,6 +52,21 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
       ? `${selectedFiles.length} file${selectedFiles.length === 1 ? "" : "s"} queued for review`
       : "Upload files to start";
 
+  const removeResultFromQueue = (resultId: string) => {
+    const nextResults = scannedResults.filter((result) => result.clientId !== resultId);
+    const nextDrafts = Object.fromEntries(Object.entries(draftsById).filter(([draftId]) => draftId !== resultId));
+    const nextConfirmed = Object.fromEntries(Object.entries(confirmedTasksById).filter(([confirmedId]) => confirmedId !== resultId));
+
+    setScannedResults(nextResults);
+    setDraftsById(nextDrafts);
+    setConfirmedTasksById(nextConfirmed);
+
+    if (selectedResultId === resultId) {
+      const nextSelectedResult = nextResults.find((result) => result.ok) ?? nextResults[0] ?? null;
+      setSelectedResultId(nextSelectedResult ? nextSelectedResult.clientId : null);
+    }
+  };
+
   const cleanupUploads = async (storagePaths: string[]) => {
     if (storagePaths.length === 0) return;
     const cleanupFormData = new FormData();
@@ -55,9 +79,11 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
   const uploadSelectedFiles = async (): Promise<ScanSourceRef[]> => {
     const uploadedSources: ScanSourceRef[] = [];
     for (const file of selectedFiles) {
+      const resolvedMimeType = resolveScanUploadMimeType(file.name, file.type || "application/octet-stream");
       const uploadFormData = new FormData();
       uploadFormData.set("fileName", file.name);
-      uploadFormData.set("mimeType", file.type || "application/octet-stream");
+      uploadFormData.set("mimeType", resolvedMimeType);
+      const uploadContentType = getScanToTaskUploadContentType(resolvedMimeType);
 
       const uploadState = await getScanToTaskUploadUrlAction(orgId, null, uploadFormData);
       if (!uploadState.ok) {
@@ -67,9 +93,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
       const uploadResponse = await fetch(uploadState.signedUrl, {
         method: "PUT",
         body: file,
-        headers: {
-          "Content-Type": file.type || "application/octet-stream",
-        },
+        headers: { "Content-Type": uploadContentType },
       });
       if (!uploadResponse.ok) {
         throw new Error(`Failed to upload "${file.name}".`);
@@ -78,7 +102,8 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
       uploadedSources.push({
         storagePath: uploadState.path,
         fileName: file.name,
-        mimeType: file.type || "application/octet-stream",
+        mimeType: resolvedMimeType,
+        fileSize: file.size,
       });
     }
 
@@ -101,9 +126,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
       uploadedSources = await uploadSelectedFiles();
 
       const formData = new FormData();
-      if (instruction) {
-        formData.set("instruction", instruction);
-      }
+      if (instruction) formData.set("instruction", instruction);
       for (const source of uploadedSources) {
         formData.append("sources", JSON.stringify(source));
       }
@@ -117,7 +140,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
 
       const nextResults: DraftScanResultItem[] = nextState.results.map((result, index) => ({
         ...result,
-        clientId: `${index}:${result.fileName}:${result.ok ? "ready" : "error"}`,
+        clientId: createScanResultClientId(index, result.fileName, result.ok),
       }));
       const nextDrafts = Object.fromEntries(
         nextResults
@@ -129,19 +152,21 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
       const failedCount = nextResults.length - readyCount;
       toast.success(
         failedCount > 0
-          ? `Scanned ${readyCount} file${readyCount === 1 ? "" : "s"}; ${failedCount} file${failedCount === 1 ? "" : "s"} need attention.`
-          : `Scanned ${readyCount} file${readyCount === 1 ? "" : "s"}; ready to confirm.`,
+          ? `Scanned ${readyCount} draft${readyCount === 1 ? "" : "s"}; ${failedCount} draft${failedCount === 1 ? "" : "s"} need attention.`
+          : `Scanned ${readyCount} draft${readyCount === 1 ? "" : "s"}; ready to confirm.`,
       );
 
-      if (nextResults.length > 0) {
-        const firstReady = nextResults.find((result) => result.ok);
-        setSelectedResultId(firstReady ? firstReady.clientId : nextResults[0].clientId);
+      const mergedResults = [...scannedResults, ...nextResults];
+      const firstNewResult = nextResults.find((result) => result.ok) ?? nextResults[0] ?? null;
+
+      if (firstNewResult) {
+        setSelectedResultId(firstNewResult.clientId);
       }
 
-      setScannedResults(nextResults);
-      setDraftsById(nextDrafts);
-      setConfirmedTasksById({});
+      setScannedResults(mergedResults);
+      setDraftsById((current) => ({ ...current, ...nextDrafts }));
       formRef.current?.reset();
+      setInstructionText("");
       setSelectedFiles([]);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
@@ -164,90 +189,100 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
         return;
       }
 
-      setConfirmedTasksById((current) => ({
-        ...current,
-        [nextState.resultId]: {
-          taskId: nextState.taskId,
-          taskHref: nextState.taskHref,
-        },
-      }));
-      toast.success("Task created and confirmed.");
+      removeResultFromQueue(nextState.resultId);
+      toast.success("Task created.");
     } finally {
       setConfirmPending(false);
     }
+  };
+
+  const handleRejectResult = (resultId: string) => {
+    removeResultFromQueue(resultId);
+    toast.success("Removed from the list.");
   };
 
   const handleDraftChange = (resultId: string, patch: Partial<ScanTaskDraft>) => {
     setDraftsById((current) => {
       const existing = current[resultId];
       if (!existing) return current;
-      return {
-        ...current,
-        [resultId]: {
-          ...existing,
-          ...patch,
-        },
-      };
+      return { ...current, [resultId]: { ...existing, ...patch } };
     });
   };
 
+  const confirmedCount = scannedResults.filter((result) => result.ok && confirmedTasksById[result.clientId]).length;
+  const readyCount = scannedResults.filter((result) => result.ok && !confirmedTasksById[result.clientId]).length;
+  const failedCount = scannedResults.filter((result) => !result.ok).length;
+
   return (
-    <>
-      <RegisterPageToolbar>
-        <div className="flex min-w-0 items-center gap-3">
-          <BackButton
-            fallbackHref={`/orgs/${orgId}/tools`}
-            className="cursor-pointer text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            ← Tools
-          </BackButton>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-foreground">Scan to Task</p>
-            <p className="truncate text-xs text-muted-foreground">Turn PDFs, images, and docs into task items.</p>
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-3 py-3 sm:px-6 sm:py-6 lg:px-8">
+      <section className="min-w-0 rounded-2xl border border-border/60 bg-card px-4 py-4 sm:px-6 sm:py-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Scan to Task</span>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-[1.75rem]">
+              Turn documents into task items
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              Upload PDFs, images, and docs — AI drafts the task, you review and confirm.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-2 lg:w-90">
+            <div className="rounded-xl border border-border/60 bg-background px-2.5 py-2.5 sm:px-4 sm:py-3">
+              <div className="truncate text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px] sm:tracking-[0.16em]">
+                In review
+              </div>
+              <div className="mt-1 text-lg font-semibold tabular-nums sm:text-2xl">{readyCount}</div>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-background px-2.5 py-2.5 sm:px-4 sm:py-3">
+              <div className="truncate text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px] sm:tracking-[0.16em]">
+                Confirmed
+              </div>
+              <div className="mt-1 text-lg font-semibold tabular-nums sm:text-2xl">{confirmedCount}</div>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-background px-2.5 py-2.5 sm:px-4 sm:py-3">
+              <div className="truncate text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px] sm:tracking-[0.16em]">
+                Failed
+              </div>
+              <div className="mt-1 text-lg font-semibold tabular-nums sm:text-2xl">{failedCount}</div>
+            </div>
           </div>
         </div>
+      </section>
 
-        <SegmentedControl<ViewMode>
-          value={view}
-          onChange={setView}
-          options={[
-            { value: "feed", label: "Feed" },
-            { value: "list", label: "List" },
-          ]}
-          className="ml-auto"
+      <ScanToTaskUploadSection
+        formRef={formRef}
+        fileInputRef={fileInputRef}
+        selectedFiles={selectedFiles}
+        scanPending={scanPending}
+        instructionText={instructionText}
+        onInstructionChange={setInstructionText}
+        onSubmit={handleSubmit}
+        onFilesChange={(files) => setSelectedFiles(files)}
+      />
+
+      <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+        <ScanToTaskResultsSection
+          results={scannedResults}
+          view={view}
+          loading={scanPending}
+          emptySelectedLabel={emptySelectedLabel}
+          selectedResultId={selectedResultId}
+          confirmedTasksById={confirmedTasksById}
+          onSelectResult={setSelectedResultId}
+          onViewChange={setView}
         />
-      </RegisterPageToolbar>
 
-      <div className="flex flex-col gap-5 py-5">
-        <ScanToTaskUploadSection
-          formRef={formRef}
-          fileInputRef={fileInputRef}
-          selectedFiles={selectedFiles}
-          scanPending={scanPending}
-          onSubmit={handleSubmit}
-          onFilesChange={(files) => setSelectedFiles(files)}
+        <ScanToTaskInspector
+          selectedResult={selectedResult}
+          selectedDraft={selectedDraft}
+          selectedTask={selectedTask ?? null}
+          confirmPending={confirmPending}
+          onConfirmSubmit={handleConfirmSubmit}
+          onDraftChange={handleDraftChange}
+          onReject={selectedResult ? () => handleRejectResult(selectedResult.clientId) : null}
         />
-
-        <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-          <ScanToTaskResultsSection
-            results={scannedResults}
-            view={view}
-            emptySelectedLabel={emptySelectedLabel}
-            selectedResultId={selectedResultId}
-            confirmedTasksById={confirmedTasksById}
-            onSelectResult={setSelectedResultId}
-          />
-
-          <ScanToTaskInspector
-            selectedResult={selectedResult}
-            selectedDraft={selectedDraft}
-            selectedTask={selectedTask ?? null}
-            confirmPending={confirmPending}
-            onConfirmSubmit={handleConfirmSubmit}
-            onDraftChange={handleDraftChange}
-          />
-        </div>
       </div>
-    </>
+    </div>
   );
 }
