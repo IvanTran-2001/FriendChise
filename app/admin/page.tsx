@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { FeedbackType } from "@prisma/client";
 import {
   ArrowRight,
   CheckCheck,
@@ -10,9 +9,8 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { prisma } from "@/lib/platform/prisma";
-import { isDemoEmail } from "@/lib/demo";
 import { requireSuperAdminPage } from "@/lib/authz";
-import { getAllFeedback } from "@/lib/services/feedback";
+import { getFeedbackCounts } from "@/lib/services/feedback";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,28 +20,27 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+/** Email suffix shared by all auto-provisioned demo accounts. */
+const DEMO_EMAIL_SUFFIX = "@demo.friendchise.app";
+
 export default async function AdminHomePage() {
   await requireSuperAdminPage();
 
-  const [feedback, users, demoLaunchesResult] = await Promise.all([
-    getAllFeedback(),
-    prisma.user.findMany({
-      select: {
-        createdAt: true,
-        email: true,
-      },
-      orderBy: {
-        createdAt: "asc",
-      },
-    }),
-    prisma.demoSession.count(),
-  ]);
-  const demoLaunches = demoLaunchesResult;
-  const unreviewed = feedback.filter((item) => !item.reviewed);
-  const issues = feedback.filter((item) => item.type === FeedbackType.ISSUE);
-  const ideas = feedback.filter((item) => item.type === FeedbackType.IDEA);
-  const nonDemoUsers = users.filter((user) => !isDemoEmail(user.email));
-  const latestSignup = nonDemoUsers.at(-1)?.createdAt;
+  const [feedbackCounts, nonDemoUserCount, latestNonDemoUser, demoLaunches] =
+    await Promise.all([
+      getFeedbackCounts(),
+      prisma.user.count({
+        where: { NOT: { email: { endsWith: DEMO_EMAIL_SUFFIX } } },
+      }),
+      prisma.user.findFirst({
+        where: { NOT: { email: { endsWith: DEMO_EMAIL_SUFFIX } } },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      }),
+      prisma.demoSession.count(),
+    ]);
+
+  const latestSignup = latestNonDemoUser?.createdAt;
   const latestSignupLabel = latestSignup
     ? latestSignup.toLocaleDateString("en-AU", {
         month: "short",
@@ -72,14 +69,14 @@ export default async function AdminHomePage() {
             <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
               Total feedback
             </p>
-            <p className="mt-3 text-3xl font-semibold tracking-tight">{feedback.length}</p>
+            <p className="mt-3 text-3xl font-semibold tracking-tight">{feedbackCounts.total}</p>
             <p className="mt-1 text-sm text-muted-foreground">All submissions in the system.</p>
           </div>
           <div className="rounded-2xl border border-border/70 bg-background/80 p-4 shadow-sm">
             <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
               Unreviewed
             </p>
-            <p className="mt-3 text-3xl font-semibold tracking-tight">{unreviewed.length}</p>
+            <p className="mt-3 text-3xl font-semibold tracking-tight">{feedbackCounts.unreviewed}</p>
             <p className="mt-1 text-sm text-muted-foreground">Items still waiting on a pass.</p>
           </div>
           <div className="rounded-2xl border border-border/70 bg-background/80 p-4 shadow-sm">
@@ -87,7 +84,7 @@ export default async function AdminHomePage() {
               Review mix
             </p>
             <p className="mt-3 text-3xl font-semibold tracking-tight">
-              {issues.length} / {ideas.length}
+              {feedbackCounts.issues} / {feedbackCounts.ideas}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">Issues vs ideas.</p>
           </div>
@@ -113,7 +110,7 @@ export default async function AdminHomePage() {
               <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
                 Total users
               </p>
-              <p className="mt-3 text-3xl font-semibold tracking-tight">{nonDemoUsers.length}</p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight">{nonDemoUserCount}</p>
               <p className="mt-1 text-sm text-muted-foreground">All non-demo accounts.</p>
             </div>
             <div className="rounded-2xl border border-border/70 bg-background/80 p-4 shadow-sm">
@@ -153,9 +150,9 @@ export default async function AdminHomePage() {
             <CardContent className="flex flex-col gap-3">
               <div className="flex items-center justify-between rounded-2xl border border-border/70 bg-background/80 px-4 py-3">
                 <div>
-                  <p className="text-sm font-medium">{unreviewed.length} unreviewed</p>
+                  <p className="text-sm font-medium">{feedbackCounts.unreviewed} unreviewed</p>
                   <p className="text-xs text-muted-foreground">
-                    {feedback.length} total submissions
+                    {feedbackCounts.total} total submissions
                   </p>
                 </div>
                 <CheckCheck className="h-5 w-5 text-emerald-500" />
@@ -181,7 +178,7 @@ export default async function AdminHomePage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Lightbulb className="h-4 w-4 text-amber-500" />
-                What’s live
+                What&apos;s live
               </CardTitle>
               <CardDescription>
                 The admin area is intentionally small for now.
