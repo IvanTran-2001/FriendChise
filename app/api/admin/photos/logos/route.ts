@@ -35,7 +35,7 @@ export async function GET(req: Request) {
 
   const orgs = await prisma.organization.findMany({
     where: { image: { not: null } },
-    orderBy: { name: "asc" },
+    orderBy: [{ name: "asc" }, { id: "asc" }],
     skip: (page - 1) * pageSize,
     take: pageSize,
     select: { id: true, name: true, image: true },

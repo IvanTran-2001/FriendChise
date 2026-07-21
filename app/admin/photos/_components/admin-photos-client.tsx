@@ -109,6 +109,7 @@ function PhotoGridSection({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const requestSeqRef = useRef(0);
+  const loadMoreControllerRef = useRef<AbortController | null>(null);
 
   const mergeUnique = useCallback((current: PhotoTile[], incoming: PhotoTile[]) => {
     const byKey = new Map<string, PhotoTile>();
@@ -176,8 +177,9 @@ function PhotoGridSection({
         setTotalPages(1);
         setTotalCount(0);
       } finally {
-        if (requestSeqRef.current !== requestSeq) return;
-        setIsLoadingInitial(false);
+        if (requestSeqRef.current === requestSeq) {
+          setIsLoadingInitial(false);
+        }
       }
     })();
 
@@ -201,6 +203,7 @@ function PhotoGridSection({
         const nextPage = page + 1;
         const requestSeq = requestSeqRef.current;
         const controller = new AbortController();
+        loadMoreControllerRef.current = controller;
         setIsLoadingMore(true);
 
         void loadPage({ targetPage: nextPage, replace: false, signal: controller.signal, requestSeq })
@@ -209,16 +212,21 @@ function PhotoGridSection({
           })
           .finally(() => {
             if (requestSeqRef.current !== requestSeq) return;
+            if (loadMoreControllerRef.current === controller) {
+              loadMoreControllerRef.current = null;
+            }
             setIsLoadingMore(false);
           });
-
-        return () => controller.abort();
       },
       { rootMargin: "240px" },
     );
 
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      loadMoreControllerRef.current?.abort();
+      loadMoreControllerRef.current = null;
+      observer.disconnect();
+    };
   }, [isLoadingInitial, isLoadingMore, items.length, loadPage, page, totalPages]);
 
   const hasMore = items.length > 0 && page < totalPages;
