@@ -18,7 +18,7 @@ export async function GET(
   }
 
   const imageSignedUrl = accessible.task.imageUrl
-    ? await createSignedReadUrl(accessible.task.imageUrl)
+    ? await createSignedReadUrl(accessible.task.imageUrl).catch(() => null)
     : null;
 
   return NextResponse.json({

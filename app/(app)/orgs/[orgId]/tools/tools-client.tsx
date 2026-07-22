@@ -23,7 +23,7 @@ import Link from "next/link";
 import type { ComponentType } from "react";
 import { ArrowLeftRight, ArrowRight, Clock, LayoutGrid, LayoutList, Star, Users } from "lucide-react";
 import { cn } from "@/lib/core/utils";
-import { usePersistedState } from "@/hooks/use-persisted-state";
+import { useToolFavorites } from "@/hooks/use-tool-favorites";
 import { useSupportsHover } from "@/hooks/use-hover-capability";
 import { TOOLS_CATALOG, type ToolCatalogItem } from "./_components/tools-catalog";
 
@@ -109,7 +109,9 @@ function ToolCard({
             ? "bg-amber-500/10 text-amber-500 hover:bg-amber-500/15"
             : cn(
                 "text-muted-foreground/40 hover:bg-amber-500/5 hover:text-amber-500",
-                supportsHover ? "opacity-0 group-hover:opacity-100" : "opacity-100",
+                supportsHover
+                  ? "opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                  : "opacity-100",
               ),
         )}
         aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
@@ -140,26 +142,18 @@ export function ToolsClient({ orgId, recentSets, hasRoster }: ToolsClientProps) 
   const totalTools = TOOLS_CATALOG.length;
   const totalRecent = recent.length;
 
-  const [favoriteIds, setFavoriteIds, hydrated] = usePersistedState<string[]>(
-    `toolhub-favorites-${orgId}`,
-    [],
-  );
+  const { favoriteIds, toggleFavorite, hydrated } = useToolFavorites(orgId);
   const favoriteTools = hydrated ? TOOLS_CATALOG.filter((tool) => favoriteIds.includes(tool.id)) : [];
   const supportsHover = useSupportsHover();
 
-  const toggleFavorite = (toolId: string) => {
-    setFavoriteIds((prev) =>
-      prev.includes(toolId) ? prev.filter((id) => id !== toolId) : [...prev, toolId],
-    );
-  };
-
   const recentItems: RecentItem[] = [];
   if (hasRoster) {
+    const rosterTool = TOOLS_CATALOG.find((tool) => tool.id === "roster");
     recentItems.push({
       key: "roster",
       href: `/orgs/${orgId}/tools/roster`,
-      icon: Users,
-      tone: "bg-amber-500/10 text-amber-700 ring-amber-500/15 dark:text-amber-300",
+      icon: rosterTool?.icon ?? Users,
+      tone: rosterTool?.accent ?? "bg-amber-500/10 text-amber-700 ring-amber-500/15 dark:text-amber-300",
       eyebrow: "Activity",
       title: "Roster",
     });
@@ -196,19 +190,19 @@ export function ToolsClient({ orgId, recentSets, hasRoster }: ToolsClientProps) 
 
           <div className="grid grid-cols-3 gap-2 lg:w-105 lg:grid-cols-3">
             <div className="rounded-2xl border border-border/60 bg-background px-2.5 py-2.5 sm:px-4 sm:py-3">
-              <div className="truncate text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px] sm:tracking-[0.16em]">
+              <div className="truncate text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px] sm:tracking-[0.16em]">
                 Tools
               </div>
               <div className="mt-1 text-lg font-semibold tabular-nums sm:text-2xl">{totalTools}</div>
             </div>
             <div className="rounded-2xl border border-border/60 bg-background px-2.5 py-2.5 sm:px-4 sm:py-3">
-              <div className="truncate text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px] sm:tracking-[0.16em]">
+              <div className="truncate text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px] sm:tracking-[0.16em]">
                 Recent activity
               </div>
               <div className="mt-1 text-lg font-semibold tabular-nums sm:text-2xl">{totalRecent}</div>
             </div>
             <div className="rounded-2xl border border-border/60 bg-background px-2.5 py-2.5 sm:px-4 sm:py-3">
-              <div className="truncate text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px] sm:tracking-[0.16em]">
+              <div className="truncate text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px] sm:tracking-[0.16em]">
                 Roster
               </div>
               <div className="mt-1 text-lg font-semibold tabular-nums sm:text-2xl">

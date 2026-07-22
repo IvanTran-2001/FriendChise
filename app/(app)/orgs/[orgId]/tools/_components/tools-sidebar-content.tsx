@@ -23,7 +23,7 @@ import { usePathname } from "next/navigation";
 import { Star } from "lucide-react";
 import { SearchInput } from "@/components/ui/controls/search-input";
 import { cn } from "@/lib/core/utils";
-import { usePersistedState } from "@/hooks/use-persisted-state";
+import { useToolFavorites } from "@/hooks/use-tool-favorites";
 import { useSupportsHover } from "@/hooks/use-hover-capability";
 import { TOOLS_CATALOG, type ToolCatalogItem } from "./tools-catalog";
 
@@ -71,7 +71,9 @@ function ToolRow({
             ? "text-amber-500 hover:bg-amber-500/10"
             : cn(
                 "text-sidebar-foreground/30 hover:bg-amber-500/5 hover:text-amber-500",
-                supportsHover ? "opacity-0 group-hover:opacity-100" : "opacity-100",
+                supportsHover
+                  ? "opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                  : "opacity-100",
               ),
         )}
         aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
@@ -93,10 +95,7 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
 export function ToolsSidebarContent({ orgId }: { orgId: string }) {
   const pathname = usePathname();
   const [search, setSearch] = useState("");
-  const [favoriteIds, setFavoriteIds, hydrated] = usePersistedState<string[]>(
-    `toolhub-favorites-${orgId}`,
-    [],
-  );
+  const { favoriteIds, toggleFavorite, hydrated } = useToolFavorites(orgId);
   const supportsHover = useSupportsHover();
 
   const query = search.trim().toLowerCase();
@@ -107,12 +106,6 @@ export function ToolsSidebarContent({ orgId }: { orgId: string }) {
   const isSearching = query.length > 0;
   const favoriteTools = hydrated ? filtered.filter((tool) => favoriteIds.includes(tool.id)) : [];
   const remainingTools = hydrated ? filtered.filter((tool) => !favoriteIds.includes(tool.id)) : filtered;
-
-  const toggleFavorite = (toolId: string) => {
-    setFavoriteIds((prev) =>
-      prev.includes(toolId) ? prev.filter((id) => id !== toolId) : [...prev, toolId],
-    );
-  };
 
   const renderRow = (tool: ToolCatalogItem) => {
     const href = `/orgs/${orgId}/tools/${tool.id}`;
