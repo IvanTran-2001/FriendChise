@@ -29,12 +29,16 @@ export function DevUserPicker({
   const [signingIn, setSigningIn] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const isCollapsed = isMobile === true ? !isMobileOpen : !isDesktopOpen;
+  const isBreakpointResolved = isMobile !== undefined;
 
   useEffect(() => {
-    if (!isCollapsed) {
-      searchRef.current?.focus();
-    }
-  }, [isCollapsed]);
+    if (!isBreakpointResolved || isCollapsed) return;
+    searchRef.current?.focus();
+  }, [isBreakpointResolved, isCollapsed]);
+
+  if (!isBreakpointResolved) {
+    return null;
+  }
 
   const filtered = users.filter(
     (u) =>

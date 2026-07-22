@@ -165,6 +165,7 @@ export async function readStorageFile(
 		headers: {
 			Authorization: `Bearer ${key}`,
 		},
+		signal: AbortSignal.timeout(15_000),
 	});
 	if (!res.ok) {
 		const body = await res.text().catch(() => res.statusText);

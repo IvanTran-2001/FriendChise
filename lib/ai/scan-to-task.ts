@@ -10,8 +10,7 @@ import {
   scanToTaskConfig,
 } from "@/lib/ai/scan-to-task-config";
 import {
-  SCAN_TO_TASK_IMAGE_EXTENSIONS,
-  SCAN_TO_TASK_IMAGE_MIME_TYPES,
+  getScanSourceKind,
   resolveScanUploadMimeType,
 } from "@/lib/services/scan-to-task-shared";
 import { scanTaskDraftSchema, type ScanTaskDraftInput } from "@/lib/validators/scan-to-task";
@@ -24,15 +23,6 @@ const openAiKey = process.env.OPENAI_API_KEY?.trim();
 const openAiClient = openAiKey ? new OpenAI({ apiKey: openAiKey }) : null;
 const openAiModel = scanToTaskConfig.model;
 const scanToTaskDebugLogging = scanToTaskConfig.debugLogging;
-
-const TEXT_TYPES = new Set([
-  "text/plain",
-  "text/markdown",
-  "text/csv",
-  "application/json",
-  "application/xml",
-  "text/xml",
-]);
 
 /**
  * Collapses repeated whitespace so extracted text and prompts stay compact
@@ -231,39 +221,6 @@ function splitTextIntoChunks(value: string, maxChunkLength = 4000, maxChunks = 5
   }
 
   return chunks;
-}
-
-/**
- * Classifies a file name and mime type into a coarse source kind used by the
- * scan pipeline.
- */
-export function getScanSourceKind(fileName: string, mimeType = ""): ScanFileKind {
-  const normalizedName = fileName.toLowerCase();
-  const normalizedMime = mimeType.toLowerCase();
-  const normalizedExt = normalizedName.slice(normalizedName.lastIndexOf("."));
-
-  if (
-    SCAN_TO_TASK_IMAGE_MIME_TYPES.has(normalizedMime) ||
-    normalizedMime.startsWith("image/") ||
-    SCAN_TO_TASK_IMAGE_EXTENSIONS.has(normalizedExt)
-  ) {
-    return "image";
-  }
-  if (normalizedMime === "application/pdf" || normalizedName.endsWith(".pdf")) return "pdf";
-  if (
-    normalizedName.endsWith(".docx") ||
-    normalizedMime.includes("wordprocessingml.document")
-  ) {
-    return "docx";
-  }
-  if (
-    TEXT_TYPES.has(normalizedMime) ||
-    normalizedName.endsWith(".txt") ||
-    normalizedName.endsWith(".md")
-  ) {
-    return "text";
-  }
-  return "unknown";
 }
 
 /**
@@ -632,28 +589,28 @@ export async function inferScanTaskDraftsFromStorage(
  * Builds a human-readable summary of a File for prompt/debug usage.
  */
 export function getFileSourceSummary(file: File, instruction = "") {
-  const kind = getScanFileKind(file);
-  const chunks = [
-    `File: ${file.name}`,
-    `Type: ${kind}`,
-    instruction.trim() ? `Instruction: ${limitText(instruction, 500)}` : null,
-  ].filter(Boolean);
-  return chunks.join("\n");
+  return buildSourceSummary(file.name, getScanFileKind(file), instruction);
 }
 
-export function getScanSourceSummary(
-  fileName: string,
 /**
  * Builds a human-readable summary of a storage-backed file source.
  */
-  mimeType = "",
-  instruction = "",
-) {
-  const kind = getScanSourceKind(fileName, mimeType);
+function buildSourceSummary(fileName: string, kind: ScanFileKind, instruction: string) {
   const chunks = [
     `File: ${fileName}`,
     `Type: ${kind}`,
     instruction.trim() ? `Instruction: ${limitText(instruction, 500)}` : null,
   ].filter(Boolean);
   return chunks.join("\n");
+}
+
+/**
+ * Builds a human-readable summary of a storage-backed file source.
+ */
+export function getScanSourceSummary(
+  fileName: string,
+  mimeType = "",
+  instruction = "",
+) {
+  return buildSourceSummary(fileName, getScanSourceKind(fileName, mimeType), instruction);
 }

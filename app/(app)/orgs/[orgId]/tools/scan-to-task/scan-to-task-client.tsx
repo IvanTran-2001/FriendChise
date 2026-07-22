@@ -26,19 +26,13 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
   const formRef = useRef<HTMLFormElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [view, setView] = usePersistedState<ViewMode>(`scan-to-task:${orgId}:view`, "feed", { broadcast: true });
-  const [selectedResultId, setSelectedResultId] = usePersistedState<string | null>(`scan-to-task:${orgId}:selected-result`, null, {
-    broadcast: false,
-  });
+  const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [instructionText, setInstructionText] = usePersistedState<string>(`scan-to-task:${orgId}:instruction`, "", {
     broadcast: false,
   });
-  const [scannedResults, setScannedResults] = usePersistedState<DraftScanResultItem[]>(`scan-to-task:${orgId}:results`, [], {
-    broadcast: false,
-  });
-  const [draftsById, setDraftsById] = usePersistedState<Record<string, ScanTaskDraft>>(`scan-to-task:${orgId}:drafts`, {}, {
-    broadcast: false,
-  });
+  const [scannedResults, setScannedResults] = useState<DraftScanResultItem[]>([]);
+  const [draftsById, setDraftsById] = useState<Record<string, ScanTaskDraft>>({});
   const [confirmedTasksById, setConfirmedTasksById] = useState<Record<string, { taskId: string; taskHref: string }>>({});
   const [scanPending, setScanPending] = useState(false);
   const [confirmPending, setConfirmPending] = useState(false);
@@ -76,8 +70,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
     await deleteScanToTaskUploadsAction(orgId, null, cleanupFormData);
   };
 
-  const uploadSelectedFiles = async (): Promise<ScanSourceRef[]> => {
-    const uploadedSources: ScanSourceRef[] = [];
+  const uploadSelectedFiles = async (uploadedSources: ScanSourceRef[]): Promise<void> => {
     for (const file of selectedFiles) {
       const resolvedMimeType = resolveScanUploadMimeType(file.name, file.type || "application/octet-stream");
       const uploadFormData = new FormData();
@@ -106,8 +99,6 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
         fileSize: file.size,
       });
     }
-
-    return uploadedSources;
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -120,10 +111,10 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
     const instruction = new FormData(event.currentTarget).get("instruction")?.toString().trim() ?? "";
     setScanPending(true);
 
-    let uploadedSources: ScanSourceRef[] = [];
+    const uploadedSources: ScanSourceRef[] = [];
 
     try {
-      uploadedSources = await uploadSelectedFiles();
+      await uploadSelectedFiles(uploadedSources);
 
       const formData = new FormData();
       if (instruction) formData.set("instruction", instruction);
@@ -189,8 +180,16 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
         return;
       }
 
-      removeResultFromQueue(nextState.resultId);
+      setConfirmedTasksById((current) => ({
+        ...current,
+        [nextState.resultId]: {
+          taskId: nextState.taskId,
+          taskHref: nextState.taskHref,
+        },
+      }));
       toast.success("Task created.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create task.");
     } finally {
       setConfirmPending(false);
     }

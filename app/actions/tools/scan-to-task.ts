@@ -4,18 +4,19 @@ import { PermissionAction } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { createTask } from "@/lib/services/tasks";
 import {
-  getScanSourceKind,
   inferScanTaskDraftsFromStorage,
   type ScanTaskDraft,
 } from "@/lib/ai/scan-to-task";
 import {
   MAX_FILE_BYTES,
   MAX_FILES,
+  SCAN_UPLOAD_PREFIX,
   buildTempUploadPath,
   cleanupUploads,
   colorFromSeed,
   normalizeInstruction,
 } from "@/lib/services/scan-to-task";
+import { getScanSourceKind } from "@/lib/services/scan-to-task-shared";
 import {
   confirmScanToTaskSchema,
   deleteUploadsSchema,
@@ -30,6 +31,51 @@ import {
   createSignedUploadUrl,
   deleteStorageFile,
 } from "@/lib/platform/supabase-storage";
+
+const SCAN_TO_TASK_CONCURRENCY = 4;
+
+function assertOwnedStoragePath(orgId: string, storagePath: string) {
+  const expectedPrefix = `orgs/${orgId}/${SCAN_UPLOAD_PREFIX}/`;
+  if (!storagePath.startsWith(expectedPrefix)) {
+    throw new Error("Storage path does not belong to this organization.");
+  }
+}
+
+async function processScanSource(
+  source: ScanSourceInput,
+  instruction: string,
+): Promise<ScanToTaskResultItem[]> {
+  const fileKind = getScanSourceKind(source.fileName, source.mimeType);
+
+  try {
+    const drafts = await inferScanTaskDraftsFromStorage(
+      source.storagePath,
+      source.fileName,
+      source.mimeType,
+      instruction,
+    );
+
+    return drafts.map((draft) => ({
+      ok: true,
+      fileName: source.fileName,
+      fileKind,
+      fileSize: source.fileSize,
+      draft,
+    }));
+  } catch (error) {
+    return [
+      {
+        ok: false,
+        fileName: source.fileName,
+        fileKind,
+        fileSize: source.fileSize,
+        error: error instanceof Error ? error.message : "Failed to scan file.",
+      },
+    ];
+  } finally {
+    await deleteStorageFile(source.storagePath);
+  }
+}
 
 export type ScanToTaskUploadUrlActionState =
   | { ok: true; signedUrl: string; path: string }
@@ -109,6 +155,17 @@ export async function deleteScanToTaskUploadsAction(
   });
   if (!parsed.success) return { ok: false, error: "Nothing to delete." };
 
+  for (const storagePath of parsed.data.storagePaths) {
+    try {
+      assertOwnedStoragePath(orgId, storagePath);
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : "Invalid upload path.",
+      };
+    }
+  }
+
   await cleanupUploads(parsed.data.storagePaths);
   return { ok: true };
 }
@@ -149,40 +206,32 @@ export async function scanToTaskAction(
   const demoCheck = await checkDemoLimit(auth.userEmail, "scan", orgId, auth.userId);
   if (!demoCheck.ok) return { ok: false, error: demoCheck.error };
 
-  const results: ScanToTaskResultItem[] = [];
-
   for (const source of sources) {
-    const fileKind = getScanSourceKind(source.fileName, source.mimeType);
-
     try {
-      const drafts = await inferScanTaskDraftsFromStorage(
-        source.storagePath,
-        source.fileName,
-        source.mimeType,
-        instruction,
-      );
-
-      for (const draft of drafts) {
-        results.push({
-          ok: true,
-          fileName: source.fileName,
-          fileKind,
-          fileSize: source.fileSize,
-          draft,
-        });
-      }
+      assertOwnedStoragePath(orgId, source.storagePath);
     } catch (error) {
-      results.push({
+      return {
         ok: false,
-        fileName: source.fileName,
-        fileKind,
-        fileSize: source.fileSize,
-        error: error instanceof Error ? error.message : "Failed to scan file.",
-      });
-    } finally {
-      await deleteStorageFile(source.storagePath);
+        error: error instanceof Error ? error.message : "Invalid upload path.",
+      };
     }
   }
+
+  const resultsBySource: ScanToTaskResultItem[][] = Array.from({ length: sources.length }, () => []);
+  let nextIndex = 0;
+  const workerCount = Math.min(SCAN_TO_TASK_CONCURRENCY, sources.length);
+
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (nextIndex < sources.length) {
+        const currentIndex = nextIndex;
+        nextIndex += 1;
+        resultsBySource[currentIndex] = await processScanSource(sources[currentIndex], instruction);
+      }
+    }),
+  );
+
+  const results = resultsBySource.flat();
 
   revalidatePath(`/orgs/${orgId}/tools/scan-to-task`);
 

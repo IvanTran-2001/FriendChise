@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight, FileScan, Loader2 } from "lucide-react";
+import type { KeyboardEvent } from "react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/core/utils";
 import { formatFileSize } from "@/lib/services/scan-to-task-shared";
@@ -129,12 +130,21 @@ function ScanResultListRow({
   confirmedTaskHref?: string | null;
   onSelect: () => void;
 }) {
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    onSelect();
+  };
+
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={handleKeyDown}
+      aria-pressed={selected}
       className={cn(
-        "group flex w-full items-center gap-3 rounded-xl border border-border/60 bg-background p-3 text-left transition-colors hover:border-primary/30",
+        "group flex w-full items-center gap-3 rounded-xl border border-border/60 bg-background p-3 text-left outline-none transition-colors hover:border-primary/30 focus-visible:ring-2 focus-visible:ring-ring/50",
         selected && "border-primary/40 bg-primary/5",
       )}
     >
@@ -172,7 +182,7 @@ function ScanResultListRow({
       ) : (
         <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
       )}
-    </button>
+    </div>
   );
 }
 
@@ -187,12 +197,21 @@ function ScanResultFeedCard({
   confirmedTaskHref?: string | null;
   onSelect: () => void;
 }) {
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    onSelect();
+  };
+
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={handleKeyDown}
+      aria-pressed={selected}
       className={cn(
-        "group flex min-h-0 min-w-0 flex-col gap-3 rounded-xl border border-border/60 bg-background p-4 text-left transition-colors hover:border-primary/30",
+        "group flex min-h-0 min-w-0 flex-col gap-3 rounded-xl border border-border/60 bg-background p-4 text-left outline-none transition-colors hover:border-primary/30 focus-visible:ring-2 focus-visible:ring-ring/50",
         selected && "border-primary/40 bg-primary/5",
       )}
     >
@@ -244,6 +263,6 @@ function ScanResultFeedCard({
           )}
         </div>
       ) : null}
-    </button>
+    </div>
   );
 }

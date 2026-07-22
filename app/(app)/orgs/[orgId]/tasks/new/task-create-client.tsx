@@ -17,7 +17,7 @@ import { randomColor } from "@/components/ui/pickers/color-picker";
 import { RichTextEditor } from "@/components/ui/editors/rich-text-editor";
 import { createTaskAction } from "@/app/actions/tasks";
 import type { CreateTaskFormState } from "@/app/actions/tasks";
-import { suggestTaskDetailsAction } from "@/app/actions/task-suggestions";
+import { suggestTaskDetailsAction } from "@/app/actions/ai/task-suggestions";
 import { TagPanel, EligibilityPanel } from "../task-panels";
 import type { Role, Tag } from "../task-panels";
 import type { TaskToolSelection } from "../_components/task-tools-picker";

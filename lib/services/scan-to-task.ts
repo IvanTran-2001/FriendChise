@@ -1,4 +1,4 @@
-import { getScanSourceKind } from "@/lib/ai/scan-to-task";
+import { getScanSourceKind } from "@/lib/services/scan-to-task-shared";
 import { deleteStorageFile } from "@/lib/platform/supabase-storage";
 
 export const MAX_FILES = 12;

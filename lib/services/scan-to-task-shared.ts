@@ -21,6 +21,8 @@ export const SCAN_TO_TASK_IMAGE_EXTENSIONS = new Set([
 export const SCAN_TO_TASK_UPLOAD_ACCEPT =
   ".pdf,.doc,.docx,.txt,.md,.jpg,.jpeg,.png,.webp,.gif,.heic,.heif,image/*";
 
+export type ScanFileKind = "image" | "pdf" | "docx" | "text" | "unknown";
+
 const SCAN_TO_TASK_EXTENSION_MIME_TYPES: Record<string, string> = {
   ".heic": "image/heic",
   ".heif": "image/heif",
@@ -50,6 +52,44 @@ export function resolveScanUploadMimeType(fileName: string, mimeType: string) {
   const lowerName = fileName.toLowerCase();
   const ext = lowerName.slice(lowerName.lastIndexOf("."));
   return SCAN_TO_TASK_EXTENSION_MIME_TYPES[ext] ?? mimeType;
+}
+
+/**
+ * Classifies a file name and mime type into a coarse source kind used by the
+ * scan pipeline.
+ */
+export function getScanSourceKind(fileName: string, mimeType = ""): ScanFileKind {
+  const normalizedName = fileName.toLowerCase();
+  const normalizedMime = mimeType.toLowerCase();
+  const normalizedExt = normalizedName.slice(normalizedName.lastIndexOf("."));
+
+  if (
+    SCAN_TO_TASK_IMAGE_MIME_TYPES.has(normalizedMime) ||
+    normalizedMime.startsWith("image/") ||
+    SCAN_TO_TASK_IMAGE_EXTENSIONS.has(normalizedExt)
+  ) {
+    return "image";
+  }
+  if (normalizedMime === "application/pdf" || normalizedName.endsWith(".pdf")) return "pdf";
+  if (
+    normalizedName.endsWith(".docx") ||
+    normalizedMime.includes("wordprocessingml.document")
+  ) {
+    return "docx";
+  }
+  if (
+    normalizedMime === "text/plain" ||
+    normalizedMime === "text/markdown" ||
+    normalizedMime === "text/csv" ||
+    normalizedMime === "application/json" ||
+    normalizedMime === "application/xml" ||
+    normalizedMime === "text/xml" ||
+    normalizedName.endsWith(".txt") ||
+    normalizedName.endsWith(".md")
+  ) {
+    return "text";
+  }
+  return "unknown";
 }
 
 /**
