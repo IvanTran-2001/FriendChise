@@ -1,6 +1,5 @@
 import OpenAI from "openai";
 import sharp from "sharp";
-import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
 import { buildTaskSuggestion } from "@/lib/ai/task-suggestions";
 import { readStorageFile } from "@/lib/platform/supabase-storage";
@@ -296,6 +295,7 @@ export function getScanFileKind(file: File): ScanFileKind {
  */
 async function extractTextFromBytes(bytes: ArrayBuffer, kind: ScanFileKind) {
   if (kind === "pdf") {
+    const { PDFParse } = await import("pdf-parse");
     const parser = new PDFParse({ data: bytes });
     try {
       const result = await parser.getText();
