@@ -85,7 +85,10 @@ export function getScanSourceKind(fileName: string, mimeType = ""): ScanFileKind
     normalizedMime === "application/xml" ||
     normalizedMime === "text/xml" ||
     normalizedName.endsWith(".txt") ||
-    normalizedName.endsWith(".md")
+    normalizedName.endsWith(".md") ||
+    normalizedName.endsWith(".csv") ||
+    normalizedName.endsWith(".json") ||
+    normalizedName.endsWith(".xml")
   ) {
     return "text";
   }

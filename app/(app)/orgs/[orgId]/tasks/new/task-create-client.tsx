@@ -337,13 +337,18 @@ export function TaskCreateClient({
 
     setIsSuggesting(true);
     try {
+      const parsedMinWaitDays = Number(normalizeWaitDays(minWaitDays));
+      const parsedMaxWaitDays = Number(normalizeWaitDays(maxWaitDays));
+      const safeMinWaitDays = Number.isFinite(parsedMinWaitDays) ? parsedMinWaitDays : 1;
+      const safeMaxWaitDays = Number.isFinite(parsedMaxWaitDays) ? parsedMaxWaitDays : 1;
+
       const result = await suggestTaskDetailsAction(orgId, {
         title,
         description,
         durationMin,
         peopleRequired,
-        minWaitDays: Number(normalizeWaitDays(minWaitDays)),
-        maxWaitDays: Number(normalizeWaitDays(maxWaitDays)),
+        minWaitDays: safeMinWaitDays,
+        maxWaitDays: safeMaxWaitDays,
       });
 
       if (!result.ok) {

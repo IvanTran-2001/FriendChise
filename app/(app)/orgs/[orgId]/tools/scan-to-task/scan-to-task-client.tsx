@@ -28,9 +28,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
   const [view, setView] = usePersistedState<ViewMode>(`scan-to-task:${orgId}:view`, "feed", { broadcast: true });
   const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [instructionText, setInstructionText] = usePersistedState<string>(`scan-to-task:${orgId}:instruction`, "", {
-    broadcast: false,
-  });
+  const [instructionText, setInstructionText] = useState("");
   const [scannedResults, setScannedResults] = useState<DraftScanResultItem[]>([]);
   const [draftsById, setDraftsById] = useState<Record<string, ScanTaskDraft>>({});
   const [confirmedTasksById, setConfirmedTasksById] = useState<Record<string, { taskId: string; taskHref: string }>>({});
@@ -63,11 +61,15 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
 
   const cleanupUploads = async (storagePaths: string[]) => {
     if (storagePaths.length === 0) return;
-    const cleanupFormData = new FormData();
-    for (const storagePath of storagePaths) {
-      cleanupFormData.append("storagePaths", storagePath);
+    try {
+      const cleanupFormData = new FormData();
+      for (const storagePath of storagePaths) {
+        cleanupFormData.append("storagePaths", storagePath);
+      }
+      await deleteScanToTaskUploadsAction(orgId, null, cleanupFormData);
+    } catch {
+      // Best effort only; preserve the original upload/scan failure.
     }
-    await deleteScanToTaskUploadsAction(orgId, null, cleanupFormData);
   };
 
   const uploadSelectedFiles = async (uploadedSources: ScanSourceRef[]): Promise<void> => {
@@ -83,6 +85,13 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
         throw new Error(uploadState.error);
       }
 
+      uploadedSources.push({
+        storagePath: uploadState.path,
+        fileName: file.name,
+        mimeType: resolvedMimeType,
+        fileSize: file.size,
+      });
+
       const uploadResponse = await fetch(uploadState.signedUrl, {
         method: "PUT",
         body: file,
@@ -91,13 +100,6 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
       if (!uploadResponse.ok) {
         throw new Error(`Failed to upload "${file.name}".`);
       }
-
-      uploadedSources.push({
-        storagePath: uploadState.path,
-        fileName: file.name,
-        mimeType: resolvedMimeType,
-        fileSize: file.size,
-      });
     }
   };
 
