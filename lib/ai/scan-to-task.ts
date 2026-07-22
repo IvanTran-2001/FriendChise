@@ -297,8 +297,14 @@ export function getScanFileKind(file: File): ScanFileKind {
 async function extractTextFromBytes(bytes: ArrayBuffer, kind: ScanFileKind) {
   if (kind === "pdf") {
     const parser = new PDFParse({ data: bytes });
-    const result = await parser.getText();
-    return result.text ?? "";
+    try {
+      const result = await parser.getText();
+      return result.text ?? "";
+    } catch {
+      return "";
+    } finally {
+      await parser.destroy();
+    }
   }
 
   if (kind === "docx") {

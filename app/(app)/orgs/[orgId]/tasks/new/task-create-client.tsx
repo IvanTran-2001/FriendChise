@@ -363,6 +363,8 @@ export function TaskCreateClient({
         setMaxWaitDays(String(suggestion.maxWaitDays));
       }
       toast.success("Suggested task details.");
+    } catch {
+      toast.error("Failed to generate suggestions. Please try again.");
     } finally {
       setIsSuggesting(false);
     }
