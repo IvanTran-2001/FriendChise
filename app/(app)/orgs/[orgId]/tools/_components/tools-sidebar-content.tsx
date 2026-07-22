@@ -13,7 +13,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
-import { ArrowLeftRight, List, Users, Calculator, Star, ClipboardList } from "lucide-react";
+import { ArrowLeftRight, List, Users, Calculator, Star, ClipboardList, FileScan } from "lucide-react";
 import { SearchInput } from "@/components/ui/controls/search-input";
 import { cn } from "@/lib/core/utils";
 import { usePersistedState } from "@/hooks/use-persisted-state";
@@ -74,6 +74,15 @@ const PLACEHOLDER_TOOLS: ToolItem[] = [
     accent: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
     iconTone: "ring-indigo-500/15 text-indigo-700 dark:text-indigo-300",
     activeBar: "bg-indigo-500",
+  },
+  {
+    id: "scan-to-task",
+    name: "Scan to Task",
+    icon: FileScan,
+    description: "Pictures and PDFs into tasks",
+    accent: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
+    iconTone: "ring-cyan-500/15 text-cyan-700 dark:text-cyan-300",
+    activeBar: "bg-cyan-500",
   },
 ];
 

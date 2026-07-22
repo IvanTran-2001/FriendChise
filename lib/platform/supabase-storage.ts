@@ -151,6 +151,34 @@ export async function createSignedReadUrl(
 }
 
 /**
+ * Fetches a private file from storage as raw bytes.
+ */
+export async function readStorageFile(
+	storagePath: string,
+): Promise<
+	| { ok: true; arrayBuffer: ArrayBuffer; contentType: string | null }
+	| { ok: false; error: string }
+> {
+	const { url, key } = getConfig();
+	const encodedPath = storagePath.split("/").map(encodeURIComponent).join("/");
+	const res = await fetch(`${url}/storage/v1/object/${BUCKET}/${encodedPath}`, {
+		headers: {
+			Authorization: `Bearer ${key}`,
+		},
+		signal: AbortSignal.timeout(15_000),
+	});
+	if (!res.ok) {
+		const body = await res.text().catch(() => res.statusText);
+		return { ok: false, error: `Storage read error: ${body}` };
+	}
+	return {
+		ok: true,
+		arrayBuffer: await res.arrayBuffer(),
+		contentType: res.headers.get("content-type"),
+	};
+}
+
+/**
  * Deletes a file from storage. Silently ignores errors so callers
  * don't need to guard against stale paths.
  */

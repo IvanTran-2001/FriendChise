@@ -24,7 +24,7 @@ export class DemoProvisionError extends Error {
  */
 export async function checkDemoLimit(
   userEmail: string | null | undefined,
-  type: "task" | "member" | "org",
+  type: "task" | "member" | "org" | "scan",
   orgId?: string,
   userId?: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -44,6 +44,14 @@ export async function checkDemoLimit(
     const count = await prisma.organization.count({ where: { ownerId: userId } });
     if (count >= DEMO_LIMITS.PER_USER_ORGS) {
       return { ok: false, error: `Demo accounts are limited to ${DEMO_LIMITS.PER_USER_ORGS} organizations.` };
+    }
+  } else if (type === "scan" && userId) {
+    const consumed = await prisma.user.updateMany({
+      where: { id: userId, email: { endsWith: "@demo.friendchise.app" }, demoScanToTaskUsedAt: null },
+      data: { demoScanToTaskUsedAt: new Date() },
+    });
+    if (consumed.count === 0) {
+      return { ok: false, error: "Sign up to continue using this feature." };
     }
   }
 
@@ -76,7 +84,7 @@ export async function prepareDemoSession(): Promise<{ userId: string; orgId: str
       const email = `demo-${demoId}@demo.friendchise.app`;
       const demoUser = await tx.user.create({ data: { email, name: "Demo User", image: "https://i.pravatar.cc/150?img=3" } });
       const orgId = await seedDemoOrg(demoUser.id, tx);
-      await tx.demoSession.create({ data: { userId: demoUser.id, orgId, expiresAt: new Date(Date.now() + DEMO_TTL_MS) } });
+      await tx.demoSession.create({ data: { launchId: crypto.randomUUID(), userId: demoUser.id, orgId, expiresAt: new Date(Date.now() + DEMO_TTL_MS) } });
       return { userId: demoUser.id, orgId };
     }, { timeout: 60_000, isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   });
