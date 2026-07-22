@@ -47,7 +47,7 @@ export function ScanToTaskUploadSection({
               <div className="min-w-0">
                 <p className="text-sm font-medium text-foreground">Upload files</p>
                 <p className="text-xs text-muted-foreground">
-                  Multiple files allowed. PDFs, images, DOCX, TXT, and MD.
+                  Multiple files allowed. PDFs, images, DOCX, TXT, MD, CSV, JSON, and XML.
                 </p>
               </div>
             </div>

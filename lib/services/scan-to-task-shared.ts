@@ -19,7 +19,7 @@ export const SCAN_TO_TASK_IMAGE_EXTENSIONS = new Set([
 ]);
 
 export const SCAN_TO_TASK_UPLOAD_ACCEPT =
-  ".pdf,.doc,.docx,.txt,.md,.jpg,.jpeg,.png,.webp,.gif,.heic,.heif,image/*";
+  ".pdf,.doc,.docx,.txt,.md,.csv,.json,.xml,.jpg,.jpeg,.png,.webp,.gif,.heic,.heif,image/*";
 
 export type ScanFileKind = "image" | "pdf" | "docx" | "text" | "unknown";
 
