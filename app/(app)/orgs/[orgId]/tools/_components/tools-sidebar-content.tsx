@@ -1,90 +1,94 @@
 /**
  * ToolsSidebarContent — page sidebar for `/orgs/[orgId]/tools`.
  *
- * Renders a searchable list of available tools as nav links. Each tool
+ * Renders a searchable, favoritable list of tools as nav links. Each tool
  * navigates to its own sub-page at `/orgs/[orgId]/tools/<toolId>`.
  *
- * `PLACEHOLDER_TOOLS` is a static list — swap for a DB-driven query once a
- * `Tool` model exists in the schema.
+ * Row styling follows the same calm "page" nav pattern used by every other
+ * page sidebar in the app (see `components/layout/sidebar/sidebar-nav-item.tsx`
+ * — `rounded-md`, `before:` left accent bar for the active row, subtle
+ * `hover:bg-sidebar-accent/60`) rather than the heavier bordered-card
+ * treatment this file used previously. The per-tool accent color from
+ * `TOOLS_CATALOG` is kept on the icon well only, since that's the fastest
+ * way to recognize a module at a glance.
+ *
+ * Tool metadata lives in `tools-catalog.ts`, shared with `ToolsClient` (the
+ * main Tool Hub grid) so the sidebar and grid never drift apart.
  */
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ComponentType } from "react";
-import { ArrowLeftRight, List, Users, Calculator, Star, ClipboardList, FileScan } from "lucide-react";
+import { Star } from "lucide-react";
 import { SearchInput } from "@/components/ui/controls/search-input";
 import { cn } from "@/lib/core/utils";
 import { usePersistedState } from "@/hooks/use-persisted-state";
+import { useSupportsHover } from "@/hooks/use-hover-capability";
+import { TOOLS_CATALOG, type ToolCatalogItem } from "./tools-catalog";
 
-// Placeholder tool list — replace with DB-driven data once the Tool model exists
-type ToolItem = {
-  id: string;
-  name: string;
-  icon: ComponentType<{ className?: string }>;
-  description: string;
-  accent: string;
-  iconTone: string;
-  activeBar: string;
-};
+function ToolRow({
+  tool,
+  orgId,
+  isActive,
+  isFavorite,
+  onToggleFavorite,
+  supportsHover,
+}: {
+  tool: ToolCatalogItem;
+  orgId: string;
+  isActive: boolean;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+  supportsHover: boolean;
+}) {
+  const Icon = tool.icon;
+  return (
+    <div className="group relative">
+      <Link
+        href={`/orgs/${orgId}/tools/${tool.id}`}
+        aria-current={isActive ? "page" : undefined}
+        className={cn(
+          "relative mx-2 my-0.5 flex h-11 items-center gap-2.5 rounded-md py-1.5 pl-3 pr-9 text-[13px] font-medium transition-colors duration-150",
+          "before:absolute before:left-1 before:top-1/2 before:h-5 before:w-0.75 before:-translate-y-1/2 before:rounded-full before:transition-colors",
+          isActive
+            ? "bg-sidebar-primary/10 text-primary font-semibold before:bg-primary"
+            : "text-sidebar-foreground/80 before:bg-transparent hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+        )}
+      >
+        <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1", tool.accent)}>
+          <Icon className="h-4 w-4" />
+        </span>
+        <span className="min-w-0 flex-1 truncate">{tool.name}</span>
+      </Link>
 
-const PLACEHOLDER_TOOLS: ToolItem[] = [
-  {
-    id: "item-list",
-    name: "Items",
-    icon: List,
-    description: "Catalogs and inventory",
-    accent: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-    iconTone: "ring-emerald-500/15 text-emerald-700 dark:text-emerald-300",
-    activeBar: "bg-emerald-500",
-  },
-  {
-    id: "conversion",
-    name: "Conversion",
-    icon: ArrowLeftRight,
-    description: "Transform quantities",
-    accent: "bg-sky-500/10 text-sky-700 dark:text-sky-300",
-    iconTone: "ring-sky-500/15 text-sky-700 dark:text-sky-300",
-    activeBar: "bg-sky-500",
-  },
-  {
-    id: "menu",
-    name: "Menu",
-    icon: ClipboardList,
-    description: "Customer-facing menu layouts",
-    accent: "bg-rose-500/10 text-rose-700 dark:text-rose-300",
-    iconTone: "ring-rose-500/15 text-rose-700 dark:text-rose-300",
-    activeBar: "bg-rose-500",
-  },
-  {
-    id: "roster",
-    name: "Roster",
-    icon: Users,
-    description: "Team schedules and shifts",
-    accent: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-    iconTone: "ring-amber-500/15 text-amber-700 dark:text-amber-300",
-    activeBar: "bg-amber-500",
-  },
-  {
-    id: "calculator",
-    name: "Calculator",
-    icon: Calculator,
-    description: "Quick arithmetic calculations",
-    accent: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
-    iconTone: "ring-indigo-500/15 text-indigo-700 dark:text-indigo-300",
-    activeBar: "bg-indigo-500",
-  },
-  {
-    id: "scan-to-task",
-    name: "Scan to Task",
-    icon: FileScan,
-    description: "Pictures and PDFs into tasks",
-    accent: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
-    iconTone: "ring-cyan-500/15 text-cyan-700 dark:text-cyan-300",
-    activeBar: "bg-cyan-500",
-  },
-];
+      <button
+        type="button"
+        onClick={onToggleFavorite}
+        className={cn(
+          "absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full p-1 transition-all duration-200",
+          isFavorite
+            ? "text-amber-500 hover:bg-amber-500/10"
+            : cn(
+                "text-sidebar-foreground/30 hover:bg-amber-500/5 hover:text-amber-500",
+                supportsHover ? "opacity-0 group-hover:opacity-100" : "opacity-100",
+              ),
+        )}
+        aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+      >
+        <Star className={cn("h-3.5 w-3.5", isFavorite && "fill-current")} />
+      </button>
+    </div>
+  );
+}
+
+function GroupLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mb-1 px-3 pt-3 text-xs font-medium uppercase tracking-wider text-sidebar-foreground/50">
+      {children}
+    </p>
+  );
+}
 
 export function ToolsSidebarContent({ orgId }: { orgId: string }) {
   const pathname = usePathname();
@@ -93,31 +97,40 @@ export function ToolsSidebarContent({ orgId }: { orgId: string }) {
     `toolhub-favorites-${orgId}`,
     [],
   );
+  const supportsHover = useSupportsHover();
 
-  function filterContent() {
-    return PLACEHOLDER_TOOLS.filter((t) => t.name.toLowerCase().includes(search.toLowerCase()));
-  }
+  const query = search.trim().toLowerCase();
+  const filtered = useMemo(
+    () => TOOLS_CATALOG.filter((tool) => tool.name.toLowerCase().includes(query)),
+    [query],
+  );
+  const isSearching = query.length > 0;
+  const favoriteTools = hydrated ? filtered.filter((tool) => favoriteIds.includes(tool.id)) : [];
+  const remainingTools = hydrated ? filtered.filter((tool) => !favoriteIds.includes(tool.id)) : filtered;
 
-  const sortedTools = [...filterContent()].sort((a, b) => {
-    const aFavorite = favoriteIds.includes(a.id);
-    const bFavorite = favoriteIds.includes(b.id);
+  const toggleFavorite = (toolId: string) => {
+    setFavoriteIds((prev) =>
+      prev.includes(toolId) ? prev.filter((id) => id !== toolId) : [...prev, toolId],
+    );
+  };
 
-    return Number(bFavorite) - Number(aFavorite);
-  });
-
-    const toggleFavorite = (toolId: string) => {
-    setFavoriteIds((prev) => {
-      const isFav = prev.includes(toolId);
-      if (isFav) {
-        return prev.filter((id) => id !== toolId);
-      } else {
-        return [...prev, toolId];
-      }
-    });
+  const renderRow = (tool: ToolCatalogItem) => {
+    const href = `/orgs/${orgId}/tools/${tool.id}`;
+    return (
+      <ToolRow
+        key={tool.id}
+        tool={tool}
+        orgId={orgId}
+        isActive={pathname === href}
+        isFavorite={hydrated && favoriteIds.includes(tool.id)}
+        onToggleFavorite={() => toggleFavorite(tool.id)}
+        supportsHover={supportsHover}
+      />
+    );
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden">
       <div className="shrink-0 border-b border-border px-3 py-2.5">
         <SearchInput
           placeholder="Search tools…"
@@ -126,79 +139,22 @@ export function ToolsSidebarContent({ orgId }: { orgId: string }) {
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto px-2 py-2">
-        {sortedTools.length === 0 ? (
-          <p className="px-4 py-4 text-xs text-muted-foreground">
-            No tools found.
-          </p>
+      <div className="flex-1 overflow-y-auto pb-2">
+        {filtered.length === 0 ? (
+          <p className="px-4 py-4 text-xs text-muted-foreground">No tools found.</p>
         ) : (
-          sortedTools.map((tool) => {
-            const href = `/orgs/${orgId}/tools/${tool.id}`;
-            const isActive = pathname === href;
-            const isFavorite = hydrated && favoriteIds.includes(tool.id);
-            const Icon = tool.icon;
-            return (
-              <div
-                key={tool.id}
-                className={cn(
-                  "group relative mx-2 my-1 flex items-center gap-3 overflow-hidden rounded-2xl border px-3 py-3 text-[13px] transition-all duration-150",
-                  isActive
-                    ? "border-sidebar-border/70 bg-sidebar-primary/10 shadow-sm"
-                    : "border-border bg-card/70 hover:border-primary/25 hover:bg-card hover:shadow-sm",
-                )}
-              >
-                <span
-                  className={cn(
-                    "absolute left-0 top-0 h-full w-1.5 rounded-r-full transition-opacity",
-                    isActive ? tool.activeBar : "bg-transparent opacity-0 group-hover:opacity-100",
-                  )}
-                />
-
-                <Link
-                  href={href}
-                  aria-current={isActive ? "page" : undefined}
-                  className="group/link flex min-w-0 flex-1 items-center gap-3"
-                >
-                  <span
-                    className={cn(
-                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ring-1 transition-all duration-150",
-                      tool.accent,
-                      isActive
-                        ? `${tool.iconTone} shadow-sm`
-                        : `${tool.iconTone} bg-background/70 shadow-sm group-hover:-translate-y-0.5`,
-                    )}
-                  >
-                    <Icon className="h-4.5 w-4.5" />
-                  </span>
-
-                  <span className="min-w-0 flex-1 truncate font-medium text-sidebar-foreground">
-                    {tool.name}
-                  </span>
-                </Link>
-
-                <button
-                  type="button"
-                  onClick={() => toggleFavorite(tool.id)}
-                  className={cn(
-                    "z-10 rounded-full p-1.5 transition-all duration-200",
-                    isFavorite
-                      ? "text-amber-500 bg-amber-500/5 hover:bg-amber-500/10"
-                      : "text-muted-foreground/40 opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:none)]:opacity-100 hover:text-amber-500 hover:bg-amber-500/5",
-                  )}
-                  aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                >
-                  <Star className={cn("h-4 w-4", isFavorite && "fill-current")} />
-                </button>
-
-                <span
-                  className={cn(
-                    "h-2.5 w-2.5 shrink-0 rounded-full transition-colors",
-                    isActive ? tool.activeBar : "bg-muted-foreground/20 group-hover:bg-muted-foreground/35",
-                  )}
-                />
+          <>
+            {favoriteTools.length > 0 && !isSearching && (
+              <div>
+                <GroupLabel>Favorites</GroupLabel>
+                {favoriteTools.map(renderRow)}
               </div>
-            );
-          })
+            )}
+            <div>
+              <GroupLabel>{favoriteTools.length > 0 && !isSearching ? "All tools" : "Tools"}</GroupLabel>
+              {(isSearching ? filtered : remainingTools).map(renderRow)}
+            </div>
+          </>
         )}
       </div>
     </div>

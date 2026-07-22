@@ -26,10 +26,10 @@ export function RecentOrgBanner({ orgs }: { orgs: Org[] }) {
   return (
     <Link
       href={`/orgs/${org.id}`}
-      className="group mb-6 flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-card px-4 py-3.5 shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+      className="group mb-5 flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5 transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
     >
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary ring-1 ring-primary/15">
           <ArrowRight className="h-4 w-4 rotate-180" />
         </div>
         <div className="flex min-w-0 flex-col gap-0.5">

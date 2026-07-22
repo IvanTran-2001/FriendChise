@@ -114,10 +114,10 @@ export function SimpleView({
 
   if (visibleInstances.length === 0) {
     return (
-      <div className="flex items-center justify-center rounded-xl border border-dashed bg-muted/20 py-16">
+      <div className="flex items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20 py-16">
         <div className="flex flex-col items-center gap-3 text-center">
           <CalendarDays className="h-10 w-10 text-muted-foreground/40" />
-          <p className="text-xl font-semibold text-foreground">
+          <p className="text-lg font-semibold text-foreground">
             {span === "day" ? "No tasks today" : "No tasks this week"}
           </p>
         </div>
@@ -141,12 +141,12 @@ export function SimpleView({
           return (
             <div
               key={dayStr}
-              className={`rounded-xl border shadow-sm overflow-hidden ${
+              className={`rounded-2xl border overflow-hidden ${
                 highlightedDay === dayStr && actionSidebar.activeTitle != null
                   ? "border-primary/40 bg-primary/8 ring-2 ring-primary/40"
                   : today
                   ? "border-primary/40 bg-card ring-1 ring-primary/20"
-                  : "bg-card"
+                  : "border-border/60 bg-card"
               }`}
               onDragOver={(e) => {
                 if (!canManage) return;

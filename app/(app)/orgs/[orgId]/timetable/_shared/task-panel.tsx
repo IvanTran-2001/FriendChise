@@ -282,7 +282,7 @@ export function TaskPanel({
       )}
       <div ref={listRootRef} className="flex flex-col overflow-y-auto flex-1">
         {showInitialLoading && (
-          <div className="mx-3 mt-3 rounded-xl border border-dashed border-border/70 bg-muted/20 px-3 py-6 text-center text-muted-foreground">
+          <div className="mx-3 mt-3 rounded-xl border border-dashed border-border bg-muted/20 px-3 py-6 text-center text-muted-foreground">
             <p className="text-xs">Loading tasks…</p>
           </div>
         )}

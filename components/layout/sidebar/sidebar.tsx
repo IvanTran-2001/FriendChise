@@ -59,7 +59,7 @@ export function MobileSidebarTrigger() {
       data-tour-target="sidebar-toggle"
       aria-label={open ? "Close menu" : "Open menu"}
       aria-expanded={open}
-      className="md:hidden flex items-center justify-center h-9 w-9 rounded-full border border-border/70 bg-background/85 text-foreground/70 shadow-sm transition-colors duration-150 hover:border-border hover:bg-muted/60 hover:text-foreground"
+      className="md:hidden flex items-center justify-center h-9 w-9 rounded-full border border-border/60 bg-background/85 text-foreground/70 transition-colors duration-150 hover:border-border hover:bg-muted/60 hover:text-foreground"
     >
       <Menu className="h-5 w-5" />
     </button>

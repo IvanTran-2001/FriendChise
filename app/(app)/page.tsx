@@ -4,7 +4,15 @@ import Image from "next/image";
 import { getAuthUserId } from "@/lib/authz";
 import { prisma } from "@/lib/platform/prisma";
 import { getPublicUrl } from "@/lib/platform/supabase-storage";
-import { Building2, Plus, Network, Users, Globe, ChevronRight } from "lucide-react";
+import {
+  Building2,
+  Plus,
+  Network,
+  Users,
+  Globe,
+  ChevronRight,
+  LayoutDashboard,
+} from "lucide-react";
 import { orgColor } from "@/lib/core/org-color";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/core/utils";
@@ -14,6 +22,30 @@ import { HubInviteSection } from "./hub-invite-section";
 import { getPaginatedInvitesForUser } from "@/lib/services/invites";
 import { MarketingHome } from "@/components/marketing/marketing-home";
 
+// ─── Shared "calm" hub primitives ──────────────────────────────────────────────
+// Mirrors the section-header + stat-tile language established on the org home
+// page and the Tool Hub redesign: rounded-2xl card shell, uppercase tracked
+// eyebrow labels, no baseline shadow (hover-only lift).
+
+function StatTile({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <div className="rounded-2xl border border-border/60 bg-background px-2.5 py-2.5 sm:px-4 sm:py-3">
+      <div className="truncate text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px] sm:tracking-[0.16em]">
+        {label}
+      </div>
+      <div className="mt-1 text-lg font-semibold tabular-nums sm:text-2xl">
+        {value}
+      </div>
+    </div>
+  );
+}
+
 // ─── Org card ─────────────────────────────────────────────────────────────────
 
 function OrgInitials({ name, color }: { name: string; color: string }) {
@@ -22,7 +54,7 @@ function OrgInitials({ name, color }: { name: string; color: string }) {
     words.length >= 2 ? words[0][0] + words[1][0] : name.slice(0, 2);
   return (
     <div
-      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold uppercase shadow-sm ring-1 ring-white/70"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold uppercase ring-1 ring-border/60"
       style={{ backgroundColor: color + "25", color }}
     >
       {initials}
@@ -55,8 +87,8 @@ function OrgCard({ org }: { org: OrgEntry }) {
       href={`/orgs/${org.id}`}
       data-tour-target={`org-card-${tourSlug}`}
       className={cn(
-        "group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-all duration-150",
-        "hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg",
+        "group flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card transition-all duration-150",
+        "hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md",
       )}
     >
       {/* Color accent bar */}
@@ -70,7 +102,7 @@ function OrgCard({ org }: { org: OrgEntry }) {
               alt={org.name}
               width={44}
               height={44}
-              className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-border/70"
+              className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-border/60"
             />
           ) : (
             <OrgInitials name={org.name} color={color} />
@@ -123,7 +155,7 @@ function NewOrgTile() {
     <Link
       href="/orgs/new"
       className={cn(
-        "group flex min-h-30 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-5 transition-all duration-150",
+        "group flex min-h-30 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed p-5 transition-all duration-150",
         "border-border hover:border-primary/40 hover:bg-primary/5 text-muted-foreground hover:text-primary",
       )}
     >
@@ -154,7 +186,7 @@ function EmptyActionCard({
     <Link
       href={href}
       className={cn(
-        "group flex flex-col items-center text-center gap-4 rounded-xl border-2 border-dashed p-10 transition-all duration-150",
+        "group flex flex-col items-center text-center gap-4 rounded-2xl border border-dashed p-10 transition-all duration-150",
         primary
           ? "border-primary/30 hover:border-primary hover:bg-primary/5"
           : "border-border hover:border-muted-foreground/40 hover:bg-muted/40",
@@ -162,10 +194,10 @@ function EmptyActionCard({
     >
       <div
         className={cn(
-          "w-12 h-12 rounded-xl flex items-center justify-center",
+          "w-12 h-12 rounded-2xl ring-1 flex items-center justify-center",
           primary
-            ? "bg-primary/10 text-primary"
-            : "bg-muted text-muted-foreground",
+            ? "bg-primary/10 text-primary ring-primary/15"
+            : "bg-muted text-muted-foreground ring-border/60",
         )}
       >
         <Icon className="h-6 w-6" />
@@ -223,50 +255,58 @@ export default async function HubPage({
     isParent: !m.organization.parentId && m.organization.ownerId === userId,
   }));
 
+  const ownerCount = orgs.filter((o) => o.isOwner).length;
+
   return (
-    <div className="mx-auto w-full max-w-4xl px-3 sm:px-0">
+    <div className="mx-auto w-full max-w-5xl px-3 sm:px-0">
       {orgNotFound && (
         <Suspense>
           <OrgNotFoundToast />
         </Suspense>
       )}
 
-      {/* Header */}
-      <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-semibold tracking-tight">
+      {/* Hero */}
+      <section className="mb-5 rounded-2xl border border-border/60 bg-card px-4 py-4 sm:px-6 sm:py-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              <LayoutDashboard className="h-3.5 w-3.5" />
+              Hub
+            </p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-[1.75rem]">
               Organizations
             </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+              {orgs.length === 0
+                ? "You're not part of any organization yet — create one or join a franchise to get started."
+                : `Every location you're part of, in one place. Jump back into your last one or open a new one below.`}
+            </p>
             {orgs.length > 0 && (
-              <span className="inline-flex items-center rounded-full bg-muted text-muted-foreground px-2.5 py-0.5 text-xs font-medium">
-                {orgs.length}
-              </span>
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/orgs/join">
+                    <Network className="h-4 w-4" />
+                    Join Franchise
+                  </Link>
+                </Button>
+                <Button size="sm" asChild>
+                  <Link href="/orgs/new">
+                    <Plus className="h-4 w-4" />
+                    New Org
+                  </Link>
+                </Button>
+              </div>
             )}
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            {orgs.length === 0
-              ? "You're not part of any organization yet."
-              : `You're a member of ${orgs.length} organization${orgs.length !== 1 ? "s" : ""}.`}
-          </p>
+          {orgs.length > 0 && (
+            <div className="grid grid-cols-3 gap-2 lg:w-105 lg:grid-cols-3">
+              <StatTile label="Organizations" value={orgs.length} />
+              <StatTile label="Owner of" value={ownerCount} />
+              <StatTile label="Invites" value={pendingInvites.length} />
+            </div>
+          )}
         </div>
-        {orgs.length > 0 && (
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/orgs/join">
-                <Network className="h-4 w-4" />
-                Join Franchise
-              </Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link href="/orgs/new">
-                <Plus className="h-4 w-4" />
-                New Org
-              </Link>
-            </Button>
-          </div>
-        )}
-      </div>
+      </section>
 
       {/* Pending invitations */}
       <HubInviteSection invites={pendingInvites} />

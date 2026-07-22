@@ -34,7 +34,7 @@ export function TaskListView({
 
   return (
     <>
-      <ul className="md:hidden flex flex-col divide-y rounded-2xl border border-border/70 bg-card overflow-hidden shadow-sm touch-manipulation">
+      <ul className="md:hidden flex flex-col divide-y rounded-2xl border border-border/60 bg-card overflow-hidden touch-manipulation">
         {tasks.map((task) => (
           <li
             key={task.id}
@@ -168,7 +168,7 @@ export function TaskListView({
         ))}
       </ul>
 
-      <ul className="hidden flex-col divide-y rounded-2xl border border-border/70 bg-card overflow-hidden shadow-sm md:flex">
+      <ul className="hidden flex-col divide-y rounded-2xl border border-border/60 bg-card overflow-hidden md:flex">
         {tasks.map((task) => (
           <li
             key={task.id}

@@ -111,16 +111,23 @@ export function SidebarNavItem({
   const dynamicHref = useRememberedNavHref({ url, isActive, pathname, disabled });
 
   const appActive =
-    "bg-sidebar-primary/10 text-primary font-semibold before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:rounded-r-full before:bg-primary";
+    "text-primary font-semibold before:absolute before:left-0 before:top-2.5 before:bottom-2.5 before:w-[3px] before:rounded-r-full before:bg-primary";
   const pageActive =
     "bg-sidebar-primary/10 text-primary font-semibold before:absolute before:left-2.5 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-primary";
 
 
   if (variant === "app") {
     const base =
-      "relative flex items-center h-12 w-full overflow-hidden rounded-none transition-colors duration-150";
+      "relative flex items-center justify-center h-12 w-full overflow-hidden rounded-none transition-colors duration-150";
     const inner = (
-      <span className="mx-auto flex w-10 flex-col items-center justify-center gap-0.5 rounded-md py-1.5 transition-colors duration-150">
+      <span
+        className={cn(
+          "flex w-10 flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 transition-colors duration-150",
+          isActive
+            ? "bg-primary/12 ring-1 ring-primary/15"
+            : "group-hover:bg-sidebar-accent/70",
+        )}
+      >
         <Icon className="h-4.5 w-4.5" />
         <span className="w-full px-0.5 text-center text-[7px] leading-none uppercase tracking-[0.08em] opacity-60">
           {title}
@@ -153,7 +160,7 @@ export function SidebarNavItem({
           "group",
           isActive
             ? appActive
-            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+            : "text-sidebar-foreground/70 hover:text-sidebar-foreground",
         )}
         aria-current={isActive ? "page" : undefined}
       >

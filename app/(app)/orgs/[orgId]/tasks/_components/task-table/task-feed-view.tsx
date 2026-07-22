@@ -69,7 +69,7 @@ function FeedComment({
   isPinned: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-border/70 bg-background/70 px-3 py-2.5 shadow-[0_1px_0_rgba(0,0,0,0.02)]">
+    <div className="rounded-xl border border-border/60 bg-background/70 px-3 py-2.5">
       <div className="flex items-start gap-2.5">
         <Avatar name={comment.authorName} image={comment.authorImage} />
         <div className="min-w-0 flex-1">
@@ -106,7 +106,7 @@ function TaskFeedCard({
 
   return (
     <article
-      className="overflow-hidden rounded-[28px] border border-border/60 bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+      className="overflow-hidden rounded-[28px] border border-border/60 bg-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
       data-tour-target={task.name.toLowerCase().includes("fry morning batches") ? "task-fry-morning-batches" : undefined}
     >
       <Link href={`/orgs/${orgId}/tasks/${task.id}`} className="block w-full text-left">
@@ -244,7 +244,7 @@ export function TaskFeedSkeleton({ count = 8 }: { count?: number }) {
   return (
     <div className="mx-auto flex w-full max-w-107.5 flex-col gap-3">
       {Array.from({ length: count }).map((_, index) => (
-        <div key={index} className="overflow-hidden rounded-[28px] border border-border/60 bg-card shadow-sm">
+        <div key={index} className="overflow-hidden rounded-[28px] border border-border/60 bg-card">
           <Skeleton className="h-36 w-full rounded-none" />
           <div className="px-3.5 pt-3.5">
             <div className="flex items-center justify-between gap-3">

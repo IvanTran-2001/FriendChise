@@ -1,69 +1,31 @@
 /**
  * ToolsClient — landing page content for `/orgs/[orgId]/tools`.
  *
- * Two sections (recent first):
- *   1. **Recent** — last 5 ConversionSets by `updatedAt`, with a "View all" link.
- *      Hidden when the org has no sets yet.
- *   2. **Tools** — shortcut cards for each tool (Item List, Conversion, Roster)
- *      linking to their respective sub-pages.
+ * Visual language matches the org home page (`app/(app)/orgs/[orgId]/page.tsx`):
+ * calm `rounded-2xl border border-border/60 bg-card` section shells (no
+ * baseline shadow), `rounded-xl border-border/60 bg-background` row items
+ * for recent-activity lists, and `ring-1` icon wells for per-module color
+ * identity. Module launch cards get a slightly stronger treatment (hover
+ * lift + shadow) since they're the page's primary actions.
  *
- * `TOOLS` is a static list mirroring `PLACEHOLDER_TOOLS` in `tools-sidebar-content.tsx`.
- * Both should be updated together when new tools are added.
+ * Sections (recent first):
+ *   1. **Recent work** — last activity across recent-activity-tracked
+ *      categories, plus a Roster shortcut when the org has roster activity.
+ *   2. **Favorites** — user-pinned tools (persisted per-org via localStorage).
+ *   3. **All tools** — every tool in `TOOLS_CATALOG`.
+ *
+ * Tool metadata (icon/description/accent color) lives in `tools-catalog.ts`,
+ * shared with `ToolsSidebarContent` so the grid and sidebar always agree.
  */
 "use client";
 
 import Link from "next/link";
-import { ArrowLeftRight, ArrowRight, LayoutList, List, Users, Calculator, Star, ClipboardList, FileScan } from "lucide-react";
+import type { ComponentType } from "react";
+import { ArrowLeftRight, ArrowRight, Clock, LayoutGrid, LayoutList, Star, Users } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import { useSupportsHover } from "@/hooks/use-hover-capability";
-
-const TOOLS = [
-  {
-    id: "item-list",
-    name: "Items",
-    icon: List,
-    description: "Manage your ingredient and product catalog",
-    accent: "bg-emerald-500/10 text-emerald-700 ring-emerald-500/15 dark:text-emerald-300",
-  },
-  {
-    id: "conversion",
-    name: "Conversion",
-    icon: ArrowLeftRight,
-    description: "Convert quantities between items",
-    accent: "bg-sky-500/10 text-sky-700 ring-sky-500/15 dark:text-sky-300",
-  },
-  {
-    id: "menu",
-    name: "Menu",
-    icon: ClipboardList,
-    description: "Build customer-facing menus",
-    accent: "bg-rose-500/10 text-rose-700 ring-rose-500/15 dark:text-rose-300",
-  },
-  {
-    id: "roster",
-    name: "Roster",
-    icon: Users,
-    description: "Manage team rosters and schedules",
-    accent: "bg-amber-500/10 text-amber-700 ring-amber-500/15 dark:text-amber-300",
-  },
-  {
-    id: "calculator",
-    name: "Calculator",
-    icon: Calculator,
-    description: "Quick arithmetic calculations",
-    accent: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
-    topBar: "bg-indigo-500/70",
-  },
-  {
-    id: "scan-to-task",
-    name: "Scan to Task",
-    icon: FileScan,
-    description: "Convert files into task items",
-    accent: "bg-cyan-500/10 text-cyan-700 ring-cyan-500/15 dark:text-cyan-300",
-    topBar: "bg-cyan-500/70",
-  },
-];
+import { TOOLS_CATALOG, type ToolCatalogItem } from "./_components/tools-catalog";
 
 interface RecentSet {
   id: string;
@@ -79,314 +41,272 @@ interface ToolsClientProps {
   hasRoster: boolean;
 }
 
-export function ToolsClient({
+type RecentItem = {
+  key: string;
+  href: string;
+  icon: ComponentType<{ className?: string }>;
+  tone: string;
+  eyebrow: string;
+  title: string;
+  meta?: string;
+};
+
+const RECENT_SET_TONES = [
+  "bg-sky-500/10 text-sky-700 ring-sky-500/15 dark:text-sky-300",
+  "bg-emerald-500/10 text-emerald-700 ring-emerald-500/15 dark:text-emerald-300",
+  "bg-violet-500/10 text-violet-700 ring-violet-500/15 dark:text-violet-300",
+];
+
+function SectionHeader({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="px-1">
+      <div className="flex items-center gap-2">
+        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+        <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{title}</h2>
+      </div>
+      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+    </div>
+  );
+}
+
+function ToolCard({
+  tool,
   orgId,
-  recentSets,
-  hasRoster,
-}: ToolsClientProps) {
+  isFavorite,
+  onToggleFavorite,
+  supportsHover,
+}: {
+  tool: ToolCatalogItem;
+  orgId: string;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+  supportsHover: boolean;
+}) {
+  const Icon = tool.icon;
+  return (
+    <Link
+      href={`/orgs/${orgId}/tools/${tool.id}`}
+      className="group relative flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+    >
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onToggleFavorite();
+        }}
+        className={cn(
+          "absolute right-3 top-3 z-10 rounded-full p-1.5 transition-all duration-200",
+          isFavorite
+            ? "bg-amber-500/10 text-amber-500 hover:bg-amber-500/15"
+            : cn(
+                "text-muted-foreground/40 hover:bg-amber-500/5 hover:text-amber-500",
+                supportsHover ? "opacity-0 group-hover:opacity-100" : "opacity-100",
+              ),
+        )}
+        aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+      >
+        <Star className={cn("h-4 w-4", isFavorite && "fill-current")} />
+      </button>
+
+      <div className={cn("flex h-11 w-11 items-center justify-center rounded-2xl ring-1", tool.accent)}>
+        <Icon className="h-5 w-5" />
+      </div>
+
+      <div className="flex flex-1 flex-col gap-1">
+        <span className="text-sm font-semibold text-foreground">{tool.name}</span>
+        <span className="text-sm leading-6 text-muted-foreground">{tool.description}</span>
+      </div>
+
+      <div className="mt-auto flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <span>Open module</span>
+        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+      </div>
+    </Link>
+  );
+}
+
+export function ToolsClient({ orgId, recentSets, hasRoster }: ToolsClientProps) {
   const recent = recentSets.slice(0, 5);
   const showRecent = recent.length > 0 || hasRoster;
-  const totalTools = TOOLS.length;
+  const totalTools = TOOLS_CATALOG.length;
   const totalRecent = recent.length;
 
   const [favoriteIds, setFavoriteIds, hydrated] = usePersistedState<string[]>(
     `toolhub-favorites-${orgId}`,
     [],
   );
-
-  const favoriteTools = hydrated ? TOOLS.filter((tool) => favoriteIds.includes(tool.id)) : [];
+  const favoriteTools = hydrated ? TOOLS_CATALOG.filter((tool) => favoriteIds.includes(tool.id)) : [];
   const supportsHover = useSupportsHover();
 
   const toggleFavorite = (toolId: string) => {
-    setFavoriteIds((prev) => {
-      const isFav = prev.includes(toolId);
-      if (isFav) {
-        return prev.filter((id) => id !== toolId);
-      } else {
-        return [...prev, toolId];
-      }
-    });
+    setFavoriteIds((prev) =>
+      prev.includes(toolId) ? prev.filter((id) => id !== toolId) : [...prev, toolId],
+    );
   };
 
+  const recentItems: RecentItem[] = [];
+  if (hasRoster) {
+    recentItems.push({
+      key: "roster",
+      href: `/orgs/${orgId}/tools/roster`,
+      icon: Users,
+      tone: "bg-amber-500/10 text-amber-700 ring-amber-500/15 dark:text-amber-300",
+      eyebrow: "Activity",
+      title: "Roster",
+    });
+  }
+  recent.forEach((set, index) => {
+    const isItemList = set.category === "item-lists";
+    recentItems.push({
+      key: `${set.category}:${set.id}`,
+      href: set.href,
+      icon: isItemList ? LayoutList : ArrowLeftRight,
+      tone: isItemList
+        ? "bg-emerald-500/10 text-emerald-700 ring-emerald-500/15 dark:text-emerald-300"
+        : RECENT_SET_TONES[index % RECENT_SET_TONES.length],
+      eyebrow: isItemList ? "Recent list" : "Recent set",
+      title: set.name,
+      meta: new Date(set.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    });
+  });
+
   return (
-    <>
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-4 sm:px-6 sm:py-6">
-        <section className="rounded-3xl border border-border bg-card p-4 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:mt-3 sm:text-4xl">
-                Tooling that feels organized, not crowded.
-              </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:mt-3 sm:text-base">
-                Jump into recent work, open a module, or check roster activity without
-                losing the thread.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 lg:w-105 lg:grid-cols-3">
-              <div className="rounded-2xl border border-border bg-background px-2.5 py-2.5 shadow-sm sm:px-4 sm:py-3">
-                <div className="truncate text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px] sm:tracking-[0.16em]">
-                  Tools
-                </div>
-                <div className="mt-1 text-lg font-semibold tabular-nums sm:text-2xl">{totalTools}</div>
-              </div>
-              <div className="rounded-2xl border border-border bg-background px-2.5 py-2.5 shadow-sm sm:px-4 sm:py-3">
-                <div className="truncate text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px] sm:tracking-[0.16em]">
-                  Recent activity
-                </div>
-                <div className="mt-1 text-lg font-semibold tabular-nums sm:text-2xl">{totalRecent}</div>
-              </div>
-              <div className="rounded-2xl border border-border bg-background px-2.5 py-2.5 shadow-sm sm:px-4 sm:py-3">
-                <div className="truncate text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px] sm:tracking-[0.16em]">
-                  Roster
-                </div>
-                <div className="mt-1 text-lg font-semibold tabular-nums sm:text-2xl">
-                  {hasRoster ? "On" : "Off"}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {showRecent && (
-          <section className="flex flex-col gap-3">
-            <div className="flex items-end justify-between gap-3 px-1">
-              <div>
-                <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Recent work
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Fast access to the most recent work across the tools area.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-3 lg:grid-cols-[1fr_1.2fr]">
-              {hasRoster && (
-                <Link
-                  href={`/orgs/${orgId}/tools/roster`}
-                  className="group relative overflow-hidden rounded-3xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
-                >
-                  <div className="absolute inset-x-0 top-0 h-1 bg-amber-500/70" />
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-700 ring-1 ring-amber-500/15 dark:text-amber-300">
-                      <Users className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                            Activity
-                          </p>
-                          <h3 className="mt-1 text-base font-semibold sm:text-lg">Roster</h3>
-                        </div>
-                        <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-                      </div>
-                      <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                        Manage team rosters, schedules, and activity in a dedicated workspace.
-                      </p>
-                    </div>
-                  </div>
-                </Link>
-              )}
-
-              <div className="grid gap-3">
-                {recent.length > 0 ? (
-                  recent.map((set, index) => (
-                    <Link
-                      key={`${set.category}:${set.id}`}
-                      href={set.href}
-                      className="group relative overflow-hidden rounded-3xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
-                    >
-                      <div
-                        className={`absolute inset-x-0 top-0 h-1 ${
-                          index === 0
-                            ? "bg-sky-500/70"
-                            : index === 1
-                              ? "bg-emerald-500/70"
-                              : "bg-violet-500/70"
-                        }`}
-                      />
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                        <div
-                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ring-1 ${
-                            set.category === "item-lists"
-                              ? "bg-emerald-500/10 text-emerald-700 ring-emerald-500/15 dark:text-emerald-300"
-                              : index === 0
-                              ? "bg-sky-500/10 text-sky-700 ring-sky-500/15 dark:text-sky-300"
-                              : index === 1
-                                ? "bg-emerald-500/10 text-emerald-700 ring-emerald-500/15 dark:text-emerald-300"
-                                : "bg-violet-500/10 text-violet-700 ring-violet-500/15 dark:text-violet-300"
-                          }`}
-                        >
-                          {set.category === "item-lists" ? (
-                            <LayoutList className="h-5 w-5" />
-                          ) : (
-                            <ArrowLeftRight className="h-5 w-5" />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                                {set.category === "item-lists" ? "Recent list" : "Recent set"}
-                              </p>
-                              <h3 className="mt-1 truncate text-sm font-semibold sm:text-base">
-                                {set.name}
-                              </h3>
-                            </div>
-                            <span className="shrink-0 rounded-full border border-border bg-background/80 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                              {new Date(set.updatedAt).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                              })}
-                            </span>
-                          </div>
-                          <div className="mt-2 inline-flex rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                            {set.category === "item-lists" ? "Item List" : "Conversion"}
-                          </div>
-                        </div>
-                        <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-                      </div>
-                    </Link>
-                  ))
-                ) : null}
-              </div>
-            </div>
-          </section>
-        )}
-
-        <section className="flex flex-col gap-3">
-          <div className="px-1">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Favorites
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Your pinned tools for quick access.
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-4 sm:px-6 sm:py-6">
+      <section className="rounded-2xl border border-border/60 bg-card px-4 py-4 sm:px-6 sm:py-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Tool Hub</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-[1.75rem]">
+              Tooling that feels organized, not crowded.
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+              Jump into recent work, open a module, or check roster activity without
+              losing the thread.
             </p>
           </div>
 
-          {favoriteTools.length > 0 ? (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {favoriteTools.map((tool) => {
-                const Icon = tool.icon;
-                return (
-                  <Link
-                    key={`fav-${tool.id}`}
-                    href={`/orgs/${orgId}/tools/${tool.id}`}
-                    className="group relative overflow-hidden rounded-3xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
-                  >
-                    <div className={`absolute inset-x-0 top-0 h-1 ${tool.topBar ?? "bg-indigo-500/70"}`} />
-
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        toggleFavorite(tool.id);
-                      }}
-                      className="absolute right-4 top-4 z-10 rounded-full p-1.5 text-amber-500 bg-amber-500/5 hover:bg-amber-500/10 transition-all duration-200"
-                      aria-label="Remove from favorites"
-                    >
-                      <Star className="h-4 w-4 fill-current" />
-                    </button>
-
-                    <div className="flex h-full flex-col gap-4">
-                      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ring-1 ${tool.accent}`}>
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <div className="flex flex-1 flex-col gap-2">
-                        <div>
-                          <span className="text-sm font-semibold">{tool.name}</span>
-                          <span className="block mt-1 text-sm leading-6 text-muted-foreground">
-                            {tool.description}
-                          </span>
-                        </div>
-                        <div className="mt-auto flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                          <span>Open module</span>
-                          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
+          <div className="grid grid-cols-3 gap-2 lg:w-105 lg:grid-cols-3">
+            <div className="rounded-2xl border border-border/60 bg-background px-2.5 py-2.5 sm:px-4 sm:py-3">
+              <div className="truncate text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px] sm:tracking-[0.16em]">
+                Tools
+              </div>
+              <div className="mt-1 text-lg font-semibold tabular-nums sm:text-2xl">{totalTools}</div>
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-card/50 p-8 text-center shadow-sm">
-              <Star className="h-8 w-8 text-muted-foreground/30 mb-2" />
-              <p className="text-sm font-medium text-muted-foreground">No favorite tools yet</p>
-              <p className="mt-1 text-xs text-muted-foreground/60 max-w-xs">
-                Click the star icon on any tool below to keep it at the top of your workspace.
-              </p>
+            <div className="rounded-2xl border border-border/60 bg-background px-2.5 py-2.5 sm:px-4 sm:py-3">
+              <div className="truncate text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px] sm:tracking-[0.16em]">
+                Recent activity
+              </div>
+              <div className="mt-1 text-lg font-semibold tabular-nums sm:text-2xl">{totalRecent}</div>
             </div>
-          )}
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <div className="px-1">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Tools
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Open a module directly or use the sidebar to stay oriented.
-            </p>
+            <div className="rounded-2xl border border-border/60 bg-background px-2.5 py-2.5 sm:px-4 sm:py-3">
+              <div className="truncate text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:text-[11px] sm:tracking-[0.16em]">
+                Roster
+              </div>
+              <div className="mt-1 text-lg font-semibold tabular-nums sm:text-2xl">
+                {hasRoster ? "On" : "Off"}
+              </div>
+            </div>
           </div>
+        </div>
+      </section>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {TOOLS.map((tool) => {
-              const Icon = tool.icon;
-              const isFavorite = hydrated && favoriteIds.includes(tool.id);
+      {showRecent && (
+        <section className="flex flex-col gap-3">
+          <SectionHeader
+            icon={Clock}
+            title="Recent work"
+            description="Fast access to the most recent work across the tools area."
+          />
+
+          <div className="flex flex-col gap-2">
+            {recentItems.map((item) => {
+              const Icon = item.icon;
               return (
                 <Link
-                  key={tool.id}
-                  href={`/orgs/${orgId}/tools/${tool.id}`}
-                  className="group relative overflow-hidden rounded-3xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
+                  key={item.key}
+                  href={item.href}
+                  className="group flex items-center gap-3 rounded-xl border border-border/60 bg-background p-3 transition-colors hover:border-primary/30"
                 >
-                  <div className={`absolute inset-x-0 top-0 h-1 ${tool.topBar ?? "bg-indigo-500/70"}`} />
-
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      toggleFavorite(tool.id);
-                    }}
-                    className={cn(
-                      "absolute right-4 top-4 z-10 rounded-full p-1.5 transition-all duration-200",
-                      isFavorite
-                        ? "text-amber-500 bg-amber-500/5 hover:bg-amber-500/10"
-                        : cn(
-                            "text-muted-foreground/40 hover:text-amber-500 hover:bg-amber-500/5",
-                            supportsHover ? "opacity-0 group-hover:opacity-100" : "opacity-100",
-                          ),
+                  <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full ring-1", item.tone)}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                      {item.eyebrow}
+                    </p>
+                    <p className="mt-0.5 truncate text-sm font-medium text-foreground">{item.title}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {item.meta && (
+                      <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                        {item.meta}
+                      </span>
                     )}
-                    aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                  >
-                    <Star className={cn("h-4 w-4", isFavorite && "fill-current")} />
-                  </button>
-
-                  <div className="flex h-full flex-col gap-4">
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ring-1 ${tool.accent}`}>
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <div className="flex flex-1 flex-col gap-2">
-                      <div>
-                        <span className="text-sm font-semibold">{tool.name}</span>
-                        <span className="block mt-1 text-sm leading-6 text-muted-foreground">
-                          {tool.description}
-                        </span>
-                      </div>
-                      <div className="mt-auto flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                        <span>Open module</span>
-                        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                      </div>
-                    </div>
+                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                   </div>
                 </Link>
               );
             })}
           </div>
         </section>
-      </div>
-    </>
+      )}
+
+      <section className="flex flex-col gap-3">
+        <SectionHeader icon={Star} title="Favorites" description="Your pinned tools for quick access." />
+
+        {favoriteTools.length > 0 ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {favoriteTools.map((tool) => (
+              <ToolCard
+                key={`fav-${tool.id}`}
+                tool={tool}
+                orgId={orgId}
+                isFavorite
+                onToggleFavorite={() => toggleFavorite(tool.id)}
+                supportsHover={supportsHover}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20 p-8 text-center">
+            <Star className="mb-2 h-8 w-8 text-muted-foreground/30" />
+            <p className="text-sm font-medium text-muted-foreground">No favorite tools yet</p>
+            <p className="mt-1 max-w-xs text-xs text-muted-foreground/60">
+              Click the star icon on any tool below to keep it at the top of your workspace.
+            </p>
+          </div>
+        )}
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <SectionHeader
+          icon={LayoutGrid}
+          title="All tools"
+          description="Open a module directly or use the sidebar to stay oriented."
+        />
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {TOOLS_CATALOG.map((tool) => (
+            <ToolCard
+              key={tool.id}
+              tool={tool}
+              orgId={orgId}
+              isFavorite={hydrated && favoriteIds.includes(tool.id)}
+              onToggleFavorite={() => toggleFavorite(tool.id)}
+              supportsHover={supportsHover}
+            />
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }

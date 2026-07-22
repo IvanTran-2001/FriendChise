@@ -75,7 +75,7 @@ export const NavBar = async () => {
           <Button
             variant="ghost"
             asChild
-            className="hidden md:flex h-9 shrink-0 items-center rounded-full border border-border/70 bg-background/85 px-2 pl-1.25 pr-2.5 text-foreground shadow-sm transition-colors duration-150 hover:border-border hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2"
+            className="hidden md:flex h-9 shrink-0 items-center rounded-full border border-border/60 bg-background/85 px-2 pl-1.25 pr-2.5 text-foreground transition-colors duration-150 hover:border-border hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2"
           >
             <Link
               href="/"
@@ -123,6 +123,10 @@ export const NavBar = async () => {
             unseenCount={unseenNotificationFeed.totalCount}
           />
 
+          {user && (
+            <span className="mx-0.5 hidden h-6 w-px bg-border/60 sm:block" aria-hidden />
+          )}
+
           {/* User avatar — only rendered when a user is signed in */}
           {user && (
             <DropdownMenu>
@@ -132,7 +136,7 @@ export const NavBar = async () => {
                   variant="ghost"
                   size="icon"
                   aria-label="Open user menu"
-                  className="h-9 w-9 rounded-full border border-border/70 bg-background/85 p-0 shadow-sm transition-colors duration-150 hover:border-border hover:bg-muted/60"
+                  className="h-9 w-9 rounded-full border border-border/60 bg-background/85 p-0 transition-colors duration-150 hover:border-border hover:bg-muted/60"
                 >
                   <div className="h-7 w-7 rounded-full bg-primary overflow-hidden flex items-center justify-center">
                     {user.image ? (

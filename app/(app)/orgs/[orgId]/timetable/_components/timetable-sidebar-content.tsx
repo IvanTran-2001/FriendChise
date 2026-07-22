@@ -313,7 +313,7 @@ export function TimetableSidebarContent({
               return (
                 <div
                   key={role.id}
-                  className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs text-foreground shadow-sm max-w-full"
+                  className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs text-foreground max-w-full"
                 >
                   {role.color && (
                     <span
@@ -342,7 +342,7 @@ export function TimetableSidebarContent({
               return (
                 <div
                   key={tag.id}
-                  className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs text-foreground shadow-sm max-w-full"
+                  className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs text-foreground max-w-full"
                 >
                   <span
                     className="h-2 w-2 rounded-full shrink-0"
