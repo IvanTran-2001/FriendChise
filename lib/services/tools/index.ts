@@ -5,3 +5,4 @@
  */
 export * from "./conversion";
 export * from "./menus";
+export * from "./notes";

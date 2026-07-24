@@ -16,7 +16,7 @@
  * Swap for a DB-driven query once a `Tool` model exists in the schema.
  */
 import type { ComponentType } from "react";
-import { ArrowLeftRight, Calculator, ClipboardList, FileScan, List, Users } from "lucide-react";
+import { ArrowLeftRight, Calculator, ClipboardList, FileScan, List, StickyNote, Users } from "lucide-react";
 
 export type ToolCatalogItem = {
   id: string;
@@ -68,5 +68,12 @@ export const TOOLS_CATALOG: ToolCatalogItem[] = [
     icon: FileScan,
     description: "Convert files into task items",
     accent: "bg-cyan-500/10 text-cyan-700 ring-cyan-500/15 dark:text-cyan-300",
+  },
+  {
+    id: "notes",
+    name: "Notes",
+    icon: StickyNote,
+    description: "Shared notebook for quick team reminders",
+    accent: "bg-violet-500/10 text-violet-700 ring-violet-500/15 dark:text-violet-300",
   },
 ];
