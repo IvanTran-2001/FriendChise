@@ -5,7 +5,7 @@
  * getAssignees) which includes cross-org validation not present in the
  * lower-level timetable-entries helpers.
  */
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import {
   createAssignee,
   deleteAssignee,

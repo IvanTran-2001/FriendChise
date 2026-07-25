@@ -36,13 +36,13 @@ import { useState, useTransition, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, LayoutList, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
+} from "@/components/ui/dialogs/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { TaskPanel } from "../_shared/task-panel";
 import { registerDragHandlers, unregisterDragHandlers } from "../_shared/drag-registry";
@@ -75,8 +75,8 @@ interface TimetableClientProps {
   span?: "day" | "week";
   fillHeight?: boolean;
   todayStr: string;
-  roleId?: string | null;
-  tagId?: string | null;
+  roleIds?: string[];
+  tagIds?: string[];
   canManage?: boolean;
   availableTasks?: ClientTask[];
   taskColors: Record<
@@ -100,8 +100,8 @@ export function TimetableClient({
   span = "week",
   fillHeight,
   todayStr,
-  roleId,
-  tagId,
+  roleIds,
+  tagIds,
   canManage = false,
   availableTasks,
   taskColors,
@@ -113,6 +113,7 @@ export function TimetableClient({
   const [isNavPending, startNavTransition] = useTransition();
   const navigate = (href: string) =>
     startNavTransition(() => router.push(href));
+  const shouldFillHeight = mode === "calendar" && fillHeight;
 
   // ── Mobile task panel (works for both calendar and simple view) ──────────
   const isMobile = useIsMobile();
@@ -156,8 +157,8 @@ export function TimetableClient({
 
   const makeHref = (a: string, m: string) => {
     const p = new URLSearchParams({ anchor: a, mode: m, span });
-    if (roleId) p.set("roleId", roleId);
-    if (tagId) p.set("tagId", tagId);
+    if (roleIds && roleIds.length > 0) p.set("roleId", roleIds.join(","));
+    if (tagIds && tagIds.length > 0) p.set("tagId", tagIds.join(","));
     return `/orgs/${orgId}/timetable?${p.toString()}`;
   };
 
@@ -206,7 +207,7 @@ export function TimetableClient({
   }, [prevHref, nextHref, router]);
 
   return (
-    <div className={`flex flex-col${fillHeight ? " flex-1 min-h-0" : ""}`}>
+    <div className={`flex flex-col${shouldFillHeight ? " flex-1 min-h-0" : ""}`}>
       {/* Combined toolbar */}
       <RegisterPageToolbar>
         {/* Row 1 (always): prev / date label / next + Today */}
@@ -257,7 +258,7 @@ export function TimetableClient({
       </RegisterPageToolbar>
 
       <div
-        className={`bg-background rounded-xl transition-opacity duration-150${isNavPending ? " opacity-40 pointer-events-none" : ""}${fillHeight ? " flex-1 min-h-0 flex flex-col" : ""}`}
+        className={`bg-background rounded-xl transition-opacity duration-150${isNavPending ? " opacity-40 pointer-events-none" : ""}${shouldFillHeight ? " flex-1 min-h-0 flex flex-col" : ""}`}
       >
         {mode === "calendar" ? (
           <CalendarView
@@ -266,7 +267,7 @@ export function TimetableClient({
             span={span}
             openTimeMin={openTimeMin}
             closeTimeMin={closeTimeMin}
-            fillHeight={fillHeight}
+            fillHeight={shouldFillHeight}
             orgId={orgId}
             todayStr={todayStr}
             canManage={canManage}

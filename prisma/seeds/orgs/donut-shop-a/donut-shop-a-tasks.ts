@@ -65,7 +65,7 @@ export const DONUT_TASKS: TaskDef[] = [
     title: "Fry Morning Batches",
     priority: "#EF4444",
     estimatedMinutes: 60,
-    description: "**Steps**\n1. Confirm fryer is at 180°C.\n2. Remove proofed doughs from proofer.\n3. Lower rack gently — fry 90 sec each side.\n4. Drain on wire rack for 2 min.\n5. Cool completely before filling or glazing (min 20 min).\n6. Record batch count and any waste in production log.\n\n_Never overload the fryer — max 6 rings per side._",
+    description: "**Steps**\n1. Confirm fryer is at 180°C.\n2. Remove proofed doughs from proofer.\n3. Lower rack gently — fry 90 sec each side.\n4. Drain on wire rack for 2 min.\n5. Cool completely before filling or glazing (min 20 min).\n6. Record batch count and any waste in production log.\n\n[Watch a frying reference video](https://www.youtube.com/watch?v=XeKqbuZaSRg)\n\n![Fry Morning Batches reference](https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&w=1200&q=80)\n\n_Never overload the fryer — max 6 rings per side._",
     assignedTo: "fryer_op",
     scheduledTime: "07:00",
     retryCount: 0,

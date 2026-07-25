@@ -7,7 +7,7 @@ vi.mock("@/lib/authz", () => ({
   requireOrgPermissionAction: vi.fn(),
   requireParentOrgOwnerAction: vi.fn(),
 }));
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/platform/prisma", () => ({
   prisma: {
     user: { findUnique: vi.fn().mockResolvedValue(null) },
   },

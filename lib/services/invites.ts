@@ -1,7 +1,7 @@
-import { log } from "@/lib/observability";
+import { log } from "@/lib/platform/observability";
 import { InviteType, Prisma } from "@prisma/client";
-import { ROLE_KEYS } from "@/lib/rbac";
-import { prisma } from "@/lib/prisma";
+import { ROLE_KEYS } from "@/lib/auth/rbac";
+import { prisma } from "@/lib/platform/prisma";
 import { recordAudit } from "@/lib/services/audit-log";
 import type { ServiceResult } from "./types";
 

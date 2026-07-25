@@ -1,11 +1,11 @@
 "use client";
 
 import { useRef, useTransition, useOptimistic, useState, useEffect } from "react";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
-import { RegisterPageSidebarTitle, RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
+import { RegisterPageSidebarTitle, RegisterPageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
 import { moveToolItemListEntryByIdAction, addToolItemListEntryAtPositionAction } from "@/app/actions/tools";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useMobileSidebar } from "@/components/layout/mobile-sidebar-context";
+import { useMobileSidebar } from "@/components/layout/contexts/mobile-sidebar-context";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import { ListGridView } from "./list-grid-view";
 import { ListChecklistView } from "./list-checklist-view";
@@ -46,7 +46,6 @@ interface ListDetailClientProps {
   list: ListDetail;
   view: "grid" | "checklist";
   canManage: boolean;
-  allOrgItems: PickableItem[];
   activeSetId: string | null;
   activeSetName: string | null;
   activeSetRates: ConversionRate[];
@@ -58,7 +57,6 @@ export function ListDetailClient({
   list,
   view,
   canManage,
-  allOrgItems,
   activeSetId,
   activeSetName,
   activeSetRates,
@@ -211,7 +209,6 @@ export function ListDetailClient({
         key={k}
         orgId={orgId}
         listId={list.id}
-        availableItems={allOrgItems}
         defaultPage={defaultPage}
         defaultCol={defaultCol}
         defaultRow={defaultRow}
@@ -305,7 +302,6 @@ export function ListDetailClient({
       listId={list.id}
       view={currentView}
       canManage={canManage}
-      availableItems={allOrgItems}
       gridCols={list.gridConfig?.gridCols}
       gridRows={list.gridConfig?.gridRows}
       conversionSets={conversionSets}

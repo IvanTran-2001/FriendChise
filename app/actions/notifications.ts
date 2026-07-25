@@ -8,7 +8,7 @@ import {
 import {
   markNotificationsSeen,
 } from "@/lib/services/invites";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 
 export async function markNotificationSeenAction(
   notificationId: string,

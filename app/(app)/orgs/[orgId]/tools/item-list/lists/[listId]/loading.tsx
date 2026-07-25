@@ -1,5 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { RegisterPageSidebar, RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
+import { RegisterPageSidebar, RegisterPageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
 import { ItemListSidebarShell } from "../../_components/item-list-sidebar-shell";
 
 function ListDetailSidebarSkeleton() {
@@ -62,7 +62,7 @@ function ListDetailContentSkeleton() {
 export default function ListDetailLoading() {
   return (
     <>
-      <RegisterPageSidebar title="Item List" content={<ItemListSidebarShell />} />
+      <RegisterPageSidebar title="Items" content={<ItemListSidebarShell />} />
       <RegisterPageSidebarSubContent content={<ListDetailSidebarSkeleton />} />
       <ListDetailContentSkeleton />
     </>

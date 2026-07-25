@@ -9,7 +9,7 @@
  */
 import { usePathname } from "next/navigation";
 import { Building2, PlusCircle, Network, Mail } from "lucide-react";
-import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
+import { PageSidebarNavItem } from "@/components/layout/sidebar/page-sidebar-nav-item";
 
 const items = [
   { title: "Create", url: "/orgs/new", icon: PlusCircle, disabled: false },

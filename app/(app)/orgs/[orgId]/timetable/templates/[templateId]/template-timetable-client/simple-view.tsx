@@ -3,9 +3,9 @@
 import React, { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, ExternalLink } from "lucide-react";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { useSupportsHover } from "@/hooks/use-hover-capability";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { groupBy, minTo12h } from "../../../_shared/grid-utils";
 import { AddTemplateTaskPanel } from "../_components/add-template-task-panel";
 import { CalendarEditSidebarContent } from "./calendar-edit-sidebar-content";

@@ -1,8 +1,8 @@
 "use server";
 
 import { requireOrgOwnerAction } from "@/lib/authz";
-import { localDateTimeToUTC } from "@/lib/date-utils";
-import { prisma } from "@/lib/prisma";
+import { localDateTimeToUTC } from "@/lib/core/date-utils";
+import { prisma } from "@/lib/platform/prisma";
 import {
   createAnnouncement,
   deleteAnnouncement,

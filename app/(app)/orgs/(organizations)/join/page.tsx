@@ -9,8 +9,8 @@
  * forwarded as `defaultSchedule` so the form fields are pre-filled.
  */
 import { Suspense } from "react";
-import { TIMEZONES } from "@/lib/timezones";
-import { prisma } from "@/lib/prisma";
+import { TIMEZONES } from "@/lib/core/timezones";
+import { prisma } from "@/lib/platform/prisma";
 import JoinFranchisePage from "./join-franchise-client";
 
 export default async function Page({

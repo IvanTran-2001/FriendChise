@@ -6,7 +6,7 @@ export default function DocNotFound() {
     <div className="flex h-dvh flex-col overflow-hidden">
       <DocNavbar />
 
-      <main className="mx-auto flex w-full max-w-[1320px] flex-1 min-h-0 px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto flex w-full max-w-330 flex-1 min-h-0 px-4 py-8 sm:px-6 lg:px-8">
         <section className="flex min-h-0 w-full items-center justify-center rounded-2xl border border-border/70 bg-card/90 p-8 shadow-sm">
           <div className="max-w-xl text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">

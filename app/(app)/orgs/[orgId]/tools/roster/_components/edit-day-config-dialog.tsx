@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { upsertRosterDayConfigAction } from "@/app/actions/roster";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import type { DayConfigRow } from "./roster-board";
 
 function minToTime(min: number | null): string {

@@ -11,6 +11,16 @@ function isValidCallbackUrl(callbackUrl: string, requestUrl: string): boolean {
       return true;
     }
 
+    // Allow the mobile app's deep-link schemes.
+    const protocol = new URL(callbackUrl).protocol;
+    if (
+      protocol === "friendchise:" ||
+      protocol === "exp:" ||
+      protocol === "exps:"
+    ) {
+      return true;
+    }
+
     // For absolute URLs, validate against request origin
     const callback = new URL(callbackUrl);
     const request = new URL(requestUrl);

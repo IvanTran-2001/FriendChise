@@ -5,9 +5,9 @@
  * Tests that create memberships for non-seed users use createTempUser() +
  * cleanupTempUser() so the seeded non-member pool is never permanently depleted.
  */
-import { prisma } from "@/lib/prisma";
-import { ROLE_KEYS } from "@/lib/rbac";
-import { SEEDED_USERS } from "@/lib/seeded-users";
+import { prisma } from "@/lib/platform/prisma";
+import { ROLE_KEYS } from "@/lib/auth/rbac";
+import { SEEDED_USERS } from "@/lib/demo/seeded-users";
 
 export const SEED_USER_EMAIL =
   SEEDED_USERS.casey.email;

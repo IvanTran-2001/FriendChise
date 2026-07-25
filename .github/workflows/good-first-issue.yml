@@ -25,8 +25,8 @@ jobs:
             const body = comment.body.trim();
             const claimPhrase = 'i want to take this';
 
-            if (body !== claimPhrase) {
-              core.info('No exact claim phrase found in the comment.');
+            if (!body.toLowerCase().includes(claimPhrase)) {
+              core.info('No claim phrase found in the comment.');
               return;
             }
 
@@ -36,12 +36,8 @@ jobs:
               issue_number: issue.number,
             });
 
-            const alreadyAssigned = (freshIssue.assignees ?? []).some(
-              (assignee) => assignee.login === claimant,
-            );
-
-            if (alreadyAssigned) {
-              core.info(`@${claimant} is already assigned to issue #${issue.number}.`);
+            if ((freshIssue.assignees ?? []).length > 0) {
+              core.info(`Issue #${issue.number} is already assigned.`);
               return;
             }
 
@@ -61,5 +57,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue.number,
-              body: `⭐ Hi @${claimant}! I assigned this issue to you. Please star the project to support FriendChise. Start with quick-start: https://friendchise.app/doc/development/quick-start. If you run into any issues, message here.`,
+              body: `⭐ Hi @${claimant}! I assigned this issue to you. Please read quick-start to begin: https://friendchise.app/doc/development/quick-start. If you run into any issues, message here anytime you wish.`,
             });

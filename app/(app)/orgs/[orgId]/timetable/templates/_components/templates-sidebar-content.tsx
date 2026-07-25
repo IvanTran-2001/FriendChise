@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { LayoutGrid, List, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SegmentedControl } from "@/components/ui/segmented-control";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { SegmentedControl } from "@/components/ui/controls/segmented-control";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { CreateTemplateForm } from "./create-template-form";
 
 interface TemplatesSidebarContentProps {

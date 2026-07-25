@@ -11,10 +11,7 @@
  *   ConversionSet  ──< ConversionTemplate ──< ConversionTemplateEntry
  *   ToolItem (org-scoped, shared across all sets)
  */
-import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@prisma/client";
-
-type ToolItemListClient = Pick<Prisma.TransactionClient, "toolItemList">;
+import { prisma } from "@/lib/platform/prisma";
 
 // ─── ConversionSet ────────────────────────────────────────────────────────────
 
@@ -188,10 +185,17 @@ export async function getToolItemListDetail(listId: string, orgId: string) {
  * Use addToolItemListEntryAtPosition to insert at a specific grid cell.
  */
 export async function addToolItemListEntry(
+  orgId: string,
   listId: string,
   itemId: string,
   amount: number = 0,
 ) {
+  const list = await prisma.toolItemList.findFirst({
+    where: { id: listId, orgId },
+    select: { id: true },
+  });
+  if (!list) throw new Error("List not found or access denied");
+
   const last = await prisma.toolItemListEntry.findFirst({
     where: { listId },
     select: { position: true },
@@ -207,11 +211,18 @@ export async function addToolItemListEntry(
 
 /** Inserts a ToolItem at an exact grid cell position. */
 export async function addToolItemListEntryAtPosition(
+  orgId: string,
   listId: string,
   itemId: string,
   position: number,
   amount: number = 0,
 ) {
+  const list = await prisma.toolItemList.findFirst({
+    where: { id: listId, orgId },
+    select: { id: true },
+  });
+  if (!list) throw new Error("List not found or access denied");
+
   return prisma.toolItemListEntry.create({
     data: { listId, itemId, position, amount },
     include: { item: true, checklistEntry: true },
@@ -251,10 +262,17 @@ export async function moveToolItemListEntryById(
  * If the target position is occupied, the two entries swap.
  */
 export async function moveToolItemListEntry(
+  orgId: string,
   listId: string,
   fromPosition: number,
   toPosition: number,
 ) {
+  const list = await prisma.toolItemList.findFirst({
+    where: { id: listId, orgId },
+    select: { id: true },
+  });
+  if (!list) throw new Error("List not found or access denied");
+
   const [from, to] = await Promise.all([
     prisma.toolItemListEntry.findFirst({
       where: { listId, position: fromPosition },
@@ -289,10 +307,28 @@ export async function moveToolItemListEntry(
 
 /** Updates (or creates) the grid config for a list. */
 export async function updateToolItemGridConfig(
+  orgId: string,
   listId: string,
   gridCols: number,
   gridRows: number,
 ) {
+  if (
+    !Number.isInteger(gridCols) ||
+    gridCols < 1 ||
+    gridCols > 12 ||
+    !Number.isInteger(gridRows) ||
+    gridRows < 1 ||
+    gridRows > 20
+  ) {
+    throw new Error("Invalid grid dimensions.");
+  }
+
+  const list = await prisma.toolItemList.findFirst({
+    where: { id: listId, orgId },
+    select: { id: true },
+  });
+  if (!list) throw new Error("List not found or access denied");
+
   return prisma.toolItemGridConfig.upsert({
     where: { listId },
     update: { gridCols, gridRows },
@@ -301,25 +337,52 @@ export async function updateToolItemGridConfig(
 }
 
 /** Removes a list entry by ID. */
-export async function removeToolItemListEntry(listId: string, entryId: string) {
-  return prisma.toolItemListEntry.delete({
-    where: { id: entryId, listId },
+export async function removeToolItemListEntry(
+  orgId: string,
+  listId: string,
+  entryId: string,
+) {
+  const entry = await prisma.toolItemListEntry.findFirst({
+    where: { id: entryId, listId, list: { orgId } },
+    select: { id: true },
   });
+  if (!entry) throw new Error("Entry not found or access denied");
+
+  return prisma.toolItemListEntry.delete({ where: { id: entryId } });
 }
 
 /** Updates the amount on a list entry. */
 export async function updateToolItemListEntryAmount(
+  orgId: string,
+  listId: string,
   entryId: string,
   amount: number,
 ) {
-  return prisma.toolItemListEntry.update({
-    where: { id: entryId },
-    data: { amount },
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw new Error("Invalid amount");
+  }
+
+  const entry = await prisma.toolItemListEntry.findFirst({
+    where: { id: entryId, listId, list: { orgId } },
+    select: { id: true },
   });
+  if (!entry) throw new Error("Entry not found or access denied");
+
+  return prisma.toolItemListEntry.update({ where: { id: entryId }, data: { amount } });
 }
 
 /** Toggles the checked state of a list entry (existence = checked). Returns new state. */
-export async function toggleChecklistEntry(listEntryId: string): Promise<{ checked: boolean }> {
+export async function toggleChecklistEntry(
+  orgId: string,
+  listId: string,
+  listEntryId: string,
+): Promise<{ checked: boolean }> {
+  const entry = await prisma.toolItemListEntry.findFirst({
+    where: { id: listEntryId, listId, list: { orgId } },
+    select: { id: true },
+  });
+  if (!entry) throw new Error("Entry not found or access denied");
+
   const existing = await prisma.toolItemChecklistEntry.findUnique({
     where: { listEntryId },
   });
@@ -331,23 +394,44 @@ export async function toggleChecklistEntry(listEntryId: string): Promise<{ check
   return { checked: true };
 }
 
-/** Creates a new ToolItemList for an org. New lists always default to GRID display. */
+/**
+ * Creates a new ToolItemList for an org.
+ * `displayType` is limited to GRID (station layout) or CHECKLIST — TABLE and
+ * GALLERY exist in the schema/enum but have no implemented UI yet, so they are
+ * not creatable. A gridConfig row is only created for GRID lists.
+ */
 export async function createToolItemList(
   orgId: string,
   name: string,
-  client: ToolItemListClient = prisma,
+  displayType: "GRID" | "CHECKLIST" = "GRID",
+  gridCols = 4,
+  gridRows = 4,
   description?: string,
 ) {
-  return client.toolItemList.create({
-    data: { orgId, name, displayType: "GRID", description: description ?? null },
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      displayType: true,
-      updatedAt: true,
-      _count: { select: { entries: true } },
-    },
+  return prisma.$transaction(async (tx) => {
+    const list = await tx.toolItemList.create({
+      data: { orgId, name, displayType, description: description ?? null },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        displayType: true,
+        updatedAt: true,
+        _count: { select: { entries: true } },
+      },
+    });
+
+    if (displayType === "GRID") {
+      await tx.toolItemGridConfig.create({
+        data: {
+          listId: list.id,
+          gridCols,
+          gridRows,
+        },
+      });
+    }
+
+    return list;
   });
 }
 
@@ -735,3 +819,13 @@ export async function deleteTemplateEntry(
     });
   });
 }
+
+export {
+  getToolItemsPage,
+} from "./tools/conversion";
+
+export {
+  getMenus,
+  getPublicMenuDetail,
+  getMenuItemsPage,
+} from "./tools/menus";

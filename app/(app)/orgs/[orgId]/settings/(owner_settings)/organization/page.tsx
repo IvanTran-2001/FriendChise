@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { requireOrgOwnerOrParentOrgOwnerPage } from "@/lib/authz";
 import { OrgSettingsClient } from "./organization-client";
-import { TIMEZONES } from "@/lib/timezones";
+import { TIMEZONES } from "@/lib/core/timezones";
 
 export default async function OrgSettingsOrganizationPage({
   params,
@@ -33,23 +33,10 @@ export default async function OrgSettingsOrganizationPage({
   // A franchisee's lifecycle is controlled by the franchisor, not the franchisee owner.
   const isParentOwner = org.parentId === null && org.ownerId === userId;
 
-  // Only needed for the transfer dropdown — skip the query for non-owners
-  const transferableMembers = isParentOwner
-    ? await prisma.membership.findMany({
-        where: { orgId, NOT: { userId }, userId: { not: null } },
-        select: {
-          id: true,
-          user: { select: { id: true, name: true, email: true } },
-        },
-        orderBy: { user: { name: "asc" } },
-      })
-    : [];
-
   return (
     <OrgSettingsClient
       org={org}
       isParentOwner={isParentOwner}
-      transferableMembers={transferableMembers}
       timezones={TIMEZONES}
     />
   );

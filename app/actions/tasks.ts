@@ -43,7 +43,7 @@
  */
 
 import { PermissionAction } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import {
   requireOrgPermissionAction,
   requireParentOrgOwnerAction,

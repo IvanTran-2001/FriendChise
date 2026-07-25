@@ -1,5 +1,5 @@
 import { requireParentOrgOwnerPage } from "@/lib/authz";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { FranchiseeClient } from "./franchisee-client";
 
 export default async function FranchiseePage({

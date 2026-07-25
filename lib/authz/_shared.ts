@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { decode } from "next-auth/jwt";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { PermissionAction } from "@prisma/client";
 
 const MOBILE_TOKEN_COOKIE_NAME = "friendchise.mobile-session-token";

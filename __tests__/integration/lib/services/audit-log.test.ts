@@ -4,7 +4,7 @@
  * Verifies that recordAudit persists entries correctly and that getAuditLogs
  * returns them scoped to the org, newest-first.
  */
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { recordAudit, getAuditLogs } from "@/lib/services/audit-log";
 import { getSeedOrg } from "../../helpers";
 

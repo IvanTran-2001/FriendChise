@@ -25,15 +25,16 @@ import {
   LayoutGrid,
   List,
   ListTodo,
+  PanelTop,
   Plus,
   Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SegmentedControl } from "@/components/ui/segmented-control";
-import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
-import { FilterCombobox } from "@/components/ui/filter-combobox";
-import { TagFilterButton } from "@/components/ui/tag-filter-button";
-import { SORT_OPTIONS, type SortOption } from "./tasks-config";
+import { SegmentedControl } from "@/components/ui/controls/segmented-control";
+import { PageSidebarNavItem } from "@/components/layout/sidebar/page-sidebar-nav-item";
+import { FilterCombobox } from "@/components/ui/comboboxes/filter-combobox";
+import { TagFilterButton } from "@/components/ui/controls/tag-filter-button";
+import { SORT_OPTIONS, type SortOption, type TaskView } from "./tasks-config";
 
 type Role = { id: string; name: string; color?: string | null };
 type Tag = { id: string; name: string; color: string };
@@ -46,11 +47,11 @@ interface TasksSidebarContentProps {
   sort: SortOption;
   roleId: string | null;
   tagId: string | null;
-  view: "list" | "card";
+  view: TaskView;
   mode: "list" | "shared" | "available";
   isModeExplicit: boolean;
   isFiltersExplicit: boolean;
-  onViewChange: (view: "list" | "card") => void;
+  onViewChange: (view: TaskView) => void;
   onModeChange: (mode: "list" | "shared" | "available") => void;
 }
 
@@ -123,10 +124,10 @@ export function TasksSidebarContent({
             }
           }
           if (
-            (prefs.view === "card" || prefs.view === "list") &&
+            (prefs.view === "card" || prefs.view === "list" || prefs.view === "feed") &&
             prefs.view !== view
           ) {
-            overrides.view = prefs.view as "card" | "list";
+            overrides.view = prefs.view as TaskView;
           }
         }
       } catch {
@@ -169,7 +170,7 @@ export function TasksSidebarContent({
     sort?: SortOption;
     roleId?: string | null;
     tagId?: string | null;
-    view?: "list" | "card";
+    view?: TaskView;
     mode?: "list" | "shared" | "available";
   }) {
     const params = new URLSearchParams();
@@ -236,7 +237,7 @@ export function TasksSidebarContent({
       </div>
 
       {/* Filters section */}
-      <div className="px-3 pt-3 pb-2 border-t border-border">
+      <div className="px-3 pt-3 pb-2 border-t border-border" data-tour-target="page-filters-panel">
         <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
           Filters
         </p>
@@ -311,7 +312,7 @@ export function TasksSidebarContent({
         <SegmentedControl
           value={view}
           onChange={(v) => {
-            const newView = v as "list" | "card";
+            const newView = v as TaskView;
             const newPrefs = JSON.stringify({ sort, roleId, tagId, view: newView });
             try { localStorage.setItem(TASKS_PREFS_KEY, newPrefs); } catch { /* ignore */ }
             setTasksCookie(TASKS_PREFS_KEY, newPrefs);
@@ -320,6 +321,7 @@ export function TasksSidebarContent({
           }}
           options={[
             { value: "list", label: <span className="flex items-center gap-1.5"><List className="h-3.5 w-3.5" />List</span> },
+            { value: "feed", label: <span className="flex items-center gap-1.5"><PanelTop className="h-3.5 w-3.5" />Feed</span> },
             { value: "card", label: <span className="flex items-center gap-1.5"><LayoutGrid className="h-3.5 w-3.5" />Card</span> },
           ]}
         />

@@ -1,5 +1,5 @@
 import { defineConfig } from "vitest/config";
-import { ensureTestRunNamespace } from "./lib/test-run-namespace";
+import { ensureTestRunNamespace } from "./lib/demo/test-run-namespace";
 
 ensureTestRunNamespace();
 

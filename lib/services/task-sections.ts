@@ -14,7 +14,7 @@
  */
 import type { TaskSectionLayout } from "@prisma/client";
 import { SectionScope } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 
 /** Unified row shape returned by getSectionLayout (DB rows or virtual defaults). */
 export type SectionLayoutRow = Omit<TaskSectionLayout, "id"> & { id: string };

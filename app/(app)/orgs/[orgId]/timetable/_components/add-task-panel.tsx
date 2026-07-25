@@ -54,6 +54,42 @@ export function AddTaskPanel({
   const [timeStr, setTimeStr] = useState(initialTimeStr ?? "09:00");
   const [isPending, startTransition] = useTransition();
 
+  function loadTasks(search: string, cursor: string | null | undefined, signal: AbortSignal) {
+    const params = new URLSearchParams();
+    params.set("mode", "list");
+    params.set("limit", "20");
+    params.set("sort", "name-asc");
+    if (search.trim()) params.set("search", search.trim());
+    if (cursor) params.set("cursor", cursor);
+
+    return fetch(`/api/orgs/${orgId}/tasks/paginated?${params.toString()}`, { signal }).then(
+      async (response) => {
+        if (!response.ok) throw new Error("Failed to load tasks.");
+        const data = (await response.json()) as {
+          tasks: Array<{
+            id: string;
+            name: string;
+            durationMin: number;
+            color?: string | null;
+            eligibility?: Array<{ role?: { name: string; color: string | null } | null }>;
+          }>;
+          nextCursor: string | null;
+        };
+        return {
+          tasks: data.tasks.map((task) => ({
+            id: task.id,
+            name: task.name,
+            durationMin: task.durationMin,
+            color: task.color ?? null,
+            roleColor: task.eligibility?.[0]?.role?.color ?? null,
+            roleName: task.eligibility?.[0]?.role?.name ?? null,
+          })),
+          nextCursor: data.nextCursor,
+        };
+      },
+    );
+  }
+
   useEffect(() => {
     return () => {
       onClose?.();
@@ -104,6 +140,17 @@ export function AddTaskPanel({
           toast.error(result.error ?? "Something went wrong");
           return;
         }
+        window.dispatchEvent(
+          new CustomEvent("friendchise:timetable-entry-created", {
+            detail: {
+              orgId,
+              taskId: selectedTask.id,
+              date,
+              startTimeMin,
+              source: "panel",
+            },
+          }),
+        );
         router.refresh();
         setMode("list");
         setSelectedTask(null);
@@ -118,7 +165,7 @@ export function AddTaskPanel({
   // ── Schedule form ────────────────────────────────────────────────────────
   if (mode === "schedule" && selectedTask) {
     return (
-      <div className="flex flex-col gap-4 p-4">
+      <div className="flex flex-col gap-4 p-4" data-tour-target="add-task-panel">
         <button
           onClick={handleBack}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors -mx-1 px-1 py-0.5 rounded w-fit"
@@ -192,19 +239,22 @@ export function AddTaskPanel({
 
   // ── Task list ────────────────────────────────────────────────────────────
   return (
-    <TaskPanel
-      tasks={tasks}
-      onDragStart={(taskId, e) => {
-        const h = getDragHandlers();
-        h.setIsDragging?.(true);
-        e.dataTransfer.setData("timetable/taskId", taskId);
-        e.dataTransfer.effectAllowed = "copy";
-      }}
-      onDragEnd={() => {
-        const h = getDragHandlers();
-        h.setIsDragging?.(false);
-      }}
-      onTaskClick={handleTaskClick}
-    />
+    <div data-tour-target="add-task-panel">
+      <TaskPanel
+        tasks={[]}
+        loadTasks={loadTasks}
+        onDragStart={(taskId, e) => {
+          const h = getDragHandlers();
+          h.setIsDragging?.(true);
+          e.dataTransfer.setData("timetable/taskId", taskId);
+          e.dataTransfer.effectAllowed = "copy";
+        }}
+        onDragEnd={() => {
+          const h = getDragHandlers();
+          h.setIsDragging?.(false);
+        }}
+        onTaskClick={handleTaskClick}
+      />
+    </div>
   );
 }

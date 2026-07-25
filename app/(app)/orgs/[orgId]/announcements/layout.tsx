@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
+import { RegisterPageSidebar } from "@/components/layout/contexts/page-sidebar-context";
 import { AnnouncementSidebarShell } from "./_components/announcement-sidebar-shell";
 
 export default function AnnouncementsLayout({ children }: { children: ReactNode }) {

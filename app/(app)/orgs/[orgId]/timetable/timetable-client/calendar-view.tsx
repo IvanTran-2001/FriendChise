@@ -16,8 +16,8 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
   AlertDialogAction,
-} from "@/components/ui/alert-dialog";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+} from "@/components/ui/dialogs/alert-dialog";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import {
   createTimetableEntryAction,
   updateTimetableEntryAction,
@@ -246,6 +246,8 @@ export function CalendarView({
   onOpenTaskPanel,
   isDraggingExternal,
 }: CalendarViewProps) {
+  const dropCompletedEventName = "friendchise:timetable-entry-created";
+
   function effStatus(inst: ClientTimetableInstance) {
     return inst.status === "TODO" && inst.date < todayStr
       ? "SKIPPED"
@@ -574,6 +576,15 @@ export function CalendarView({
             />,
           );
         }
+
+        window.dispatchEvent(new CustomEvent(dropCompletedEventName, {
+          detail: {
+            kind: data.type,
+            column: col,
+            timeMin,
+            source: "drag",
+          },
+        }));
       } else if (data.type === "group") {
         let delta = timeMin - data.groupStartMin;
         const insts = data.instances ?? data.instanceIds.map((id) => instances.find((i) => i.id === id)).filter(Boolean) as ClientTimetableInstance[];
@@ -632,6 +643,15 @@ export function CalendarView({
         return;
       }
       onSelectedTaskIdChange?.(null);
+      window.dispatchEvent(new CustomEvent(dropCompletedEventName, {
+        detail: {
+          kind: "tap",
+          column: col,
+          timeMin,
+          taskId,
+          source: "tap",
+        },
+      }));
       router.refresh();
     });
   }

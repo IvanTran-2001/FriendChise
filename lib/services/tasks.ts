@@ -19,8 +19,8 @@
  * and copied to franchisee orgs on inheritance.
  */
 import { Prisma, TaskScope } from "@prisma/client";
-import { log } from "@/lib/observability";
-import { prisma } from "@/lib/prisma";
+import { log } from "@/lib/platform/observability";
+import { prisma } from "@/lib/platform/prisma";
 import { recordAudit } from "@/lib/services/audit-log";
 import {
   copySectionLayout,
@@ -171,7 +171,7 @@ export async function deleteTask(
   return { ok: true, data: null };
 }
 
-const taskInclude = {
+const taskInclude = Prisma.validator<Prisma.TaskInclude>()({
   organization: { select: { id: true, name: true } },
   createdBy: { select: { id: true, name: true, image: true } },
   eligibility: {
@@ -190,8 +190,21 @@ const taskInclude = {
       toolLabel: true,
     },
   },
+  comments: {
+    where: { parentId: null, isPinned: true },
+    orderBy: [{ pinnedAt: "desc" }, { createdAt: "asc" }],
+    take: 3,
+    select: {
+      id: true,
+      content: true,
+      authorName: true,
+      authorImage: true,
+      createdAt: true,
+      pinnedAt: true,
+    },
+  },
   _count: { select: { inheritedBy: true } },
-} as const;
+});
 
 /**
  * Returns all tasks accessible to the org via TaskInheritance.
@@ -241,15 +254,31 @@ export async function getSharedTasks(orgId: string) {
 }
 
 /**
- * Returns all tasks for the given org, sorted newest-first.
- * Includes role eligibility data for display in the task table.
+ * @deprecated Prefer `getTasksPaginated()` for new callers. This function
+ * loops through all pages and loads every task into memory, which is expensive
+ * for orgs with large task libraries. It is retained only for existing callers
+ * that have not yet been migrated.
  */
 export async function getTasks(orgId: string) {
-  return prisma.task.findMany({
-    where: { orgId },
-    include: taskInclude,
-    orderBy: { createdAt: "desc" },
-  });
+  const pageSize = 100;
+  const totalCount = await prisma.task.count({ where: { orgId } });
+  if (totalCount === 0) return [];
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const tasks = [] as Awaited<ReturnType<typeof prisma.task.findMany>>;
+
+  for (let page = 1; page <= totalPages; page += 1) {
+    const rows = await prisma.task.findMany({
+      where: { orgId },
+      include: taskInclude,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
+    tasks.push(...rows);
+  }
+
+  return tasks;
 }
 
 export type TaskSortOption =
@@ -672,6 +701,35 @@ export async function getTasksSimple(orgId: string) {
   });
 }
 
+export async function getTasksSimplePage(
+  orgId: string,
+  options: { page?: number; pageSize?: number; search?: string } = {},
+) {
+  const pageSize = Math.max(1, options.pageSize ?? 24);
+  const search = options.search?.trim() ?? "";
+
+  const where: Prisma.TaskWhereInput = {
+    orgId,
+    ...(search
+      ? { name: { contains: search, mode: "insensitive" as const } }
+      : {}),
+  };
+
+  const totalCount = await prisma.task.count({ where });
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const page = Math.min(Math.max(1, Math.floor(options.page ?? 1)), totalPages);
+
+  const tasks = await prisma.task.findMany({
+    where,
+    select: { id: true, name: true, color: true },
+    orderBy: [{ name: "asc" }, { id: "asc" }],
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+  });
+
+  return { tasks, totalCount, totalPages, page, pageSize, search };
+}
+
 // ---------------------------------------------------------------------------
 // Task accessibility helpers
 // ---------------------------------------------------------------------------
@@ -695,25 +753,6 @@ export async function canAccessTask(
     }),
   ]);
   return !!(owned || inherited);
-}
-
-/**
- * Returns all tasks accessible to an org — its own tasks plus any tasks it
- * has inherited from its parent. Each result carries an `inherited: boolean`
- * flag so callers can distinguish the two sets.
- */
-export async function getAccessibleTasks(orgId: string) {
-  const [ownTasks, inheritances] = await Promise.all([
-    prisma.task.findMany({ where: { orgId }, include: taskInclude }),
-    prisma.taskInheritance.findMany({
-      where: { orgId, task: { orgId: { not: orgId } } },
-      include: { task: { include: taskInclude } },
-    }),
-  ]);
-  return [
-    ...ownTasks.map((t) => ({ ...t, inherited: false as const })),
-    ...inheritances.map((i) => ({ ...i.task, inherited: true as const })),
-  ];
 }
 
 // ---------------------------------------------------------------------------

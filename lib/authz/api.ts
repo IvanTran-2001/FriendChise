@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { PermissionAction } from "@prisma/client";
-import { log } from "@/lib/observability";
+import { log } from "@/lib/platform/observability";
 import {
   getAuthUser,
   getOrgMembership,

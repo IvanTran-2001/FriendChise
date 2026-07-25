@@ -18,7 +18,7 @@ import {
   SheetFooter,
   SheetTitle,
   SheetTrigger,
-} from "@/components/ui/sheet";
+} from "@/components/ui/dialogs/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { NotificationList } from "./notification-list";
 import type { NotificationFeedItem } from "@/lib/services/notification-feed";

@@ -10,7 +10,7 @@
  * a seeded non-member pool that may be empty (all seed users are connected to
  * every org via connectSeedUsersToOrg).
  */
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { createMembership, deleteMembership } from "@/lib/services/memberships";
 import {
   getSeedOrg,

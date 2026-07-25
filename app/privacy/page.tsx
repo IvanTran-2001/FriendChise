@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Logo } from "@/components/layout/logo";
+import { Logo } from "@/components/layout/global/logo";
 
 export const metadata = {
   title: "Privacy Policy — FriendChise",

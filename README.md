@@ -1,44 +1,222 @@
 # FriendChise
-
 [![CI](https://github.com/IvanTran-2001/FriendChise/actions/workflows/ci.yml/badge.svg)](https://github.com/IvanTran-2001/FriendChise/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black?logo=next.js)](https://nextjs.org)
 [![Deploy](https://img.shields.io/badge/deploy-friendchise.app-brightgreen)](https://friendchise.app)
 
-The idea of friendchise is to **"make every location your best one"**. A software built to help make franchising easier!
+> **Helping every location operate like its best one.**
 
-Production deployment: **[friendchise.app](https://friendchise.app)**
+Production-tested workplace operations platform used to help manage real business operations while preserving operational knowledge and standardising workflows.
 
-## Help you and me by staring the repo!
-The more stars this project gets, the more recognition and weight this project will hold which will benefit all of us contributing. So, if you like the project:
- - Give a star for the repo,
- - Connect with [me on LinkedIn](https://www.linkedin.com/in/ivan-tran-76164017a/)
- - Share on your linkedin or any other social media. Or even simply talking to your friends about it.
- - Follow [FriendChise company page](https://www.linkedin.com/company/friendchise-app/)
+<p align="center">
+  <a href="https://friendchise.app">🌐 Live Demo</a> •
+  <a href="#features">✨ Features</a> •
+  <a href="#getting-started">🚀 Getting Started</a> •
+  <a href="CONTRIBUTING.md">🤝 Contributing</a>
+</p>
 
-## Quick-Setup
 
-Read the setup flow in [quick-setup](https://friendchise.app/doc/contributing/getting-started). 
+![FriendChise dashboard overview](public/docs/timetable.gif)
 
-## Contribute
+# Why FriendChise Exists
 
-If you want to help build something meaningful in FriendChise:
+FriendChise started with a simple belief:
 
-1. Open an issue first to discuss the idea.
-2. Check [CONTRIBUTING.md](CONTRIBUTING.md).
-3. Read [Ideas for Contributing](https://friendchise.app/doc/contributing/ideas-for-contribution) if you are stuck.
-4. Star the repo if you like the project.
+> The success of one location should strengthen every location.
 
-## Docs
+Too often, valuable operational knowledge stays within individual stores instead of being shared across the business. New staff repeat old mistakes, successful processes remain isolated, and every location ends up solving the same problems independently.
 
-Dedicated doc at [friendchise.app/doc](https://friendchise.app/doc). Should have everything needed for the project.
+FriendChise was built to preserve knowledge, standardise operations, and help every location benefit from the experience of the best-performing teams.
 
-If something is missing from the doc related to the project, post a discussion and ask questions or you can post an issue/PR if you believe it belongs in the doc.
+Today, FriendChise brings operational knowledge, workforce management, business tools, and collaboration together into one platform that grows alongside a business.
 
-## Tech Stack
+---
 
-- Next.js 16.1.6, TypeScript, React 19
-- pnpm, Prisma ORM v7, PostgreSQL (local or Supabase-hosted), Supabase Storage
-- Auth.js v5, Tailwind CSS v4, shadcn/ui, Radix UI
-- Vitest, Playwright, Sentry, Upstash Redis
-  
+# Platform Overview
+
+Rather than relying on disconnected spreadsheets, paper documents, messaging apps, and standalone tools, FriendChise brings the day-to-day operations of a business into one central platform.
+
+---
+
+## 📖 Operations & Knowledge
+
+Capture, organise, and share the knowledge that keeps every location running consistently.
+
+- Tasks and recurring workflows
+- Procedures and recipes
+- Comments and discussions
+- Knowledge base
+- Announcements
+- Searchable operational documentation
+
+![Tasks](public/docs/task.gif)
+
+---
+
+## 👥 Workforce Management
+
+Coordinate staff through scheduling tools designed for repetitive workplaces.
+
+- Interactive timetable
+- Drag-and-drop scheduling
+- Grouped overlapping shifts
+- Responsive day and week views
+- Staff roster management
+
+![Timetable](public/docs/timetable.gif)
+
+---
+
+## 🛠 Business Tools
+
+Reduce repetitive administrative work with tools designed to simplify everyday business operations and replace disconnected workflows.
+
+The platform is designed to continuously expand with new operational tools as businesses grow.
+
+- Roster Builder
+- Conversion Tool
+- Operational Calculators
+- Menu & QR Generator
+- Item Lists
+
+![Tools](public/docs/tools.gif)
+
+---
+
+## 🏢 Organisation Management
+
+Manage multiple businesses and locations while maintaining secure separation between organisations.
+
+- Multi-tenant architecture
+- Franchise hierarchy
+- Custom roles
+- Granular permissions
+- Organisation switching
+
+![Franchise](public/docs/franchise.gif)
+
+---
+
+## 📊 Administration
+
+Monitor and manage the platform with built-in administrative tools.
+
+- Activity logs
+- Feedback management
+- User analytics
+- Error monitoring
+- Operational dashboards
+
+![Admin](public/docs/admin.gif)
+
+---
+
+## 🎯 Guided Interactive Demo
+
+Built-in onboarding guides new users through FriendChise, making new features easier to discover and reducing onboarding time.
+
+![Demo](public/docs/demo.gif)
+
+
+# Technical Architecture
+
+FriendChise is designed as a modular, production-tested Next.js application with a focus on scalability, maintainability, and long-term growth.
+
+The platform is organised into modular systems so new features can be developed independently while remaining consistent with the rest of the application.
+
+Highlights include:
+
+- Multi-tenant organisation architecture
+- Role-based access control (RBAC)
+- Modular service architecture
+- Server-side validation
+- Guided demo framework
+- Automated testing
+- Responsive component architecture
+
+
+## 🧪 Testing & Reliability
+
+Maintain application quality through automated unit, integration, API, and end-to-end testing using Vitest and Playwright, helping ensure new features remain reliable as the platform evolves.
+
+# Getting Started
+
+Read the setup flow in [quick-setup](https://friendchise.app/doc/contributing/getting-started).
+
+# Contributing
+
+Contributions of all sizes are welcome.
+
+If you'd like to improve FriendChise:
+
+1. Open an issue to discuss your idea.
+
+2. Read the Contributing Guide.
+
+3. Browse the contribution ideas if you're looking for somewhere to start.
+
+4. Submit a pull request.
+
+If you find the project useful, consider starring the repository.
+
+# Documentation
+
+The full documentation is available at:
+
+**https://friendchise.app/doc**
+
+It includes architecture, setup guides, contributing documentation, API references, and implementation details.
+
+If you notice missing or outdated documentation, feel free to open an issue or submit a pull request.
+
+# Technology Stack
+
+### Frontend
+
+- Next.js 16
+
+- React 19
+
+- TypeScript
+
+- Tailwind CSS
+
+- shadcn/ui
+
+- Radix UI
+
+### Backend
+
+- Prisma ORM
+
+- PostgreSQL
+
+- Auth.js
+
+- Supabase Storage
+
+- Upstash Redis
+
+### Infrastructure
+
+- Supabase Storage
+- Upstash Redis
+
+### Developer Tooling
+
+- pnpm
+- Vitest
+- Playwright
+- Sentry
+
+# Roadmap
+
+Planned improvements include:
+
+- AI-assisted scheduling
+- OCR document scanning
+- Paperless workflow tools
+- Expanded operational tool library
+- Advanced reporting and analytics
+- Additional onboarding experiences
+

@@ -1,5 +1,5 @@
-import { log } from "@/lib/observability";
-import { prisma } from "@/lib/prisma";
+import { log } from "@/lib/platform/observability";
+import { prisma } from "@/lib/platform/prisma";
 import { Prisma, InviteType } from "@prisma/client";
 import { recordAudit } from "@/lib/services/audit-log";
 import type { ServiceResult } from "./types";
@@ -9,7 +9,7 @@ import type {
   BotToMemberInput,
   UpdateBotInput,
 } from "@/lib/validators/bot";
-import { ROLE_KEYS } from "@/lib/rbac";
+import { ROLE_KEYS } from "@/lib/auth/rbac";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Selects

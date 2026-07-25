@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Users, Network, Check, X } from "lucide-react";
+import { Users, Network, Check, X, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import {
   acceptMemberInviteAction,
   declineMemberInviteAction,
@@ -72,7 +72,7 @@ function InviteHubCard({
   }
 
   return (
-    <div className="flex items-center gap-4 rounded-xl border bg-card px-4 py-3.5 shadow-sm">
+    <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5 sm:flex-row sm:items-center sm:gap-4">
       {/* Icon */}
       <div
         className={cn(
@@ -113,18 +113,18 @@ function InviteHubCard({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex w-full flex-col gap-2 shrink-0 sm:w-auto sm:flex-row">
         <Button
           size="sm"
           variant="ghost"
-          className="h-8 text-muted-foreground hover:text-destructive"
+          className="h-8 w-full text-muted-foreground hover:text-destructive sm:w-auto"
           disabled={isPending}
           onClick={handleDecline}
         >
           <X className="h-3.5 w-3.5" />
           Decline
         </Button>
-        <Button size="sm" disabled={isPending} onClick={handleAccept}>
+        <Button size="sm" className="w-full sm:w-auto" disabled={isPending} onClick={handleAccept}>
           <Check className="h-3.5 w-3.5" />
           {isFranchise ? "Join Franchise" : "Accept"}
         </Button>
@@ -144,9 +144,12 @@ export function HubInviteSection({ invites }: { invites: InviteItem[] }) {
   }
 
   return (
-    <div className="mb-6">
-      <div className="flex items-center gap-2 mb-3">
-        <h2 className="text-sm font-semibold">Pending Invitations</h2>
+    <div className="mb-5">
+      <div className="flex items-center gap-2 mb-3 px-1">
+        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+        <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          Pending invitations
+        </h2>
         <span className="inline-flex items-center justify-center rounded-full bg-primary/10 text-primary w-5 h-5 text-xs font-semibold">
           {shown.length}
         </span>

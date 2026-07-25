@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 import { requireOrgPermissionPage } from "@/lib/authz";
 import { getTimetableTemplate } from "@/lib/services/templates";
 import { getInheritedTasks } from "@/lib/services/tasks";
-import { prisma } from "@/lib/prisma";
-import { toLocalDateStr } from "@/lib/date-utils";
+import { prisma } from "@/lib/platform/prisma";
+import { toLocalDateStr } from "@/lib/core/date-utils";
 import { TemplateEditorPageClient } from "./template-editor-page-client";
 import { PermissionAction } from "@prisma/client";
 

@@ -1,5 +1,5 @@
 import { test as setup, expect } from "@playwright/test";
-import { SEEDED_USERS } from "@/lib/seeded-users";
+import { SEEDED_USERS } from "@/lib/demo/seeded-users";
 
 /**
  * Playwright auth setup.

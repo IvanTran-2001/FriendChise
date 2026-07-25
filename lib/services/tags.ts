@@ -1,6 +1,6 @@
-import { log } from "@/lib/observability";
-import { prisma } from "@/lib/prisma";
-import { getRandomColor } from "@/lib/org-color";
+import { log } from "@/lib/platform/observability";
+import { prisma } from "@/lib/platform/prisma";
+import { getRandomColor } from "@/lib/core/org-color";
 import { recordAudit } from "@/lib/services/audit-log";
 import type { ServiceResult } from "./types";
 

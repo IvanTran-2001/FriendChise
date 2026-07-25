@@ -3,16 +3,23 @@
  */
 "use client";
 
+/**
+ * Roster sidebar content.
+ * Groups roster navigation, filter controls, and action buttons in the shared
+ * page sidebar.
+ */
+
 import { useRef } from "react";
-import { ArrowLeft, LayoutTemplate } from "lucide-react";
-import { PageSidebarNavItem } from "@/components/layout/page-sidebar-nav-item";
+import { ArrowLeft, LayoutGrid, LayoutTemplate } from "lucide-react";
+import { BackSidebarNavItem } from "@/components/layout/sidebar/back-sidebar-nav-item";
+import { PageSidebarNavItem } from "@/components/layout/sidebar/page-sidebar-nav-item";
 import { Button } from "@/components/ui/button";
 import { MembersActions } from "../../../memberships/_components/members-panel-triggers";
 import {
   SearchableCombobox,
   type ComboboxItem,
-} from "@/components/ui/searchable-combobox";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+} from "@/components/ui/comboboxes/searchable-combobox";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { ApplyTemplatePanel } from "./apply-template-panel";
 
 type Role = { id: string; name: string; color: string };
@@ -73,11 +80,15 @@ export function RosterSidebarContent({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Back */}
-      <PageSidebarNavItem
+      <BackSidebarNavItem
         title="Back"
-        url={`/orgs/${orgId}/tools`}
+        fallbackHref={`/orgs/${orgId}/tools`}
         icon={ArrowLeft}
-        isActive={false}
+        secondaryButton={{
+          title: "Toolhub",
+          href: `/orgs/${orgId}/tools`,
+          icon: LayoutGrid,
+        }}
       />
 
       {/* Templates */}

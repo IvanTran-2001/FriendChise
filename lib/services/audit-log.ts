@@ -26,8 +26,8 @@
  * ────────────────────────────────────────────────────────────────────────────
  */
 
-import { prisma } from "@/lib/prisma";
-import { log } from "@/lib/observability";
+import { prisma } from "@/lib/platform/prisma";
+import { log } from "@/lib/platform/observability";
 import { Prisma, PrismaClient } from "@prisma/client";
 
 export interface AuditLogInput {

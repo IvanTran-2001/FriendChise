@@ -9,7 +9,7 @@
  * comment on a task, regardless of which specific org owns it.
  */
 import { VoteType } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { isSameFranchise } from "@/lib/services/franchise-root";
 import type { ServiceResult } from "./types";
 import type { AddCommentInput, EditCommentInput } from "@/lib/validators/task-comment";

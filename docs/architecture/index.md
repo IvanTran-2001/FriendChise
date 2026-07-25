@@ -23,3 +23,4 @@ This section covers the main system-level docs for FriendChise.
 - [Project Structure](/doc/architecture/project-structure)
 - [Admin Panel](/doc/architecture/admin-panel)
 - [Feedback System](/doc/architecture/feedback-system)
+- [Demo Tour](/doc/architecture/demo-tour)

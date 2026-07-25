@@ -15,13 +15,17 @@ export function UnauthorizedToast() {
   const shownRef = useRef(false);
 
   useEffect(() => {
-    if (searchParams.get("unauthorized") && !shownRef.current) {
+    const unauthorized = searchParams.get("unauthorized");
+    if (unauthorized && !shownRef.current) {
       shownRef.current = true;
       toast.error("You don't have permission to access that page.");
       // Strip the param from the URL without adding to history
       const url = new URL(window.location.href);
       url.searchParams.delete("unauthorized");
       router.replace(url.pathname + url.search + url.hash);
+    }
+    if (!unauthorized) {
+      shownRef.current = false;
     }
   }, [searchParams, router]);
 

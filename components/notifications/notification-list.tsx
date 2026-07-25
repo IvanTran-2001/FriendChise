@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { Bell, Check, History, Megaphone } from "lucide-react";
+import { Bell, Check, Megaphone } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { AnnouncementScope } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { markAnnouncementSeenAction } from "@/app/actions/notifications";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { InviteCard } from "./invite-card";
 import { NotificationCard } from "./notification-card";
 import type { NotificationFeedItem } from "@/lib/services/notification-feed";

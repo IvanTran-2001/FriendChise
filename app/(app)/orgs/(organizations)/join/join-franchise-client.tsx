@@ -18,9 +18,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { TimezoneSelect } from "@/components/ui/timezone-select";
-import type { TimezoneOption } from "@/lib/timezones";
-import { SegmentedControl } from "@/components/ui/segmented-control";
+import { TimezoneSelect } from "@/components/ui/pickers/timezone-select";
+import type { TimezoneOption } from "@/lib/core/timezones";
+import { SegmentedControl } from "@/components/ui/controls/segmented-control";
 import { joinFranchise } from "@/app/actions/orgs";
 import { timeToMinutes } from "@/app/(app)/orgs/[orgId]/tools/roster/_utils/time-utils";
 

@@ -1,5 +1,5 @@
 import { AnnouncementScope, Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { recordAudit } from "@/lib/services/audit-log";
 import { getFranchiseRootOrgId } from "@/lib/services/franchise-root";
 import type { ServiceResult } from "./types";

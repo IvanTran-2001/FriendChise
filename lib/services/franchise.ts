@@ -11,13 +11,13 @@
  */
 
 import { InviteType, TaskScope } from "@prisma/client";
-import { log } from "@/lib/observability";
-import { prisma } from "@/lib/prisma";
-import { ROLE_KEYS } from "@/lib/rbac";
+import { log } from "@/lib/platform/observability";
+import { prisma } from "@/lib/platform/prisma";
+import { ROLE_KEYS } from "@/lib/auth/rbac";
 import { recordAudit } from "@/lib/services/audit-log";
 import { DEFAULT_SECTIONS } from "@/lib/services/task-sections";
 import type { ServiceResult } from "./types";
-import { normalizeEmail } from "@/lib/utils";
+import { normalizeEmail } from "@/lib/core/utils";
 
 export type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 

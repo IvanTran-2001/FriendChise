@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { MoreVertical } from "lucide-react";
 import {
   DropdownMenu,
@@ -19,10 +18,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/dialogs/alert-dialog";
 import { toast } from "sonner";
 import { deleteMembershipAction } from "@/app/actions/memberships";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { MemberForm } from "./member-form";
 
 type Role = { id: string; name: string; color: string };
@@ -37,6 +36,7 @@ interface MemberActionsProps {
   initialRoleIds: string[];
   initialWorkingDays: string[];
   image: string | null;
+  onDeleted: () => void;
 }
 
 /**
@@ -54,8 +54,8 @@ export function MemberActions({
   initialRoleIds,
   initialWorkingDays,
   image,
+  onDeleted,
 }: MemberActionsProps) {
-  const router = useRouter();
   const { open, close } = useActionSidebar();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -87,7 +87,8 @@ export function MemberActions({
         return;
       }
       setConfirmOpen(false);
-      router.refresh();
+      toast.success(`Member deleted successfully!`);
+      onDeleted();
     });
   }
 

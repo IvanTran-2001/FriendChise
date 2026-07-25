@@ -44,6 +44,42 @@ export function AddTemplateTaskPanel({
   const [timeStr, setTimeStr] = useState(initialTimeStr ?? "09:00");
   const [isPending, startTransition] = useTransition();
 
+  function loadTasks(search: string, cursor: string | null | undefined, signal: AbortSignal) {
+    const params = new URLSearchParams();
+    params.set("mode", "list");
+    params.set("limit", "20");
+    params.set("sort", "name-asc");
+    if (search.trim()) params.set("search", search.trim());
+    if (cursor) params.set("cursor", cursor);
+
+    return fetch(`/api/orgs/${orgId}/tasks/paginated?${params.toString()}`, { signal }).then(
+      async (response) => {
+        if (!response.ok) throw new Error("Failed to load tasks.");
+        const data = (await response.json()) as {
+          tasks: Array<{
+            id: string;
+            name: string;
+            durationMin: number;
+            color?: string | null;
+            eligibility?: Array<{ role?: { name: string; color: string | null } | null }>;
+          }>;
+          nextCursor: string | null;
+        };
+        return {
+          tasks: data.tasks.map((task) => ({
+            id: task.id,
+            name: task.name,
+            durationMin: task.durationMin,
+            color: task.color ?? null,
+            roleColor: task.eligibility?.[0]?.role?.color ?? null,
+            roleName: task.eligibility?.[0]?.role?.name ?? null,
+          })),
+          nextCursor: data.nextCursor,
+        };
+      },
+    );
+  }
+
   useEffect(() => {
     const evt =
       mode === "schedule"
@@ -187,7 +223,8 @@ export function AddTemplateTaskPanel({
 
   return (
     <TaskPanel
-      tasks={tasks}
+      tasks={[]}
+      loadTasks={loadTasks}
       onDragStart={(taskId, e) => {
         const h = getDragHandlers();
         h.setIsDragging?.(true);

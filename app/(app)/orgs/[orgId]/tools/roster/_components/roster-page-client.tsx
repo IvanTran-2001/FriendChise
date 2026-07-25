@@ -8,8 +8,8 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
-import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
+import { RegisterPageSidebar } from "@/components/layout/contexts/page-sidebar-context";
 import { RosterSidebarContent } from "./roster-sidebar-content";
 import { RosterClient } from "./roster-client";
 import type { RosterEntryRow, DayConfigRow, OrgMember } from "./roster-board";

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { requireSuperAdminPage } from "@/lib/authz";
 import { AdminUserGrowthCard, type GrowthRecord } from "../_components/admin-user-growth-card";
 

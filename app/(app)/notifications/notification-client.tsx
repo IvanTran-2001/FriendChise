@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { NotificationCard } from "@/components/notifications/notification-card";
 import { InviteCard } from "@/components/notifications/invite-card";
 import { markAnnouncementSeenAction } from "@/app/actions/notifications";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { AnnouncementScope } from "@prisma/client";
 import type { NotificationFeedItem } from "@/lib/services/notification-feed";
 

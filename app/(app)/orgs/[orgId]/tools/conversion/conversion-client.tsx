@@ -12,13 +12,18 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { Clock, FolderOpen, Layers, Pencil } from "lucide-react";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
-import { SearchInput } from "@/components/ui/search-input";
+import { Clock, FolderOpen, Layers, Pencil, Star } from "lucide-react";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
+import { BackButton } from "@/components/layout/sidebar/back-button";
+import { SearchInput } from "@/components/ui/controls/search-input";
 import { Button } from "@/components/ui/button";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useSupportsHover } from "@/hooks/use-hover-capability";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
+import { AddSetForm } from "./_components/add-set-form";
 import { EditSetForm } from "./_components/edit-set-form";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 
 interface ConversionSet {
   id: string;
@@ -63,6 +68,25 @@ export function ConversionClient({
   const [search, setSearch] = useState("");
   const { open, close, activeTitle } = useActionSidebar();
   const formKeyRef = useRef(0);
+  const supportsHover = useSupportsHover();
+
+  const [favoriteIds, setFavoriteIds, hydrated] = usePersistedState<string[]>(
+    `conversion-favorites-${orgId}`,
+    [],
+  );
+
+  const favoriteSets = hydrated
+    ? favoriteIds
+        .map((id) => sets.find((s) => s.id === id))
+        .filter((s): s is ConversionSet => !!s)
+    : [];
+
+  const toggleFavorite = (e: React.MouseEvent, setId: string) => {
+    e.preventDefault();
+    setFavoriteIds((prev) =>
+      prev.includes(setId) ? prev.filter((id) => id !== setId) : [...prev, setId],
+    );
+  };
 
   const filtered = sets.filter((s) =>
     s.name.toLowerCase().includes(search.toLowerCase()),
@@ -79,15 +103,33 @@ export function ConversionClient({
     );
   }
 
+  function handleAddSet() {
+    const k = ++formKeyRef.current;
+    open(
+      "Add Set",
+      <div key={k} className="p-4">
+        <AddSetForm orgId={orgId} onSuccess={close} onCancel={close} />
+      </div>,
+    );
+  }
+
   return (
     <>
       <RegisterPageToolbar>
-        <SearchInput
-          placeholder="Search sets…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-xs"
-        />
+        <div className="flex items-center gap-3">
+          <BackButton
+            fallbackHref={`/orgs/${orgId}/tools`}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          >
+            ← Tools
+          </BackButton>
+          <SearchInput
+            placeholder="Search sets…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="max-w-xs"
+          />
+        </div>
       </RegisterPageToolbar>
 
       <div className="flex flex-col gap-8 py-5">
@@ -125,6 +167,76 @@ export function ConversionClient({
           </section>
         )}
 
+        {/* Favorites section */}
+        {sets.length > 0 && !search && (
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <Star className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Favorites
+              </h2>
+            </div>
+            {favoriteSets.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-6 text-center gap-1 rounded-xl border border-dashed border-border bg-card/30">
+                <p className="text-xs text-muted-foreground">
+                  No favorite conversion sets yet. Click the star on any set card to save it.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {favoriteSets.map((set) => {
+                  return (
+                    <Link
+                      key={set.id}
+                      href={`/orgs/${orgId}/tools/conversion/${set.id}`}
+                      className={cn(
+                        "group flex items-center justify-between rounded-xl border bg-card px-4 py-3.5 shadow-sm",
+                        "hover:border-primary/40 hover:shadow-md transition-all cursor-pointer",
+                        activeTitle === `Edit: ${set.name}` && "border-primary/40",
+                      )}
+                    >
+                      <div className="flex flex-col gap-0.5 min-w-0 pr-2">
+                        <span className="text-sm font-semibold truncate">
+                          {set.name}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {set._count.templates} template
+                          {set._count.templates !== 1 ? "s" : ""}
+                          {" · "}
+                          {timeAgo(set.updatedAt)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
+                          onClick={(e) => toggleFavorite(e, set.id)}
+                          aria-label="Remove from favorites"
+                          className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-muted/50 transition-all cursor-pointer shrink-0"
+                        >
+                          <Star className="h-4 w-4 fill-current text-amber-500" />
+                        </Button>
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
+                          onClick={(e) => handleEdit(e, set)}
+                          aria-label={`Edit ${set.name}`}
+                          className={cn(
+                            "h-8 w-8 shrink-0 transition-opacity cursor-pointer text-muted-foreground hover:text-foreground",
+                            supportsHover ? "opacity-0 group-hover:opacity-100" : "opacity-100",
+                          )}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
+
         {/* Conversion sets */}
         <section>
           <div className="flex items-center gap-2 mb-3">
@@ -135,48 +247,77 @@ export function ConversionClient({
           </div>
 
           {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center gap-2 rounded-xl border border-dashed">
-              <FolderOpen className="h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">
-                {sets.length === 0
-                  ? `No sets yet. Use "+ Add Set" to create one.`
-                  : "No sets match your search."}
-              </p>
-            </div>
+            sets.length === 0 ? (
+              <EmptyState
+                icon={FolderOpen}
+                title="No sets yet"
+                action={{ label: "Create your first set", onClick: handleAddSet }}
+              />
+            ) : (
+              <div className="flex items-center justify-center rounded-2xl border border-border/70 bg-card/30 py-16">
+                <p className="text-sm text-muted-foreground">
+                  No sets match your search.
+                </p>
+              </div>
+            )
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {filtered.map((set) => (
-                <Link
-                  key={set.id}
-                  href={`/orgs/${orgId}/tools/conversion/${set.id}`}
-                  className={cn(
-                    "group flex items-center justify-between rounded-xl border bg-card px-4 py-3.5 shadow-sm",
-                    "hover:border-primary/40 hover:shadow-md transition-all cursor-pointer",
-                    activeTitle === `Edit: ${set.name}` && "border-primary/40",
-                  )}
-                >
-                  <div className="flex flex-col gap-0.5 min-w-0 pr-2">
-                    <span className="text-sm font-semibold truncate">
-                      {set.name}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {set._count.templates} template
-                      {set._count.templates !== 1 ? "s" : ""}
-                      {" · "}
-                      {timeAgo(set.updatedAt)}
-                    </span>
-                  </div>
-                  <Button
-                    size="icon-sm"
-                    variant="ghost"
-                    onClick={(e) => handleEdit(e, set)}
-                    aria-label={`Edit ${set.name}`}
-                    className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              {filtered.map((set) => {
+                const isFav = hydrated && favoriteIds.includes(set.id);
+                return (
+                  <Link
+                    key={set.id}
+                    href={`/orgs/${orgId}/tools/conversion/${set.id}`}
+                    className={cn(
+                      "group flex items-center justify-between rounded-xl border bg-card px-4 py-3.5 shadow-sm",
+                      "hover:border-primary/40 hover:shadow-md transition-all cursor-pointer",
+                      activeTitle === `Edit: ${set.name}` && "border-primary/40",
+                    )}
                   >
-                    <Pencil />
-                  </Button>
-                </Link>
-              ))}
+                    <div className="flex flex-col gap-0.5 min-w-0 pr-2">
+                      <span className="text-sm font-semibold truncate">
+                        {set.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {set._count.templates} template
+                        {set._count.templates !== 1 ? "s" : ""}
+                        {" · "}
+                        {timeAgo(set.updatedAt)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        onClick={(e) => toggleFavorite(e, set.id)}
+                        aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+                        className={cn(
+                          "h-8 w-8 text-muted-foreground hover:text-amber-500 hover:bg-muted/50 transition-all cursor-pointer",
+                          isFav
+                            ? "text-amber-500 fill-current opacity-100"
+                            : supportsHover
+                              ? "opacity-0 group-hover:opacity-100"
+                              : "opacity-100",
+                        )}
+                      >
+                        <Star className={cn("h-4 w-4", isFav && "fill-current")} />
+                      </Button>
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        onClick={(e) => handleEdit(e, set)}
+                        aria-label={`Edit ${set.name}`}
+                        className={cn(
+                          "h-8 w-8 shrink-0 transition-opacity cursor-pointer text-muted-foreground hover:text-foreground",
+                          supportsHover ? "opacity-0 group-hover:opacity-100" : "opacity-100",
+                        )}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </section>

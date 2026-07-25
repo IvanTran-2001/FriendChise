@@ -1,10 +1,10 @@
 import { PrismaClient, PermissionAction } from "@prisma/client";
-import { ROLE_KEYS } from "@/lib/rbac";
+import { ROLE_KEYS } from "@/lib/auth/rbac";
 import type { SeedPlan } from "../seed-plan";
 import { ALL_OWNER_PERMISSIONS } from "../helpers";
-import type { Users } from "../users";
-import { seedDisplayName } from "@/lib/seed-namespace";
-import { connectSeedUsersToOrg } from "../connect-users";
+import type { Users } from "../shared/users";
+import { seedDisplayName } from "@/lib/demo/seed-namespace";
+import { connectSeedUsersToOrg } from "../helpers/connect-users";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 5. EMPTY ORGS — multiple orgs with Riley as a member (not owner)

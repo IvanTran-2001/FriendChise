@@ -12,8 +12,8 @@
  *   default (white/dark) — fully staffed
  */
 
-import { cn } from "@/lib/utils";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { cn } from "@/lib/core/utils";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { EditCellPanel } from "./edit-cell-dialog";
 import { EditDayConfigPanel } from "./edit-day-config-dialog";
 import {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import {
   getRoles,
   deleteRole,
@@ -8,7 +8,7 @@ import {
   updateRole,
 } from "@/lib/services/roles";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/platform/prisma", () => ({
   prisma: {
     role: {
       findMany: vi.fn(),

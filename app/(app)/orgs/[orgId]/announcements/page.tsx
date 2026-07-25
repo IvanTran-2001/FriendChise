@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
-import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
+import { RegisterPageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
 import { requireUserPage } from "@/lib/authz";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/platform/prisma";
 import { getAnnouncementsPage } from "@/lib/services/announcements";
 import { AnnouncementSidebarContent, type AnnouncementOrder } from "./_components/announcement-sidebar-content";
 import { AnnouncementClient } from "./_components/announcement-client";
@@ -43,6 +43,11 @@ export default async function AnnouncementsPage({
 
   // The owner check only drives the UI affordances, not page access.
   const canManage = org.ownerId === userId;
+  const feedKey = [
+    order,
+    announcements.page,
+    announcements.announcements.map((announcement) => announcement.id).join("."),
+  ].join("|");
 
   return (
     <>
@@ -50,6 +55,7 @@ export default async function AnnouncementsPage({
         content={<AnnouncementSidebarContent orgId={orgId} order={order} canManage={canManage} />}
       />
       <AnnouncementClient
+        key={feedKey}
         orgId={orgId}
         orgName={org.name}
         announcements={announcements.announcements}
@@ -57,7 +63,6 @@ export default async function AnnouncementsPage({
         canManage={canManage}
         page={announcements.page}
         totalPages={announcements.totalPages}
-        totalCount={announcements.totalCount}
       />
     </>
   );

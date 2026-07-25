@@ -23,7 +23,7 @@ import { FeedbackType } from "@prisma/client";
 import imageCompression from "browser-image-compression";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { submitFeedbackAction } from "@/app/actions/feedback";
 import { getFeedbackImageUploadUrl } from "@/app/actions/storage";
 

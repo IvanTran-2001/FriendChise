@@ -13,8 +13,8 @@
  *   subject to UTC conversion — only live `TimetableEntry` rows use UTC.
  * - `getTimetableEntries` is the primary read path for the calendar view.
  */
-import { log } from "@/lib/observability";
-import { prisma } from "@/lib/prisma";
+import { log } from "@/lib/platform/observability";
+import { prisma } from "@/lib/platform/prisma";
 import { Prisma, EntryStatus } from "@prisma/client";
 import { recordAudit } from "@/lib/services/audit-log";
 import { isSameFranchise } from "@/lib/services/franchise-root";
@@ -24,7 +24,7 @@ import {
   addCalendarDays,
   localToUTC,
   utcToLocal,
-} from "@/lib/date-utils";
+} from "@/lib/core/date-utils";
 
 /** Options for filtering timetable entries returned by `listTimetableEntries`. */
 export type ListTimetableEntriesOptions = {

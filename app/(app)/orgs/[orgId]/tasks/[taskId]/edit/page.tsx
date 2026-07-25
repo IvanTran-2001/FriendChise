@@ -12,7 +12,7 @@ import { PermissionAction } from "@prisma/client";
 import { getTaskById } from "@/lib/services/tasks";
 import { getRoles } from "@/lib/services/roles";
 import { getOrgTags } from "@/lib/services/tags";
-import { createSignedReadUrl } from "@/lib/supabase-storage";
+import { createSignedReadUrl } from "@/lib/platform/supabase-storage";
 import { TaskEditClient } from "./task-edit-client";
 
 const EditTaskPage = async ({

@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import type { SeedPlan } from "../seed-plan";
-import type { Users } from "../users";
+import type { Users } from "../shared/users";
 import type { seedDonutShopA } from "../orgs/donut-shop-a/donut-shop-a";
 
 const NOTIFICATION_MESSAGES = [

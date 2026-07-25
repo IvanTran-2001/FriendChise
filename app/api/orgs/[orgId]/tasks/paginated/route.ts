@@ -17,7 +17,7 @@
 import { NextResponse } from "next/server";
 import { requireOrgMember } from "@/lib/authz";
 import { getTasksPaginated } from "@/lib/services/tasks";
-import { createSignedReadUrls } from "@/lib/supabase-storage";
+import { createSignedReadUrls } from "@/lib/platform/supabase-storage";
 import type { TaskSortOption } from "@/lib/services/tasks";
 
 const VALID_MODES = ["list", "available", "shared"] as const;

@@ -10,8 +10,8 @@
  * The picker updates the URL in place and notifies the parent so the view
  * switches immediately without a route navigation.
  */
-import { cn } from "@/lib/utils";
-import { SegmentedControl } from "@/components/ui/segmented-control";
+import { cn } from "@/lib/core/utils";
+import { SegmentedControl } from "@/components/ui/controls/segmented-control";
 import { CalendarDays, CalendarRange, Calendar, List } from "lucide-react";
 
 interface TimetableViewPickerProps {

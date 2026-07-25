@@ -19,13 +19,27 @@ import { ImagePlus, Loader2, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ItemImage } from "@/components/ui/item-image";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/dialogs/alert-dialog";
+import {
+} from "@/app/actions/tools";
 import {
   createToolItemAction,
   updateToolItemAction,
   deleteToolItemAction,
-} from "@/app/actions/tools";
-import { removeToolItemImage, saveToolItemImagePath } from "@/app/actions/storage";
-import { OrgImagePicker } from "@/components/ui/org-image-picker";
+} from "@/app/actions/tools/conversion";
+import { removeToolItemImage } from "@/app/actions/storage";
+import { ToolItemImagePicker } from "@/components/ui/pickers/tool-item-image-picker";
 import type { ToolItem } from "./item-list-client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -130,8 +144,6 @@ function CreateForm({ orgId, onCreated }: CreateProps) {
 
 // ─── Edit form ────────────────────────────────────────────────────────────────
 
-const ITEM_CROP = { aspect: 1, outputWidth: 512, outputHeight: 512 };
-
 function EditForm({ orgId, item, canManage, onUpdated, onDeleted, onClose: _onClose }: EditProps) {
   const [name, setName] = useState(item.name);
   const [unit, setUnit] = useState(item.unit || "each");
@@ -195,31 +207,12 @@ function EditForm({ orgId, item, canManage, onUpdated, onDeleted, onClose: _onCl
     });
   }
 
-  // Generate placeholder color from item name
-  const hue = [...item.name].reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360;
-  const bg = `hsl(${hue} 55% 88%)`;
-  const fg = `hsl(${hue} 45% 38%)`;
-
   return (
     <div className="flex flex-col gap-0">
       {/* ── Image area ──────────────────────────────────────────────────── */}
       <div className="relative bg-muted/30 border-b">
-        <div className="aspect-square max-h-56 w-full overflow-hidden flex items-center justify-center">
-          {previewUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={previewUrl}
-              alt={item.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div
-              className="w-full h-full flex items-center justify-center text-7xl font-bold select-none"
-              style={{ backgroundColor: bg, color: fg }}
-            >
-              {item.name.charAt(0).toUpperCase()}
-            </div>
-          )}
+        <div className="aspect-square max-h-56 w-full overflow-hidden">
+          <ItemImage src={previewUrl} name={item.name} fallbackTextClassName="text-7xl" />
         </div>
 
         {/* Image action buttons */}
@@ -236,16 +229,11 @@ function EditForm({ orgId, item, canManage, onUpdated, onDeleted, onClose: _onCl
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
-            <OrgImagePicker
+            <ToolItemImagePicker
               orgId={orgId}
-              config={ITEM_CROP}
+              itemId={item.id}
               disabled={isBusy}
-              onSelect={async (storagePath, signedUrl) => {
-                const saveResult = await saveToolItemImagePath(orgId, item.id, storagePath);
-                if (!saveResult.ok) {
-                  toast.error(saveResult.error);
-                  return;
-                }
+              onSelect={(storagePath, signedUrl) => {
                 setPreviewUrl(signedUrl);
                 imgPathRef.current = storagePath;
                 onUpdated({ ...item, name, imgUrl: storagePath, imageSignedUrl: signedUrl });
@@ -304,22 +292,43 @@ function EditForm({ orgId, item, canManage, onUpdated, onDeleted, onClose: _onCl
             >
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
             </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={isBusy}
-              className="w-full gap-2"
-              onClick={handleDelete}
-            >
-              {isDeleting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <Trash2 className="h-4 w-4" />
-                  Delete Item
-                </>
-              )}
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={isBusy}
+                  className="w-full gap-2"
+                >
+                  {isDeleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4" />
+                      Delete Item
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete &ldquo;{item.name}&rdquo;?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This permanently removes the item from your catalog and from any
+                    lists it appears in. This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={handleDelete}
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         )}
       </form>

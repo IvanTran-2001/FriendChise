@@ -25,7 +25,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/dialogs/alert-dialog";
 import {
   deleteTaskAction,
   publishTaskAction,
@@ -290,7 +290,7 @@ export function TaskDetailSidebar({
 
       {/* Sharing section */}
       {isOwner && canManage && (
-        <div className="px-3 pt-3 pb-2">
+        <div className="px-3 pt-3 pb-2" data-tour-target="task-sharing-panel">
           <p className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider px-1 mb-2">
             Sharing
           </p>

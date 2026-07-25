@@ -1,16 +1,11 @@
-import { requireOrgMemberPage } from "@/lib/authz";
-import {
-  getOrgMembership,
-  memberHasPermission,
-  getAuthUserId,
-} from "@/lib/authz/_shared";
+import { requireOrgPermissionPage } from "@/lib/authz";
 import { PermissionAction } from "@prisma/client";
 import { getToolItemLists } from "@/lib/services/tools";
 import {
   listRecentActivitiesByCategory,
   RECENT_ACTIVITY_CATEGORY,
 } from "@/lib/services/recent-activity";
-import { RegisterPageSidebar } from "@/components/layout/page-sidebar-context";
+import { RegisterPageSidebar } from "@/components/layout/contexts/page-sidebar-context";
 import { ItemListSidebarShell } from "../_components/item-list-sidebar-shell";
 import { ItemListsPageClient } from "./_components/item-lists-page-client";
 
@@ -24,13 +19,8 @@ export default async function ItemListsPage({
   const { orgId } = await params;
   const { view: viewParam } = await searchParams;
   const view: "list" | "card" = viewParam === "card" ? "card" : "list";
-  await requireOrgMemberPage(orgId);
-
-  const userId = await getAuthUserId();
-  const membership = userId ? await getOrgMembership(orgId, userId) : null;
-  const canManage = membership
-    ? await memberHasPermission(membership.id, orgId, PermissionAction.MANAGE_TASKS)
-    : false;
+  await requireOrgPermissionPage(orgId, PermissionAction.MANAGE_TASKS);
+  const canManage = true;
 
   const [lists, recentLists] = await Promise.all([
     getToolItemLists(orgId),
@@ -39,7 +29,7 @@ export default async function ItemListsPage({
 
   return (
     <>
-      <RegisterPageSidebar title="Item List" content={<ItemListSidebarShell />} />
+      <RegisterPageSidebar title="Items" content={<ItemListSidebarShell />} />
       {/* ItemListsPageClient owns the lists state so create/edit/delete update immediately.
           Previously this page rendered ItemListsSidebarContent + ItemListsClient separately
           with no shared state between them. */}

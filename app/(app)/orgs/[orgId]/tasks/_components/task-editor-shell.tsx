@@ -9,8 +9,8 @@
  */
 
 import type { ReactNode } from "react";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
-import { RegisterPageSidebarSubContent } from "@/components/layout/page-sidebar-context";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
+import { RegisterPageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
 
 interface TaskEditorShellProps {
   sidebarContent: ReactNode;

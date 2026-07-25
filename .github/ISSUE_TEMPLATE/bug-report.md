@@ -4,53 +4,50 @@ about: Something isn't working as expected
 labels: bug
 ---
 
-## Description
+## Summary
 
-<!-- 1-2 sentences — what's broken -->
+<!-- Briefly describe the issue and its impact. -->
 
 ## Steps to Reproduce
 
 1. Go to `...`
-2. Click / tap on `...`
+2. Perform `...`
 3. Observe `...`
 
 ## Expected Behavior
 
-<!-- What should happen -->
+<!-- What should have happened instead? -->
 
 ## Actual Behavior
 
-<!-- What actually happens -->
+<!-- What happened instead? -->
 
-## Device / Browser
+## Environment
 
-- [ ] Desktop — Chrome
-- [ ] Desktop — Safari
-- [ ] Desktop — Firefox
-- [ ] Desktop — Edge
-- [ ] iPhone — Safari
-- [ ] Android — Chrome
-- [ ] Other (please specify): \_\_\_
+- **OS:**
+- **Browser:**
+- **Device:**
+- **App version / branch:**
 
 ## Severity
 
-<!-- Pick one -->
+<!-- Select the closest match. -->
 
 - [ ] 🔴 Critical — blocks core functionality
 - [ ] 🟠 High — major feature broken but workaround exists
 - [ ] 🟡 Medium — annoying but doesn't block anything
 - [ ] 🟢 Low — cosmetic / minor polish
 
-## Screenshot / Recording
+## Additional Evidence
 
-<!-- Attach if possible -->
+<!-- Screenshots, screen recordings, logs, or console output. -->
 
 ## Smoke Test Reference
 
-<!-- e.g. V1 Round 1 — #24 -->
+<!-- Optional: link to a related smoke test or issue. -->
 
-## Affected Files
+## Affected Area
 
-<!-- Optional — helps when fixing -->
+<!-- Optional: file paths, route names, or component names. -->
 
 - `app/(app)/orgs/[orgId]/...`

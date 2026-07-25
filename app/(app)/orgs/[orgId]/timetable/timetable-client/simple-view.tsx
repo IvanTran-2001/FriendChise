@@ -4,11 +4,12 @@ import { useState, useTransition, useCallback } from "react";
 import { useRouter } from "next/navigation";
 // Title no longer links to task detail here; use the icon button instead.
 import { CalendarDays, ExternalLink } from "lucide-react";
-import { useActionSidebar } from "@/components/layout/action-sidebar-context";
+import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import { useSupportsHover } from "@/hooks/use-hover-capability";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { createTimetableEntryAction } from "@/app/actions/timetable-entries";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import {
   addDays,
@@ -113,10 +114,10 @@ export function SimpleView({
 
   if (visibleInstances.length === 0) {
     return (
-      <div className="flex items-center justify-center rounded-xl border border-dashed bg-muted/20 py-16">
+      <div className="flex items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20 py-16">
         <div className="flex flex-col items-center gap-3 text-center">
           <CalendarDays className="h-10 w-10 text-muted-foreground/40" />
-          <p className="text-xl font-semibold text-foreground">
+          <p className="text-lg font-semibold text-foreground">
             {span === "day" ? "No tasks today" : "No tasks this week"}
           </p>
         </div>
@@ -140,12 +141,12 @@ export function SimpleView({
           return (
             <div
               key={dayStr}
-              className={`rounded-xl border shadow-sm overflow-hidden ${
+              className={`rounded-2xl border overflow-hidden ${
                 highlightedDay === dayStr && actionSidebar.activeTitle != null
                   ? "border-primary/40 bg-primary/8 ring-2 ring-primary/40"
                   : today
                   ? "border-primary/40 bg-card ring-1 ring-primary/20"
-                  : "bg-card"
+                  : "border-border/60 bg-card"
               }`}
               onDragOver={(e) => {
                 if (!canManage) return;
@@ -191,6 +192,17 @@ export function SimpleView({
                           toast.error(res.error ?? "Failed to add task to timetable");
                           return;
                         }
+                        window.dispatchEvent(
+                          new CustomEvent("friendchise:timetable-entry-created", {
+                            detail: {
+                              orgId,
+                              taskId,
+                              date: dayStr,
+                              startTimeMin: defaultStartMin,
+                              source: "direct-create",
+                            },
+                          }),
+                        );
                         router.refresh();
                       });
                     }
@@ -365,17 +377,17 @@ export function SimpleView({
                         </span>
 
                         {/* Status badge (sm+) / dot (mobile) */}
-                        <span
-                          className={cn(
-                            "hidden sm:inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0",
+                        <Badge
+                          className="hidden sm:inline-flex shrink-0"
+                          variant={
                             effectiveStatus === "IN_PROGRESS"
-                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                              ? "warning"
                               : effectiveStatus === "DONE"
-                                ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                                ? "success"
                                 : effectiveStatus === "SKIPPED"
-                                  ? "bg-red-500/10 text-red-500"
-                                  : "bg-muted text-muted-foreground",
-                          )}
+                                  ? "error"
+                                  : "neutral"
+                          }
                         >
                           {effectiveStatus === "IN_PROGRESS"
                             ? "In progress"
@@ -384,7 +396,7 @@ export function SimpleView({
                               : effectiveStatus === "SKIPPED"
                                 ? "Skipped"
                                 : "To do"}
-                        </span>
+                        </Badge>
                         <span className="sm:hidden inline-flex items-center gap-1 shrink-0">
                           <span
                             className={cn(

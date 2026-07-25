@@ -4,7 +4,7 @@
  * Only works on the server since it calls resolveSeedNamespace().
  */
 
-import { SEEDED_USERS } from "@/lib/seeded-users";
+import { SEEDED_USERS } from "@/lib/demo/seeded-users";
 
 export interface DevUser {
   email: string;

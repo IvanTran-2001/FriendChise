@@ -1,6 +1,6 @@
 "use client";
 
-import { usePageSidebarSubContent } from "@/components/layout/page-sidebar-context";
+import { usePageSidebarSubContent } from "@/components/layout/contexts/page-sidebar-context";
 
 export function TasksSidebarShell() {
   const subContent = usePageSidebarSubContent();

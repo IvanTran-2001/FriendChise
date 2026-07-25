@@ -10,11 +10,14 @@ import { test, expect } from "@playwright/test";
 // Clear the session from auth.setup.ts — these tests must be unauthenticated
 test.use({ storageState: { cookies: [], origins: [] } });
 
-test("unauthenticated user visiting / is redirected to /signin", async ({
+test("unauthenticated user visiting / sees the marketing homepage", async ({
   page,
 }) => {
   await page.goto("/");
-  await expect(page).toHaveURL(/\/signin/);
+  await expect(page).toHaveURL("/");
+  await expect(
+    page.getByRole("heading", { name: /refuse to lose what works/i }),
+  ).toBeVisible();
 });
 
 test("unauthenticated user visiting a nested org page is redirected to /signin", async ({

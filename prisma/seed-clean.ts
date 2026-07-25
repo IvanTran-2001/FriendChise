@@ -1,10 +1,11 @@
 import dotenv from "dotenv";
+
 dotenv.config({ path: ".env", quiet: true });
 dotenv.config({ path: ".env.local", override: true, quiet: true });
 
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { cleanupSeedNamespace } from "./seeds/namespace-cleanup";
+import { cleanupSeedNamespace } from "./seeds/helpers/namespace-cleanup";
 
 let prisma: PrismaClient;
 const startedAt = Date.now();
@@ -14,7 +15,7 @@ function confirm(): void {
 
   if (!dbUrl) {
     console.error("  ❌ ERROR: DATABASE_URL is not set.");
-    console.error("  Ensure .env.local is present with DATABASE_URL set to your local database.\n");
+    console.error("  Ensure .env is present with DATABASE_URL set to your local database.\n");
     process.exit(1);
   }
 

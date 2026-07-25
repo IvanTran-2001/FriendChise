@@ -24,7 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { RegisterPageToolbar } from "@/components/layout/toolbar-context";
+import { RegisterPageToolbar } from "@/components/layout/contexts/toolbar-context";
 import { ListDisplayType } from "@prisma/client";
 import {
   deleteToolItemListAction,
@@ -60,7 +60,7 @@ interface ItemListsClientProps {
 
 const DISPLAY_TYPE_LABEL: Record<ListDisplayType, string> = {
   TABLE: "Table",
-  GRID: "Grid",
+  GRID: "Station Layout",
   CHECKLIST: "Checklist",
   GALLERY: "Gallery",
 };

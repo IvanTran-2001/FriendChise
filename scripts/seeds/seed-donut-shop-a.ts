@@ -2,7 +2,7 @@
  * Seed script for Donut Shop A.
  *
  * Creates (or resets) the "Donut Shop A" org owned by Ivan, with:
- *   - 5 real members  (Ivan, Jordan, Casey, Riley, Alex)
+    description: "**Steps**\n1. Confirm fryer is at 180°C.\n2. Remove proofed doughs from proofer.\n3. Lower rack gently — fry 90 sec each side.\n4. Drain on wire rack for 2 min.\n5. Cool completely before filling or glazing (min 20 min).\n6. Record batch count and any waste in production log.\n\n[Watch a frying reference video](https://www.youtube.com/watch?v=XeKqbuZaSRg)\n\n![Fry Morning Batches reference](https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&w=1200&q=80)\n\n_Never overload the fryer — max 6 rings per side._",
  *   - 5 bot slots     (Open Slot, Morning Runner, Fryer Backup, Counter Float, Weekend Fill)
  *   - Rich RBAC       (Owner, Default Member, Fryer Operator, Counter Staff, Shift Lead, Trainee)
  *   - 30+ tasks       (operations + recipe cards)
@@ -23,8 +23,8 @@ dotenv.config({ path: ".env.local", override: true, quiet: true });
 
 import { PrismaClient, PermissionAction, EntryStatus } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { ROLE_KEYS } from "@/lib/rbac";
-import { localToUTC } from "@/lib/date-utils";
+import { ROLE_KEYS } from "@/lib/auth/rbac";
+import { localToUTC } from "@/lib/core/date-utils";
 
 const dbUrl = process.env.DATABASE_URL!;
 if (!dbUrl) {

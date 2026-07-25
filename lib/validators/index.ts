@@ -3,6 +3,7 @@ export * from "./assignee";
 export * from "./bot";
 export * from "./membership";
 export * from "./org";
+export * from "./scan-to-task";
 export * from "./role";
 export * from "./task";
 export * from "./template";
