@@ -127,7 +127,7 @@ export function NotificationClient({
         )}
       </div>
 
-      <div className="flex items-center justify-between px-1">
+      <div className="flex shrink-0 items-center justify-between px-1">
         <Button variant="outline" size="sm" disabled={!hasPreviousPage} asChild={hasPreviousPage}>
           {hasPreviousPage ? (
             <Link href={buildNotificationsHref(page - 1, view)}>
@@ -143,7 +143,7 @@ export function NotificationClient({
         </Button>
 
         <span className="text-sm font-medium text-muted-foreground">
-          Page {page} of {totalPages}
+          Page {page}/{totalPages}
         </span>
 
         <Button variant="outline" size="sm" disabled={!hasNextPage} asChild={hasNextPage}>
