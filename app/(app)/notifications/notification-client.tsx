@@ -43,8 +43,8 @@ export function NotificationClient({
   });
 
   return (
-    <div className="max-w-3xl mx-auto w-full space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="max-w-3xl mx-auto flex flex-col h-full w-full min-h-0 space-y-6">
+      <div className="flex shrink-0 items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Bell className="h-5 w-5" />
@@ -86,9 +86,9 @@ export function NotificationClient({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+      <div className="flex-1 min-h-0 overflow-hidden rounded-xl border bg-card shadow-sm">
         {sortedItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
+          <div className="flex h-full flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
               <Bell className="size-6 opacity-40" />
             </div>
@@ -97,7 +97,7 @@ export function NotificationClient({
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-border/60">
+          <div className="h-full divide-y divide-border/60 overflow-y-auto">
             {sortedItems.map((item) => {
               if (item.kind === "invite") {
                 return (
@@ -127,41 +127,39 @@ export function NotificationClient({
         )}
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between px-1">
-          <Button variant="outline" size="sm" disabled={!hasPreviousPage} asChild={hasPreviousPage}>
-            {hasPreviousPage ? (
-              <Link href={buildNotificationsHref(page - 1, view)}>
-                <ChevronLeft className="mr-1 h-4 w-4" />
-                Previous
-              </Link>
-            ) : (
-              <span className="inline-flex items-center">
-                <ChevronLeft className="mr-1 h-4 w-4" />
-                Previous
-              </span>
-            )}
-          </Button>
+      <div className="flex shrink-0 items-center justify-between px-1">
+        <Button variant="outline" size="sm" disabled={!hasPreviousPage} asChild={hasPreviousPage}>
+          {hasPreviousPage ? (
+            <Link href={buildNotificationsHref(page - 1, view)}>
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              Previous
+            </Link>
+          ) : (
+            <span className="inline-flex items-center">
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              Previous
+            </span>
+          )}
+        </Button>
 
-          <span className="text-sm font-medium text-muted-foreground">
-            Page {page} of {totalPages}
-          </span>
+        <span className="text-sm font-medium text-muted-foreground">
+          Page {page}/{totalPages}
+        </span>
 
-          <Button variant="outline" size="sm" disabled={!hasNextPage} asChild={hasNextPage}>
-            {hasNextPage ? (
-              <Link href={buildNotificationsHref(page + 1, view)}>
-                Next
-                <ChevronRight className="ml-1 h-4 w-4" />
-              </Link>
-            ) : (
-              <span className="inline-flex items-center">
-                Next
-                <ChevronRight className="ml-1 h-4 w-4" />
-              </span>
-            )}
-          </Button>
-        </div>
-      )}
+        <Button variant="outline" size="sm" disabled={!hasNextPage} asChild={hasNextPage}>
+          {hasNextPage ? (
+            <Link href={buildNotificationsHref(page + 1, view)}>
+              Next
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Link>
+          ) : (
+            <span className="inline-flex items-center">
+              Next
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </span>
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
