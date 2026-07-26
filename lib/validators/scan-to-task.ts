@@ -25,6 +25,9 @@ export const scanTaskDraftSchema = z.object({
   minWaitDays: z.number().int().min(0).max(3650),
   maxWaitDays: z.number().int().min(0).max(3650),
   summary: z.string().max(500),
+  sourceText: z.string().max(3000).default(""),
+  importantDetails: z.array(z.string().min(1).max(300)).max(12).default([]),
+  actionItems: z.array(z.string().min(1).max(300)).max(12).default([]),
 });
 
 /**
@@ -37,6 +40,10 @@ export const confirmScanToTaskSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(5000),
   summary: z.string().max(500),
+  sourceText: z.string().max(3000).optional().or(z.literal("")),
+  importantDetails: z.string().max(4000).optional().or(z.literal("")),
+  actionItems: z.string().max(4000).optional().or(z.literal("")),
+  allowDuplicate: z.coerce.boolean().optional().default(false),
   durationMin: z.coerce.number().int().positive().max(24 * 60),
   peopleRequired: z.coerce.number().int().min(1).max(50),
   minWaitDays: z.coerce.number().int().min(0).max(3650),

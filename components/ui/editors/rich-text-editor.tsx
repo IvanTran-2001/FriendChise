@@ -20,12 +20,14 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
+import Underline from "@tiptap/extension-underline";
 import { Markdown } from "tiptap-markdown";
 import type { MarkdownStorage } from "tiptap-markdown";
 import {
   Bold,
   Italic,
   Strikethrough,
+  Underline as UnderlineIcon,
   List,
   ListOrdered,
   Heading3,
@@ -101,6 +103,7 @@ export function RichTextEditor({
   const editor = useEditor({
     extensions: [
       StarterKit,
+      Underline,
       Placeholder.configure({
         placeholder: placeholder ?? "Add a description…",
       }),
@@ -210,6 +213,13 @@ export function RichTextEditor({
           title="Italic (Ctrl+I)"
         >
           <Italic className="h-3.5 w-3.5" />
+        </ToolbarBtn>
+        <ToolbarBtn
+          onClick={() => editor?.chain().focus().toggleUnderline().run()}
+          active={editor?.isActive("underline") ?? false}
+          title="Underline (Ctrl+U)"
+        >
+          <UnderlineIcon className="h-3.5 w-3.5" />
         </ToolbarBtn>
         <ToolbarBtn
           onClick={() => editor?.chain().focus().toggleStrike().run()}

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import {
   Bold,
@@ -292,6 +293,7 @@ export function MarkdownEditor({
         <div className="px-3 py-2 min-h-24 text-sm">
           {value.trim() ? (
             <ReactMarkdown
+              rehypePlugins={[rehypeRaw]}
               remarkPlugins={[remarkGfm]}
               components={{
                 p: ({ children }) => (
@@ -313,6 +315,7 @@ export function MarkdownEditor({
                 del: ({ children }) => (
                   <del className="line-through">{children}</del>
                 ),
+                u: ({ children }) => <u className="underline underline-offset-2">{children}</u>,
                 h3: ({ children }) => (
                   <h3 className="font-semibold mt-3 mb-1 first:mt-0">
                     {children}
