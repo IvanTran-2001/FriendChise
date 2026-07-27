@@ -1,6 +1,7 @@
 "use client";
 
 import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import { MarkdownImage, MarkdownLink } from "@/components/ui/editors/markdown-media";
 
@@ -20,6 +21,7 @@ export function TaskDescriptionMarkdown({
   return (
     <div className={className}>
       <ReactMarkdown
+        rehypePlugins={[rehypeRaw]}
         remarkPlugins={[remarkGfm]}
         components={{
           p: ({ children }) => (
@@ -39,6 +41,8 @@ export function TaskDescriptionMarkdown({
           strong: ({ children }) => (
             <strong className="font-semibold">{children}</strong>
           ),
+          u: ({ children }) => <u className="underline underline-offset-2">{children}</u>,
+          del: ({ children }) => <del className="line-through">{children}</del>,
           h3: ({ children }) => (
             <h3 className="text-sm font-semibold mt-3 mb-1 first:mt-0">
               {children}

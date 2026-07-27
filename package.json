@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:scan": "OPENAI_SCAN_DEBUG=1 next dev",
+    "dev:scan:logs": "SCAN_TO_TASK_DEBUG=1 next dev",
+    "dev:scan:verbose": "SCAN_TO_TASK_VERBOSE=1 next dev",
     "build": "prisma generate && next build --webpack",
     "start": "next start",
     "lint": "eslint",
