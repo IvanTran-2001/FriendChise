@@ -3,7 +3,7 @@
 import {
   buildTaskSuggestion,
   type TaskSuggestionResult,
-} from "@/lib/ai/task-suggestions";
+} from "@/lib/ai/scan-to-task";
 
 export type TaskSuggestionInput = {
   title: string;

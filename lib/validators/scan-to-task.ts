@@ -26,8 +26,6 @@ export const scanTaskDraftSchema = z.object({
   maxWaitDays: z.number().int().min(0).max(3650),
   summary: z.string().max(500),
   sourceText: z.string().max(3000).default(""),
-  importantDetails: z.array(z.string().min(1).max(300)).max(12).default([]),
-  actionItems: z.array(z.string().min(1).max(300)).max(12).default([]),
 });
 
 /**
@@ -37,18 +35,35 @@ export const scanTaskDraftSchema = z.object({
 export const confirmScanToTaskSchema = z.object({
   resultId: z.string().min(1),
   fileName: z.string().min(1),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Must be a valid hex color").optional(),
   title: z.string().min(1).max(200),
   description: z.string().max(5000),
   summary: z.string().max(500),
   sourceText: z.string().max(3000).optional().or(z.literal("")),
-  importantDetails: z.string().max(4000).optional().or(z.literal("")),
-  actionItems: z.string().max(4000).optional().or(z.literal("")),
   allowDuplicate: z.coerce.boolean().optional().default(false),
   durationMin: z.coerce.number().int().positive().max(24 * 60),
   peopleRequired: z.coerce.number().int().min(1).max(50),
   minWaitDays: z.coerce.number().int().min(0).max(3650),
   maxWaitDays: z.coerce.number().int().min(0).max(3650),
 });
+
+/**
+ * Validates the AI merge payload used when a reviewed draft should add on to an
+ * existing task instead of creating a duplicate.
+ */
+export const scanTaskMergeSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().max(5000),
+  durationMin: z.number().int().positive().max(24 * 60),
+  peopleRequired: z.number().int().min(1).max(50),
+  minWaitDays: z.number().int().min(0).max(3650),
+  maxWaitDays: z.number().int().min(0).max(3650),
+});
+
+export type ScanTaskResultMetadata = {
+  mergedFromResultIds?: string[];
+  mergedFromTaskIds?: string[];
+};
 
 /**
  * Validates the metadata needed to request a signed upload URL.
@@ -68,5 +83,6 @@ export const deleteUploadsSchema = z.object({
 export type ScanSourceInput = z.infer<typeof scanSourceSchema>;
 export type ScanTaskDraftInput = z.infer<typeof scanTaskDraftSchema>;
 export type ConfirmScanToTaskInput = z.infer<typeof confirmScanToTaskSchema>;
+export type ScanTaskMergeInput = z.infer<typeof scanTaskMergeSchema>;
 export type GetScanToTaskUploadUrlInput = z.infer<typeof getUploadUrlSchema>;
 export type DeleteScanToTaskUploadsInput = z.infer<typeof deleteUploadsSchema>;

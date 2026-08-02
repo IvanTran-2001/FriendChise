@@ -102,7 +102,10 @@ export function RichTextEditor({
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        link: false,
+        underline: false,
+      }),
       Underline,
       Placeholder.configure({
         placeholder: placeholder ?? "Add a description…",
@@ -199,7 +202,7 @@ export function RichTextEditor({
       )}
     >
       {/* Formatting toolbar */}
-      <div className="flex items-center gap-0.5 px-2 py-1 border-b bg-muted/30 shrink-0">
+      <div className="flex flex-wrap items-center gap-0.5 px-2 py-1 border-b bg-muted/30 shrink-0">
         <ToolbarBtn
           onClick={() => editor?.chain().focus().toggleBold().run()}
           active={editor?.isActive("bold") ?? false}
