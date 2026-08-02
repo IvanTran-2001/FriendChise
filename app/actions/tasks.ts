@@ -52,7 +52,9 @@ import {
   canAccessTask,
   createTask,
   deleteTask,
+  findTaskByName,
   getTaskOwnerOrgId,
+  getTaskById,
   inheritTask,
   publishTask,
   removeInheritedTask,
@@ -146,6 +148,14 @@ export async function createTaskAction(
     return {
       ok: false,
       errors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+    };
+  }
+
+  const duplicateTask = await findTaskByName(orgId, parsed.data.title);
+  if (duplicateTask) {
+    return {
+      ok: false,
+      errors: { _: [`A task named "${duplicateTask.name}" already exists.`] },
     };
   }
 
@@ -382,6 +392,58 @@ export async function updateTaskAction(
   revalidatePath(`/orgs/${orgId}/tasks`);
   revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);
   return { ok: true };
+}
+
+export type TaskDetailsActionState =
+  | {
+      ok: true;
+      task: {
+        id: string;
+        orgId: string;
+        color: string;
+        name: string;
+        description: string | null;
+        durationMin: number;
+        preferredStartTimeMin: number | null;
+        minPeople: number;
+        minWaitDays: number | null;
+        maxWaitDays: number | null;
+      };
+    }
+  | { ok: false; error: string }
+  | null;
+
+export async function getTaskDetailsAction(
+  orgId: string,
+  taskId: string,
+): Promise<NonNullable<TaskDetailsActionState>> {
+  const taskOrgId = await getTaskOwnerOrgId(taskId);
+  if (!taskOrgId) return { ok: false, error: "Task not found." };
+
+  const [franchiseAuthz, taskOrgAuthz] = await Promise.all([
+    requireParentOrgOwnerAction(orgId),
+    requireOrgPermissionAction(taskOrgId, PermissionAction.MANAGE_TASKS),
+  ]);
+  if (!franchiseAuthz.ok && !taskOrgAuthz.ok) return { ok: false, error: "Unauthorized." };
+
+  const task = await getTaskById(taskOrgId, taskId);
+  if (!task) return { ok: false, error: "Task not found." };
+
+  return {
+    ok: true,
+    task: {
+      id: task.id,
+      orgId: task.orgId,
+      color: task.color,
+      name: task.name,
+      description: task.description,
+      durationMin: task.durationMin,
+      preferredStartTimeMin: task.preferredStartTimeMin,
+      minPeople: task.minPeople,
+      minWaitDays: task.minWaitDays,
+      maxWaitDays: task.maxWaitDays,
+    },
+  };
 }
 
 /**

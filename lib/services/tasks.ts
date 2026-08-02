@@ -34,6 +34,323 @@ export type TaskToolLinkInput = {
   toolLabel?: string | null;
 };
 
+export type TaskDuplicateCheckInput = {
+  title: string;
+  description?: string | null;
+  sourceText?: string | null;
+  importantDetails?: string | null;
+  actionItems?: string | null;
+  topic?: string | null;
+};
+
+export type TaskDuplicateCandidate = {
+  id: string;
+  sourceType: "task" | "scan-result";
+  name: string;
+  description: string | null;
+  durationMin: number;
+  minPeople: number;
+  maxPeople: number | null;
+  color: string | null;
+  createdAt: string;
+  score: number;
+  matchedOn: string[];
+  topic: string | null;
+  taskId?: string | null;
+  resultId?: string | null;
+  clearedAt?: string | null;
+  confirmedAt?: string | null;
+  updatedAt: string;
+};
+
+type TaskDuplicateComparable = {
+  name: string;
+  description: string | null;
+  durationMin: number;
+  minPeople: number;
+  maxPeople: number | null;
+  topic?: string | null;
+};
+
+const taskTopicDefinitions = [
+  { topic: "kitchen", keywords: ["kitchen", "cook", "cooking", "prep", "recipe", "food", "menu", "dish", "oven", "fridge", "pantry", "fryer", "grill"] },
+  { topic: "cleaning", keywords: ["clean", "cleaning", "wipe", "mop", "sweep", "vacuum", "trash", "bin", "sanitize", "reset", "wash"] },
+  { topic: "roster", keywords: ["roster", "shift", "schedule", "staff", "cover", "availability", "timetable", "shift swap", "break"] },
+  { topic: "maintenance", keywords: ["maintenance", "repair", "fix", "replace", "check", "inspect", "fault", "broken", "service", "equipment"] },
+  { topic: "safety", keywords: ["safety", "hazard", "incident", "emergency", "first aid", "ppe", "fire", "risk", "compliance"] },
+  { topic: "training", keywords: ["training", "onboard", "onboarding", "teach", "coach", "learn", "induction", "handover"] },
+  { topic: "admin", keywords: ["admin", "report", "form", "paperwork", "notes", "message", "update", "review", "approval"] },
+  { topic: "customer", keywords: ["customer", "guest", "service", "order", "refund", "complaint", "call", "booking", "delivery"] },
+];
+
+function deriveTaskTopic(...parts: Array<string | null | undefined>) {
+  const normalized = normalizeDuplicateText(parts.filter((part): part is string => Boolean(part)).join(" \n"));
+  if (!normalized) return null;
+
+  const tokens = tokenizeDuplicateText(normalized);
+  let bestTopic: string | null = null;
+  let bestScore = 0;
+
+  for (const definition of taskTopicDefinitions) {
+    let score = 0;
+    for (const keyword of definition.keywords) {
+      const normalizedKeyword = normalizeDuplicateText(keyword);
+      if (!normalizedKeyword) continue;
+      if (tokens.has(normalizedKeyword)) score += normalizedKeyword.length >= 6 ? 2 : 1;
+      else if (normalized.includes(normalizedKeyword)) score += normalizedKeyword.length >= 6 ? 1.25 : 0.75;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestTopic = definition.topic;
+    }
+  }
+
+  return bestScore > 0 ? bestTopic : null;
+}
+
+function normalizeDuplicateText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenizeDuplicateText(value: string) {
+  return new Set(
+    normalizeDuplicateText(value)
+      .split(" ")
+      .map((part) => part.trim())
+      .filter((part) => part.length > 2),
+  );
+}
+
+function jaccardSimilarity(a: Set<string>, b: Set<string>) {
+  if (a.size === 0 || b.size === 0) return 0;
+  let intersection = 0;
+  for (const value of a) {
+    if (b.has(value)) intersection += 1;
+  }
+  const union = a.size + b.size - intersection;
+  return union === 0 ? 0 : intersection / union;
+}
+
+function wordOverlapBoost(a: string, b: string) {
+  const normalizedA = normalizeDuplicateText(a);
+  const normalizedB = normalizeDuplicateText(b);
+  if (!normalizedA || !normalizedB) return 0;
+  if (normalizedA === normalizedB) return 1;
+
+  const tokensA = tokenizeDuplicateText(normalizedA);
+  const tokensB = tokenizeDuplicateText(normalizedB);
+  return jaccardSimilarity(tokensA, tokensB);
+}
+
+export function compareTaskDuplicateText(input: TaskDuplicateCheckInput, task: TaskDuplicateComparable) {
+  const titleScore = wordOverlapBoost(input.title, task.name);
+  const sourceDescriptionParts = [input.description, input.sourceText, input.importantDetails, input.actionItems]
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part));
+  const descriptionScore = wordOverlapBoost(sourceDescriptionParts.join("\n"), task.description ?? "");
+  const exactTitle = normalizeDuplicateText(input.title) === normalizeDuplicateText(task.name);
+  const exactDescription =
+    normalizeDuplicateText(sourceDescriptionParts.join("\n")) === normalizeDuplicateText(task.description ?? "");
+
+  let score = 0;
+  const matchedOn: string[] = [];
+
+  if (exactTitle) {
+    score = 1;
+    matchedOn.push("title");
+  } else if (titleScore >= 0.5) {
+    score = Math.max(score, 0.9, titleScore);
+    matchedOn.push("title");
+  }
+
+  if (score === 0 && (exactDescription || descriptionScore >= 0.4)) {
+    score = Math.max(score, exactDescription ? 0.84 : 0.84, descriptionScore);
+    matchedOn.push("description");
+  }
+
+  return {
+    score,
+    matchedOn: Array.from(new Set(matchedOn)),
+  };
+}
+
+function candidateFromTaskRow(task: {
+  id: string;
+  name: string;
+  description: string | null;
+  durationMin: number;
+  minPeople: number;
+  maxPeople: number | null;
+  color: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  tags?: { tag: { name: string } }[];
+}): TaskDuplicateCandidate {
+  const topic = deriveTaskTopic(task.name, task.description, task.tags?.[0]?.tag.name ?? null);
+  return {
+    id: task.id,
+    sourceType: "task",
+    name: task.name,
+    description: task.description,
+    durationMin: task.durationMin,
+    minPeople: task.minPeople,
+    maxPeople: task.maxPeople,
+    color: task.color,
+    createdAt: task.createdAt.toISOString(),
+    score: 0,
+    matchedOn: [],
+    topic,
+    taskId: task.id,
+    resultId: null,
+    clearedAt: null,
+    confirmedAt: null,
+    updatedAt: task.updatedAt.toISOString(),
+  };
+}
+
+function candidateFromDraftRow(row: {
+  id: string;
+  taskId: string | null;
+  confirmedAt: Date | null;
+  clearedAt: Date | null;
+  draft: unknown;
+  createdAt: Date;
+  updatedAt: Date;
+}): TaskDuplicateCandidate | null {
+  if (!row.draft || typeof row.draft !== "object") return null;
+  const draft = row.draft as {
+    title?: unknown;
+    description?: unknown;
+    durationMin?: unknown;
+    peopleRequired?: unknown;
+  };
+
+  const name = typeof draft.title === "string" ? draft.title.trim() : "";
+  const description = typeof draft.description === "string" ? draft.description.trim() : "";
+  const durationMin = typeof draft.durationMin === "number" && Number.isFinite(draft.durationMin) ? draft.durationMin : null;
+  const minPeople = typeof draft.peopleRequired === "number" && Number.isFinite(draft.peopleRequired) ? draft.peopleRequired : null;
+  const topic = deriveTaskTopic(name, description);
+
+  if (!name || durationMin == null || minPeople == null) return null;
+
+  return {
+    id: row.id,
+    sourceType: "scan-result",
+    name,
+    description: description || null,
+    durationMin,
+    minPeople,
+    maxPeople: null,
+    color: null,
+    createdAt: row.createdAt.toISOString(),
+    score: 0,
+    matchedOn: [],
+    topic,
+    taskId: row.taskId,
+    resultId: row.id,
+    clearedAt: row.clearedAt?.toISOString() ?? null,
+    confirmedAt: row.confirmedAt?.toISOString() ?? null,
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+/**
+ * Returns likely duplicate tasks for the given task draft data.
+ * Keeps the check conservative: it only flags strong title/content matches.
+ */
+export async function findPotentialTaskDuplicates(
+  orgId: string,
+  input: TaskDuplicateCheckInput,
+  options: { limit?: number; recentLimit?: number; threshold?: number } = {},
+): Promise<TaskDuplicateCandidate[]> {
+  const threshold = options.threshold ?? 0.82;
+  const limit = options.limit ?? 3;
+
+  const taskLimit = options.recentLimit;
+  const scanResultLimit = options.recentLimit;
+
+  const [tasks, scanResults] = await Promise.all([
+    prisma.task.findMany({
+      where: { orgId },
+      orderBy: { createdAt: "desc" },
+      ...(typeof taskLimit === "number" ? { take: taskLimit } : {}),
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        durationMin: true,
+        minPeople: true,
+        maxPeople: true,
+        color: true,
+        createdAt: true,
+        updatedAt: true,
+        tags: {
+          select: {
+            tag: {
+              select: { name: true },
+            },
+          },
+        },
+      },
+    }),
+    prisma.scanTaskResult.findMany({
+      where: { orgId, clearedAt: null, taskId: null },
+      orderBy: { createdAt: "desc" },
+      ...(typeof scanResultLimit === "number" ? { take: scanResultLimit } : {}),
+      select: {
+        id: true,
+        taskId: true,
+        confirmedAt: true,
+        clearedAt: true,
+        draft: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+  ]);
+
+  const candidates = [
+    ...tasks.map((task) => {
+      const comparison = compareTaskDuplicateText(input, task);
+      return {
+        ...candidateFromTaskRow(task),
+        score: comparison.score,
+        matchedOn: comparison.matchedOn,
+      } satisfies TaskDuplicateCandidate;
+    }),
+    ...scanResults
+      .map((row) => candidateFromDraftRow(row))
+      .filter((candidate): candidate is TaskDuplicateCandidate => candidate !== null)
+      .map((candidate) => {
+        const comparison = compareTaskDuplicateText(input, candidate);
+        return {
+          ...candidate,
+          score: comparison.score,
+          matchedOn: comparison.matchedOn,
+        } satisfies TaskDuplicateCandidate;
+      }),
+  ];
+
+  const scoredCandidates = candidates
+    .filter((candidate) => candidate.score >= threshold)
+    .sort((a, b) => b.score - a.score || b.createdAt.localeCompare(a.createdAt));
+
+  return scoredCandidates
+    .reduce<TaskDuplicateCandidate[]>((uniqueCandidates, candidate) => {
+      const candidateKey = candidate.taskId ?? candidate.id;
+      if (!uniqueCandidates.some((item) => (item.taskId ?? item.id) === candidateKey)) {
+        uniqueCandidates.push(candidate);
+      }
+      return uniqueCandidates;
+    }, [])
+    .slice(0, limit);
+}
+
 /**
  * Creates a new task for the given org using validated input.
  * Optional fields are null-coalesced so callers never need to handle `undefined`.
@@ -279,6 +596,26 @@ export async function getTasks(orgId: string) {
   }
 
   return tasks;
+}
+
+/**
+ * Finds a task in an org by name, ignoring surrounding whitespace and case.
+ * Used by create flows to warn before creating a duplicate task title.
+ */
+export async function findTaskByName(orgId: string, name: string) {
+  const trimmedName = name.trim();
+  if (!trimmedName) return null;
+
+  return prisma.task.findFirst({
+    where: {
+      orgId,
+      name: {
+        equals: trimmedName,
+        mode: "insensitive",
+      },
+    },
+    select: { id: true, name: true },
+  });
 }
 
 export type TaskSortOption =
