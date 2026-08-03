@@ -136,6 +136,8 @@ export function ScanToTaskResultsSection({
                     confirmedTaskHref={result.ok ? confirmedTasksById[result.clientId]?.taskHref ?? null : null}
                     onSelect={() => onSelectResult(resultKey(result))}
                     onAccept={() => onAcceptResult(resultKey(result))}
+                    onSelectResult={onSelectResult}
+                    onAcceptResult={onAcceptResult}
                     onRemove={onRemoveResult}
                     onInspectTaskCandidate={onInspectTaskCandidate}
                     onDeleteTask={onDeleteTask}
@@ -159,6 +161,8 @@ function ScanResultListRow({
   confirmedTaskHref,
   onSelect,
   onAccept,
+  onSelectResult,
+  onAcceptResult,
   onRemove,
   onInspectTaskCandidate,
   onDeleteTask,
@@ -169,6 +173,8 @@ function ScanResultListRow({
   confirmedTaskHref?: string | null;
   onSelect: () => void;
   onAccept: () => void;
+  onSelectResult: (resultId: string) => void;
+  onAcceptResult: (resultId: string) => void;
   onRemove: (resultId: string) => void;
   onInspectTaskCandidate: (resultId: string, taskId: string) => void;
   onDeleteTask: (taskId: string) => void;
@@ -314,8 +320,8 @@ function ScanResultListRow({
             result={mergeSourceResult}
             sourceResultId={mergeSourceResult.clientId}
             readyResultsById={readyResultsById}
-            onSelectResult={onSelect}
-            onAcceptResult={onAccept}
+            onSelectResult={onSelectResult}
+            onAcceptResult={onAcceptResult}
             onRemoveResult={onRemove}
             onInspectTaskCandidate={onInspectTaskCandidate}
             onDeleteTask={onDeleteTask}

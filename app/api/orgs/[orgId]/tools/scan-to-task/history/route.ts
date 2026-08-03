@@ -46,43 +46,44 @@ export async function GET(
       },
     });
 
-    const recordsWithDuplicates = await Promise.all(
-      records.map(async (record) => {
+    const recordsWithDuplicates = [];
+    for (const record of records) {
         const parsedDraft = record.draft ? scanTaskDraftSchema.safeParse(record.draft) : null;
         if (!parsedDraft?.success) {
-          return { ...record, duplicateCandidates: [] };
+          recordsWithDuplicates.push({ ...record, duplicateCandidates: [] });
+          continue;
         }
 
-        const duplicateCandidates = await findPotentialTaskDuplicates(orgId, {
-          title: parsedDraft.data.title,
-          description: parsedDraft.data.description,
-          sourceText: parsedDraft.data.sourceText || undefined,
-        });
+        const duplicateCandidates = await findPotentialTaskDuplicates(
+          orgId,
+          {
+            title: parsedDraft.data.title,
+            description: parsedDraft.data.description,
+            sourceText: parsedDraft.data.sourceText || undefined,
+          },
+          { recentLimit: Math.max(limit, DEFAULT_LIMIT) },
+        );
 
-        const filteredCandidates = await Promise.all(
-          (record.taskId ? duplicateCandidates.filter((candidate) => candidate.taskId !== record.taskId) : duplicateCandidates).map(
-            async (candidate) => {
-              const adjudication = await adjudicateScanTaskDuplicate(
-                {
-                  title: parsedDraft.data.title,
-                  summary: parsedDraft.data.summary,
-                  description: parsedDraft.data.description,
-                  sourceText: parsedDraft.data.sourceText,
-                  importantDetails: [],
-                  actionItems: [],
-                },
-                candidate,
-              );
-
-              if (adjudication?.sameTask === false) return null;
-              return candidate;
+        const filteredCandidates = [];
+        for (const candidate of record.taskId ? duplicateCandidates.filter((candidate) => candidate.taskId !== record.taskId) : duplicateCandidates) {
+          const adjudication = await adjudicateScanTaskDuplicate(
+            {
+              title: parsedDraft.data.title,
+              summary: parsedDraft.data.summary,
+              description: parsedDraft.data.description,
+              sourceText: parsedDraft.data.sourceText,
+              importantDetails: [],
+              actionItems: [],
             },
-          ),
-        ).then((candidates) => candidates.filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null));
+            candidate,
+          );
 
-        return { ...record, duplicateCandidates: filteredCandidates };
-      }),
-    );
+          if (adjudication?.sameTask === false) continue;
+          filteredCandidates.push(candidate);
+        }
+
+        recordsWithDuplicates.push({ ...record, duplicateCandidates: filteredCandidates });
+    }
 
     const hasMore = recordsWithDuplicates.length > limit;
     const page = hasMore ? recordsWithDuplicates.slice(0, limit) : recordsWithDuplicates;

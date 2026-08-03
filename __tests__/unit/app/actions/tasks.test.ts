@@ -23,6 +23,7 @@ vi.mock("@/lib/services/tasks", () => ({
   deleteTask: vi.fn(),
   updateTask: vi.fn(),
   getTaskOwnerOrgId: vi.fn(),
+  findTaskByName: vi.fn(),
   addTaskEligibility: vi.fn(),
   removeTaskEligibility: vi.fn(),
   setTaskEligibilities: vi.fn(),
@@ -44,6 +45,7 @@ import {
   deleteTask,
   updateTask,
   getTaskOwnerOrgId,
+  findTaskByName,
   addTaskEligibility,
   removeTaskEligibility,
 } from "@/lib/services/tasks";
@@ -72,6 +74,10 @@ const authorised = {
 const unauthorised = { ok: false as const };
 
 beforeEach(() => vi.clearAllMocks());
+
+beforeEach(() => {
+  vi.mocked(findTaskByName).mockResolvedValue(null);
+});
 
 // ─── createTaskAction ─────────────────────────────────────────────────────────
 
@@ -107,6 +113,7 @@ describe("createTaskAction", () => {
       id: "task-1",
       name: "Task A",
     } as any);
+    vi.mocked(findTaskByName).mockResolvedValue(null);
 
     const fd = makeFormData({
       title: "Task A",
@@ -132,6 +139,25 @@ describe("createTaskAction", () => {
     );
     expect(revalidatePath).toHaveBeenCalledWith("/orgs/org-1/tasks");
     expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("returns a duplicate-name error when a task with the same title exists", async () => {
+    vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
+    vi.mocked(findTaskByName).mockResolvedValue({ id: "existing-task", name: "Task A" } as any);
+
+    const fd = makeFormData({
+      title: "Task A",
+      color: "#6366f1",
+      durationMin: "30",
+    });
+
+    const result = await createTaskAction("org-1", null, fd);
+
+    expect(result).toEqual({
+      ok: false,
+      errors: { _: ['A task named "Task A" already exists.'] },
+    });
+    expect(createTask).not.toHaveBeenCalled();
   });
 
   it("checks MANAGE_TASKS permission for the org", async () => {
