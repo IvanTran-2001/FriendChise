@@ -3,7 +3,6 @@
 import { PermissionAction, Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
-import { createTask } from "@/lib/services/tasks";
 import { findTaskByName } from "@/lib/services/tasks";
 import {
   inferScanTaskDraftsFromStorage,
@@ -29,9 +28,11 @@ import {
   scanSourceSchema,
 } from "@/lib/validators/scan-to-task";
 import { prisma } from "@/lib/platform/prisma";
+import { log } from "@/lib/platform/observability";
 import { requireOrgPermissionAction } from "@/lib/authz";
 import { checkDemoLimit } from "@/lib/demo";
-import { deleteTask } from "@/lib/services/tasks";
+import { createTaskOnClient, deleteTask } from "@/lib/services/tasks";
+import { recordAudit } from "@/lib/services/audit-log";
 import { mergeScanToTaskConflictItems } from "@/lib/ai/scan-to-task/s2t-merge";
 import {
   createSignedUploadUrl,
@@ -639,40 +640,93 @@ export async function confirmScanToTaskAction(
     };
   }
 
-  const task = await createTask(
-    orgId,
-    {
-      color: typeof parsed.data.color === "string" && parsed.data.color ? parsed.data.color : colorFromSeed(`${parsed.data.fileName}:${parsed.data.title}`),
-      title: parsed.data.title,
-      description: [parsed.data.description, `Source file: ${parsed.data.fileName}`]
-        .filter(Boolean)
-        .join("\n\n"),
-      durationMin: parsed.data.durationMin,
-      peopleRequired: parsed.data.peopleRequired,
-      minWaitDays: parsed.data.minWaitDays,
-      maxWaitDays: parsed.data.maxWaitDays,
-    },
-    auth.userId,
-    auth.userEmail,
-    creator?.name ?? null,
-  );
+  const confirmationUnavailableError = "Scan result is no longer available.";
+  const confirmedAt = new Date();
 
-  const acceptedResult = await prisma.scanTaskResult.findFirst({
-    where: { id: parsed.data.resultId, orgId },
-    select: { id: true },
-  });
-  if (acceptedResult) {
-    await prisma.scanTaskResult.update({
-      where: { id: acceptedResult.id },
-      data: {
-        taskId: task.id,
-        confirmedAt: new Date(),
-        clearedAt: new Date(),
-      },
+  let task;
+  try {
+    task = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.scanTaskResult.updateMany({
+        where: {
+          id: parsed.data.resultId,
+          orgId,
+          clearedAt: null,
+          confirmedAt: null,
+          taskId: null,
+        },
+        data: {
+          confirmedAt,
+          clearedAt: confirmedAt,
+        },
+      });
+
+      if (claimed.count === 0) {
+        throw new Error(confirmationUnavailableError);
+      }
+
+      const createdTask = await createTaskOnClient(
+        tx,
+        orgId,
+        {
+          color:
+            typeof parsed.data.color === "string" && parsed.data.color
+              ? parsed.data.color
+              : colorFromSeed(`${parsed.data.fileName}:${parsed.data.title}`),
+          title: parsed.data.title,
+          description: [parsed.data.description, `Source file: ${parsed.data.fileName}`]
+            .filter(Boolean)
+            .join("\n\n"),
+          durationMin: parsed.data.durationMin,
+          peopleRequired: parsed.data.peopleRequired,
+          minWaitDays: parsed.data.minWaitDays,
+          maxWaitDays: parsed.data.maxWaitDays,
+        },
+        auth.userId,
+        auth.userEmail,
+        creator?.name ?? null,
+      );
+
+      await tx.scanTaskResult.update({
+        where: { id: parsed.data.resultId },
+        data: {
+          taskId: createdTask.id,
+          confirmedAt,
+          clearedAt: confirmedAt,
+        },
+      });
+
+      return createdTask;
     });
+  } catch (error) {
+    if (error instanceof Error && error.message === confirmationUnavailableError) {
+      return { ok: false, error: confirmationUnavailableError };
+    }
 
-    await pruneMergedSourceReferences(orgId, { resultIds: [acceptedResult.id] });
+    if ((error as { code?: string } | null | undefined)?.code === "P2002") {
+      return {
+        ok: false,
+        error: `A task named "${parsed.data.title}" already exists.`,
+      };
+    }
+
+    throw error;
   }
+
+  log.info("Task created", { orgId, taskId: task.id });
+  recordAudit({
+    orgId,
+    actorId: auth.userId,
+    actorEmail: auth.userEmail ?? null,
+    action: "task.create",
+    targetType: "Task",
+    targetId: task.id,
+    after: {
+      name: task.name,
+      color: task.color,
+      description: task.description,
+      durationMin: task.durationMin,
+    },
+  });
 
   revalidatePath(`/orgs/${orgId}/tasks`);
   revalidatePath(`/orgs/${orgId}/tools/scan-to-task`);

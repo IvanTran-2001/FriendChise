@@ -356,6 +356,46 @@ export async function findPotentialTaskDuplicates(
  * Creates a new task for the given org using validated input.
  * Optional fields are null-coalesced so callers never need to handle `undefined`.
  */
+export async function createTaskOnClient(
+  db: Prisma.TransactionClient | typeof prisma,
+  orgId: string,
+  data: CreateTaskInput,
+  actorId?: string | null,
+  actorEmail?: string | null,
+  actorName?: string | null,
+) {
+  const created = await db.task.create({
+    data: {
+      orgId,
+      name: data.title,
+      color: data.color,
+      description: data.description ?? null,
+      durationMin: data.durationMin,
+      preferredStartTimeMin: data.preferredStartTimeMin ?? null,
+      minPeople: data.peopleRequired ?? 1,
+      minWaitDays: data.minWaitDays ?? null,
+      maxWaitDays: data.maxWaitDays ?? null,
+      createdById: actorId ?? null,
+      createdByName: actorName ?? null,
+    },
+  });
+
+  await db.taskSectionLayout.createMany({
+    data: DEFAULT_SECTIONS.map((section) => ({
+      taskId: created.id,
+      orgId,
+      ...section,
+    })),
+    skipDuplicates: true,
+  });
+
+  await db.taskInheritance.create({
+    data: { taskId: created.id, orgId },
+  });
+
+  return created;
+}
+
 export async function createTask(
   orgId: string,
   data: CreateTaskInput,
@@ -363,38 +403,9 @@ export async function createTask(
   actorEmail?: string | null,
   actorName?: string | null,
 ) {
-  const task = await prisma.$transaction(async (tx) => {
-    const created = await tx.task.create({
-      data: {
-        orgId,
-        name: data.title,
-        color: data.color,
-        description: data.description ?? null,
-        durationMin: data.durationMin,
-        preferredStartTimeMin: data.preferredStartTimeMin ?? null,
-        minPeople: data.peopleRequired ?? 1,
-        minWaitDays: data.minWaitDays ?? null,
-        maxWaitDays: data.maxWaitDays ?? null,
-        createdById: actorId ?? null,
-        createdByName: actorName ?? null,
-      },
-    });
-
-    await tx.taskSectionLayout.createMany({
-      data: DEFAULT_SECTIONS.map((section) => ({
-        taskId: created.id,
-        orgId,
-        ...section,
-      })),
-      skipDuplicates: true,
-    });
-
-    await tx.taskInheritance.create({
-      data: { taskId: created.id, orgId },
-    });
-
-    return created;
-  });
+  const task = await prisma.$transaction(async (tx) =>
+    createTaskOnClient(tx, orgId, data, actorId, actorEmail, actorName),
+  );
 
   log.info("Task created", { orgId, taskId: task.id });
   recordAudit({
