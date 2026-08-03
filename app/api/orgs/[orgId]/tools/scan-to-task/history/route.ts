@@ -46,54 +46,55 @@ export async function GET(
       },
     });
 
+    const hasMore = records.length > limit;
+    const pageRecords = hasMore ? records.slice(0, limit) : records;
     const recordsWithDuplicates = [];
-    for (const record of records) {
-        const parsedDraft = record.draft ? scanTaskDraftSchema.safeParse(record.draft) : null;
-        if (!parsedDraft?.success) {
-          recordsWithDuplicates.push({ ...record, duplicateCandidates: [] });
-          continue;
-        }
+    for (const record of pageRecords) {
+      const parsedDraft = record.draft ? scanTaskDraftSchema.safeParse(record.draft) : null;
+      if (!parsedDraft?.success) {
+        recordsWithDuplicates.push({ ...record, duplicateCandidates: [] });
+        continue;
+      }
 
-        const duplicateCandidates = await findPotentialTaskDuplicates(
-          orgId,
+      const duplicateCandidates = await findPotentialTaskDuplicates(
+        orgId,
+        {
+          title: parsedDraft.data.title,
+          description: parsedDraft.data.description,
+          sourceText: parsedDraft.data.sourceText || undefined,
+        },
+        { recentLimit: Math.max(limit, DEFAULT_LIMIT), threshold: 0.82 },
+      );
+
+      const filteredCandidates = [];
+      for (const candidate of record.taskId ? duplicateCandidates.filter((candidate) => candidate.taskId !== record.taskId) : duplicateCandidates) {
+        const adjudication = await adjudicateScanTaskDuplicate(
           {
             title: parsedDraft.data.title,
+            summary: parsedDraft.data.summary,
             description: parsedDraft.data.description,
-            sourceText: parsedDraft.data.sourceText || undefined,
+            sourceText: parsedDraft.data.sourceText,
+            importantDetails: [],
+            actionItems: [],
           },
-          { recentLimit: Math.max(limit, DEFAULT_LIMIT) },
+          candidate,
         );
 
-        const filteredCandidates = [];
-        for (const candidate of record.taskId ? duplicateCandidates.filter((candidate) => candidate.taskId !== record.taskId) : duplicateCandidates) {
-          const adjudication = await adjudicateScanTaskDuplicate(
-            {
-              title: parsedDraft.data.title,
-              summary: parsedDraft.data.summary,
-              description: parsedDraft.data.description,
-              sourceText: parsedDraft.data.sourceText,
-              importantDetails: [],
-              actionItems: [],
-            },
-            candidate,
-          );
+        if (adjudication?.sameTask === false) continue;
+        filteredCandidates.push(candidate);
+      }
 
-          if (adjudication?.sameTask === false) continue;
-          filteredCandidates.push(candidate);
-        }
-
-        recordsWithDuplicates.push({ ...record, duplicateCandidates: filteredCandidates });
+      recordsWithDuplicates.push({ ...record, duplicateCandidates: filteredCandidates });
     }
 
-    const hasMore = recordsWithDuplicates.length > limit;
-    const page = hasMore ? recordsWithDuplicates.slice(0, limit) : recordsWithDuplicates;
-    const nextCursor = hasMore ? page[page.length - 1]?.id ?? null : null;
+    const nextCursor = hasMore ? pageRecords[pageRecords.length - 1]?.id ?? null : null;
 
     return NextResponse.json({
-      results: page,
+      results: recordsWithDuplicates,
       nextCursor,
     });
-  } catch {
+  } catch (error) {
+    console.error("Failed to load scan history:", error);
     return NextResponse.json({ error: "Failed to load scan history." }, { status: 400 });
   }
 }

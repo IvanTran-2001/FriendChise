@@ -157,7 +157,27 @@ describe("createTaskAction", () => {
       ok: false,
       errors: { _: ['A task named "Task A" already exists.'] },
     });
+    expect(findTaskByName).toHaveBeenCalledWith("org-1", "Task A");
     expect(createTask).not.toHaveBeenCalled();
+  });
+
+  it("returns the duplicate-name error when createTask hits a unique constraint race", async () => {
+    vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
+    vi.mocked(findTaskByName).mockResolvedValue(null);
+    vi.mocked(createTask).mockRejectedValueOnce({ code: "P2002" } as any);
+
+    const fd = makeFormData({
+      title: "Task A",
+      color: "#6366f1",
+      durationMin: "30",
+    });
+
+    const result = await createTaskAction("org-1", null, fd);
+
+    expect(result).toEqual({
+      ok: false,
+      errors: { _: ['A task named "Task A" already exists.'] },
+    });
   });
 
   it("checks MANAGE_TASKS permission for the org", async () => {
