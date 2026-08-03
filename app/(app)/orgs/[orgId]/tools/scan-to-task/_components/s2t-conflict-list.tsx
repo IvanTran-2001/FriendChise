@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { ChevronDown, ListChecks, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
@@ -37,6 +38,25 @@ export function ScanToTaskConflictList({
   onStageDeleteConflictItems,
 }: ScanToTaskConflictListProps) {
   const { open, activeTitle } = useActionSidebar();
+  const activeGroup = conflictGroups.find(
+    (group) => `Conflict actions: ${group.primaryResult.fileName}` === activeTitle,
+  );
+
+  useEffect(() => {
+    if (!activeGroup) return;
+
+    const panelTitle = `Conflict actions: ${activeGroup.primaryResult.fileName}`;
+    open(
+      panelTitle,
+      <ConflictActionsPanel
+        key={`${activeGroup.primaryResult.clientId}:${activeGroup.results.map((result) => result.clientId).join("|")}`}
+        group={activeGroup}
+        draftsById={draftsById}
+        onMerge={onStageMergeConflictItems}
+        onDelete={onStageDeleteConflictItems}
+      />,
+    );
+  }, [activeGroup, draftsById, open, onStageDeleteConflictItems, onStageMergeConflictItems]);
 
   if (conflictGroups.length === 0) return null;
 
@@ -68,7 +88,7 @@ export function ScanToTaskConflictList({
                   open(
                     panelTitle,
                     <ConflictActionsPanel
-                      key={primaryResult.clientId}
+                      key={`${primaryResult.clientId}:${group.results.map((result) => result.clientId).join("|")}`}
                       group={group}
                       draftsById={draftsById}
                       onMerge={onStageMergeConflictItems}

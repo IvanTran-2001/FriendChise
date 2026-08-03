@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/core/utils";
 import type { ConflictGroup } from "./s2t-helpers";
@@ -58,11 +58,24 @@ export function ConflictActionsPanel({ group, draftsById, onMerge, onDelete }: C
     [group.duplicateCandidates],
   );
 
-  const items = [...draftItems, ...taskItems];
+  const itemIds = useMemo(
+    () => [
+      ...group.results.map((result) => `draft:${result.clientId}`),
+      ...group.duplicateCandidates
+        .filter((candidate) => candidate.sourceType === "task")
+        .map((candidate) => `task:${candidate.taskId ?? candidate.id}`),
+    ],
+    [group.duplicateCandidates, group.results],
+  );
 
   // Start with every item selected so the user can narrow the action down from the full conflict set.
-  const [selectedIds, setSelectedIds] = useState<string[]>(() => items.map((item) => item.id));
+  const [selectedIds, setSelectedIds] = useState<string[]>(() => itemIds);
   const [instructions, setInstructions] = useState("");
+
+  useEffect(() => {
+    setSelectedIds(itemIds);
+  }, [itemIds]);
+
   // Only draft items can be merged into a new task draft.
   const selectedDraftIds = selectedIds.filter((id) => id.startsWith("draft:"));
   // Delete works on any selected item, merge requires at least one draft.
@@ -136,6 +149,11 @@ export function ConflictActionsPanel({ group, draftsById, onMerge, onDelete }: C
             className="flex-1"
             // Execute delete for the selected items, then close the sidebar.
             onClick={() => {
+              const taskCount = taskItems.filter((item) => selectedIds.includes(item.id)).length;
+              const draftCount = selectedIds.length - taskCount;
+              if (!window.confirm(`Delete ${draftCount} draft${draftCount === 1 ? "" : "s"} and ${taskCount} task${taskCount === 1 ? "" : "s"}?`)) {
+                return;
+              }
               onDelete(group, selectedIds);
               close();
             }}

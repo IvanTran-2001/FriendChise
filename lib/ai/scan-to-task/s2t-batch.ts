@@ -85,7 +85,7 @@ export async function adjudicateScanTaskDuplicate(
           ],
         },
       ],
-    });
+    }, { timeout: 20_000 });
 
     const content = response.choices[0]?.message?.content;
     logScanToTaskModelResponse(

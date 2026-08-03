@@ -68,6 +68,7 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
   const [isLoadingInitial, setIsLoadingInitial] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const requestIdRef = useRef(0);
 
   const buildUrl = useCallback(
     (cursor: string | null | undefined) => {
@@ -91,95 +92,66 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
     return next;
   }, []);
 
-  const refreshHistory = useCallback(() => {
-    setIsLoadingInitial(true);
+  const applyHistoryPage = useCallback((data: HistoryPage, append: boolean) => {
+    const parsed = data.results.map(toHistoryItem).filter((item): item is DraftScanResultItem => item !== null);
+    const nextCandidates = Object.fromEntries(
+      data.results
+        .filter((record) => Array.isArray(record.duplicateCandidates))
+        .map((record) => [record.id, record.duplicateCandidates]),
+    ) as Record<string, import("@/lib/services/tasks").TaskDuplicateCandidate[]>;
 
-    fetch(buildUrl(null))
-      .then((response) => response.json() as Promise<HistoryPage>)
-      .then((data) => {
-        const parsed = data.results.map(toHistoryItem).filter((item): item is DraftScanResultItem => item !== null);
-        setResults(parsed);
-        setDuplicateCandidatesById(
-          Object.fromEntries(
-            data.results
-              .filter((record) => Array.isArray(record.duplicateCandidates))
-              .map((record) => [record.id, record.duplicateCandidates]),
-          ) as Record<string, import("@/lib/services/tasks").TaskDuplicateCandidate[]>,
-        );
-        setNextCursor(data.nextCursor);
-      })
-      .catch(() => {
-        setResults([]);
-        setDuplicateCandidatesById({});
-        setNextCursor(null);
-      })
-      .finally(() => {
+    if (append) {
+      setResults((current) => mergeResults(current, parsed));
+      setDuplicateCandidatesById((current) => ({ ...current, ...nextCandidates }));
+    } else {
+      setResults(parsed);
+      setDuplicateCandidatesById(nextCandidates);
+    }
+    setNextCursor(data.nextCursor);
+  }, [mergeResults]);
+
+  const loadHistoryPage = useCallback(async (cursor: string | null | undefined, append: boolean) => {
+    const requestId = ++requestIdRef.current;
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoadingInitial(true);
+    }
+
+    try {
+      const response = await fetch(buildUrl(cursor));
+      const data = (await response.json()) as HistoryPage;
+      if (requestId !== requestIdRef.current) return;
+      applyHistoryPage(data, append);
+    } catch {
+      if (requestId !== requestIdRef.current) return;
+      if (append) return;
+      setResults([]);
+      setDuplicateCandidatesById({});
+      setNextCursor(null);
+    } finally {
+      if (requestId !== requestIdRef.current) return;
+      if (append) {
+        setIsLoadingMore(false);
+      } else {
         setIsLoadingInitial(false);
-      });
-  }, [buildUrl]);
+      }
+    }
+  }, [applyHistoryPage, buildUrl]);
+
+  const refreshHistory = useCallback(() => loadHistoryPage(null, false), [loadHistoryPage]);
 
   useEffect(() => {
-    let cancelled = false;
-
-    fetch(buildUrl(null))
-      .then((response) => response.json() as Promise<HistoryPage>)
-      .then((data) => {
-        if (cancelled) return;
-        const parsed = data.results.map(toHistoryItem).filter((item): item is DraftScanResultItem => item !== null);
-        setResults(parsed);
-        setDuplicateCandidatesById(
-          Object.fromEntries(
-            data.results
-              .filter((record) => Array.isArray(record.duplicateCandidates))
-              .map((record) => [record.id, record.duplicateCandidates]),
-          ) as Record<string, import("@/lib/services/tasks").TaskDuplicateCandidate[]>,
-        );
-        setNextCursor(data.nextCursor);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setResults([]);
-          setDuplicateCandidatesById({});
-          setNextCursor(null);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsLoadingInitial(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [buildUrl]);
+    void loadHistoryPage(null, false);
+  }, [loadHistoryPage]);
 
   const loadMore = useCallback(() => {
     if (isLoadingMore || !nextCursor) return;
 
-    setIsLoadingMore(true);
-    fetch(buildUrl(nextCursor))
-      .then((response) => response.json() as Promise<HistoryPage>)
-      .then((data) => {
-        const parsed = data.results.map(toHistoryItem).filter((item): item is DraftScanResultItem => item !== null);
-        setResults((current) => mergeResults(current, parsed));
-        setDuplicateCandidatesById((current) => ({
-          ...current,
-          ...Object.fromEntries(
-            data.results
-              .filter((record) => Array.isArray(record.duplicateCandidates))
-              .map((record) => [record.id, record.duplicateCandidates]),
-          ),
-        }) as Record<string, import("@/lib/services/tasks").TaskDuplicateCandidate[]>);
-        setNextCursor(data.nextCursor);
-      })
-      .catch(() => {
-        // Best effort only; the next intersection will retry.
-      })
-      .finally(() => {
-        setIsLoadingMore(false);
-      });
-  }, [buildUrl, isLoadingMore, mergeResults, nextCursor]);
+    void loadHistoryPage(nextCursor, true).catch(() => {
+      // Best effort only; the next intersection will retry.
+    });
+  }, [isLoadingMore, loadHistoryPage, nextCursor]);
 
   useEffect(() => {
     const el = sentinelRef.current;

@@ -360,6 +360,7 @@ function SourceTreeRow({
               aria-label={deleteLabel ?? `Remove source ${title}`}
               onClick={(event) => {
                 event.stopPropagation();
+                if (!window.confirm(deleteLabel ?? `Remove source ${title}?`)) return;
                 onDelete();
               }}
             >

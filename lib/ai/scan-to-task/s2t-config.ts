@@ -5,7 +5,7 @@ const scanDebugFlag =
   process.env.SCAN_TO_TASK_DEBUG === "1" ||
   process.env.SCAN_DEBUG === "1";
 const scanVerboseFlag =
-  process.env.OPENAI_SCAN_VERBOSE === "1" ||
+  (process.env.NODE_ENV === "development" && process.env.OPENAI_SCAN_VERBOSE === "1") ||
   process.env.SCAN_TO_TASK_VERBOSE === "1" ||
   process.env.SCAN_VERBOSE === "1";
 

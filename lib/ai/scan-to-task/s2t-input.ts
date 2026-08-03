@@ -43,7 +43,7 @@ export async function normalizeImageBytesForVision(
 ) {
   const resolvedMimeType = resolveScanUploadMimeType(fileName, mimeType).toLowerCase();
   if (resolvedMimeType !== "image/heic" && resolvedMimeType !== "image/heif") {
-    return { bytes, mimeType: mimeType || "image/png" };
+    return { bytes, mimeType: resolvedMimeType || mimeType || "image/png" };
   }
 
   const converted = await sharp(Buffer.from(bytes)).png().toBuffer();

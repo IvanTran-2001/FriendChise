@@ -21,7 +21,7 @@ import { ScanToTaskResultsSection, type DraftScanResultItem } from "./_component
 import { ScanToTaskConflictList } from "./_components/s2t-conflict-list";
 import { ScanToTaskInspectorPanel, type InspectorFormValues } from "./_components/s2t-inspector-panel";
 import { useScanTaskHistoryPagination } from "./_components/s2t-history-pagination";
-import { buildConflictGroups, removeResultFromQueueState, type ConflictGroup } from "./_components/s2t-helpers";
+import { buildConflictGroups, type ConflictGroup } from "./_components/s2t-helpers";
 import type { TaskDuplicateCandidate } from "@/lib/services/tasks";
 
 type ScanSourceRef = { storagePath: string; fileName: string; mimeType: string; fileSize: number };
@@ -94,6 +94,11 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
   const [selectedTaskDetails, setSelectedTaskDetails] = useState<TaskDetails | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedSource, setSelectedSource] = useState<"queue" | "conflict" | null>(null);
+  const selectedResultIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    selectedResultIdRef.current = selectedResultId;
+  }, [selectedResultId]);
 
   /**
    * Keep newly loaded history duplicate candidates in local state without
@@ -166,20 +171,29 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
    * from the visible queue.
    */
   const removeResultFromQueue = (resultId: string) => {
-    const nextState = removeResultFromQueueState(
-      {
-        results,
-        draftsById,
-        duplicateCandidatesById,
-        selectedResultId,
-      },
-      resultId,
-    );
+    setResults((currentResults) => {
+      const nextResults = currentResults.filter((result) => result.clientId !== resultId);
+      if (selectedResultIdRef.current === resultId) {
+        const nextSelectedResultId = (nextResults.find((result) => result.ok) ?? nextResults[0] ?? null)?.clientId ?? null;
+        selectedResultIdRef.current = nextSelectedResultId;
+        setSelectedResultId(nextSelectedResultId);
+      }
+      return nextResults;
+    });
 
-    setDraftsById(nextState.draftsById);
-    setDuplicateCandidatesById(nextState.duplicateCandidatesById);
-    setResults(nextState.results);
-    setSelectedResultId(nextState.selectedResultId);
+    setDraftsById((current) => {
+      if (!(resultId in current)) return current;
+      const next = { ...current };
+      delete next[resultId];
+      return next;
+    });
+
+    setDuplicateCandidatesById((current) => {
+      if (!(resultId in current)) return current;
+      const next = { ...current };
+      delete next[resultId];
+      return next;
+    });
   };
 
   const pruneDeletedTaskFromQueue = (taskId: string) => {
@@ -616,7 +630,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
             : result,
         ),
       );
-      toast.success("Draft saved.");
+      toast.success("Draft updated locally.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save selection.");
     } finally {
