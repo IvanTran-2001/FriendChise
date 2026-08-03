@@ -1,5 +1,4 @@
 import * as React from "react";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 /**
  * Returns the current viewport height in pixels, updating when the window or
@@ -8,11 +7,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
  */
 export function useViewportHeight() {
   const [viewportHeight, setViewportHeight] = React.useState<number | undefined>(undefined);
-  const isMobile = useIsMobile();
 
   React.useEffect(() => {
     const measureViewportHeight = () => {
-      const nextHeight = isMobile ? window.visualViewport?.height ?? window.innerHeight : window.screen.height;
+      const nextHeight = window.visualViewport?.height ?? window.innerHeight;
       setViewportHeight(nextHeight);
     };
 
@@ -26,7 +24,7 @@ export function useViewportHeight() {
       window.removeEventListener("orientationchange", measureViewportHeight);
       window.visualViewport?.removeEventListener("resize", measureViewportHeight);
     };
-  }, [isMobile]);
+  }, []);
 
   return viewportHeight;
 }

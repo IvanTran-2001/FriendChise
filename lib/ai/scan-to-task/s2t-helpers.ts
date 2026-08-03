@@ -212,7 +212,6 @@ export function logScanToTaskModelResponse(
     model,
     contentLength: content.length,
     usage: summarizeScanToTaskTokenUsage(usage),
-    ...(verbose ? { content } : {}),
   });
 }
 

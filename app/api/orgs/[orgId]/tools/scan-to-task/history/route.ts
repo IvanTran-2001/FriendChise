@@ -95,6 +95,6 @@ export async function GET(
     });
   } catch (error) {
     console.error("Failed to load scan history:", error);
-    return NextResponse.json({ error: "Failed to load scan history." }, { status: 400 });
+    return NextResponse.json({ error: "Failed to load scan history." }, { status: 500 });
   }
 }

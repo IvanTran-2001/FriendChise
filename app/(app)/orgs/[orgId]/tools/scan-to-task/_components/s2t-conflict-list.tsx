@@ -1,12 +1,33 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { ChevronDown, ListChecks, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import type { DraftScanResultItem } from "./s2t-results-section";
 import type { TaskDuplicateCandidate } from "@/lib/services/tasks";
 import { ConflictActionsPanel } from "./s2t-conflict-actions-panel";
+
+function buildConflictPanelTitle(group: {
+  primaryResult: Extract<DraftScanResultItem, { ok: true }>;
+}) {
+  return `Conflict actions: ${group.primaryResult.fileName} (${group.primaryResult.clientId.slice(0, 8)})`;
+}
+
+function buildConflictPanelContentKey(
+  group: {
+    primaryResult: Extract<DraftScanResultItem, { ok: true }>;
+    results: Array<Extract<DraftScanResultItem, { ok: true }>>;
+    duplicateCandidates: TaskDuplicateCandidate[];
+  },
+  draftsById: Record<string, { title: string }>,
+) {
+  return [
+    group.primaryResult.clientId,
+    group.results.map((result) => `${result.clientId}:${draftsById[result.clientId]?.title ?? result.draft.title}`).join("|"),
+    group.duplicateCandidates.map((candidate) => candidate.id).join("|"),
+  ].join("::");
+}
 
 type ScanToTaskConflictListProps = {
   conflictGroups: Array<{
@@ -38,25 +59,40 @@ export function ScanToTaskConflictList({
   onStageDeleteConflictItems,
 }: ScanToTaskConflictListProps) {
   const { open, activeTitle } = useActionSidebar();
-  const activeGroup = conflictGroups.find(
-    (group) => `Conflict actions: ${group.primaryResult.fileName}` === activeTitle,
+  const lastOpenedPanelKeyRef = useRef<string | null>(null);
+
+  const activeGroup = useMemo(
+    () => conflictGroups.find((group) => buildConflictPanelTitle(group) === activeTitle) ?? null,
+    [activeTitle, conflictGroups],
+  );
+
+  const openConflictPanel = useCallback(
+    (group: (typeof conflictGroups)[number]) => {
+      const panelTitle = buildConflictPanelTitle(group);
+      const panelContentKey = buildConflictPanelContentKey(group, draftsById);
+      if (lastOpenedPanelKeyRef.current === panelContentKey && activeTitle === panelTitle) {
+        return;
+      }
+
+      lastOpenedPanelKeyRef.current = panelContentKey;
+      open(
+        panelTitle,
+        <ConflictActionsPanel
+          key={panelContentKey}
+          group={group}
+          draftsById={draftsById}
+          onMerge={onStageMergeConflictItems}
+          onDelete={onStageDeleteConflictItems}
+        />,
+      );
+    },
+    [activeTitle, draftsById, onStageDeleteConflictItems, onStageMergeConflictItems, open],
   );
 
   useEffect(() => {
     if (!activeGroup) return;
-
-    const panelTitle = `Conflict actions: ${activeGroup.primaryResult.fileName}`;
-    open(
-      panelTitle,
-      <ConflictActionsPanel
-        key={`${activeGroup.primaryResult.clientId}:${activeGroup.results.map((result) => result.clientId).join("|")}`}
-        group={activeGroup}
-        draftsById={draftsById}
-        onMerge={onStageMergeConflictItems}
-        onDelete={onStageDeleteConflictItems}
-      />,
-    );
-  }, [activeGroup, draftsById, open, onStageDeleteConflictItems, onStageMergeConflictItems]);
+    openConflictPanel(activeGroup);
+  }, [activeGroup, openConflictPanel]);
 
   if (conflictGroups.length === 0) return null;
 
@@ -72,7 +108,7 @@ export function ScanToTaskConflictList({
           const sourceLabel = group.results.length === 1 ? "1 draft" : `${group.results.length} drafts`;
           const taskCandidates = group.duplicateCandidates.filter((candidate) => candidate.sourceType === "task");
           const taskLabel = taskCandidates.length === 1 ? "1 task" : `${taskCandidates.length} tasks`;
-          const panelTitle = `Conflict actions: ${primaryResult.fileName}`;
+          const panelTitle = buildConflictPanelTitle(group);
           const panelIsActive = activeTitle === panelTitle;
 
           return (
@@ -85,16 +121,7 @@ export function ScanToTaskConflictList({
                 panelIsActive={panelIsActive}
                 taskCount={taskCandidates.length}
                 onOpenPanel={() => {
-                  open(
-                    panelTitle,
-                    <ConflictActionsPanel
-                      key={`${primaryResult.clientId}:${group.results.map((result) => result.clientId).join("|")}`}
-                      group={group}
-                      draftsById={draftsById}
-                      onMerge={onStageMergeConflictItems}
-                      onDelete={onStageDeleteConflictItems}
-                    />,
-                  );
+                  openConflictPanel(group);
                 }}
               />
               <ConflictItemDetails

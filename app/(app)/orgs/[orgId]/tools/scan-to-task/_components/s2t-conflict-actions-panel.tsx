@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/core/utils";
 import type { ConflictGroup } from "./s2t-helpers";
@@ -71,10 +71,6 @@ export function ConflictActionsPanel({ group, draftsById, onMerge, onDelete }: C
   // Start with every item selected so the user can narrow the action down from the full conflict set.
   const [selectedIds, setSelectedIds] = useState<string[]>(() => itemIds);
   const [instructions, setInstructions] = useState("");
-
-  useEffect(() => {
-    setSelectedIds(itemIds);
-  }, [itemIds]);
 
   // Only draft items can be merged into a new task draft.
   const selectedDraftIds = selectedIds.filter((id) => id.startsWith("draft:"));

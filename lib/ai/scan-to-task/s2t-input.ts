@@ -79,8 +79,12 @@ export async function extractTextFromBytes(bytes: ArrayBuffer, kind: ScanFileKin
     return result.value ?? "";
   }
 
-  if (kind === "text" || kind === "unknown") {
+  if (kind === "text") {
     return Buffer.from(bytes).toString("utf8");
+  }
+
+  if (kind === "unknown") {
+    return "";
   }
 
   return "";

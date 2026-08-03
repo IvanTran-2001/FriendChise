@@ -686,6 +686,7 @@ async function splitTextIntoChunkSections(
   if (safeSourceText.length < scanToTaskConfig.chunkSplitMinLength) return null;
 
   try {
+    const prompt = buildScanToTaskChunkSplitPrompt(fileName, safeSourceText, safeInstruction);
     const input = {
       stage: "text-chunk-split",
       fileName,
@@ -702,7 +703,16 @@ async function splitTextIntoChunkSections(
       messages: [
         {
           role: "system",
-          content: buildScanToTaskChunkSplitPrompt(fileName, safeSourceText, safeInstruction),
+          content: prompt.system,
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: prompt.user,
+            },
+          ],
         },
       ],
     });

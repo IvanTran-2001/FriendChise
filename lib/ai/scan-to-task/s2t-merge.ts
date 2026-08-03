@@ -36,6 +36,7 @@ export async function mergeScanToTaskWithExistingTask(input: {
   };
 
   try {
+    const prompt = buildScanToTaskTaskMergePrompt(input.existingTask, input.draft);
     logScanToTaskModelInput(scanToTaskDebugLogging, "task-merge", openAiModel, logInput);
 
     const response = await openAiClient.chat.completions.create({
@@ -45,7 +46,16 @@ export async function mergeScanToTaskWithExistingTask(input: {
       messages: [
         {
           role: "system",
-          content: buildScanToTaskTaskMergePrompt(input.existingTask, input.draft),
+          content: prompt.system,
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: prompt.user,
+            },
+          ],
         },
       ],
     });
@@ -99,6 +109,7 @@ export async function mergeScanToTaskConflictItems(input: {
   };
 
   try {
+    const prompt = buildScanToTaskConflictMergePrompt(input);
     logScanToTaskModelInput(scanToTaskDebugLogging, "conflict-merge", openAiModel, logInput);
 
     const response = await openAiClient.chat.completions.create({
@@ -108,7 +119,16 @@ export async function mergeScanToTaskConflictItems(input: {
       messages: [
         {
           role: "system",
-          content: buildScanToTaskConflictMergePrompt(input),
+          content: prompt.system,
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: prompt.user,
+            },
+          ],
         },
       ],
     });

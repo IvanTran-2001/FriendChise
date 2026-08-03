@@ -130,10 +130,9 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
       setDuplicateCandidatesById({});
       setNextCursor(null);
     } finally {
-      if (requestId !== requestIdRef.current) return;
       if (append) {
         setIsLoadingMore(false);
-      } else {
+      } else if (requestId === requestIdRef.current) {
         setIsLoadingInitial(false);
       }
     }

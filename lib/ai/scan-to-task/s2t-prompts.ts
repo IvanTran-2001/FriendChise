@@ -1,3 +1,41 @@
+import { limitText } from "./s2t-helpers";
+
+function limitPromptText(value: string, maxLength = 1200) {
+  return value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
+}
+
+function summarizePromptDraft(draft: {
+  title: string;
+  description: string;
+  summary: string;
+  sourceText: string;
+}) {
+  return {
+    title: limitPromptText(draft.title, 200),
+    description: limitPromptText(draft.description, 1200),
+    summary: limitPromptText(draft.summary, 300),
+    sourceText: limitPromptText(draft.sourceText, 1200),
+  };
+}
+
+function summarizePromptTask(task: {
+  id?: string;
+  name: string;
+  description: string | null;
+  durationMin: number;
+  minPeople: number;
+  maxPeople: number | null;
+}) {
+  return {
+    id: task.id,
+    name: limitPromptText(task.name, 200),
+    description: task.description ? limitPromptText(task.description, 900) : null,
+    durationMin: task.durationMin,
+    minPeople: task.minPeople,
+    maxPeople: task.maxPeople,
+  };
+}
+
 /**
  * Builds the per-chunk drafting prompt used after chunking is already done.
  * This prompt turns one chunk into one task draft.
@@ -99,19 +137,25 @@ export function buildScanToTaskTaskMergePrompt(
     sourceText: string;
   },
 ) {
-  return [
+  const system = [
     "You are editing an existing task with a new reviewed scan draft.",
     "Return valid JSON only with keys title, description, durationMin, peopleRequired, minWaitDays, and maxWaitDays.",
     "Do not make details up.",
     "Only keep the details that are needed.",
+    "Preserve underline formatting when it appears in the existing task or new draft.",
     "Preserve the existing task unless the scan draft clearly adds useful detail.",
     "Add missing detail from the new draft, but do not repeat text that already exists in the task.",
     "If the existing task and the new draft say the same thing, remove the duplicate and keep the clearest version.",
     "Keep the description concise, worker-friendly, and readable as markdown.",
     "Treat the existing task as the baseline and merge the new draft into it.",
-    `Existing task:\n${JSON.stringify(existingTask, null, 2)}`,
-    `New draft:\n${JSON.stringify(draft, null, 2)}`,
   ].join("\n\n");
+
+  const user = [
+    `Existing task:\n${JSON.stringify(summarizePromptTask(existingTask), null, 2)}`,
+    `New draft:\n${JSON.stringify(summarizePromptDraft(draft), null, 2)}`,
+  ].join("\n\n");
+
+  return { system, user };
 }
 
 /**
@@ -135,19 +179,35 @@ export function buildScanToTaskConflictMergePrompt(input: {
   }>;
   instruction?: string;
 }) {
-  return [
+  const system = [
     "You are merging several selected drafts and tasks into one new task draft.",
     "Return valid JSON only with keys title, description, durationMin, peopleRequired, minWaitDays, maxWaitDays, summary, and sourceText.",
     "Do not make details up.",
     "Keep the result concise, precise, and worker-friendly.",
-    input.instruction?.trim() ? `User instructions:\n${input.instruction.trim()}` : null,
     "Combine overlapping details only once; remove repeated wording and repeated steps.",
     "If multiple items say the same thing, keep the clearest single version.",
     "Prefer the most specific title that still covers the whole merged set.",
     "If the inputs conflict, choose the safest, most general wording rather than inventing a compromise.",
     "Keep sourceText as a compact merged evidence block rather than a long rewrite.",
-    `Selected items:\n${JSON.stringify(input, null, 2)}`,
   ].join("\n\n");
+
+  const user = [
+    input.instruction?.trim() ? `User instructions:\n${limitPromptText(input.instruction.trim(), 1000)}` : null,
+    `Selected items:\n${JSON.stringify(
+      {
+        drafts: input.drafts.slice(0, 12).map(summarizePromptDraft),
+        tasks: input.tasks.slice(0, 12).map(summarizePromptTask),
+        omittedDraftCount: Math.max(0, input.drafts.length - 12),
+        omittedTaskCount: Math.max(0, input.tasks.length - 12),
+      },
+      null,
+      2,
+    )}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  return { system, user };
 }
 
 export function buildScanToTaskChunkSplitPrompt(
@@ -155,11 +215,8 @@ export function buildScanToTaskChunkSplitPrompt(
   safeSourceText: string,
   instruction = "",
 ) {
-  return [
+  const system = [
     "You are splitting one source into atomic task chunks.",
-    `File name: ${fileName}`,
-    instruction.trim() ? `Instruction: ${instruction.trim()}` : null,
-    `Source text:\n${safeSourceText}`,
     "Return valid JSON only with keys chunks.",
     "Each chunk must have title and sourceText.",
     "One chunk must become one task.",
@@ -174,7 +231,15 @@ export function buildScanToTaskChunkSplitPrompt(
     "Keep each chunk self-contained and avoid duplicating the same text across chunks.",
     "Use short human-friendly titles like 'Recipe', 'Operations', or 'Safety notes'.",
     "Do not invent content.",
+  ].join("\n\n");
+
+  const user = [
+    `File name: ${fileName}`,
+    instruction.trim() ? `Instruction: ${limitPromptText(instruction.trim(), 1000)}` : null,
+    `Source text:\n${limitText(safeSourceText, 8000)}`,
   ]
     .filter(Boolean)
     .join("\n\n");
+
+  return { system, user };
 }
