@@ -42,7 +42,7 @@
  * updateSectionLayoutAction — bulk-upsert section layout rows for a task+org (MANAGE_TASKS required).
  */
 
-import { PermissionAction, Prisma } from "@prisma/client";
+import { PermissionAction } from "@prisma/client";
 import { prisma } from "@/lib/platform/prisma";
 import {
   requireOrgPermissionAction,
@@ -180,7 +180,7 @@ export async function createTaskAction(
       creatorName ?? null,
     );
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if ((error as { code?: string } | null | undefined)?.code === "P2002") {
       return {
         ok: false,
         errors: { _: [`A task named "${parsed.data.title}" already exists.`] },

@@ -9,6 +9,9 @@ Use these rules for any change in this repository.
 - Do not change unrelated code just because it looks messy.
 - Keep public behavior stable unless the request explicitly changes it.
 - Preserve existing naming, structure, and patterns unless there is a clear reason to improve them.
+- If a workflow, command, or architectural rule keeps coming up, add it to an instruction file so the behavior stays consistent.
+- Update instruction files when a pattern becomes reusable, error-prone, or complicated enough to matter again.
+- If a task-specific behavior changes, update the matching task-specific instruction file and the index together.
 
 ## File Responsibilities
 
