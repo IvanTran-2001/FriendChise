@@ -169,7 +169,7 @@ export function compareTaskDuplicateText(input: TaskDuplicateCheckInput, task: T
   }
 
   if (score === 0 && (exactDescription || descriptionScore >= 0.4)) {
-    score = Math.max(score, exactDescription ? 0.84 : 0.84, descriptionScore);
+    score = Math.max(score, exactDescription ? 0.84 : 0.6, descriptionScore);
     matchedOn.push("description");
   }
 
@@ -270,9 +270,10 @@ export async function findPotentialTaskDuplicates(
 ): Promise<TaskDuplicateCandidate[]> {
   const threshold = options.threshold ?? 0.82;
   const limit = options.limit ?? 3;
+  const recentLimit = options.recentLimit ?? 50;
 
-  const taskLimit = options.recentLimit;
-  const scanResultLimit = options.recentLimit;
+  const taskLimit = recentLimit;
+  const scanResultLimit = recentLimit;
 
   const [tasks, scanResults] = await Promise.all([
     prisma.task.findMany({
@@ -460,12 +461,13 @@ export async function deleteTask(
   id: string,
   actorId?: string | null,
   actorEmail?: string | null,
+  db: Prisma.TransactionClient | typeof prisma = prisma,
 ): Promise<ServiceResult<null>> {
-  const existing = await prisma.task.findFirst({
+  const existing = await db.task.findFirst({
     where: { id, orgId },
     select: { name: true, color: true, description: true, durationMin: true },
   });
-  const { count } = await prisma.task.deleteMany({ where: { id, orgId } });
+  const { count } = await db.task.deleteMany({ where: { id, orgId } });
   if (count === 0)
     return { ok: false, error: "Task not found", code: "NOT_FOUND" };
   log.info("Task deleted", { orgId, taskId: id });

@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import {
   Bold,
@@ -293,7 +294,7 @@ export function MarkdownEditor({
         <div className="px-3 py-2 min-h-24 text-sm">
           {value.trim() ? (
             <ReactMarkdown
-              rehypePlugins={[rehypeRaw]}
+              rehypePlugins={[rehypeRaw, [rehypeSanitize, defaultSchema]]}
               remarkPlugins={[remarkGfm]}
               components={{
                 p: ({ children }) => (

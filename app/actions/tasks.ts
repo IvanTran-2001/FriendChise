@@ -65,6 +65,7 @@ import {
   setTaskEligibilities,
   setTaskToolLinks,
 } from "@/lib/services/tasks";
+import { isSameFranchise } from "@/lib/services/franchise-root";
 import {
   getSectionLayout,
   updateSectionLayouts,
@@ -431,6 +432,19 @@ export async function getTaskDetailsAction(
 ): Promise<NonNullable<TaskDetailsActionState>> {
   const taskOrgId = await getTaskOwnerOrgId(taskId);
   if (!taskOrgId) return { ok: false, error: "Task not found." };
+
+  const [requestOrg, taskOrg] = await Promise.all([
+    prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { id: true, parentId: true },
+    }),
+    prisma.organization.findUnique({
+      where: { id: taskOrgId },
+      select: { id: true, parentId: true },
+    }),
+  ]);
+  if (!requestOrg || !taskOrg) return { ok: false, error: "Task not found." };
+  if (!isSameFranchise(requestOrg, taskOrg)) return { ok: false, error: "Unauthorized." };
 
   const [franchiseAuthz, taskOrgAuthz] = await Promise.all([
     requireParentOrgOwnerAction(orgId),

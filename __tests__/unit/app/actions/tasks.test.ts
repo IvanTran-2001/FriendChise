@@ -143,7 +143,11 @@ describe("createTaskAction", () => {
 
   it("returns a duplicate-name error when a task with the same title exists", async () => {
     vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(findTaskByName).mockResolvedValue({ id: "existing-task", name: "Task A" } as any);
+    vi.mocked(findTaskByName).mockImplementation(async (orgId, title) => {
+      expect(orgId).toBe("org-1");
+      expect(title).toBe("Task A");
+      return { id: "existing-task", name: "Task A" } as any;
+    });
 
     const fd = makeFormData({
       title: "Task A",

@@ -2,6 +2,7 @@
 
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import { MarkdownImage, MarkdownLink } from "@/components/ui/editors/markdown-media";
 
@@ -21,7 +22,7 @@ export function TaskDescriptionMarkdown({
   return (
     <div className={className}>
       <ReactMarkdown
-        rehypePlugins={[rehypeRaw]}
+        rehypePlugins={[rehypeRaw, [rehypeSanitize, defaultSchema]]}
         remarkPlugins={[remarkGfm]}
         components={{
           p: ({ children }) => (

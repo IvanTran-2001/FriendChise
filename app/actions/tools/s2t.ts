@@ -64,7 +64,7 @@ async function processScanSource(
       instruction,
     );
 
-    return Promise.all(
+    return await Promise.all(
       drafts.map(async (draft) => {
         const resultId = randomUUID();
         await prisma.scanTaskResult.create({
@@ -206,7 +206,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function pruneMergedSourceMetadata(
   metadata: unknown,
   { resultIds = [], taskIds = [] }: MergeSourcePruneInput,
-): ScanTaskResultMetadata | null {
+): ScanTaskResultMetadata | typeof Prisma.JsonNull | null {
   if (!isRecord(metadata)) return null;
 
   const nextMetadata: ScanTaskResultMetadata = {};
@@ -225,7 +225,7 @@ function pruneMergedSourceMetadata(
     nextMetadata.mergedFromTaskIds = mergedFromTaskIds;
   }
 
-  return Object.keys(nextMetadata).length > 0 ? nextMetadata : null;
+  return Object.keys(nextMetadata).length > 0 ? nextMetadata : Prisma.JsonNull;
 }
 
 async function pruneMergedSourceReferences(orgId: string, pruneInput: MergeSourcePruneInput) {
@@ -366,19 +366,21 @@ export async function deleteScanToTaskConflictItemsAction(
     return { ok: false, error: "Select at least one draft or task to delete." };
   }
 
-  if (resultIds.length > 0) {
-    await prisma.scanTaskResult.updateMany({
-      where: { orgId, id: { in: resultIds } },
-      data: { clearedAt: new Date() },
-    });
-  }
-
-  for (const taskId of taskIds) {
-    const result = await deleteTask(orgId, taskId, auth.userId, auth.userEmail);
-    if (!result.ok) {
-      return { ok: false, error: result.error };
+  await prisma.$transaction(async (tx) => {
+    if (resultIds.length > 0) {
+      await tx.scanTaskResult.updateMany({
+        where: { orgId, id: { in: resultIds } },
+        data: { clearedAt: new Date() },
+      });
     }
-  }
+
+    for (const taskId of taskIds) {
+      const result = await deleteTask(orgId, taskId, auth.userId, auth.userEmail, tx);
+      if (!result.ok) {
+        throw new Error(result.error);
+      }
+    }
+  });
 
   await pruneMergedSourceReferences(orgId, { resultIds, taskIds });
 
