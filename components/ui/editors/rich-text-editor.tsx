@@ -100,6 +100,8 @@ export function RichTextEditor({
 }: RichTextEditorProps) {
   const hiddenRef = useRef<HTMLInputElement>(null);
   const defaultMarkdown = defaultValue ?? "";
+  const lastAppliedExternalMarkdownRef = useRef(defaultMarkdown);
+  const pendingLocalMarkdownRef = useRef<string | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -161,6 +163,7 @@ export function RichTextEditor({
     onUpdate({ editor }) {
       const markdown =
         (editor.storage as unknown as { markdown: MarkdownStorage }).markdown.getMarkdown();
+      pendingLocalMarkdownRef.current = markdown;
       // Imperatively update the hidden input without triggering a re-render
       if (hiddenRef.current) {
         hiddenRef.current.value = markdown;
@@ -172,11 +175,17 @@ export function RichTextEditor({
   useEffect(() => {
     if (!editor) return;
 
-    const currentMarkdown =
-      (editor.storage as unknown as { markdown: MarkdownStorage }).markdown.getMarkdown();
-    if (currentMarkdown === defaultMarkdown) return;
+    if (defaultMarkdown === pendingLocalMarkdownRef.current) {
+      lastAppliedExternalMarkdownRef.current = defaultMarkdown;
+      pendingLocalMarkdownRef.current = null;
+      return;
+    }
+
+    if (defaultMarkdown === lastAppliedExternalMarkdownRef.current) return;
 
     editor.commands.setContent(defaultMarkdown);
+    lastAppliedExternalMarkdownRef.current = defaultMarkdown;
+    pendingLocalMarkdownRef.current = null;
     if (hiddenRef.current) {
       hiddenRef.current.value = defaultMarkdown;
     }
