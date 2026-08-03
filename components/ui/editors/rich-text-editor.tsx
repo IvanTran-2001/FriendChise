@@ -99,6 +99,7 @@ export function RichTextEditor({
   onChange,
 }: RichTextEditorProps) {
   const hiddenRef = useRef<HTMLInputElement>(null);
+  const defaultMarkdown = defaultValue ?? "";
 
   const editor = useEditor({
     extensions: [
@@ -167,6 +168,19 @@ export function RichTextEditor({
       onChange?.(markdown);
     },
   });
+
+  useEffect(() => {
+    if (!editor) return;
+
+    const currentMarkdown =
+      (editor.storage as unknown as { markdown: MarkdownStorage }).markdown.getMarkdown();
+    if (currentMarkdown === defaultMarkdown) return;
+
+    editor.commands.setContent(defaultMarkdown);
+    if (hiddenRef.current) {
+      hiddenRef.current.value = defaultMarkdown;
+    }
+  }, [defaultMarkdown, editor]);
 
   const handleInsertImage = useCallback(() => {
     const url = window.prompt("Enter image URL");

@@ -46,6 +46,12 @@ function assertOwnedStoragePath(orgId: string, storagePath: string) {
   if (!storagePath.startsWith(expectedPrefix)) {
     throw new Error("Storage path does not belong to this organization.");
   }
+
+  const relativePath = storagePath.slice(expectedPrefix.length);
+  const pathSegments = relativePath.split("/");
+  if (pathSegments.some((segment) => segment === "" || segment === "." || segment === "..")) {
+    throw new Error("Storage path does not belong to this organization.");
+  }
 }
 
 async function processScanSource(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ClipboardCheck } from "lucide-react";
 import { ColorPicker } from "@/components/ui/pickers/color-picker";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,34 @@ function InspectorBody({
   const [draftPeopleRequired, setDraftPeopleRequired] = useState(peopleRequired);
   const [draftMinWaitDays, setDraftMinWaitDays] = useState(minWaitDays?.toString() ?? "");
   const [draftMaxWaitDays, setDraftMaxWaitDays] = useState(maxWaitDays?.toString() ?? "");
+
+  useEffect(() => {
+    setDraftColor(color);
+  }, [color]);
+
+  useEffect(() => {
+    setDraftTitle(title);
+  }, [title]);
+
+  useEffect(() => {
+    setDraftDescription(description);
+  }, [description]);
+
+  useEffect(() => {
+    setDraftDurationMin(durationMin);
+  }, [durationMin]);
+
+  useEffect(() => {
+    setDraftPeopleRequired(peopleRequired);
+  }, [peopleRequired]);
+
+  useEffect(() => {
+    setDraftMinWaitDays(minWaitDays == null ? "" : String(minWaitDays));
+  }, [minWaitDays]);
+
+  useEffect(() => {
+    setDraftMaxWaitDays(maxWaitDays == null ? "" : String(maxWaitDays));
+  }, [maxWaitDays]);
 
   const saveLabel = "Save";
 
