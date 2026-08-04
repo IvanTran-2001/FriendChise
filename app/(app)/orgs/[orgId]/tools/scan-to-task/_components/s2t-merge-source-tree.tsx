@@ -23,6 +23,7 @@ type MergeSourceNode =
       kind: "task";
       id: string;
       taskId: string;
+      taskName?: string;
     }
   | {
       kind: "missing-result";
@@ -56,6 +57,9 @@ function getMergeSourceNodes(
     (result.metadata?.mergedFromResultSnapshots ?? []).map((snapshot) => [snapshot.id, snapshot] as const),
   );
   const mergedFromTaskIds = result.metadata?.mergedFromTaskIds ?? [];
+  const mergedFromTaskSnapshots = new Map(
+    (result.metadata?.mergedFromTaskSnapshots ?? []).map((snapshot) => [snapshot.id, snapshot] as const),
+  );
   const nodes: MergeSourceNode[] = [];
 
   for (const sourceResultId of mergedFromResultIds) {
@@ -88,7 +92,7 @@ function getMergeSourceNodes(
   }
 
   for (const taskId of mergedFromTaskIds) {
-    nodes.push({ kind: "task", id: `task:${taskId}`, taskId });
+    nodes.push({ kind: "task", id: `task:${taskId}`, taskId, taskName: mergedFromTaskSnapshots.get(taskId)?.name });
   }
 
   return nodes;
@@ -170,7 +174,7 @@ function MergeSourceTreeNode({
     return (
       <SourceTreeRow
         label="Task"
-        title={node.taskId}
+        title={node.taskName ?? node.taskId}
         variant="task"
         onInspect={() => onInspectTaskCandidate(sourceResultId, node.taskId)}
         onDelete={() => onDeleteTask(node.taskId)}

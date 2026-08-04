@@ -5,7 +5,7 @@ import { ChevronDown, ListChecks, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import type { DraftScanResultItem } from "./s2t-results-section";
-import type { ConflictGroup } from "./s2t-helpers";
+import { formatItemDate, type ConflictGroup } from "./s2t-helpers";
 import type { TaskDuplicateCandidate } from "@/lib/services/tasks";
 import { ConflictActionsPanel } from "./s2t-conflict-actions-panel";
 
@@ -49,6 +49,7 @@ export function ScanToTaskConflictList({
 
   useEffect(() => {
     if (activeTitle !== null) return;
+    queueMicrotask(() => setActiveGroupId(null));
     lastOpenedPanelKeyRef.current = null;
   }, [activeTitle]);
 
@@ -111,8 +112,7 @@ export function ScanToTaskConflictList({
           const sourceLabel = group.results.length === 1 ? "1 draft" : `${group.results.length} drafts`;
           const taskCandidates = group.duplicateCandidates.filter((candidate) => candidate.sourceType === "task");
           const taskLabel = taskCandidates.length === 1 ? "1 task" : `${taskCandidates.length} tasks`;
-          const panelTitle = buildConflictPanelTitle(group);
-          const panelIsActive = activeTitle === panelTitle;
+          const panelIsActive = activeGroupId === group.primaryResult.clientId;
 
           return (
             <div key={primaryResult.clientId} className="flex items-start gap-2">
@@ -165,13 +165,6 @@ type ConflictItemRowProps = {
   taskLabel: string;
   taskCount: number;
 };
-
-function formatItemTimestamp(value?: string) {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
-}
 
 function ConflictItemRow({
   primaryResult,
@@ -238,7 +231,7 @@ function ConflictItemDetails({
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium">{result.draft.title}</span>
                   <span className="block text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                    {formatItemTimestamp(result.createdAt) ?? "-"}
+                        {formatItemDate(result.createdAt) ?? "-"}
                   </span>
                 </span>
               </button>
@@ -263,7 +256,7 @@ function ConflictItemDetails({
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-foreground">{candidate.name}</span>
                   <span className="block text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                    {formatItemTimestamp(candidate.createdAt) ?? "-"}
+                    {formatItemDate(candidate.createdAt) ?? "-"}
                   </span>
                 </span>
               </Button>

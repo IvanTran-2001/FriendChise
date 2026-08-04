@@ -60,13 +60,15 @@ export async function GET(
         continue;
       }
 
+      const filteredSharedCandidates = sharedCandidates.filter((candidate) => candidate.resultId !== record.id);
+
       const duplicateCandidates = scorePotentialTaskDuplicates(
         {
           title: parsedDraft.data.title,
           description: parsedDraft.data.description,
           sourceText: parsedDraft.data.sourceText || undefined,
         },
-        sharedCandidates,
+        filteredSharedCandidates,
         { limit: 3, threshold: 0.82 },
       );
 

@@ -564,6 +564,7 @@ export async function updateScanToTaskDraftAction(
 
   const nextDraft = scanTaskDraftSchema.parse({
     ...existingDraft.data,
+    color: parsed.data.color ?? existingDraft.data.color,
     title: parsed.data.title,
     description: parsed.data.description,
     durationMin: parsed.data.durationMin,
@@ -609,9 +610,28 @@ export async function deleteScanToTaskConflictItemsAction(
     }
 
     for (const taskId of taskIds) {
+      const deletedTask = await tx.task.findFirst({
+        where: { id: taskId, orgId },
+        select: { name: true, color: true, description: true, durationMin: true },
+      });
       const result = await deleteTask(orgId, taskId, auth.userId, auth.userEmail, tx);
       if (!result.ok) {
         throw new Error(result.error);
+      }
+
+      if (deletedTask) {
+        await recordAudit(
+          {
+            orgId,
+            actorId: auth.userId,
+            actorEmail: auth.userEmail,
+            action: "task.delete",
+            targetType: "Task",
+            targetId: taskId,
+            before: deletedTask,
+          },
+          tx,
+        );
       }
     }
   });
@@ -691,6 +711,11 @@ export async function mergeScanToTaskConflictItemsAction(
     };
   });
 
+  const mergedTaskSnapshots = taskRows.map((row) => ({
+    id: row.id,
+    name: row.name,
+  }));
+
   const mergedDraft = await mergeScanToTaskConflictItems({ drafts: parsedDrafts, tasks: taskRows, instruction });
   if (!mergedDraft) {
     return { ok: false, error: "Failed to merge items." };
@@ -705,6 +730,7 @@ export async function mergeScanToTaskConflictItemsAction(
     mergedFromResultIds: drafts.map((row) => row.id),
     mergedFromResultSnapshots: mergedSourceSnapshots,
     mergedFromTaskIds: taskRows.map((row) => row.id),
+    mergedFromTaskSnapshots: mergedTaskSnapshots,
   };
 
   const mergedResult = await prisma.$transaction(async (tx) => {
@@ -967,7 +993,10 @@ export async function confirmScanToTaskAction(
       };
     }
 
-    throw error;
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to confirm draft.",
+    };
   }
 
   log.info("Task created", { orgId, taskId: task.id });

@@ -70,6 +70,7 @@ export type ScanTaskResultMetadata = {
   mergedFromResultIds?: string[];
   mergedFromResultSnapshots?: { id: string; fileName: string; title: string }[];
   mergedFromTaskIds?: string[];
+  mergedFromTaskSnapshots?: { id: string; name: string }[];
   duplicateCandidateVerdicts?: Record<string, boolean>;
 };
 

@@ -121,7 +121,7 @@ function deriveTaskTopic(...parts: Array<string | null | undefined>) {
 function normalizeDuplicateText(value: string) {
   return value
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -129,9 +129,8 @@ function normalizeDuplicateText(value: string) {
 function tokenizeDuplicateText(value: string) {
   return new Set(
     normalizeDuplicateText(value)
-      .split(" ")
-      .map((part) => part.trim())
-      .filter((part) => part.length > 2),
+      .match(/[\p{L}\p{N}]+/gu)
+      ?.filter((part) => part.length > 2 || /[^\u0000-\u007f]/.test(part)) ?? [],
   );
 }
 
@@ -164,9 +163,12 @@ export function compareTaskDuplicateText(input: TaskDuplicateCheckInput, task: T
   const inputDescription = sourceDescriptionParts.join("\n");
   const taskDescription = task.description?.trim() ?? "";
   const descriptionScore = wordOverlapBoost(inputDescription, taskDescription);
-  const exactTitle = normalizeDuplicateText(input.title) === normalizeDuplicateText(task.name);
+  const normalizedInputTitle = normalizeDuplicateText(input.title);
+  const normalizedTaskTitle = normalizeDuplicateText(task.name);
+  const exactTitle = normalizedInputTitle.length > 0 && normalizedTaskTitle.length > 0 && normalizedInputTitle === normalizedTaskTitle;
   const exactDescription =
-    inputDescription.length > 0 && taskDescription.length > 0 &&
+    normalizeDuplicateText(inputDescription).length > 0 &&
+    normalizeDuplicateText(taskDescription).length > 0 &&
     normalizeDuplicateText(inputDescription) === normalizeDuplicateText(taskDescription);
 
   let score = 0;

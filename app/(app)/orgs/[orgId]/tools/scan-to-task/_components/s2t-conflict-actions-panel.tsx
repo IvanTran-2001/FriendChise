@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/core/utils";
-import type { ConflictGroup } from "./s2t-helpers";
+import { formatItemDate, type ConflictGroup } from "./s2t-helpers";
 import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 
 type ConflictActionsPanelProps = {
@@ -20,13 +20,6 @@ type ConflictItem = {
   createdAt?: string;
   updatedAt?: string;
 };
-
-function formatItemTimestamp(value?: string) {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
-}
 
 export function ConflictActionsPanel({ group, draftsById, onMerge, onDelete }: ConflictActionsPanelProps) {
   const { close } = useActionSidebar();
@@ -227,7 +220,7 @@ function ConflictItemCheckboxList({ items, selectedIds, onToggle }: ConflictItem
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium text-foreground">{item.label}</span>
               <span className="block text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                {formatItemTimestamp(item.createdAt) ?? "-"}
+                {formatItemDate(item.createdAt) ?? "-"}
               </span>
             </span>
           </label>

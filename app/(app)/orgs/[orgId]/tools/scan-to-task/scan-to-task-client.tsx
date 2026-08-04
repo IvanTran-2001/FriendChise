@@ -68,6 +68,7 @@ type MergeSourceMetadata = {
   mergedFromResultIds?: string[];
   mergedFromResultSnapshots?: { id: string; fileName: string; title: string }[];
   mergedFromTaskIds?: string[];
+  mergedFromTaskSnapshots?: { id: string; name: string }[];
 };
 
 /**
@@ -232,6 +233,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
                   ...(metadata.mergedFromResultIds?.length ? { mergedFromResultIds: metadata.mergedFromResultIds } : {}),
                   ...(metadata.mergedFromResultSnapshots?.length ? { mergedFromResultSnapshots: metadata.mergedFromResultSnapshots } : {}),
                   ...(nextMergedFromTaskIds.length ? { mergedFromTaskIds: nextMergedFromTaskIds } : {}),
+                  ...(metadata.mergedFromTaskSnapshots?.length ? { mergedFromTaskSnapshots: metadata.mergedFromTaskSnapshots } : {}),
                 }
               : null,
         };
@@ -747,7 +749,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
         sourceFileSize={selectedInspectorValues?.sourceFileSize ?? 0}
         taskDetailsLabel={selectedInspectorValues?.taskDetailsLabel ?? null}
         confirmPending={confirmPending}
-        onDelete={selectedMode === "task" ? (selectedTaskId ? () => void handleDeleteTaskById(selectedTaskId) : null) : selectedResult ? () => void handleRejectResult(selectedResult.clientId) : null}
+        onDelete={selectedMode === "task" ? (selectedTaskId ? () => setPendingDeleteTaskId(selectedTaskId) : null) : selectedResult ? () => void handleRejectResult(selectedResult.clientId) : null}
         onSave={selectedInspectorValues ? handleSaveSelection : null}
         saveDisabled={isSelectedTaskDetailsLoading}
         onOpenChange={handleCloseInspector}
@@ -834,15 +836,24 @@ function buildSelectedInspectorValues(
     selectedTaskDetails?.color ??
     selectedDraft?.color ??
     colorFromSeed(`${selectedResult.fileName}:${selectedDraft?.title ?? selectedResult.fileName}`);
+  const description = selectedTaskDetails !== null
+    ? selectedTaskDetails.description ?? ""
+    : selectedDraft?.description ?? "";
+  const minWaitDays = selectedTaskDetails !== null
+    ? selectedTaskDetails.minWaitDays
+    : selectedDraft?.minWaitDays ?? null;
+  const maxWaitDays = selectedTaskDetails !== null
+    ? selectedTaskDetails.maxWaitDays
+    : selectedDraft?.maxWaitDays ?? null;
 
   return {
     color,
     title: selectedTaskDetails?.name ?? selectedDraft?.title ?? selectedResult.fileName,
-    description: selectedTaskDetails?.description ?? selectedDraft?.description ?? "",
+    description,
     durationMin: selectedTaskDetails?.durationMin ?? selectedDraft?.durationMin ?? 0,
     peopleRequired: selectedTaskDetails?.minPeople ?? selectedDraft?.peopleRequired ?? 0,
-    minWaitDays: selectedTaskDetails?.minWaitDays ?? selectedDraft?.minWaitDays ?? null,
-    maxWaitDays: selectedTaskDetails?.maxWaitDays ?? selectedDraft?.maxWaitDays ?? null,
+    minWaitDays,
+    maxWaitDays,
     sourceFileName: selectedResult.fileName,
     sourceFileKind: selectedResult.fileKind,
     sourceFileSize: selectedResult.fileSize,
@@ -961,7 +972,7 @@ async function loadSelectedTaskDetails(orgId: string, taskId: string, handlers: 
     }
 
     handlers.onError(result.error);
-  } catch {
-    handlers.onError("Failed to load task details.");
+  } catch (error) {
+    handlers.onError(error instanceof Error ? error.message : "Failed to load task details.");
   }
 }
