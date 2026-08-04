@@ -20,6 +20,11 @@ import { MarkdownImage, MarkdownLink } from "@/components/ui/editors/markdown-me
 import { useMarkdownImageUpload } from "@/hooks/use-markdown-image-upload";
 import { getVideoEmbed } from "@/lib/markdown/markdown-media";
 
+const markdownEditorSanitizeSchema = {
+  ...defaultSchema,
+  tagNames: [...(defaultSchema.tagNames ?? []), "u"],
+};
+
 interface MarkdownEditorProps {
   name: string;
   defaultValue?: string | null;
@@ -294,7 +299,7 @@ export function MarkdownEditor({
         <div className="px-3 py-2 min-h-24 text-sm">
           {value.trim() ? (
             <ReactMarkdown
-              rehypePlugins={[rehypeRaw, [rehypeSanitize, defaultSchema]]}
+              rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownEditorSanitizeSchema]]}
               remarkPlugins={[remarkGfm]}
               components={{
                 p: ({ children }) => (

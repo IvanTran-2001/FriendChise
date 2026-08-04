@@ -35,6 +35,7 @@ type ScanToTaskInspectorPanelProps = {
   sourceFileSize: number;
   taskDetailsLabel?: string | null;
   confirmPending: boolean;
+  saveDisabled?: boolean;
   onDelete: (() => void) | null;
   onSave: ((values: InspectorFormValues) => void) | null;
   onOpenChange: (open: boolean) => void;
@@ -54,6 +55,7 @@ function InspectorBody({
   sourceFileSize,
   taskDetailsLabel,
   confirmPending,
+  saveDisabled = false,
   onDelete,
   onSave,
 }: ScanToTaskInspectorPanelProps) {
@@ -130,7 +132,7 @@ function InspectorBody({
             <div className="sm:col-span-2">
               <FieldLabel>Description</FieldLabel>
               <RichTextEditor
-                key={description}
+                key={draftDescription}
                 name="description"
                 defaultValue={draftDescription}
                 placeholder="Write the task description…"
@@ -208,7 +210,7 @@ function InspectorBody({
                       maxWaitDays: draftMaxWaitDays.trim() === "" ? null : Number(draftMaxWaitDays),
                     })
                   }
-                  disabled={confirmPending}
+                  disabled={confirmPending || saveDisabled}
                 >
                   {saveLabel}
                 </Button>

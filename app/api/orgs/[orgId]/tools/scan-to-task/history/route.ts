@@ -27,9 +27,9 @@ export async function GET(
     Math.max(1, Number.parseInt(searchParams.get("limit") ?? String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT),
     MAX_LIMIT,
   );
-  const sharedCandidates = await loadPotentialTaskDuplicateCandidates(orgId, Math.max(limit, DEFAULT_LIMIT));
 
   try {
+    const sharedCandidates = await loadPotentialTaskDuplicateCandidates(orgId, Math.max(limit, DEFAULT_LIMIT));
     const records = await prisma.scanTaskResult.findMany({
       where: { orgId, clearedAt: null },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -67,7 +67,7 @@ export async function GET(
           sourceText: parsedDraft.data.sourceText || undefined,
         },
         sharedCandidates,
-        { limit: Math.max(limit, DEFAULT_LIMIT), threshold: 0.82 },
+        { limit: 3, threshold: 0.82 },
       );
 
       const duplicateVerdicts = getDuplicateCandidateVerdicts(record.metadata);

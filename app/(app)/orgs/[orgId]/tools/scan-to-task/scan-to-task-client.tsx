@@ -24,6 +24,16 @@ import { ScanToTaskInspectorPanel, type InspectorFormValues } from "./_component
 import { useScanTaskHistoryPagination } from "./_components/s2t-history-pagination";
 import { buildConflictGroups, type ConflictGroup } from "./_components/s2t-helpers";
 import type { TaskDuplicateCandidate } from "@/lib/services/tasks";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/dialogs/alert-dialog";
 
 type ScanSourceRef = { storagePath: string; fileName: string; mimeType: string; fileSize: number };
 type TaskDetails = {
@@ -95,6 +105,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
   const [confirmPending, setConfirmPending] = useState(false);
   const [selectedTaskDetails, setSelectedTaskDetails] = useState<TaskDetails | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [pendingDeleteTaskId, setPendingDeleteTaskId] = useState<string | null>(null);
   const [selectedSource, setSelectedSource] = useState<"queue" | "conflict" | null>(null);
   const selectedResultIdRef = useRef<string | null>(null);
 
@@ -179,17 +190,12 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
    * from the visible queue.
    */
   const removeResultFromQueue = (resultId: string) => {
-    let nextResultsSnapshot: DraftScanResultItem[] = [];
-    setResults((currentResults) => {
-      nextResultsSnapshot = currentResults.filter((result) => result.clientId !== resultId);
-      return nextResultsSnapshot;
-    });
+    setResults((currentResults) => currentResults.filter((result) => result.clientId !== resultId));
 
     setSelectedResultId((currentSelectedId) => {
       if (currentSelectedId !== resultId) return currentSelectedId;
 
-      const nextSelectedResultId = (nextResultsSnapshot.find((result) => result.ok) ?? nextResultsSnapshot[0] ?? null)?.clientId ?? null;
-      selectedResultIdRef.current = nextSelectedResultId;
+      const nextSelectedResultId = (results.find((result) => result.clientId !== resultId && result.ok) ?? results.find((result) => result.clientId !== resultId) ?? null)?.clientId ?? null;
       return nextSelectedResultId;
     });
 
@@ -492,7 +498,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
     }
 
     if (result.taskId) {
-      await handleDeleteTaskById(result.taskId);
+      setPendingDeleteTaskId(result.taskId);
       return;
     }
 
@@ -607,6 +613,11 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
       return;
     }
 
+    if (selectedTaskId && !selectedTaskDetails) {
+      toast.error("Task details are still loading.");
+      return;
+    }
+
     setConfirmPending(true);
     try {
       if (selectedTaskId) {
@@ -680,6 +691,8 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
       .map((result) => [result.clientId, { taskId: result.taskId as string, taskHref: `/orgs/${orgId}/tasks/${result.taskId}` }]),
   );
 
+  const isSelectedTaskDetailsLoading = Boolean(selectedTaskId && !selectedTaskDetails);
+
   return (
     // No overflow-x here: `overflow-x-hidden` without an explicit overflow-y forces
     // overflow-y to compute as `auto` (CSS spec), turning this whole stack into its
@@ -741,8 +754,37 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
         confirmPending={confirmPending}
         onDelete={selectedResult ? () => void handleRejectResult(selectedResult.clientId) : null}
         onSave={selectedInspectorValues ? handleSaveSelection : null}
+        saveDisabled={isSelectedTaskDetailsLoading}
         onOpenChange={handleCloseInspector}
       />
+
+      <AlertDialog
+        open={pendingDeleteTaskId !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteTaskId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete linked task?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will delete the linked task and remove it from the scan queue. Draft results without a linked task will still clear without this dialog.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingDeleteTaskId(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const taskId = pendingDeleteTaskId;
+                setPendingDeleteTaskId(null);
+                if (taskId) void handleDeleteTaskById(taskId);
+              }}
+            >
+              Delete task
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

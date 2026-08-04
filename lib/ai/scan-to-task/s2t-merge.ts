@@ -58,7 +58,7 @@ export async function mergeScanToTaskWithExistingTask(input: {
           ],
         },
       ],
-    }, { timeout: 20_000 });
+    }, { timeout: scanToTaskConfig.requestTimeoutMs });
 
     const content = response.choices[0]?.message?.content;
     logScanToTaskModelResponse(
@@ -131,7 +131,7 @@ export async function mergeScanToTaskConflictItems(input: {
           ],
         },
       ],
-    }, { timeout: 20_000 });
+    }, { timeout: scanToTaskConfig.requestTimeoutMs });
 
     const content = response.choices[0]?.message?.content;
     logScanToTaskModelResponse(

@@ -196,7 +196,15 @@ async function processScanSource(
       },
     ];
   } finally {
-    await deleteStorageFile(source.storagePath);
+    try {
+      await deleteStorageFile(source.storagePath);
+    } catch (error) {
+      log.error("Failed to delete uploaded scan file after processing", {
+        orgId,
+        storagePath: source.storagePath,
+        error,
+      });
+    }
   }
 }
 

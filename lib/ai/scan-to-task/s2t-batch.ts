@@ -73,13 +73,16 @@ async function acquireDuplicateAdjudicationSlot(budget: DuplicateAdjudicationBud
   await new Promise<void>((resolve) => {
     budget.waiters.push(resolve);
   });
-
-  budget.activeAttempts += 1;
 }
 
 function releaseDuplicateAdjudicationSlot(budget: DuplicateAdjudicationBudget) {
+  const nextWaiter = budget.waiters.shift();
+  if (nextWaiter) {
+    nextWaiter();
+    return;
+  }
+
   budget.activeAttempts = Math.max(0, budget.activeAttempts - 1);
-  budget.waiters.shift()?.();
 }
 
 function formatCandidateText(candidate: TaskDuplicateCandidate) {

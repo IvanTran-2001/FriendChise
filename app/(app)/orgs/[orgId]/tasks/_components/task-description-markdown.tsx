@@ -6,6 +6,11 @@ import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import { MarkdownImage, MarkdownLink } from "@/components/ui/editors/markdown-media";
 
+const taskDescriptionSanitizeSchema = {
+  ...defaultSchema,
+  tagNames: [...(defaultSchema.tagNames ?? []), "u"],
+};
+
 type TaskDescriptionMarkdownProps = {
   description: string;
   orgId?: string;
@@ -22,7 +27,7 @@ export function TaskDescriptionMarkdown({
   return (
     <div className={className}>
       <ReactMarkdown
-        rehypePlugins={[rehypeRaw, [rehypeSanitize, defaultSchema]]}
+        rehypePlugins={[rehypeRaw, [rehypeSanitize, taskDescriptionSanitizeSchema]]}
         remarkPlugins={[remarkGfm]}
         components={{
           p: ({ children }) => (

@@ -82,6 +82,20 @@ type UploadDropzoneProps = {
 function UploadDropzone({ fileInputRef, onFilesChange }: UploadDropzoneProps) {
   return (
     <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-dashed border-border bg-muted/20 p-4 transition-colors hover:border-primary/30 hover:bg-muted/30">
+      <input
+        id="scan-to-task-files"
+        ref={fileInputRef}
+        type="file"
+        name="files"
+        multiple
+        accept={SCAN_TO_TASK_UPLOAD_ACCEPT}
+        onChange={(event) => {
+          const files = Array.from(event.currentTarget.files ?? []);
+          onFilesChange(files);
+        }}
+        className="peer sr-only"
+      />
+
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary ring-1 ring-primary/15">
           <Upload className="h-4 w-4" />
@@ -99,19 +113,6 @@ function UploadDropzone({ fileInputRef, onFilesChange }: UploadDropzoneProps) {
           Choose files
         </label>
       </div>
-      <input
-        id="scan-to-task-files"
-        ref={fileInputRef}
-        type="file"
-        name="files"
-        multiple
-        accept={SCAN_TO_TASK_UPLOAD_ACCEPT}
-        onChange={(event) => {
-          const files = Array.from(event.currentTarget.files ?? []);
-          onFilesChange(files);
-        }}
-        className="peer sr-only"
-      />
     </div>
   );
 }

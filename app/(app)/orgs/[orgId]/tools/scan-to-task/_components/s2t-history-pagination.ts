@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ScanTaskDraft } from "@/lib/ai/scan-to-task";
 import { scanTaskDraftSchema, type ScanTaskResultMetadata } from "@/lib/validators/scan-to-task";
+import type { TaskDuplicateCandidate } from "@/lib/services/tasks";
 import type { DraftScanResultItem } from "./s2t-results-section";
 
 type HistoryRecord = {
@@ -63,7 +64,7 @@ function toHistoryItem(record: HistoryRecord): DraftScanResultItem | null {
 
 export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
   const [results, setResults] = useState<DraftScanResultItem[]>([]);
-  const [duplicateCandidatesById, setDuplicateCandidatesById] = useState<Record<string, import("@/lib/services/tasks").TaskDuplicateCandidate[]>>({});
+  const [duplicateCandidatesById, setDuplicateCandidatesById] = useState<Record<string, TaskDuplicateCandidate[]>>({});
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoadingInitial, setIsLoadingInitial] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -101,7 +102,7 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
       data.results
         .filter((record) => Array.isArray(record.duplicateCandidates))
         .map((record) => [record.id, record.duplicateCandidates]),
-    ) as Record<string, import("@/lib/services/tasks").TaskDuplicateCandidate[]>;
+    ) as Record<string, TaskDuplicateCandidate[]>;
 
     if (append) {
       setResults((current) => mergeResults(current, parsed));

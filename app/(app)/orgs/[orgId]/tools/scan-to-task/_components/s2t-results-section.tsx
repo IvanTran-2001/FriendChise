@@ -10,6 +10,7 @@ import { cn } from "@/lib/core/utils";
 import { formatFileSize } from "@/lib/services/scan-to-task-shared";
 import type { ScanToTaskResultItem } from "@/app/actions/tools/s2t";
 import { MergeSourceTree } from "./s2t-merge-source-tree";
+import { formatItemDate, getMergedSourceSummary } from "./s2t-helpers";
 
 export type DraftScanResultItem = ScanToTaskResultItem & { clientId: string; createdAt?: string; updatedAt?: string };
 
@@ -35,34 +36,6 @@ function isReadyResult(result: DraftScanResultItem): result is Extract<DraftScan
 
 function resultKey(result: DraftScanResultItem) {
   return result.clientId;
-}
-
-function formatItemDate(value?: string) {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
-}
-
-function getMergedSourceSummary(result: DraftScanResultItem) {
-  if (!result.ok) return null;
-
-  const mergedFromResultIds = result.metadata?.mergedFromResultIds ?? [];
-  const mergedFromTaskIds = result.metadata?.mergedFromTaskIds ?? [];
-  if (mergedFromResultIds.length === 0 && mergedFromTaskIds.length === 0) return null;
-
-  const draftCount = mergedFromResultIds.length;
-  const taskCount = mergedFromTaskIds.length;
-
-  return {
-    label: `Merged from ${draftCount} draft${draftCount === 1 ? "" : "s"}${taskCount > 0 ? ` and ${taskCount} task${taskCount === 1 ? "" : "s"}` : ""}`,
-    title: [
-      draftCount > 0 ? `Draft IDs: ${mergedFromResultIds.join(", ")}` : null,
-      taskCount > 0 ? `Task IDs: ${mergedFromTaskIds.join(", ")}` : null,
-    ]
-      .filter((value): value is string => Boolean(value))
-      .join(" | "),
-  };
 }
 
 function getReferencedResultIds(results: DraftScanResultItem[]) {
@@ -104,7 +77,7 @@ export function ScanToTaskResultsSection({
     [referencedResultIds, results],
   );
   const readyResults = visibleResults.filter(isReadyResult);
-  const confirmedResults = visibleResults.filter((result) => result.ok && confirmedTasksById[result.clientId]);
+  const confirmedResults = visibleResults.filter((result) => result.ok && (confirmedTasksById[result.clientId] || result.taskId));
   const totalConfirmed = confirmedResults.length;
   const totalReady = readyResults.length - totalConfirmed;
   const totalFailed = visibleResults.length - readyResults.length;

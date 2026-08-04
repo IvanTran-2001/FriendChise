@@ -5,22 +5,15 @@ import { ChevronDown, ListChecks, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
 import type { DraftScanResultItem } from "./s2t-results-section";
+import type { ConflictGroup } from "./s2t-helpers";
 import type { TaskDuplicateCandidate } from "@/lib/services/tasks";
 import { ConflictActionsPanel } from "./s2t-conflict-actions-panel";
 
-function buildConflictPanelTitle(group: {
-  primaryResult: Extract<DraftScanResultItem, { ok: true }>;
-}) {
+function buildConflictPanelTitle(group: Pick<ConflictGroup, "primaryResult">) {
   return `Conflict actions: ${group.primaryResult.fileName}`;
 }
 
-function buildConflictPanelContentKey(
-  group: {
-    primaryResult: Extract<DraftScanResultItem, { ok: true }>;
-    results: Array<Extract<DraftScanResultItem, { ok: true }>>;
-    duplicateCandidates: TaskDuplicateCandidate[];
-  },
-) {
+function buildConflictPanelContentKey(group: ConflictGroup) {
   return [
     group.primaryResult.clientId,
     group.results.map((result) => result.clientId).join("|"),
@@ -29,24 +22,12 @@ function buildConflictPanelContentKey(
 }
 
 type ScanToTaskConflictListProps = {
-  conflictGroups: Array<{
-    primaryResult: Extract<DraftScanResultItem, { ok: true }>;
-    results: Array<Extract<DraftScanResultItem, { ok: true }>>;
-    duplicateCandidates: TaskDuplicateCandidate[];
-  }>;
+  conflictGroups: ConflictGroup[];
   draftsById: Record<string, { title: string }>;
   onSelectResult: (resultId: string, source?: "queue" | "conflict") => void;
   onInspectTaskCandidate: (resultId: string, taskId: string) => void;
-  onStageMergeConflictItems: (group: {
-    primaryResult: Extract<DraftScanResultItem, { ok: true }>;
-    results: Array<Extract<DraftScanResultItem, { ok: true }>>;
-    duplicateCandidates: TaskDuplicateCandidate[];
-  }, selectedIds: string[], instructions?: string) => void;
-  onStageDeleteConflictItems: (group: {
-    primaryResult: Extract<DraftScanResultItem, { ok: true }>;
-    results: Array<Extract<DraftScanResultItem, { ok: true }>>;
-    duplicateCandidates: TaskDuplicateCandidate[];
-  }, selectedIds: string[]) => void;
+  onStageMergeConflictItems: (group: ConflictGroup, selectedIds: string[], instructions?: string) => void;
+  onStageDeleteConflictItems: (group: ConflictGroup, selectedIds: string[]) => void;
 };
 
 export function ScanToTaskConflictList({
@@ -200,29 +181,27 @@ function ConflictItemRow({
   taskCount,
 }: ConflictItemRowProps) {
   return (
-    <>
-      <summary className="flex cursor-pointer list-none items-start gap-3 px-4 py-3 outline-none transition-colors hover:bg-amber-500/5 [&::-webkit-details-marker]:hidden">
-        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-amber-700 transition-transform group-open:rotate-180 dark:text-amber-200">
-          <ChevronDown className="h-4 w-4" />
-        </div>
+    <summary className="flex cursor-pointer list-none items-start gap-3 px-4 py-3 outline-none transition-colors hover:bg-amber-500/5 [&::-webkit-details-marker]:hidden">
+      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-amber-700 transition-transform group-open:rotate-180 dark:text-amber-200">
+        <ChevronDown className="h-4 w-4" />
+      </div>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-sm font-semibold">{titles[0] ?? primaryResult.fileName}</span>
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              {sourceLabel}
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="truncate text-sm font-semibold">{titles[0] ?? primaryResult.fileName}</span>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            {sourceLabel}
+          </span>
+          {taskCount > 0 ? (
+            <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-200">
+              {taskLabel}
             </span>
-            {taskCount > 0 ? (
-              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-200">
-                {taskLabel}
-              </span>
-            ) : null}
-          </div>
-
-          <p className="mt-1 truncate text-xs text-muted-foreground">{primaryResult.fileName}</p>
+          ) : null}
         </div>
-      </summary>
-    </>
+
+        <p className="mt-1 truncate text-xs text-muted-foreground">{primaryResult.fileName}</p>
+      </div>
+    </summary>
   );
 }
 

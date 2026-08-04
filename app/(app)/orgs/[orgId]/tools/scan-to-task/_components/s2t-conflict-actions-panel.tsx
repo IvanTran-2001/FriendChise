@@ -94,8 +94,11 @@ export function ConflictActionsPanel({ group, draftsById, onMerge, onDelete }: C
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Instructions</p>
+              <label htmlFor="conflict-merge-instructions" className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Instructions
+              </label>
             <textarea
+                id="conflict-merge-instructions"
               value={instructions}
               onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setInstructions(event.currentTarget.value)}
               placeholder="Add notes for how the merged draft should be shaped..."

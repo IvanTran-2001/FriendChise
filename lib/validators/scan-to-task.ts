@@ -25,7 +25,7 @@ export const scanTaskDraftSchema = z.object({
   minWaitDays: z.number().int().min(0).max(3650),
   maxWaitDays: z.number().int().min(0).max(3650),
   summary: z.string().max(500),
-  sourceText: z.string().max(3000).default(""),
+  sourceText: z.string().max(12000).default(""),
 }).refine((value) => value.maxWaitDays >= value.minWaitDays, {
   message: "maxWaitDays must be greater than or equal to minWaitDays",
   path: ["maxWaitDays"],

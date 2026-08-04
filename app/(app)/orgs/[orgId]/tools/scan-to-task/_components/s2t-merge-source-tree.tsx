@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/core/utils";
 import type { DraftScanResultItem } from "./s2t-results-section";
+import { formatItemDate, getMergedSourceSummary } from "./s2t-helpers";
 
 type MergeSourceNode =
   | {
@@ -39,34 +40,6 @@ type MergeSourceTreeProps = {
   onInspectTaskCandidate: (resultId: string, taskId: string) => void;
   onDeleteTask: (taskId: string) => void;
 };
-
-function formatItemDate(value?: string) {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
-}
-
-function getMergedSourceSummary(result: DraftScanResultItem) {
-  if (!result.ok) return null;
-
-  const mergedFromResultIds = result.metadata?.mergedFromResultIds ?? [];
-  const mergedFromTaskIds = result.metadata?.mergedFromTaskIds ?? [];
-  if (mergedFromResultIds.length === 0 && mergedFromTaskIds.length === 0) return null;
-
-  const draftCount = mergedFromResultIds.length;
-  const taskCount = mergedFromTaskIds.length;
-
-  return {
-    label: `Merged from ${draftCount} draft${draftCount === 1 ? "" : "s"}${taskCount > 0 ? ` and ${taskCount} task${taskCount === 1 ? "" : "s"}` : ""}`,
-    title: [
-      draftCount > 0 ? `Draft IDs: ${mergedFromResultIds.join(", ")}` : null,
-      taskCount > 0 ? `Task IDs: ${mergedFromTaskIds.join(", ")}` : null,
-    ]
-      .filter((value): value is string => Boolean(value))
-      .join(" | "),
-  };
-}
 
 function getMergeSourceNodes(
   result: Extract<DraftScanResultItem, { ok: true }>,

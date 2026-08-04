@@ -33,6 +33,40 @@ export function filenameToSummary(fileName: string) {
   return `Imported from ${fileName}.`;
 }
 
+export function formatItemDate(value?: string) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+}
+
+export function getMergedSourceSummary(result: {
+  ok: boolean;
+  metadata?: {
+    mergedFromResultIds?: string[];
+    mergedFromTaskIds?: string[];
+  } | null;
+}) {
+  if (!result.ok) return null;
+
+  const mergedFromResultIds = result.metadata?.mergedFromResultIds ?? [];
+  const mergedFromTaskIds = result.metadata?.mergedFromTaskIds ?? [];
+  if (mergedFromResultIds.length === 0 && mergedFromTaskIds.length === 0) return null;
+
+  const draftCount = mergedFromResultIds.length;
+  const taskCount = mergedFromTaskIds.length;
+
+  return {
+    label: `Merged from ${draftCount} draft${draftCount === 1 ? "" : "s"}${taskCount > 0 ? ` and ${taskCount} task${taskCount === 1 ? "" : "s"}` : ""}`,
+    title: [
+      draftCount > 0 ? `Draft IDs: ${mergedFromResultIds.join(", ")}` : null,
+      taskCount > 0 ? `Task IDs: ${mergedFromTaskIds.join(", ")}` : null,
+    ]
+      .filter((value): value is string => Boolean(value))
+      .join(" | "),
+  };
+}
+
 /**
  * Limits prompt text so we do not send excessively large inputs to the model.
  */
