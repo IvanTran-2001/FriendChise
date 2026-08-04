@@ -249,21 +249,21 @@ function buildImageContextCheckPrompt() {
 
 async function checkImageHasTaskContext(
   fileName: string,
-  mimeType: string,
-  bytes: ArrayBuffer,
+  normalized: {
+    bytes: ArrayBuffer;
+    mimeType: string;
+  },
   instruction: string,
 ) {
   const safeInstruction = limitText(instruction, 1000);
   if (!openAiClient || safeInstruction) {
-    return { actionable: true } satisfies Pick<ImageContextCheck, "actionable">;
+    return { actionable: true, reason: "" } satisfies ImageContextCheck;
   }
-
-  const normalized = await normalizeImageBytesForVision(fileName, bytes, mimeType);
 
   const input = {
     stage: "image-context-check",
     fileName,
-    mimeType,
+    mimeType: normalized.mimeType,
     normalizedMimeType: normalized.mimeType,
     instructionPreview: safeInstruction ? limitText(safeInstruction, 200) : "",
     imageBytes: normalized.bytes.byteLength,
@@ -290,7 +290,7 @@ async function checkImageHasTaskContext(
             },
             {
               type: "text",
-              text: `Mime type: ${mimeType || "unknown"}`,
+              text: `Mime type: ${normalized.mimeType || "unknown"}`,
             },
             {
               type: "image_url",
@@ -311,11 +311,11 @@ async function checkImageHasTaskContext(
       content ?? "",
       response.usage,
     );
-    if (!content) return { actionable: true } satisfies Pick<ImageContextCheck, "actionable">;
+    if (!content) return { actionable: true, reason: "" } satisfies ImageContextCheck;
 
     const parsed = JSON.parse(content) as Partial<ImageContextCheck>;
     if (typeof parsed.actionable !== "boolean") {
-      return { actionable: true } satisfies Pick<ImageContextCheck, "actionable">;
+      return { actionable: true, reason: "" } satisfies ImageContextCheck;
     }
 
     return {
@@ -324,7 +324,7 @@ async function checkImageHasTaskContext(
     };
   } catch (error) {
     logScanToTaskModelError(scanToTaskDebugLogging, "image-context-check", openAiModel, error, input);
-    return { actionable: true } satisfies Pick<ImageContextCheck, "actionable">;
+    return { actionable: true, reason: "" } satisfies ImageContextCheck;
   }
 }
 
@@ -336,7 +336,7 @@ async function prepareImageInputForExtraction(
 ) {
   const safeInstruction = limitText(instruction, 1000);
   const normalized = await normalizeImageBytesForVision(fileName, bytes, mimeType);
-  const imageContextCheck = await checkImageHasTaskContext(fileName, normalized.mimeType, normalized.bytes, safeInstruction);
+  const imageContextCheck = await checkImageHasTaskContext(fileName, normalized, safeInstruction);
 
   return { normalized, imageContextCheck, safeInstruction };
 }
@@ -685,7 +685,7 @@ async function splitTextIntoChunkSections(
   sourceText: string,
 ): Promise<ChunkSplitSection[] | null> {
   const safeInstruction = limitText(instruction, 1000);
-  const safeSourceText = limitText(sourceText, scanToTaskConfig.sourceTextMaxLength);
+  const safeSourceText = limitTextPreservingFormatting(sourceText, scanToTaskConfig.sourceTextMaxLength);
 
   if (!openAiClient) return null;
   if (safeSourceText.length < scanToTaskConfig.chunkSplitMinLength) return null;
