@@ -83,6 +83,13 @@ const taskTopicDefinitions = [
   { topic: "customer", keywords: ["customer", "guest", "service", "order", "refund", "complaint", "call", "booking", "delivery"] },
 ];
 
+const normalizedTaskTopicDefinitions = taskTopicDefinitions.map((definition) => ({
+  topic: definition.topic,
+  keywords: definition.keywords
+    .map((keyword) => normalizeDuplicateText(keyword))
+    .filter((keyword) => keyword.length > 0),
+}));
+
 function deriveTaskTopic(...parts: Array<string | null | undefined>) {
   const normalized = normalizeDuplicateText(parts.filter((part): part is string => Boolean(part)).join(" \n"));
   if (!normalized) return null;
@@ -91,11 +98,9 @@ function deriveTaskTopic(...parts: Array<string | null | undefined>) {
   let bestTopic: string | null = null;
   let bestScore = 0;
 
-  for (const definition of taskTopicDefinitions) {
+  for (const definition of normalizedTaskTopicDefinitions) {
     let score = 0;
-    for (const keyword of definition.keywords) {
-      const normalizedKeyword = normalizeDuplicateText(keyword);
-      if (!normalizedKeyword) continue;
+    for (const normalizedKeyword of definition.keywords) {
       if (tokens.has(normalizedKeyword)) score += normalizedKeyword.length >= 6 ? 2 : 1;
       else if (normalized.includes(normalizedKeyword)) score += normalizedKeyword.length >= 6 ? 1.25 : 0.75;
     }
@@ -275,14 +280,11 @@ export async function findPotentialTaskDuplicates(
   const limit = options.limit ?? 3;
   const recentLimit = options.recentLimit ?? 50;
 
-  const taskLimit = recentLimit;
-  const scanResultLimit = recentLimit;
-
   const [tasks, scanResults] = await Promise.all([
     prisma.task.findMany({
       where: { orgId },
       orderBy: { createdAt: "desc" },
-      ...(typeof taskLimit === "number" ? { take: taskLimit } : {}),
+      take: recentLimit,
       select: {
         id: true,
         name: true,
@@ -305,7 +307,7 @@ export async function findPotentialTaskDuplicates(
     prisma.scanTaskResult.findMany({
       where: { orgId, clearedAt: null, taskId: null },
       orderBy: { createdAt: "desc" },
-      ...(typeof scanResultLimit === "number" ? { take: scanResultLimit } : {}),
+      take: recentLimit,
       select: {
         id: true,
         taskId: true,
@@ -485,7 +487,7 @@ export async function deleteTask(
   if (count === 0)
     return { ok: false, error: "Task not found", code: "NOT_FOUND" };
   log.info("Task deleted", { orgId, taskId: id });
-  if (existing) {
+  if (existing && db === prisma) {
     recordAudit({
       orgId,
       actorId: actorId ?? null,

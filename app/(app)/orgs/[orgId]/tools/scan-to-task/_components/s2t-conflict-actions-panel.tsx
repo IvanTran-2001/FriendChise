@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ChangeEvent } from "react";
+import { useCallback, useMemo, useState, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/core/utils";
 import type { ConflictGroup } from "./s2t-helpers";
@@ -72,6 +72,10 @@ export function ConflictActionsPanel({ group, draftsById, onMerge, onDelete }: C
   const [deselectedIds, setDeselectedIds] = useState<string[]>([]);
   const [instructions, setInstructions] = useState("");
 
+  const toggleSelection = useCallback((itemId: string, checked: boolean) => {
+    setDeselectedIds((current) => (checked ? current.filter((selectedId) => selectedId !== itemId) : [...current, itemId]));
+  }, []);
+
   const selectedIds = useMemo(
     () => itemIds.filter((itemId) => !deselectedIds.includes(itemId)),
     [deselectedIds, itemIds],
@@ -104,10 +108,7 @@ export function ConflictActionsPanel({ group, draftsById, onMerge, onDelete }: C
               title="Drafts"
               items={draftItems}
               selectedIds={selectedIds}
-              onToggle={(itemId, checked) => {
-                // Add or remove this item from the current selection.
-                setDeselectedIds((current) => (checked ? current.filter((selectedId) => selectedId !== itemId) : [...current, itemId]));
-              }}
+              onToggle={toggleSelection}
             />
           ) : null}
 
@@ -116,10 +117,7 @@ export function ConflictActionsPanel({ group, draftsById, onMerge, onDelete }: C
               title="Tasks"
               items={taskItems}
               selectedIds={selectedIds}
-              onToggle={(itemId, checked) => {
-                // Add or remove this item from the current selection.
-                setDeselectedIds((current) => (checked ? current.filter((selectedId) => selectedId !== itemId) : [...current, itemId]));
-              }}
+              onToggle={toggleSelection}
             />
           ) : null}
         </div>
@@ -146,18 +144,13 @@ export function ConflictActionsPanel({ group, draftsById, onMerge, onDelete }: C
             className="flex-1"
             // Execute delete for the selected items, then close the sidebar.
             onClick={() => {
-              const selectedLabels = [...draftItems, ...taskItems]
-                .filter((item) => selectedIds.includes(item.id))
-                .map((item) => item.label);
-              const taskCount = taskItems.filter((item) => selectedIds.includes(item.id)).length;
-              const draftCount = selectedIds.length - taskCount;
-              const confirmation = [
-                `Delete ${draftCount} draft${draftCount === 1 ? "" : "s"} and ${taskCount} task${taskCount === 1 ? "" : "s"}?`,
-                selectedLabels.length > 0 ? `\n\nSelected items:\n- ${selectedLabels.join("\n- ")}` : null,
-              ]
-                .filter(Boolean)
-                .join("");
-              if (!window.confirm(confirmation)) {
+              const selectedTasks = taskItems.filter((item) => selectedIds.includes(item.id));
+              const draftCount = selectedIds.length - selectedTasks.length;
+              const taskList = selectedTasks.map((item) => `• ${item.label}`).join("\n");
+              const message = `Delete ${draftCount} draft${draftCount === 1 ? "" : "s"} and ${selectedTasks.length} task${selectedTasks.length === 1 ? "" : "s"}?${
+                taskList ? `\n\nTasks to delete permanently:\n${taskList}` : ""
+              }`;
+              if (!window.confirm(message)) {
                 return;
               }
               onDelete(group, selectedIds);
@@ -195,17 +188,9 @@ type ConflictItemCheckboxListProps = {
   onToggle: (itemId: string, checked: boolean) => void;
 };
 
-function ConflictItemSection({
-  title,
-  items,
-  selectedIds,
-  onToggle,
-}: {
-  title: string;
-  items: ConflictItem[];
-  selectedIds: string[];
-  onToggle: (itemId: string, checked: boolean) => void;
-}) {
+type ConflictItemSectionProps = ConflictItemCheckboxListProps & { title: string };
+
+function ConflictItemSection({ title, items, selectedIds, onToggle }: ConflictItemSectionProps) {
   return (
     <div>
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</p>

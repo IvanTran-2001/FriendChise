@@ -131,12 +131,13 @@ function matchHint(text: string) {
 /**
  * Builds the final description body shown to the user.
  */
-function buildDescription(title: string, summary: string) {
+function buildDescription(title: string, summary: string, body = "") {
   const bulletPoints = GENERIC_STEPS.map((step) => `- ${step}`).join("\n");
   return [
     summary,
     "",
     `Task: ${title}.`,
+    ...(body.trim() ? ["", body.trim()] : []),
     "",
     "Suggested checklist:",
     bulletPoints,
@@ -166,7 +167,7 @@ export function buildTaskSuggestion(
 
   return {
     title,
-    description: buildDescription(title, summary),
+    description: buildDescription(title, summary, input.description ?? ""),
     durationMin,
     peopleRequired,
     minWaitDays,

@@ -26,6 +26,7 @@ export async function GET(
   );
 
   try {
+    const verdictCache = new Map<string, boolean>();
     const records = await prisma.scanTaskResult.findMany({
       where: { orgId, clearedAt: null },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -68,6 +69,15 @@ export async function GET(
 
       const filteredCandidates = [];
       for (const candidate of record.taskId ? duplicateCandidates.filter((candidate) => candidate.taskId !== record.taskId) : duplicateCandidates) {
+        const cacheKey = `${record.id}:${candidate.taskId ?? candidate.id}`;
+        const cachedVerdict = verdictCache.get(cacheKey);
+        if (cachedVerdict === false) continue;
+
+        if (cachedVerdict === true) {
+          filteredCandidates.push(candidate);
+          continue;
+        }
+
         const adjudication = await adjudicateScanTaskDuplicate(
           {
             title: parsedDraft.data.title,
@@ -80,6 +90,7 @@ export async function GET(
           candidate,
         );
 
+        verdictCache.set(cacheKey, adjudication?.sameTask !== false);
         if (adjudication?.sameTask === false) continue;
         filteredCandidates.push(candidate);
       }

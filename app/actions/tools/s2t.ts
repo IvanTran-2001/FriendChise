@@ -184,6 +184,14 @@ export type ClearScanToTaskResultActionState =
   | { ok: true }
   | { ok: false; error: string };
 
+export type UpdateScanToTaskDraftActionState =
+  | {
+      ok: true;
+      resultId: string;
+      draft: ScanTaskDraft;
+    }
+  | { ok: false; error: string };
+
 export type DeleteScanToTaskConflictItemsActionState =
   | { ok: true }
   | { ok: false; error: string };
@@ -381,6 +389,66 @@ export async function clearScanToTaskResultAction(
 }
 
 /**
+ * Persists edits to an existing scan draft row so inspector changes survive refreshes.
+ */
+export async function updateScanToTaskDraftAction(
+  orgId: string,
+  _prevState: UpdateScanToTaskDraftActionState | null,
+  formData: FormData,
+): Promise<UpdateScanToTaskDraftActionState> {
+  const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!auth.ok) return { ok: false, error: "Unauthorized" };
+
+  const parsed = confirmScanToTaskSchema.safeParse({
+    resultId: formData.get("resultId"),
+    fileName: formData.get("fileName"),
+    color: formData.get("color"),
+    title: formData.get("title"),
+    description: formData.get("description"),
+    summary: formData.get("summary"),
+    sourceText: formData.get("sourceText"),
+    durationMin: formData.get("durationMin"),
+    peopleRequired: formData.get("peopleRequired"),
+    minWaitDays: formData.get("minWaitDays"),
+    maxWaitDays: formData.get("maxWaitDays"),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: "Fix the task details before saving." };
+  }
+
+  const result = await prisma.scanTaskResult.findFirst({
+    where: { id: parsed.data.resultId, orgId, taskId: null, clearedAt: null },
+    select: { id: true, draft: true },
+  });
+  if (!result || !result.draft || typeof result.draft !== "object") {
+    return { ok: false, error: "Scan result not found." };
+  }
+
+  const existingDraft = scanTaskDraftSchema.safeParse(result.draft);
+  if (!existingDraft.success) {
+    return { ok: false, error: "Scan draft is no longer available." };
+  }
+
+  const nextDraft = scanTaskDraftSchema.parse({
+    ...existingDraft.data,
+    title: parsed.data.title,
+    description: parsed.data.description,
+    durationMin: parsed.data.durationMin,
+    peopleRequired: parsed.data.peopleRequired,
+    minWaitDays: parsed.data.minWaitDays,
+    maxWaitDays: parsed.data.maxWaitDays,
+  });
+
+  await prisma.scanTaskResult.update({
+    where: { id: result.id },
+    data: { draft: nextDraft },
+  });
+
+  revalidatePath(`/orgs/${orgId}/tools/scan-to-task`);
+  return { ok: true, resultId: result.id, draft: nextDraft };
+}
+
+/**
  * Clears selected draft results and removes any selected duplicate tasks.
  */
 export async function deleteScanToTaskConflictItemsAction(
@@ -496,31 +564,40 @@ export async function mergeScanToTaskConflictItemsAction(
     mergedFromTaskIds: taskIds,
   };
 
-  const mergedResult = await prisma.scanTaskResult.create({
-    data: {
-      orgId,
-      createdById: auth.userId,
-      batchId: sourceRow.batchId,
-      fileName: sourceRow.fileName,
-      fileKind: sourceRow.fileKind,
-      fileSize: sourceRow.fileSize,
-      instruction: null,
-      draft: mergedDraft,
-      error: null,
-      metadata: mergedMetadata,
-      taskId: null,
-      confirmedAt: null,
-      clearedAt: null,
-    },
-    select: {
-      id: true,
-      batchId: true,
-      fileName: true,
-      fileKind: true,
-      fileSize: true,
-      draft: true,
-      metadata: true,
-    },
+  const mergedResult = await prisma.$transaction(async (tx) => {
+    const created = await tx.scanTaskResult.create({
+      data: {
+        orgId,
+        createdById: auth.userId,
+        batchId: sourceRow.batchId,
+        fileName: sourceRow.fileName,
+        fileKind: sourceRow.fileKind,
+        fileSize: sourceRow.fileSize,
+        instruction: null,
+        draft: mergedDraft,
+        error: null,
+        metadata: mergedMetadata,
+        taskId: null,
+        confirmedAt: null,
+        clearedAt: null,
+      },
+      select: {
+        id: true,
+        batchId: true,
+        fileName: true,
+        fileKind: true,
+        fileSize: true,
+        draft: true,
+        metadata: true,
+      },
+    });
+
+    await tx.scanTaskResult.updateMany({
+      where: { orgId, id: { in: resultIds }, clearedAt: null },
+      data: { clearedAt: new Date() },
+    });
+
+    return created;
   });
 
   revalidatePath(`/orgs/${orgId}/tools/scan-to-task`);

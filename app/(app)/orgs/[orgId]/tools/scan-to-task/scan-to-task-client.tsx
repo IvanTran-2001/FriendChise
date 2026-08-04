@@ -6,6 +6,7 @@ import {
   confirmScanToTaskAction,
   clearScanToTaskResultAction,
   deleteScanToTaskUploadsAction,
+  updateScanToTaskDraftAction,
   deleteScanToTaskConflictItemsAction,
   pruneScanToTaskMergeSourceReferencesAction,
   mergeScanToTaskConflictItemsAction,
@@ -76,6 +77,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
     refreshHistory,
     isLoadingInitial,
     isLoadingMore,
+    historyError,
     hasMore,
     sentinelRef,
   } = useScanTaskHistoryPagination(orgId);
@@ -119,6 +121,12 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
       return changed ? next : current;
     });
   }, [historyDuplicateCandidatesById]);
+
+  useEffect(() => {
+    if (historyError) {
+      toast.error(historyError);
+    }
+  }, [historyError]);
 
   useEffect(() => {
     if (!selectedTaskId) {
@@ -410,8 +418,21 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
         for (const selected of selectedDraftResults) {
           delete next[selected.clientId];
         }
+        for (const candidate of selectedTaskCandidates) {
+          const taskKey = candidate.taskId ?? candidate.id;
+          for (const [resultId, candidates] of Object.entries(next)) {
+            next[resultId] = candidates.filter((item) => (item.taskId ?? item.id) !== taskKey);
+            if (next[resultId].length === 0) {
+              delete next[resultId];
+            }
+          }
+        }
         return next;
       });
+      for (const candidate of selectedTaskCandidates) {
+        const taskKey = candidate.taskId ?? candidate.id;
+        pruneDeletedTaskFromQueue(taskKey);
+      }
       toast.success("Deleted selected items.");
       await refreshHistory();
     } catch (error) {
@@ -616,21 +637,31 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
         maxWaitDays: values.maxWaitDays ?? 0,
       };
 
+      const nextState = await updateScanToTaskDraftAction(
+        orgId,
+        null,
+        buildConfirmFormData(selectedResult.clientId, nextDraft, selectedResult.fileName, values),
+      );
+      if (!nextState.ok) {
+        toast.error(nextState.error);
+        return;
+      }
+
       setDraftsById((current) => ({
         ...current,
-        [selectedResult.clientId]: nextDraft,
+        [selectedResult.clientId]: nextState.draft,
       }));
       setResults((current) =>
         current.map((result) =>
           result.clientId === selectedResult.clientId && result.ok
             ? {
                 ...result,
-                draft: nextDraft,
+                draft: nextState.draft,
               }
             : result,
         ),
       );
-      toast.success("Draft updated locally.");
+      toast.success("Draft saved.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save selection.");
     } finally {

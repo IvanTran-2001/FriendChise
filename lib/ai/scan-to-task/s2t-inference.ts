@@ -27,7 +27,6 @@ import {
   getScanSourceKindForInput,
   normalizeImageBytesForVision,
   toDataUrlFromBytes,
-  type ScanFileKind,
 } from "./s2t-input";
 import { scanTaskDraftSchema, type ScanTaskDraftInput } from "@/lib/validators/scan-to-task";
 
@@ -368,9 +367,7 @@ export function buildFallbackScanTaskDraft(
   });
 }
 
-export function getScanFileKind(file: File): ScanFileKind {
-  return getScanSourceKindForInput(file.name, file.type);
-}
+export { getScanFileKind } from "./s2t-input";
 
 async function draftFromTextChunk(
   fileName: string,

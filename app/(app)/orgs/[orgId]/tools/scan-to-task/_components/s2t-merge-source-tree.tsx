@@ -194,7 +194,11 @@ function MergeSourceTreeNode({
   }
 
   if (node.kind === "missing-result") {
-    return <SourceTreeRow label="Draft" title={node.resultId} variant="missing" onInspect={() => onSelectResult(node.resultId)} />;
+    return (
+      <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+        Missing draft {node.resultId}
+      </div>
+    );
   }
 
   if (node.kind === "cycle") {

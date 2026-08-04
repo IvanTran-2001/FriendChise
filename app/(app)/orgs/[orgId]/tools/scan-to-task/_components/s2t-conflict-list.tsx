@@ -188,45 +188,49 @@ function ConflictItemRow({
   onOpenPanel,
 }: ConflictItemRowProps) {
   return (
-    <summary className="flex cursor-pointer list-none items-start gap-3 px-4 py-3 outline-none transition-colors hover:bg-amber-500/5 [&::-webkit-details-marker]:hidden">
-      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-amber-700 transition-transform group-open:rotate-180 dark:text-amber-200">
-        <ChevronDown className="h-4 w-4" />
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="truncate text-sm font-semibold">{titles[0] ?? primaryResult.fileName}</span>
-          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            {sourceLabel}
-          </span>
-          {taskCount > 0 ? (
-            <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-200">
-              {taskLabel}
-            </span>
-          ) : null}
+    <>
+      <summary className="flex cursor-pointer list-none items-start gap-3 px-4 py-3 outline-none transition-colors hover:bg-amber-500/5 [&::-webkit-details-marker]:hidden">
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-amber-700 transition-transform group-open:rotate-180 dark:text-amber-200">
+          <ChevronDown className="h-4 w-4" />
         </div>
 
-        <p className="mt-1 truncate text-xs text-muted-foreground">{primaryResult.fileName}</p>
-      </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="truncate text-sm font-semibold">{titles[0] ?? primaryResult.fileName}</span>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              {sourceLabel}
+            </span>
+            {taskCount > 0 ? (
+              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-200">
+                {taskLabel}
+              </span>
+            ) : null}
+          </div>
 
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className={
-          panelIsActive
-            ? "ml-auto h-8 w-8 shrink-0 border border-amber-500/20 bg-amber-500/10 px-0 text-amber-700 hover:bg-amber-500/15 hover:text-amber-800 dark:text-amber-200"
-            : "ml-auto h-8 w-8 shrink-0 px-0 text-muted-foreground hover:bg-amber-500/10 hover:text-foreground"
-        }
-        aria-label="Conflict item options"
-        onClick={(event) => {
-          event.stopPropagation();
-          onOpenPanel();
-        }}
-      >
-        <MoreHorizontal className="h-4 w-4" />
-      </Button>
-    </summary>
+          <p className="mt-1 truncate text-xs text-muted-foreground">{primaryResult.fileName}</p>
+        </div>
+      </summary>
+
+      <div className="px-4 pb-3 pt-0">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className={
+            panelIsActive
+              ? "ml-auto h-8 w-8 shrink-0 border border-amber-500/20 bg-amber-500/10 px-0 text-amber-700 hover:bg-amber-500/15 hover:text-amber-800 dark:text-amber-200"
+              : "ml-auto h-8 w-8 shrink-0 px-0 text-muted-foreground hover:bg-amber-500/10 hover:text-foreground"
+          }
+          aria-label="Conflict item options"
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpenPanel();
+          }}
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </div>
+    </>
   );
 }
 
@@ -281,11 +285,6 @@ function ConflictItemDetails({
                 variant="ghost"
                 className="flex h-auto w-full items-center justify-between gap-3 rounded-lg border border-amber-500/15 bg-amber-500/5 px-3 py-2 text-left transition-colors hover:border-amber-500/30 hover:bg-amber-500/10"
                 onClick={() => {
-                  if (candidate.sourceType === "scan-result" && candidate.resultId) {
-                    onSelectResult(candidate.resultId, "conflict");
-                    return;
-                  }
-
                   const taskId = candidate.taskId ?? candidate.id;
                   onInspectTaskCandidate(primaryResult.clientId, taskId);
                 }}
@@ -314,11 +313,11 @@ type ConflictListHeaderProps = {
 
 function ConflictListHeader({ groupCount }: ConflictListHeaderProps) {
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex items-start justify-between gap-3 border-b border-amber-500/10 pb-3">
       <div>
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-amber-800 dark:text-amber-200">
+        <div className="flex items-center gap-2 text-amber-700 dark:text-amber-200">
           <ListChecks className="h-3.5 w-3.5" />
-          <h2>Conflict list</h2>
+          <h2 className="text-sm font-semibold">Conflict list</h2>
         </div>
         <p className="mt-1 text-sm text-amber-700 dark:text-amber-200">
           Each group combines related drafts and existing tasks into one target.

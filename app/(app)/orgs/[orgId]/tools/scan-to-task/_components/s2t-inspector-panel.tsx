@@ -130,6 +130,7 @@ function InspectorBody({
             <div className="sm:col-span-2">
               <FieldLabel>Description</FieldLabel>
               <RichTextEditor
+                key={description}
                 name="description"
                 defaultValue={draftDescription}
                 placeholder="Write the task description…"

@@ -102,10 +102,6 @@ function groupConflictResults(
           queue.push({ kind: "candidate", id: candidateKey });
         }
       } else {
-        if (visitedCandidates.has(current.id)) {
-          // The candidate can already be marked visited when encountered from another draft.
-        }
-
         const linkedResultIds = candidateToResultIds.get(current.id);
         if (!linkedResultIds) continue;
 
@@ -150,26 +146,4 @@ export function buildConflictGroups(
   }
 
   return groups.sort((a, b) => a.primaryResult.fileName.localeCompare(b.primaryResult.fileName));
-}
-
-export function removeResultFromQueueState(state: ScanQueueState, resultId: string): ScanQueueState {
-  const nextResults = state.results.filter((result) => result.clientId !== resultId);
-  const nextDrafts = Object.fromEntries(
-    Object.entries(state.draftsById).filter(([draftId]) => draftId !== resultId),
-  );
-  const nextDuplicates = Object.fromEntries(
-    Object.entries(state.duplicateCandidatesById).filter(([duplicateId]) => duplicateId !== resultId),
-  );
-
-  const nextSelectedResultId =
-    state.selectedResultId === resultId
-      ? (nextResults.find((result) => result.ok) ?? nextResults[0] ?? null)?.clientId ?? null
-      : state.selectedResultId;
-
-  return {
-    results: nextResults,
-    draftsById: nextDrafts,
-    duplicateCandidatesById: nextDuplicates,
-    selectedResultId: nextSelectedResultId,
-  };
 }

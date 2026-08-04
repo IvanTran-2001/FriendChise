@@ -59,7 +59,6 @@ export async function adjudicateScanTaskDuplicate(
   };
 
   try {
-    console.debug("");
     logScanToTaskModelInput(scanToTaskDebugLogging, "duplicate-adjudication", openAiModel, input);
 
     const response = await openAiClient.chat.completions.create({

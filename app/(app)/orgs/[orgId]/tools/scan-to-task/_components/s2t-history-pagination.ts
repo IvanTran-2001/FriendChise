@@ -67,6 +67,7 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoadingInitial, setIsLoadingInitial] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const initialRequestIdRef = useRef(0);
   const appendRequestIdRef = useRef(0);
@@ -120,11 +121,16 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
 
       try {
         const response = await fetch(buildUrl(cursor));
+        if (!response.ok) {
+          throw new Error(`Failed to load scan history (${response.status}).`);
+        }
+
         const data = (await response.json()) as HistoryPage;
         if (requestId !== appendRequestIdRef.current) return;
         applyHistoryPage(data, true);
       } catch {
         if (requestId !== appendRequestIdRef.current) return;
+        setHistoryError("Failed to load more scan history.");
       } finally {
         if (activeAppendRequestIdRef.current === requestId) {
           setIsLoadingMore(false);
@@ -139,11 +145,16 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
 
       try {
         const response = await fetch(buildUrl(cursor));
+        if (!response.ok) {
+          throw new Error(`Failed to load scan history (${response.status}).`);
+        }
+
         const data = (await response.json()) as HistoryPage;
         if (requestId !== initialRequestIdRef.current) return;
         applyHistoryPage(data, false);
       } catch {
         if (requestId !== initialRequestIdRef.current) return;
+        setHistoryError("Failed to load scan history.");
         setResults([]);
         setDuplicateCandidatesById({});
         setNextCursor(null);
@@ -194,6 +205,7 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
     nextCursor,
     isLoadingInitial,
     isLoadingMore,
+    historyError,
     hasMore: Boolean(nextCursor),
     sentinelRef,
     setResults,

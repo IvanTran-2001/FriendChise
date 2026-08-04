@@ -53,7 +53,6 @@ import {
   createTask,
   deleteTask,
   getTaskOwnerOrgId,
-  getTaskById,
   findTaskByName,
   inheritTask,
   publishTask,
@@ -454,7 +453,21 @@ export async function getTaskDetailsAction(
   ]);
   if (!franchiseAuthz.ok && !taskOrgAuthz.ok) return { ok: false, error: "Unauthorized." };
 
-  const task = await getTaskById(taskOrgId, taskId);
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, orgId: taskOrgId },
+    select: {
+      id: true,
+      orgId: true,
+      color: true,
+      name: true,
+      description: true,
+      durationMin: true,
+      preferredStartTimeMin: true,
+      minPeople: true,
+      minWaitDays: true,
+      maxWaitDays: true,
+    },
+  });
   if (!task) return { ok: false, error: "Task not found." };
 
   return {

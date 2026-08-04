@@ -140,11 +140,7 @@ describe("confirmScanToTaskAction", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/orgs/org-1/tools/scan-to-task");
   });
 
-  it.each([
-    ["nonexistent"],
-    ["cleared"],
-    ["already-confirmed"],
-  ])("rejects %s scan results before creating a task", async () => {
+  it("rejects a scan result that no longer matches the claim query", async () => {
     vi.mocked(tx.scanTaskResult.updateMany).mockResolvedValue({ count: 0 } as any);
 
     const result = await confirmScanToTaskAction("org-1", null, makeFormData());
@@ -158,7 +154,7 @@ describe("confirmScanToTaskAction", () => {
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("rejects a second concurrent confirmation request after the first claims the result", async () => {
+  it("rejects a second confirmation request after the first claims the result", async () => {
     vi.mocked(tx.scanTaskResult.updateMany)
       .mockResolvedValueOnce({ count: 1 } as any)
       .mockResolvedValueOnce({ count: 0 } as any);
