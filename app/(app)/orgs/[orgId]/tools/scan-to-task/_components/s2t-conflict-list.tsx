@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ListChecks, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
@@ -11,7 +11,7 @@ import { ConflictActionsPanel } from "./s2t-conflict-actions-panel";
 function buildConflictPanelTitle(group: {
   primaryResult: Extract<DraftScanResultItem, { ok: true }>;
 }) {
-  return `Conflict actions: ${group.primaryResult.fileName} (${group.primaryResult.clientId.slice(0, 8)})`;
+  return `Conflict actions: ${group.primaryResult.fileName}`;
 }
 
 function buildConflictPanelContentKey(
@@ -58,12 +58,18 @@ export function ScanToTaskConflictList({
   onStageDeleteConflictItems,
 }: ScanToTaskConflictListProps) {
   const { open, activeTitle } = useActionSidebar();
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const lastOpenedPanelKeyRef = useRef<string | null>(null);
 
   const activeGroup = useMemo(
-    () => conflictGroups.find((group) => buildConflictPanelTitle(group) === activeTitle) ?? null,
-    [activeTitle, conflictGroups],
+    () => conflictGroups.find((group) => group.primaryResult.clientId === activeGroupId) ?? null,
+    [activeGroupId, conflictGroups],
   );
+
+  useEffect(() => {
+    if (activeTitle !== null) return;
+    lastOpenedPanelKeyRef.current = null;
+  }, [activeTitle]);
 
   const openConflictPanel = useCallback(
     (group: (typeof conflictGroups)[number]) => {
@@ -73,6 +79,7 @@ export function ScanToTaskConflictList({
         return;
       }
 
+      setActiveGroupId(group.primaryResult.clientId);
       lastOpenedPanelKeyRef.current = panelContentKey;
       open(
         panelTitle,
@@ -90,8 +97,24 @@ export function ScanToTaskConflictList({
 
   useEffect(() => {
     if (!activeGroup) return;
-    openConflictPanel(activeGroup);
-  }, [activeGroup, openConflictPanel]);
+    const panelTitle = buildConflictPanelTitle(activeGroup);
+    if (activeTitle !== panelTitle) return;
+
+    const panelContentKey = buildConflictPanelContentKey(activeGroup);
+    if (lastOpenedPanelKeyRef.current === panelContentKey) return;
+
+    lastOpenedPanelKeyRef.current = panelContentKey;
+    open(
+      panelTitle,
+      <ConflictActionsPanel
+        key={panelContentKey}
+        group={activeGroup}
+        draftsById={draftsById}
+        onMerge={onStageMergeConflictItems}
+        onDelete={onStageDeleteConflictItems}
+      />,
+    );
+  }, [activeGroup, activeTitle, draftsById, onStageDeleteConflictItems, onStageMergeConflictItems, open]);
 
   if (conflictGroups.length === 0) return null;
 

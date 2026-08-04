@@ -68,9 +68,14 @@ export function ConflictActionsPanel({ group, draftsById, onMerge, onDelete }: C
     [group.duplicateCandidates, group.results],
   );
 
-  // Start with every item selected so the user can narrow the action down from the full conflict set.
-  const [selectedIds, setSelectedIds] = useState<string[]>(() => itemIds);
+  // Track only the deselected ids so refreshed item lists keep the user's current choices.
+  const [deselectedIds, setDeselectedIds] = useState<string[]>([]);
   const [instructions, setInstructions] = useState("");
+
+  const selectedIds = useMemo(
+    () => itemIds.filter((itemId) => !deselectedIds.includes(itemId)),
+    [deselectedIds, itemIds],
+  );
 
   // Only draft items can be merged into a new task draft.
   const selectedDraftIds = selectedIds.filter((id) => id.startsWith("draft:"));
@@ -101,9 +106,7 @@ export function ConflictActionsPanel({ group, draftsById, onMerge, onDelete }: C
               selectedIds={selectedIds}
               onToggle={(itemId, checked) => {
                 // Add or remove this item from the current selection.
-                setSelectedIds((current) =>
-                  checked ? [...current, itemId] : current.filter((selectedId) => selectedId !== itemId),
-                );
+                setDeselectedIds((current) => (checked ? current.filter((selectedId) => selectedId !== itemId) : [...current, itemId]));
               }}
             />
           ) : null}
@@ -115,9 +118,7 @@ export function ConflictActionsPanel({ group, draftsById, onMerge, onDelete }: C
               selectedIds={selectedIds}
               onToggle={(itemId, checked) => {
                 // Add or remove this item from the current selection.
-                setSelectedIds((current) =>
-                  checked ? [...current, itemId] : current.filter((selectedId) => selectedId !== itemId),
-                );
+                setDeselectedIds((current) => (checked ? current.filter((selectedId) => selectedId !== itemId) : [...current, itemId]));
               }}
             />
           ) : null}
@@ -145,9 +146,18 @@ export function ConflictActionsPanel({ group, draftsById, onMerge, onDelete }: C
             className="flex-1"
             // Execute delete for the selected items, then close the sidebar.
             onClick={() => {
+              const selectedLabels = [...draftItems, ...taskItems]
+                .filter((item) => selectedIds.includes(item.id))
+                .map((item) => item.label);
               const taskCount = taskItems.filter((item) => selectedIds.includes(item.id)).length;
               const draftCount = selectedIds.length - taskCount;
-              if (!window.confirm(`Delete ${draftCount} draft${draftCount === 1 ? "" : "s"} and ${taskCount} task${taskCount === 1 ? "" : "s"}?`)) {
+              const confirmation = [
+                `Delete ${draftCount} draft${draftCount === 1 ? "" : "s"} and ${taskCount} task${taskCount === 1 ? "" : "s"}?`,
+                selectedLabels.length > 0 ? `\n\nSelected items:\n- ${selectedLabels.join("\n- ")}` : null,
+              ]
+                .filter(Boolean)
+                .join("");
+              if (!window.confirm(confirmation)) {
                 return;
               }
               onDelete(group, selectedIds);
