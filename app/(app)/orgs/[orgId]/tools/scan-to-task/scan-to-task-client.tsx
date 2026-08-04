@@ -228,7 +228,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
         return {
           ...result,
           metadata:
-            nextMergedFromTaskIds.length > 0 || (metadata.mergedFromResultIds ?? []).length > 0
+            nextMergedFromTaskIds.length > 0 || (metadata.mergedFromResultIds ?? []).length > 0 || (metadata.mergedFromTaskSnapshots ?? []).length > 0
               ? {
                   ...(metadata.mergedFromResultIds?.length ? { mergedFromResultIds: metadata.mergedFromResultIds } : {}),
                   ...(metadata.mergedFromResultSnapshots?.length ? { mergedFromResultSnapshots: metadata.mergedFromResultSnapshots } : {}),
@@ -443,6 +443,12 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
         }
         return next;
       });
+      const deletedTaskIds = new Set(selectedTaskCandidates.map((candidate) => candidate.taskId ?? candidate.id));
+      if (selectedTaskId && deletedTaskIds.has(selectedTaskId)) {
+        setSelectedTaskId(null);
+        setSelectedTaskDetails(null);
+        setSelectedSource(null);
+      }
       for (const candidate of selectedTaskCandidates) {
         const taskKey = candidate.taskId ?? candidate.id;
         pruneDeletedTaskFromQueue(taskKey);
@@ -734,7 +740,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
       />
 
       <ScanToTaskInspectorPanel
-        key={`${selectedTaskId ?? selectedResult?.clientId ?? "none"}:${selectedMode}`}
+        key={`${selectedTaskId ?? selectedResult?.clientId ?? "none"}:${selectedMode}:${selectedTaskId ? (selectedTaskDetails ? "loaded" : "loading") : "none"}`}
         open={inspectorOpen && Boolean(selectedInspectorValues)}
         mode={selectedMode}
         color={selectedInspectorValues?.color ?? "#6366f1"}
