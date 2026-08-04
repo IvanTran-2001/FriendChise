@@ -42,7 +42,7 @@ export const confirmScanToTaskSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(5000),
   summary: z.string().max(500),
-  sourceText: z.string().max(3000).optional().or(z.literal("")),
+  sourceText: z.string().max(12000).optional().or(z.literal("")),
   durationMin: z.coerce.number().int().positive().max(24 * 60),
   peopleRequired: z.coerce.number().int().min(1).max(50),
   minWaitDays: z.coerce.number().int().min(0).max(3650),

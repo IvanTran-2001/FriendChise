@@ -955,11 +955,15 @@ type SelectedTaskDetailsHandlers = {
 };
 
 async function loadSelectedTaskDetails(orgId: string, taskId: string, handlers: SelectedTaskDetailsHandlers) {
-  const result = await getTaskDetailsAction(orgId, taskId);
-  if (result.ok) {
-    handlers.onSuccess(result.task);
-    return;
-  }
+  try {
+    const result = await getTaskDetailsAction(orgId, taskId);
+    if (result.ok) {
+      handlers.onSuccess(result.task);
+      return;
+    }
 
-  handlers.onError(result.error);
+    handlers.onError(result.error);
+  } catch {
+    handlers.onError("Failed to load task details.");
+  }
 }
