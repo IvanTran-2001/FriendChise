@@ -68,7 +68,9 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
   const [isLoadingInitial, setIsLoadingInitial] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const requestIdRef = useRef(0);
+  const initialRequestIdRef = useRef(0);
+  const appendRequestIdRef = useRef(0);
+  const activeAppendRequestIdRef = useRef(0);
 
   const buildUrl = useCallback(
     (cursor: string | null | undefined) => {
@@ -111,30 +113,47 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
   }, [mergeResults]);
 
   const loadHistoryPage = useCallback(async (cursor: string | null | undefined, append: boolean) => {
-    const requestId = ++requestIdRef.current;
     if (append) {
+      const requestId = ++appendRequestIdRef.current;
+      activeAppendRequestIdRef.current = requestId;
       setIsLoadingMore(true);
-    } else {
-      setIsLoadingInitial(true);
-    }
 
-    try {
-      const response = await fetch(buildUrl(cursor));
-      const data = (await response.json()) as HistoryPage;
-      if (requestId !== requestIdRef.current) return;
-      applyHistoryPage(data, append);
-    } catch {
-      if (requestId !== requestIdRef.current) return;
-      if (append) return;
-      setResults([]);
-      setDuplicateCandidatesById({});
-      setNextCursor(null);
-    } finally {
-      if (append) {
-        setIsLoadingMore(false);
-      } else if (requestId === requestIdRef.current) {
-        setIsLoadingInitial(false);
+      try {
+        const response = await fetch(buildUrl(cursor));
+        const data = (await response.json()) as HistoryPage;
+        if (requestId !== appendRequestIdRef.current) return;
+        applyHistoryPage(data, true);
+      } catch {
+        if (requestId !== appendRequestIdRef.current) return;
+      } finally {
+        if (activeAppendRequestIdRef.current === requestId) {
+          setIsLoadingMore(false);
+        }
       }
+
+      return;
+    } else {
+      const requestId = ++initialRequestIdRef.current;
+      appendRequestIdRef.current += 1;
+      setIsLoadingInitial(true);
+
+      try {
+        const response = await fetch(buildUrl(cursor));
+        const data = (await response.json()) as HistoryPage;
+        if (requestId !== initialRequestIdRef.current) return;
+        applyHistoryPage(data, false);
+      } catch {
+        if (requestId !== initialRequestIdRef.current) return;
+        setResults([]);
+        setDuplicateCandidatesById({});
+        setNextCursor(null);
+      } finally {
+        if (requestId === initialRequestIdRef.current) {
+          setIsLoadingInitial(false);
+        }
+      }
+
+      return;
     }
   }, [applyHistoryPage, buildUrl]);
 
@@ -145,12 +164,12 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
   }, [loadHistoryPage]);
 
   const loadMore = useCallback(() => {
-    if (isLoadingMore || !nextCursor) return;
+    if (isLoadingInitial || isLoadingMore || !nextCursor) return;
 
     void loadHistoryPage(nextCursor, true).catch(() => {
       // Best effort only; the next intersection will retry.
     });
-  }, [isLoadingMore, loadHistoryPage, nextCursor]);
+  }, [isLoadingInitial, isLoadingMore, loadHistoryPage, nextCursor]);
 
   useEffect(() => {
     const el = sentinelRef.current;
