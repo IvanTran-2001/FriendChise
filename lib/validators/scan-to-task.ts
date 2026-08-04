@@ -19,6 +19,7 @@ export const scanSourceSchema = z.object({
  */
 export const scanTaskDraftSchema = z.object({
   title: z.string().min(1).max(200),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Must be a valid hex color").optional(),
   description: z.string().max(5000),
   durationMin: z.number().int().positive().max(24 * 60),
   peopleRequired: z.number().int().min(1).max(50),
@@ -67,6 +68,7 @@ export const scanTaskMergeSchema = z.object({
 
 export type ScanTaskResultMetadata = {
   mergedFromResultIds?: string[];
+  mergedFromResultSnapshots?: { id: string; fileName: string; title: string }[];
   mergedFromTaskIds?: string[];
   duplicateCandidateVerdicts?: Record<string, boolean>;
 };

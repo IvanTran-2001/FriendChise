@@ -32,7 +32,7 @@ export function ScanToTaskUploadSection({
 
       <form ref={formRef} onSubmit={onSubmit} className="mt-4 flex flex-col gap-4">
         <div className="flex min-w-0 flex-col gap-3">
-          <UploadDropzone fileInputRef={fileInputRef} onFilesChange={onFilesChange} />
+          <UploadDropzone fileInputRef={fileInputRef} scanPending={scanPending} onFilesChange={onFilesChange} />
 
           <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-border/60 bg-background p-4">
             <div>
@@ -77,10 +77,11 @@ function UploadHeader() {
 
 type UploadDropzoneProps = {
   fileInputRef: RefObject<HTMLInputElement | null>;
+  scanPending: boolean;
   onFilesChange: (files: File[]) => void;
 };
 
-function UploadDropzone({ fileInputRef, onFilesChange }: UploadDropzoneProps) {
+function UploadDropzone({ fileInputRef, scanPending, onFilesChange }: UploadDropzoneProps) {
   return (
     <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-dashed border-border bg-muted/20 p-4 transition-colors hover:border-primary/30 hover:bg-muted/30">
       <input
@@ -90,11 +91,12 @@ function UploadDropzone({ fileInputRef, onFilesChange }: UploadDropzoneProps) {
         name="files"
         multiple
         accept={SCAN_TO_TASK_UPLOAD_ACCEPT}
+        disabled={scanPending}
         onChange={(event) => {
           const files = Array.from(event.currentTarget.files ?? []);
           onFilesChange(files);
         }}
-        className="peer sr-only"
+        className="peer sr-only disabled:cursor-not-allowed"
       />
 
       <div className="flex items-center gap-3">
@@ -109,7 +111,7 @@ function UploadDropzone({ fileInputRef, onFilesChange }: UploadDropzoneProps) {
       <div className="flex justify-center">
         <label
           htmlFor="scan-to-task-files"
-          className="inline-flex h-9 cursor-pointer items-center justify-center rounded-full border border-border/70 bg-background px-4 text-sm font-medium text-foreground shadow-sm transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30"
+          className="inline-flex h-9 cursor-pointer items-center justify-center rounded-full border border-border/70 bg-background px-4 text-sm font-medium text-foreground shadow-sm transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30 peer-disabled:cursor-not-allowed peer-disabled:opacity-60"
         >
           Choose files
         </label>

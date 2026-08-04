@@ -8,12 +8,12 @@ import {
   deleteScanToTaskUploadsAction,
   updateScanToTaskDraftAction,
   deleteScanToTaskConflictItemsAction,
-  pruneScanToTaskMergeSourceReferencesAction,
   mergeScanToTaskConflictItemsAction,
   getScanToTaskUploadUrlAction,
   scanToTaskAction,
+  deleteScanToTaskLinkedTaskAction,
 } from "@/app/actions/tools/s2t";
-import { deleteTaskAction, getTaskDetailsAction, updateTaskAction } from "@/app/actions/tasks";
+import { getTaskDetailsAction, updateTaskAction } from "@/app/actions/tasks";
 import type { ScanTaskDraft } from "@/lib/ai/scan-to-task";
 import { colorFromSeed } from "@/lib/services/scan-to-task";
 import { getScanToTaskUploadContentType, resolveScanUploadMimeType } from "@/lib/services/scan-to-task-shared";
@@ -66,6 +66,7 @@ type SelectedInspectorValues = {
 type SelectedInspectorMode = "draft" | "conflict" | "task";
 type MergeSourceMetadata = {
   mergedFromResultIds?: string[];
+  mergedFromResultSnapshots?: { id: string; fileName: string; title: string }[];
   mergedFromTaskIds?: string[];
 };
 
@@ -229,6 +230,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
             nextMergedFromTaskIds.length > 0 || (metadata.mergedFromResultIds ?? []).length > 0
               ? {
                   ...(metadata.mergedFromResultIds?.length ? { mergedFromResultIds: metadata.mergedFromResultIds } : {}),
+                  ...(metadata.mergedFromResultSnapshots?.length ? { mergedFromResultSnapshots: metadata.mergedFromResultSnapshots } : {}),
                   ...(nextMergedFromTaskIds.length ? { mergedFromTaskIds: nextMergedFromTaskIds } : {}),
                 }
               : null,
@@ -455,17 +457,9 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
   const handleDeleteTaskById = async (taskId: string) => {
     setConfirmPending(true);
     try {
-      const deleteState = await deleteTaskAction(orgId, taskId);
+      const deleteState = await deleteScanToTaskLinkedTaskAction(orgId, taskId);
       if (!deleteState.ok) {
         toast.error(deleteState.error);
-        return;
-      }
-
-      const pruneFormData = new FormData();
-      pruneFormData.append("taskIds", taskId);
-      const pruneState = await pruneScanToTaskMergeSourceReferencesAction(orgId, null, pruneFormData);
-      if (!pruneState.ok) {
-        toast.error(pruneState.error);
         return;
       }
 
@@ -539,7 +533,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
     setConfirmPending(true);
     try {
       const values = {
-        color: colorFromSeed(`${result.fileName}:${draft.title}`),
+        color: draft.color ?? colorFromSeed(`${result.fileName}:${draft.title}`),
         title: draft.title,
         description: draft.description,
         durationMin: draft.durationMin,
@@ -644,6 +638,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
 
       const nextDraft: ScanTaskDraft = {
         ...selectedDraft,
+        color: values.color,
         title: values.title,
         description: values.description,
         durationMin: values.durationMin,
@@ -752,7 +747,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
         sourceFileSize={selectedInspectorValues?.sourceFileSize ?? 0}
         taskDetailsLabel={selectedInspectorValues?.taskDetailsLabel ?? null}
         confirmPending={confirmPending}
-        onDelete={selectedResult ? () => void handleRejectResult(selectedResult.clientId) : null}
+        onDelete={selectedMode === "task" ? (selectedTaskId ? () => void handleDeleteTaskById(selectedTaskId) : null) : selectedResult ? () => void handleRejectResult(selectedResult.clientId) : null}
         onSave={selectedInspectorValues ? handleSaveSelection : null}
         saveDisabled={isSelectedTaskDetailsLoading}
         onOpenChange={handleCloseInspector}
@@ -835,7 +830,10 @@ function buildSelectedInspectorValues(
 ): SelectedInspectorValues | null {
   if (!selectedResult || !selectedResult.ok) return null;
 
-  const color = selectedTaskDetails?.color ?? colorFromSeed(`${selectedResult.fileName}:${selectedDraft?.title ?? selectedResult.fileName}`);
+  const color =
+    selectedTaskDetails?.color ??
+    selectedDraft?.color ??
+    colorFromSeed(`${selectedResult.fileName}:${selectedDraft?.title ?? selectedResult.fileName}`);
 
   return {
     color,

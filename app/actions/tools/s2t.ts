@@ -29,7 +29,7 @@ import {
 } from "@/lib/validators/scan-to-task";
 import { prisma } from "@/lib/platform/prisma";
 import { log } from "@/lib/platform/observability";
-import { requireOrgPermissionAction } from "@/lib/authz";
+import { requireOrgPermissionAction, requireParentOrgOwnerAction } from "@/lib/authz";
 import { checkDemoLimit } from "@/lib/demo";
 import { createTaskOnClient, deleteTask } from "@/lib/services/tasks";
 import { recordAudit } from "@/lib/services/audit-log";
@@ -37,6 +37,7 @@ import { mergeScanToTaskConflictItems } from "@/lib/ai/scan-to-task/s2t-merge";
 import { adjudicateScanTaskDuplicate, createDuplicateAdjudicationBudget } from "@/lib/ai/scan-to-task/s2t-batch";
 import {
   getTaskDuplicateCandidateKey,
+  getTaskOwnerOrgId,
   loadPotentialTaskDuplicateCandidates,
   scorePotentialTaskDuplicates,
 } from "@/lib/services/tasks";
@@ -330,12 +331,16 @@ function pruneMergedSourceMetadata(
   return Object.keys(nextMetadata).length > 0 ? (nextMetadata as ScanTaskResultMetadata) : Prisma.JsonNull;
 }
 
-async function pruneMergedSourceReferences(orgId: string, pruneInput: MergeSourcePruneInput) {
+async function pruneMergedSourceReferences(
+  orgId: string,
+  pruneInput: MergeSourcePruneInput,
+  db: Prisma.TransactionClient | typeof prisma = prisma,
+) {
   const resultIds = [...new Set(pruneInput.resultIds ?? [])];
   const taskIds = [...new Set(pruneInput.taskIds ?? [])];
   if (resultIds.length === 0 && taskIds.length === 0) return;
 
-  const rows = await prisma.scanTaskResult.findMany({
+  const rows = await db.scanTaskResult.findMany({
     where: { orgId, clearedAt: null, taskId: null, metadata: { not: Prisma.JsonNull } },
     select: { id: true, metadata: true },
   });
@@ -351,12 +356,74 @@ async function pruneMergedSourceReferences(orgId: string, pruneInput: MergeSourc
         const nextMetadata = pruneMergedSourceMetadata(row.metadata, { resultIds, taskIds });
         if (nextMetadata === null) return;
 
-        await prisma.scanTaskResult.update({
+        await db.scanTaskResult.update({
           where: { id: row.id },
           data: { metadata: nextMetadata },
         });
       }),
   );
+}
+
+/**
+ * Deletes a task linked from scan-to-task and prunes merged source references
+ * inside the same transaction.
+ */
+export async function deleteScanToTaskLinkedTaskAction(
+  orgId: string,
+  taskId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const taskOrgId = await getTaskOwnerOrgId(taskId);
+  if (!taskOrgId) return { ok: false, error: "Task not found." };
+
+  const [franchiseAuthz, taskOrgAuthz] = await Promise.all([
+    requireParentOrgOwnerAction(orgId),
+    requireOrgPermissionAction(taskOrgId, PermissionAction.MANAGE_TASKS),
+  ]);
+  if (!franchiseAuthz.ok && !taskOrgAuthz.ok) {
+    return { ok: false, error: "Unauthorized." };
+  }
+
+  const authz = franchiseAuthz.ok
+    ? { userId: franchiseAuthz.userId, userEmail: franchiseAuthz.userEmail }
+    : { userId: taskOrgAuthz.userId, userEmail: taskOrgAuthz.userEmail };
+
+  const existingTask = await prisma.task.findFirst({
+    where: { id: taskId, orgId: taskOrgId },
+    select: { name: true, color: true, description: true, durationMin: true },
+  });
+  if (!existingTask) return { ok: false, error: "Task not found." };
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const deleteResult = await deleteTask(taskOrgId, taskId, authz.userId, authz.userEmail, tx);
+      if (!deleteResult.ok) {
+        throw new Error(deleteResult.error);
+      }
+
+      await pruneMergedSourceReferences(orgId, { taskIds: [taskId] }, tx);
+
+      await recordAudit(
+        {
+          orgId: taskOrgId,
+          actorId: authz.userId,
+          actorEmail: authz.userEmail,
+          action: "task.delete",
+          targetType: "Task",
+          targetId: taskId,
+          before: existingTask,
+        },
+        tx,
+      );
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to delete task.",
+    };
+  }
+
+  revalidatePath(`/orgs/${orgId}/tools/scan-to-task`);
+  return { ok: true };
 }
 
 /**
@@ -615,6 +682,15 @@ export async function mergeScanToTaskConflictItemsAction(
     })
     .filter((value): value is { title: string; description: string; summary: string; sourceText: string } => value !== null);
 
+  const mergedSourceSnapshots = drafts.map((row) => {
+    const parsed = scanTaskDraftSchema.safeParse(row.draft);
+    return {
+      id: row.id,
+      fileName: row.fileName,
+      title: parsed.success ? parsed.data.title : row.fileName,
+    };
+  });
+
   const mergedDraft = await mergeScanToTaskConflictItems({ drafts: parsedDrafts, tasks: taskRows, instruction });
   if (!mergedDraft) {
     return { ok: false, error: "Failed to merge items." };
@@ -627,6 +703,7 @@ export async function mergeScanToTaskConflictItemsAction(
 
   const mergedMetadata: ScanTaskResultMetadata = {
     mergedFromResultIds: drafts.map((row) => row.id),
+    mergedFromResultSnapshots: mergedSourceSnapshots,
     mergedFromTaskIds: taskRows.map((row) => row.id),
   };
 

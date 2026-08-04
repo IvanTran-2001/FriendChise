@@ -15,6 +15,11 @@ type MergeSourceNode =
       children: MergeSourceNode[];
     }
   | {
+      kind: "snapshot";
+      id: string;
+      snapshot: { id: string; fileName: string; title: string };
+    }
+  | {
       kind: "task";
       id: string;
       taskId: string;
@@ -47,12 +52,21 @@ function getMergeSourceNodes(
   path = new Set<string>(),
 ): MergeSourceNode[] {
   const mergedFromResultIds = result.metadata?.mergedFromResultIds ?? [];
+  const mergedFromResultSnapshots = new Map(
+    (result.metadata?.mergedFromResultSnapshots ?? []).map((snapshot) => [snapshot.id, snapshot] as const),
+  );
   const mergedFromTaskIds = result.metadata?.mergedFromTaskIds ?? [];
   const nodes: MergeSourceNode[] = [];
 
   for (const sourceResultId of mergedFromResultIds) {
     const sourceResult = resultsById.get(sourceResultId);
     if (!sourceResult) {
+      const sourceSnapshot = mergedFromResultSnapshots.get(sourceResultId);
+      if (sourceSnapshot) {
+        nodes.push({ kind: "snapshot", id: `snapshot:${sourceResultId}`, snapshot: sourceSnapshot });
+        continue;
+      }
+
       nodes.push({ kind: "missing-result", id: `missing:${sourceResultId}`, resultId: sourceResultId });
       continue;
     }
@@ -170,6 +184,15 @@ function MergeSourceTreeNode({
     return (
       <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
         Missing draft {node.resultId}
+      </div>
+    );
+  }
+
+  if (node.kind === "snapshot") {
+    return (
+      <div className="rounded-lg border border-dashed border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-700 dark:text-amber-200">
+        <p className="font-medium">{node.snapshot.title}</p>
+        <p className="mt-0.5 text-[10px] uppercase tracking-[0.14em] opacity-70">{node.snapshot.fileName}</p>
       </div>
     );
   }
