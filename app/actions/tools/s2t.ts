@@ -71,12 +71,16 @@ async function processScanSource(
       instruction,
     );
 
-    return await Promise.all(
-      drafts.map(async (draft) => {
-        const resultId = randomUUID();
-        await prisma.scanTaskResult.create({
+    const draftRows = drafts.map((draft) => ({
+      resultId: randomUUID(),
+      draft,
+    }));
+
+    await prisma.$transaction(async (tx) => {
+      for (const row of draftRows) {
+        await tx.scanTaskResult.create({
           data: {
-            id: resultId,
+            id: row.resultId,
             orgId,
             createdById,
             batchId,
@@ -84,7 +88,7 @@ async function processScanSource(
             fileKind,
             fileSize: source.fileSize,
             instruction,
-            draft,
+            draft: row.draft,
             error: null,
             metadata: Prisma.JsonNull,
             taskId: null,
@@ -92,17 +96,17 @@ async function processScanSource(
             clearedAt: null,
           },
         });
+      }
+    });
 
-        return {
-          ok: true,
-          resultId,
-          fileName: source.fileName,
-          fileKind,
-          fileSize: source.fileSize,
-          draft,
-        } satisfies ScanToTaskResultItem;
-      }),
-    );
+    return draftRows.map((row) => ({
+      ok: true,
+      resultId: row.resultId,
+      fileName: source.fileName,
+      fileKind,
+      fileSize: source.fileSize,
+      draft: row.draft,
+    } satisfies ScanToTaskResultItem));
   } catch (error) {
     const resultId = randomUUID();
     await prisma.scanTaskResult.create({
@@ -216,23 +220,40 @@ function pruneMergedSourceMetadata(
 ): ScanTaskResultMetadata | typeof Prisma.JsonNull | null {
   if (!isRecord(metadata)) return null;
 
-  const nextMetadata: ScanTaskResultMetadata = {};
+  const nextMetadata = { ...metadata } as Record<string, unknown>;
+  let changed = false;
 
   const mergedFromResultIds = Array.isArray(metadata.mergedFromResultIds)
     ? metadata.mergedFromResultIds.filter((value): value is string => typeof value === "string" && !resultIds.includes(value))
     : [];
-  if (mergedFromResultIds.length > 0) {
-    nextMetadata.mergedFromResultIds = mergedFromResultIds;
+  if (Array.isArray(metadata.mergedFromResultIds)) {
+    if (mergedFromResultIds.length > 0) {
+      nextMetadata.mergedFromResultIds = mergedFromResultIds;
+    } else {
+      delete nextMetadata.mergedFromResultIds;
+    }
+    if (mergedFromResultIds.length !== metadata.mergedFromResultIds.length) {
+      changed = true;
+    }
   }
 
   const mergedFromTaskIds = Array.isArray(metadata.mergedFromTaskIds)
     ? metadata.mergedFromTaskIds.filter((value): value is string => typeof value === "string" && !taskIds.includes(value))
     : [];
-  if (mergedFromTaskIds.length > 0) {
-    nextMetadata.mergedFromTaskIds = mergedFromTaskIds;
+  if (Array.isArray(metadata.mergedFromTaskIds)) {
+    if (mergedFromTaskIds.length > 0) {
+      nextMetadata.mergedFromTaskIds = mergedFromTaskIds;
+    } else {
+      delete nextMetadata.mergedFromTaskIds;
+    }
+    if (mergedFromTaskIds.length !== metadata.mergedFromTaskIds.length) {
+      changed = true;
+    }
   }
 
-  return Object.keys(nextMetadata).length > 0 ? nextMetadata : Prisma.JsonNull;
+  if (!changed) return null;
+
+  return Object.keys(nextMetadata).length > 0 ? (nextMetadata as ScanTaskResultMetadata) : Prisma.JsonNull;
 }
 
 async function pruneMergedSourceReferences(orgId: string, pruneInput: MergeSourcePruneInput) {
@@ -241,13 +262,17 @@ async function pruneMergedSourceReferences(orgId: string, pruneInput: MergeSourc
   if (resultIds.length === 0 && taskIds.length === 0) return;
 
   const rows = await prisma.scanTaskResult.findMany({
-    where: { orgId },
+    where: { orgId, clearedAt: null, taskId: null, metadata: { not: Prisma.JsonNull } },
     select: { id: true, metadata: true },
   });
 
   await Promise.all(
     rows
       .filter((row) => !resultIds.includes(row.id))
+      .filter((row) =>
+        isRecord(row.metadata) &&
+        (Array.isArray(row.metadata.mergedFromResultIds) || Array.isArray(row.metadata.mergedFromTaskIds)),
+      )
       .map(async (row) => {
         const nextMetadata = pruneMergedSourceMetadata(row.metadata, { resultIds, taskIds });
         if (nextMetadata === null) return;
@@ -363,6 +388,7 @@ export async function deleteScanToTaskConflictItemsAction(
   _prevState: DeleteScanToTaskConflictItemsActionState | null,
   formData: FormData,
 ): Promise<DeleteScanToTaskConflictItemsActionState> {
+  try {
   const auth = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!auth.ok) return { ok: false, error: "Unauthorized" };
 
@@ -393,6 +419,12 @@ export async function deleteScanToTaskConflictItemsAction(
 
   revalidatePath(`/orgs/${orgId}/tools/scan-to-task`);
   return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to delete selected items.",
+    };
+  }
 }
 
 /**

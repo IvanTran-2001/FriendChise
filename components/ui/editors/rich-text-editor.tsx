@@ -130,7 +130,7 @@ export function RichTextEditor({
         autolink: true,
       }),
       Markdown.configure({
-        html: false,
+        html: true,
         transformPastedText: true,
         transformCopiedText: false,
       }),

@@ -386,21 +386,23 @@ export async function updateTaskAction(
     await setTaskEligibilities(taskOrgId, taskId, roleIds);
   }
 
-  const toolPaths = formData
-    .getAll("toolPaths")
-    .filter((v): v is string => typeof v === "string")
-    .filter((path) => !path.startsWith("//"));
-  const toolLabels = formData
-    .getAll("toolLabels")
-    .filter((v): v is string => typeof v === "string");
-  await setTaskToolLinks(
-    taskOrgId,
-    taskId,
-    toolPaths.map((toolPath, index) => ({
-      toolPath,
-      toolLabel: normalizeToolLabel(toolLabels[index] ?? null),
-    })),
-  );
+  if (formData.has("toolPaths") || formData.has("toolLabels")) {
+    const toolPaths = formData
+      .getAll("toolPaths")
+      .filter((v): v is string => typeof v === "string")
+      .filter((path) => !path.startsWith("//"));
+    const toolLabels = formData
+      .getAll("toolLabels")
+      .filter((v): v is string => typeof v === "string");
+    await setTaskToolLinks(
+      taskOrgId,
+      taskId,
+      toolPaths.map((toolPath, index) => ({
+        toolPath,
+        toolLabel: normalizeToolLabel(toolLabels[index] ?? null),
+      })),
+    );
+  }
 
   revalidatePath(`/orgs/${orgId}/tasks`);
   revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);

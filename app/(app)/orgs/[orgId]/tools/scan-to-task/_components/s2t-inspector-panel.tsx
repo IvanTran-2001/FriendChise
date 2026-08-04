@@ -97,7 +97,7 @@ function InspectorBody({
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-x-hidden p-4 sm:p-6">
-      <InspectorHeader activeTitle={title} />
+      <InspectorHeader draftTitle={draftTitle} />
 
       <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-x-hidden">
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden pr-1">
@@ -254,13 +254,13 @@ function FieldLabel({ children }: { children: string }) {
 }
 
 type InspectorHeaderProps = {
-  activeTitle: string;
+  draftTitle: string;
 };
 
 /**
  * Renders the inspector title area and the current item title.
  */
-function InspectorHeader({ activeTitle }: InspectorHeaderProps) {
+function InspectorHeader({ draftTitle }: InspectorHeaderProps) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
@@ -268,7 +268,7 @@ function InspectorHeader({ activeTitle }: InspectorHeaderProps) {
           <ClipboardCheck className="h-3.5 w-3.5 text-muted-foreground" />
           <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Inspector</h2>
         </div>
-        <p className="mt-1 truncate text-sm font-medium text-foreground wrap-break-word">{activeTitle}</p>
+        <p className="mt-1 truncate text-sm font-medium text-foreground wrap-break-word">{draftTitle}</p>
       </div>
     </div>
   );

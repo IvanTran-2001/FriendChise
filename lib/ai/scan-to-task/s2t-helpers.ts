@@ -42,6 +42,15 @@ export function limitText(value: string, maxLength = 12000) {
 }
 
 /**
+ * Limits text without collapsing internal whitespace or line breaks.
+ * Use this when the model should still see the original document structure.
+ */
+export function limitTextPreservingFormatting(value: string, maxLength = 12000) {
+  const normalized = value.replace(/\r\n/g, "\n").trim();
+  return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}…` : normalized;
+}
+
+/**
  * Splits long source text into smaller chunks so a large document can become
  * multiple drafts instead of one oversized task.
  */

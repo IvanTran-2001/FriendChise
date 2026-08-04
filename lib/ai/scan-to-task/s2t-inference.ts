@@ -12,6 +12,7 @@ import {
   logScanToTaskModelError,
   logScanToTaskModelInput,
   limitText,
+  limitTextPreservingFormatting,
   logScanToTaskModelResponse,
   splitTextIntoChunks,
 } from "./s2t-helpers";
@@ -75,6 +76,14 @@ type RawDraftResponse = {
   maxWaitDays?: unknown;
   summary?: string;
   sourceText?: string;
+};
+
+type PreparedImageInput = {
+  normalized: {
+    bytes: ArrayBuffer;
+    mimeType: string;
+  };
+  imageContextCheck: ImageContextCheck;
 };
 
 function parseChunkResponse(content: string) {
@@ -319,6 +328,19 @@ async function checkImageHasTaskContext(
   }
 }
 
+async function prepareImageInputForExtraction(
+  fileName: string,
+  mimeType: string,
+  bytes: ArrayBuffer,
+  instruction: string,
+) {
+  const safeInstruction = limitText(instruction, 1000);
+  const normalized = await normalizeImageBytesForVision(fileName, bytes, mimeType);
+  const imageContextCheck = await checkImageHasTaskContext(fileName, normalized.mimeType, normalized.bytes, safeInstruction);
+
+  return { normalized, imageContextCheck, safeInstruction };
+}
+
 /**
  * Builds a validated fallback draft when AI inference is unavailable or fails.
  * The fallback uses the filename and available text to create a sane task draft.
@@ -357,7 +379,7 @@ async function draftFromTextChunk(
   sectionLabel = "",
 ): Promise<ScanTaskDraft> {
   const safeInstruction = limitText(instruction, 2000);
-  const safeSourceText = limitText(sourceText, scanToTaskConfig.sourceTextMaxLength);
+  const safeSourceText = limitTextPreservingFormatting(sourceText, scanToTaskConfig.sourceTextMaxLength);
   const labeledFileName = sectionLabel ? `${fileName} (${sectionLabel})` : fileName;
 
   if (!openAiClient) {
@@ -488,22 +510,13 @@ async function draftFromTextChunk(
 
 async function splitImageIntoChunkSections(
   fileName: string,
-  mimeType: string,
-  bytes: ArrayBuffer,
+  prepared: PreparedImageInput,
   instruction: string,
 ): Promise<ChunkSplitSection[] | null> {
   const safeInstruction = limitText(instruction, 1000);
-  const normalized = await normalizeImageBytesForVision(fileName, bytes, mimeType);
-
-  const imageContextCheck = await checkImageHasTaskContext(
-    fileName,
-    normalized.mimeType,
-    normalized.bytes,
-    safeInstruction,
-  );
-  if (!imageContextCheck.actionable) {
+  if (!prepared.imageContextCheck.actionable) {
     throw new Error(
-      imageContextCheck.reason ||
+      prepared.imageContextCheck.reason ||
         "This image does not look like a document or instruction. Upload a photo of the relevant document, or add an instruction for how to use it.",
     );
   }
@@ -513,14 +526,14 @@ async function splitImageIntoChunkSections(
   }
 
   try {
-    const imageUrl = toDataUrlFromBytes(normalized.bytes, normalized.mimeType);
+    const imageUrl = toDataUrlFromBytes(prepared.normalized.bytes, prepared.normalized.mimeType);
     const input = {
       stage: "image-chunk-split",
       fileName,
-      mimeType,
-      normalizedMimeType: normalized.mimeType,
+      mimeType: prepared.normalized.mimeType,
+      normalizedMimeType: prepared.normalized.mimeType,
       instructionPreview: safeInstruction ? limitText(safeInstruction, 200) : "",
-      imageBytes: normalized.bytes.byteLength,
+      imageBytes: prepared.normalized.bytes.byteLength,
     };
     logScanToTaskModelInput(scanToTaskDebugLogging, "image-chunk-split", openAiModel, input);
 
@@ -571,7 +584,7 @@ async function splitImageIntoChunkSections(
   } catch (error) {
     logScanToTaskModelError(scanToTaskDebugLogging, "image-chunk-split", openAiModel, error, {
       fileName,
-      mimeType,
+      mimeType: prepared.normalized.mimeType,
     });
     return null;
   }
@@ -579,22 +592,13 @@ async function splitImageIntoChunkSections(
 
 async function extractTextFromImage(
   fileName: string,
-  mimeType: string,
-  bytes: ArrayBuffer,
+  prepared: PreparedImageInput,
   instruction: string,
 ): Promise<string> {
   const safeInstruction = limitText(instruction, 2000);
-  const normalized = await normalizeImageBytesForVision(fileName, bytes, mimeType);
-
-  const imageContextCheck = await checkImageHasTaskContext(
-    fileName,
-    normalized.mimeType,
-    normalized.bytes,
-    safeInstruction,
-  );
-  if (!imageContextCheck.actionable) {
+  if (!prepared.imageContextCheck.actionable) {
     throw new Error(
-      imageContextCheck.reason ||
+      prepared.imageContextCheck.reason ||
         "This image does not look like a document or instruction. Upload a photo of the relevant document, or add an instruction for how to use it.",
     );
   }
@@ -604,14 +608,14 @@ async function extractTextFromImage(
   }
 
   try {
-    const imageUrl = toDataUrlFromBytes(normalized.bytes, normalized.mimeType);
+    const imageUrl = toDataUrlFromBytes(prepared.normalized.bytes, prepared.normalized.mimeType);
     const input = {
       stage: "image-ocr",
       fileName,
-      mimeType,
-      normalizedMimeType: normalized.mimeType,
+      mimeType: prepared.normalized.mimeType,
+      normalizedMimeType: prepared.normalized.mimeType,
       instructionPreview: safeInstruction ? limitText(safeInstruction, 200) : "",
-      imageBytes: normalized.bytes.byteLength,
+      imageBytes: prepared.normalized.bytes.byteLength,
     };
     logScanToTaskModelInput(scanToTaskDebugLogging, "image-ocr", openAiModel, input);
 
@@ -669,7 +673,7 @@ async function extractTextFromImage(
   } catch (error) {
     logScanToTaskModelError(scanToTaskDebugLogging, "image-ocr", openAiModel, error, {
       fileName,
-      mimeType,
+      mimeType: prepared.normalized.mimeType,
     });
     return "";
   }
@@ -752,8 +756,12 @@ export async function inferScanTaskDraftsFromBytes(
 ): Promise<ScanTaskDraft[]> {
   const kind = getScanSourceKindForInput(fileName, mimeType);
 
-  const imageChunkSections = kind === "image"
-    ? await splitImageIntoChunkSections(fileName, mimeType, bytes, instruction)
+  const preparedImageInput = kind === "image"
+    ? await prepareImageInputForExtraction(fileName, mimeType, bytes, instruction)
+    : null;
+
+  const imageChunkSections = preparedImageInput
+    ? await splitImageIntoChunkSections(fileName, preparedImageInput, instruction)
     : null;
 
   const useImageChunks = imageChunkSections !== null && imageChunkSections.length > 0;
@@ -761,7 +769,7 @@ export async function inferScanTaskDraftsFromBytes(
   const extractedText = kind === "image"
     ? useImageChunks
       ? ""
-      : await extractTextFromImage(fileName, mimeType, bytes, instruction)
+      : await extractTextFromImage(fileName, preparedImageInput!, instruction)
     : await extractTextFromBytes(bytes, kind);
 
   const sourceText = extractedText || filenameToSummary(fileName);
