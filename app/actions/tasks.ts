@@ -385,7 +385,7 @@ export async function updateTaskAction(
     await setTaskEligibilities(taskOrgId, taskId, roleIds);
   }
 
-  if (formData.has("toolPaths") || formData.has("toolLabels")) {
+  if (formData.get("toolsSubmitted") === "1") {
     const toolPaths = formData
       .getAll("toolPaths")
       .filter((v): v is string => typeof v === "string")
