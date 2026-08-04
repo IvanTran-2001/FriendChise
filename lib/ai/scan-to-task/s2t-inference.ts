@@ -330,8 +330,9 @@ export function buildFallbackScanTaskDraft(
   titleSuffix = "",
 ) {
   const sourceText = [instruction, bodyText].filter(Boolean).join("\n\n");
+  const title = `${filenameToTitle(fileName)}${titleSuffix ? ` ${titleSuffix}` : ""}`.slice(0, 200);
   const draft = buildTaskSuggestion({
-    title: `${filenameToTitle(fileName)}${titleSuffix ? ` ${titleSuffix}` : ""}`,
+    title,
     description: sourceText || fileName,
     durationMin: 30,
     peopleRequired: 1,

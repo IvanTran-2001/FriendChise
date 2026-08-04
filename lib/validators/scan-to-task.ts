@@ -40,7 +40,11 @@ export const confirmScanToTaskSchema = z.object({
   description: z.string().max(5000),
   summary: z.string().max(500),
   sourceText: z.string().max(3000).optional().or(z.literal("")),
-  allowDuplicate: z.coerce.boolean().optional().default(false),
+  allowDuplicate: z
+    .union([z.boolean(), z.literal("true"), z.literal("false"), z.literal("1"), z.literal("0")])
+    .transform((value) => value === true || value === "true" || value === "1")
+    .optional()
+    .default(false),
   durationMin: z.coerce.number().int().positive().max(24 * 60),
   peopleRequired: z.coerce.number().int().min(1).max(50),
   minWaitDays: z.coerce.number().int().min(0).max(3650),

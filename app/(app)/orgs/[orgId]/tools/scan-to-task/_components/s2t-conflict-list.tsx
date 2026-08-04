@@ -20,11 +20,10 @@ function buildConflictPanelContentKey(
     results: Array<Extract<DraftScanResultItem, { ok: true }>>;
     duplicateCandidates: TaskDuplicateCandidate[];
   },
-  draftsById: Record<string, { title: string }>,
 ) {
   return [
     group.primaryResult.clientId,
-    group.results.map((result) => `${result.clientId}:${draftsById[result.clientId]?.title ?? result.draft.title}`).join("|"),
+    group.results.map((result) => result.clientId).join("|"),
     group.duplicateCandidates.map((candidate) => candidate.id).join("|"),
   ].join("::");
 }
@@ -69,7 +68,7 @@ export function ScanToTaskConflictList({
   const openConflictPanel = useCallback(
     (group: (typeof conflictGroups)[number]) => {
       const panelTitle = buildConflictPanelTitle(group);
-      const panelContentKey = buildConflictPanelContentKey(group, draftsById);
+      const panelContentKey = buildConflictPanelContentKey(group);
       if (lastOpenedPanelKeyRef.current === panelContentKey && activeTitle === panelTitle) {
         return;
       }

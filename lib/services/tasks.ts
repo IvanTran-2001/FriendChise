@@ -152,10 +152,13 @@ export function compareTaskDuplicateText(input: TaskDuplicateCheckInput, task: T
   const sourceDescriptionParts = [input.description, input.sourceText, input.importantDetails, input.actionItems]
     .map((part) => part?.trim())
     .filter((part): part is string => Boolean(part));
-  const descriptionScore = wordOverlapBoost(sourceDescriptionParts.join("\n"), task.description ?? "");
+  const inputDescription = sourceDescriptionParts.join("\n");
+  const taskDescription = task.description?.trim() ?? "";
+  const descriptionScore = wordOverlapBoost(inputDescription, taskDescription);
   const exactTitle = normalizeDuplicateText(input.title) === normalizeDuplicateText(task.name);
   const exactDescription =
-    normalizeDuplicateText(sourceDescriptionParts.join("\n")) === normalizeDuplicateText(task.description ?? "");
+    inputDescription.length > 0 && taskDescription.length > 0 &&
+    normalizeDuplicateText(inputDescription) === normalizeDuplicateText(taskDescription);
 
   let score = 0;
   const matchedOn: string[] = [];
