@@ -1,9 +1,12 @@
 import { PermissionAction } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireOrgPermission } from "@/lib/authz";
-import { adjudicateScanTaskDuplicate } from "@/lib/ai/scan-to-task/s2t-batch";
 import { prisma } from "@/lib/platform/prisma";
-import { findPotentialTaskDuplicates } from "@/lib/services/tasks";
+import {
+  getTaskDuplicateCandidateKey,
+  loadPotentialTaskDuplicateCandidates,
+  scorePotentialTaskDuplicates,
+} from "@/lib/services/tasks";
 import { scanTaskDraftSchema } from "@/lib/validators/scan-to-task";
 
 const DEFAULT_LIMIT = 25;
@@ -24,9 +27,9 @@ export async function GET(
     Math.max(1, Number.parseInt(searchParams.get("limit") ?? String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT),
     MAX_LIMIT,
   );
+  const sharedCandidates = await loadPotentialTaskDuplicateCandidates(orgId, Math.max(limit, DEFAULT_LIMIT));
 
   try {
-    const verdictCache = new Map<string, boolean>();
     const records = await prisma.scanTaskResult.findMany({
       where: { orgId, clearedAt: null },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -57,43 +60,20 @@ export async function GET(
         continue;
       }
 
-      const duplicateCandidates = await findPotentialTaskDuplicates(
-        orgId,
+      const duplicateCandidates = scorePotentialTaskDuplicates(
         {
           title: parsedDraft.data.title,
           description: parsedDraft.data.description,
           sourceText: parsedDraft.data.sourceText || undefined,
         },
-        { recentLimit: Math.max(limit, DEFAULT_LIMIT), threshold: 0.82 },
+        sharedCandidates,
+        { limit: Math.max(limit, DEFAULT_LIMIT), threshold: 0.82 },
       );
 
-      const filteredCandidates = [];
-      for (const candidate of record.taskId ? duplicateCandidates.filter((candidate) => candidate.taskId !== record.taskId) : duplicateCandidates) {
-        const cacheKey = `${record.id}:${candidate.taskId ?? candidate.id}`;
-        const cachedVerdict = verdictCache.get(cacheKey);
-        if (cachedVerdict === false) continue;
-
-        if (cachedVerdict === true) {
-          filteredCandidates.push(candidate);
-          continue;
-        }
-
-        const adjudication = await adjudicateScanTaskDuplicate(
-          {
-            title: parsedDraft.data.title,
-            summary: parsedDraft.data.summary,
-            description: parsedDraft.data.description,
-            sourceText: parsedDraft.data.sourceText,
-            importantDetails: [],
-            actionItems: [],
-          },
-          candidate,
-        );
-
-        verdictCache.set(cacheKey, adjudication?.sameTask !== false);
-        if (adjudication?.sameTask === false) continue;
-        filteredCandidates.push(candidate);
-      }
+      const duplicateVerdicts = getDuplicateCandidateVerdicts(record.metadata);
+      const filteredCandidates = duplicateCandidates.filter(
+        (candidate) => duplicateVerdicts?.[getTaskDuplicateCandidateKey(candidate)] !== false,
+      );
 
       recordsWithDuplicates.push({ ...record, duplicateCandidates: filteredCandidates });
     }
@@ -108,4 +88,19 @@ export async function GET(
     console.error("Failed to load scan history:", error);
     return NextResponse.json({ error: "Failed to load scan history." }, { status: 500 });
   }
+}
+
+function getDuplicateCandidateVerdicts(metadata: unknown) {
+  if (!isRecord(metadata)) return null;
+  const verdicts = metadata.duplicateCandidateVerdicts;
+  if (!isRecord(verdicts)) return null;
+
+  return Object.fromEntries(Object.entries(verdicts).filter(([, verdict]) => typeof verdict === "boolean")) as Record<
+    string,
+    boolean
+  >;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }

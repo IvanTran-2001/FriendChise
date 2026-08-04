@@ -298,7 +298,7 @@ async function checkImageHasTaskContext(
           ],
         },
       ],
-    });
+      }, { timeout: scanToTaskConfig.requestTimeoutMs });
 
     const content = response.choices[0]?.message?.content;
     logScanToTaskModelResponse(
@@ -363,6 +363,7 @@ export function buildFallbackScanTaskDraft(
 
   return scanTaskDraftSchema.parse({
     ...draft,
+    description: draft.description.slice(0, 5000),
     sourceText: sourceText.slice(0, 3000),
   });
 }
@@ -419,7 +420,7 @@ async function draftFromTextChunk(
           ].filter(Boolean) as Array<{ type: "text"; text: string }>,
         },
       ],
-    });
+      }, { timeout: scanToTaskConfig.requestTimeoutMs });
 
     const content = response.choices[0]?.message?.content;
     logScanToTaskModelResponse(
@@ -472,7 +473,7 @@ async function draftFromTextChunk(
             content: [{ type: "text", text: retryPrompt }],
           },
         ],
-      });
+      }, { timeout: scanToTaskConfig.requestTimeoutMs });
 
       const retryContent = retryResponse.choices[0]?.message?.content;
       logScanToTaskModelResponse(
@@ -560,7 +561,7 @@ async function splitImageIntoChunkSections(
           >,
         },
       ],
-    });
+    }, { timeout: scanToTaskConfig.requestTimeoutMs });
 
     const content = response.choices[0]?.message?.content;
     logScanToTaskModelResponse(
@@ -642,7 +643,7 @@ async function extractTextFromImage(
           >,
         },
       ],
-    });
+      }, { timeout: scanToTaskConfig.requestTimeoutMs });
 
     const content = response.choices[0]?.message?.content;
     logScanToTaskModelResponse(
@@ -717,7 +718,7 @@ async function splitTextIntoChunkSections(
           ],
         },
       ],
-    });
+      }, { timeout: scanToTaskConfig.requestTimeoutMs });
 
     const content = response.choices[0]?.message?.content;
     if (!content) return null;

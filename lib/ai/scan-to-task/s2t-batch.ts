@@ -1,8 +1,6 @@
 import OpenAI from "openai";
 import { scanToTaskConfig } from "./s2t-config";
-import {
-  buildScanToTaskDuplicateAdjudicationPrompt,
-} from "./s2t-prompts";
+import { buildScanToTaskDuplicateAdjudicationPrompt, summarizePromptDraft } from "./s2t-prompts";
 import {
   limitText,
   logScanToTaskModelError,
@@ -36,6 +34,54 @@ export type ScanToTaskDuplicateAdjudication = {
   reason: string;
 };
 
+export type DuplicateAdjudicationBudget = {
+  remainingAttempts: number;
+  maxConcurrent: number;
+  activeAttempts: number;
+  waiters: Array<() => void>;
+  takeAttempt: () => boolean;
+};
+
+export function createDuplicateAdjudicationBudget({
+  maxAttempts,
+  maxConcurrency,
+}: {
+  maxAttempts: number;
+  maxConcurrency: number;
+}): DuplicateAdjudicationBudget {
+  const budget: DuplicateAdjudicationBudget = {
+    remainingAttempts: Math.max(0, maxAttempts),
+    maxConcurrent: Math.max(1, maxConcurrency),
+    activeAttempts: 0,
+    waiters: [],
+    takeAttempt() {
+      if (budget.remainingAttempts <= 0) return false;
+      budget.remainingAttempts -= 1;
+      return true;
+    },
+  };
+
+  return budget;
+}
+
+async function acquireDuplicateAdjudicationSlot(budget: DuplicateAdjudicationBudget) {
+  if (budget.activeAttempts < budget.maxConcurrent) {
+    budget.activeAttempts += 1;
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    budget.waiters.push(resolve);
+  });
+
+  budget.activeAttempts += 1;
+}
+
+function releaseDuplicateAdjudicationSlot(budget: DuplicateAdjudicationBudget) {
+  budget.activeAttempts = Math.max(0, budget.activeAttempts - 1);
+  budget.waiters.shift()?.();
+}
+
 function formatCandidateText(candidate: TaskDuplicateCandidate) {
   return [candidate.name, candidate.description ?? "", `duration ${candidate.durationMin}`, `people ${candidate.minPeople}`]
     .filter(Boolean)
@@ -45,8 +91,12 @@ function formatCandidateText(candidate: TaskDuplicateCandidate) {
 export async function adjudicateScanTaskDuplicate(
   draft: ScanToTaskBatchResultDraft["draft"],
   candidate: TaskDuplicateCandidate,
+  budget?: DuplicateAdjudicationBudget,
 ): Promise<ScanToTaskDuplicateAdjudication | null> {
   if (!openAiClient) return null;
+  if (budget) {
+    await acquireDuplicateAdjudicationSlot(budget);
+  }
 
   const input = {
     stage: "duplicate-adjudication",
@@ -75,7 +125,7 @@ export async function adjudicateScanTaskDuplicate(
           content: [
             {
               type: "text",
-              text: `New draft:\n${JSON.stringify(draft, null, 2)}`,
+              text: `New draft:\n${JSON.stringify(summarizePromptDraft(draft), null, 2)}`,
             },
             {
               type: "text",
@@ -108,5 +158,9 @@ export async function adjudicateScanTaskDuplicate(
   } catch (error) {
     logScanToTaskModelError(scanToTaskDebugLogging, "duplicate-adjudication", openAiModel, error, input);
     return null;
+  } finally {
+    if (budget) {
+      releaseDuplicateAdjudicationSlot(budget);
+    }
   }
 }

@@ -26,6 +26,9 @@ export const scanTaskDraftSchema = z.object({
   maxWaitDays: z.number().int().min(0).max(3650),
   summary: z.string().max(500),
   sourceText: z.string().max(3000).default(""),
+}).refine((value) => value.maxWaitDays >= value.minWaitDays, {
+  message: "maxWaitDays must be greater than or equal to minWaitDays",
+  path: ["maxWaitDays"],
 });
 
 /**
@@ -57,11 +60,15 @@ export const scanTaskMergeSchema = z.object({
   peopleRequired: z.number().int().min(1).max(50),
   minWaitDays: z.number().int().min(0).max(3650),
   maxWaitDays: z.number().int().min(0).max(3650),
+}).refine((value) => value.maxWaitDays >= value.minWaitDays, {
+  message: "maxWaitDays must be greater than or equal to minWaitDays",
+  path: ["maxWaitDays"],
 });
 
 export type ScanTaskResultMetadata = {
   mergedFromResultIds?: string[];
   mergedFromTaskIds?: string[];
+  duplicateCandidateVerdicts?: Record<string, boolean>;
 };
 
 /**

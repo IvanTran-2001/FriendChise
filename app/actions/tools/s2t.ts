@@ -34,6 +34,12 @@ import { checkDemoLimit } from "@/lib/demo";
 import { createTaskOnClient, deleteTask } from "@/lib/services/tasks";
 import { recordAudit } from "@/lib/services/audit-log";
 import { mergeScanToTaskConflictItems } from "@/lib/ai/scan-to-task/s2t-merge";
+import { adjudicateScanTaskDuplicate, createDuplicateAdjudicationBudget } from "@/lib/ai/scan-to-task/s2t-batch";
+import {
+  getTaskDuplicateCandidateKey,
+  loadPotentialTaskDuplicateCandidates,
+  scorePotentialTaskDuplicates,
+} from "@/lib/services/tasks";
 import {
   createSignedUploadUrl,
   deleteStorageFile,
@@ -54,6 +60,47 @@ function assertOwnedStoragePath(orgId: string, storagePath: string) {
   }
 }
 
+async function buildDuplicateCandidateVerdicts(
+  draft: ScanTaskDraft,
+  candidates: Awaited<ReturnType<typeof loadPotentialTaskDuplicateCandidates>>,
+  budget: ReturnType<typeof createDuplicateAdjudicationBudget>,
+) {
+  const selectedCandidates = scorePotentialTaskDuplicates(
+    {
+      title: draft.title,
+      description: draft.description,
+      sourceText: draft.sourceText || undefined,
+    },
+    candidates,
+    { limit: 3, threshold: 0.82 },
+  );
+
+  const verdictEntries = await Promise.all(
+    selectedCandidates.map(async (candidate) => {
+      if (!budget.takeAttempt()) return null;
+
+      const adjudication = await adjudicateScanTaskDuplicate(
+        {
+          title: draft.title,
+          summary: draft.summary,
+          description: draft.description,
+          sourceText: draft.sourceText,
+          importantDetails: [],
+          actionItems: [],
+        },
+        candidate,
+        budget,
+      );
+
+      if (!adjudication) return null;
+      return [getTaskDuplicateCandidateKey(candidate), adjudication.sameTask] as const;
+    }),
+  );
+
+  const nextVerdicts = Object.fromEntries(verdictEntries.filter(Boolean) as Array<readonly [string, boolean]>);
+  return Object.keys(nextVerdicts).length > 0 ? nextVerdicts : null;
+}
+
 async function processScanSource(
   orgId: string,
   createdById: string | null,
@@ -71,10 +118,16 @@ async function processScanSource(
       instruction,
     );
 
-    const draftRows = drafts.map((draft) => ({
-      resultId: randomUUID(),
-      draft,
-    }));
+    const duplicateCandidates = await loadPotentialTaskDuplicateCandidates(orgId);
+    const duplicateAdjudicationBudget = createDuplicateAdjudicationBudget({ maxAttempts: 60, maxConcurrency: 3 });
+
+    const draftRows = await Promise.all(
+      drafts.map(async (draft) => ({
+        resultId: randomUUID(),
+        draft,
+        duplicateCandidateVerdicts: await buildDuplicateCandidateVerdicts(draft, duplicateCandidates, duplicateAdjudicationBudget),
+      })),
+    );
 
     await prisma.$transaction(async (tx) => {
       for (const row of draftRows) {
@@ -90,7 +143,9 @@ async function processScanSource(
             instruction,
             draft: row.draft,
             error: null,
-            metadata: Prisma.JsonNull,
+            metadata: row.duplicateCandidateVerdicts
+              ? { duplicateCandidateVerdicts: row.duplicateCandidateVerdicts }
+              : Prisma.JsonNull,
             taskId: null,
             confirmedAt: null,
             clearedAt: null,
@@ -106,6 +161,9 @@ async function processScanSource(
       fileKind,
       fileSize: source.fileSize,
       draft: row.draft,
+      metadata: row.duplicateCandidateVerdicts
+        ? { duplicateCandidateVerdicts: row.duplicateCandidateVerdicts }
+        : null,
     } satisfies ScanToTaskResultItem));
   } catch (error) {
     const resultId = randomUUID();
@@ -560,8 +618,8 @@ export async function mergeScanToTaskConflictItemsAction(
   }
 
   const mergedMetadata: ScanTaskResultMetadata = {
-    mergedFromResultIds: resultIds,
-    mergedFromTaskIds: taskIds,
+    mergedFromResultIds: drafts.map((row) => row.id),
+    mergedFromTaskIds: taskRows.map((row) => row.id),
   };
 
   const mergedResult = await prisma.$transaction(async (tx) => {

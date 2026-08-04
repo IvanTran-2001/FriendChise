@@ -43,7 +43,7 @@ export async function normalizeImageBytesForVision(
 ) {
   const resolvedMimeType = resolveScanUploadMimeType(fileName, mimeType).toLowerCase();
   if (resolvedMimeType !== "image/heic" && resolvedMimeType !== "image/heif") {
-    return { bytes, mimeType: resolvedMimeType };
+    return { bytes, mimeType: resolvedMimeType || "image/png" };
   }
 
   const converted = await sharp(Buffer.from(bytes)).png().toBuffer();
@@ -81,10 +81,6 @@ export async function extractTextFromBytes(bytes: ArrayBuffer, kind: ScanFileKin
 
   if (kind === "text") {
     return Buffer.from(bytes).toString("utf8");
-  }
-
-  if (kind === "unknown") {
-    return "";
   }
 
   return "";

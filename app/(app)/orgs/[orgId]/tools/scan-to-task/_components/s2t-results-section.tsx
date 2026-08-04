@@ -181,6 +181,7 @@ function ScanResultListRow({
 }) {
   const mergedSourceSummary = getMergedSourceSummary(result);
   const mergeSourceResult = result.ok ? result : null;
+  const isCreatedOrConfirmed = Boolean(confirmedTaskHref) || Boolean(result.ok && result.taskId);
   const hasMergeSources = Boolean(mergedSourceSummary);
   const [mergeTreeOpen, setMergeTreeOpen] = useState(Boolean(mergedSourceSummary));
   const mergeTreeId = useId();
@@ -227,8 +228,8 @@ function ScanResultListRow({
               <span className="truncate text-sm font-medium text-foreground">
                 {result.ok ? result.draft.title : result.error}
               </span>
-              <Badge variant={result.ok ? (confirmedTaskHref ? "success" : "neutral") : "error"} size="sm">
-                {result.ok ? (confirmedTaskHref ? "Confirmed" : "Ready") : "Failed"}
+              <Badge variant={result.ok ? (isCreatedOrConfirmed ? "success" : "neutral") : "error"} size="sm">
+                {result.ok ? (isCreatedOrConfirmed ? "Confirmed" : "Ready") : "Failed"}
               </Badge>
               {mergedSourceSummary ? (
                 <Badge variant="warning" size="sm">
@@ -274,7 +275,7 @@ function ScanResultListRow({
             <Eye className="h-3.5 w-3.5" />
             Inspect
           </Button>
-          {result.ok && !confirmedTaskHref ? (
+          {result.ok && !isCreatedOrConfirmed ? (
             <Button
               type="button"
               variant="outline"
@@ -301,7 +302,7 @@ function ScanResultListRow({
             }}
           >
             <Trash2 className="h-3.5 w-3.5" />
-            {result.ok && result.taskId ? "Delete" : "Remove"}
+            {result.ok && isCreatedOrConfirmed ? "Delete" : "Remove"}
           </Button>
           {result.ok && confirmedTaskHref ? (
             <Link

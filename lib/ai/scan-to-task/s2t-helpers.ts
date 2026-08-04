@@ -219,6 +219,7 @@ export function logScanToTaskModelResponse(
     context,
     responseId,
     model,
+    ...(verbose ? { contentPreview: content.length > 500 ? `${content.slice(0, 500)}…` : content } : {}),
     contentLength: content.length,
     usage: summarizeScanToTaskTokenUsage(usage),
   });

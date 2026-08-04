@@ -4,7 +4,7 @@ function limitPromptText(value: string, maxLength = 1200) {
   return value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
 }
 
-function summarizePromptDraft(draft: {
+export function summarizePromptDraft(draft: {
   title: string;
   description: string;
   summary: string;

@@ -133,11 +133,12 @@ function matchHint(text: string) {
  */
 function buildDescription(title: string, summary: string, body = "") {
   const bulletPoints = GENERIC_STEPS.map((step) => `- ${step}`).join("\n");
+  const trimmedBody = body.trim().slice(0, 4000);
   return [
     summary,
     "",
     `Task: ${title}.`,
-    ...(body.trim() ? ["", body.trim()] : []),
+    ...(trimmedBody ? ["", trimmedBody] : []),
     "",
     "Suggested checklist:",
     bulletPoints,

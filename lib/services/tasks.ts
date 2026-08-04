@@ -63,6 +63,10 @@ export type TaskDuplicateCandidate = {
   updatedAt: string;
 };
 
+export function getTaskDuplicateCandidateKey(candidate: Pick<TaskDuplicateCandidate, "id" | "taskId">) {
+  return candidate.taskId ?? candidate.id;
+}
+
 type TaskDuplicateComparable = {
   name: string;
   description: string | null;
@@ -267,19 +271,7 @@ function candidateFromDraftRow(row: {
   };
 }
 
-/**
- * Returns likely duplicate tasks for the given task draft data.
- * Keeps the check conservative: it only flags strong title/content matches.
- */
-export async function findPotentialTaskDuplicates(
-  orgId: string,
-  input: TaskDuplicateCheckInput,
-  options: { limit?: number; recentLimit?: number; threshold?: number } = {},
-): Promise<TaskDuplicateCandidate[]> {
-  const threshold = options.threshold ?? 0.82;
-  const limit = options.limit ?? 3;
-  const recentLimit = options.recentLimit ?? 50;
-
+export async function loadPotentialTaskDuplicateCandidates(orgId: string, recentLimit = 50) {
   const [tasks, scanResults] = await Promise.all([
     prisma.task.findMany({
       where: { orgId },
@@ -320,41 +312,57 @@ export async function findPotentialTaskDuplicates(
     }),
   ]);
 
-  const candidates = [
-    ...tasks.map((task) => {
-      const comparison = compareTaskDuplicateText(input, task);
+  return [
+    ...tasks.map((task) => candidateFromTaskRow(task)),
+    ...scanResults
+      .map((row) => candidateFromDraftRow(row))
+      .filter((candidate): candidate is TaskDuplicateCandidate => candidate !== null),
+  ];
+}
+
+export function scorePotentialTaskDuplicates(
+  input: TaskDuplicateCheckInput,
+  candidates: TaskDuplicateCandidate[],
+  options: { limit?: number; threshold?: number } = {},
+) {
+  const limit = options.limit ?? 3;
+  const threshold = options.threshold ?? 0.82;
+
+  const scoredCandidates = candidates
+    .map((candidate) => {
+      const comparison = compareTaskDuplicateText(input, candidate);
       return {
-        ...candidateFromTaskRow(task),
+        ...candidate,
         score: comparison.score,
         matchedOn: comparison.matchedOn,
       } satisfies TaskDuplicateCandidate;
-    }),
-    ...scanResults
-      .map((row) => candidateFromDraftRow(row))
-      .filter((candidate): candidate is TaskDuplicateCandidate => candidate !== null)
-      .map((candidate) => {
-        const comparison = compareTaskDuplicateText(input, candidate);
-        return {
-          ...candidate,
-          score: comparison.score,
-          matchedOn: comparison.matchedOn,
-        } satisfies TaskDuplicateCandidate;
-      }),
-  ];
-
-  const scoredCandidates = candidates
+    })
     .filter((candidate) => candidate.score >= threshold)
     .sort((a, b) => b.score - a.score || b.createdAt.localeCompare(a.createdAt));
 
   return scoredCandidates
     .reduce<TaskDuplicateCandidate[]>((uniqueCandidates, candidate) => {
-      const candidateKey = candidate.taskId ?? candidate.id;
-      if (!uniqueCandidates.some((item) => (item.taskId ?? item.id) === candidateKey)) {
+      const candidateKey = getTaskDuplicateCandidateKey(candidate);
+      if (!uniqueCandidates.some((item) => getTaskDuplicateCandidateKey(item) === candidateKey)) {
         uniqueCandidates.push(candidate);
       }
       return uniqueCandidates;
     }, [])
     .slice(0, limit);
+}
+
+/**
+ * Returns likely duplicate tasks for the given task draft data.
+ * Keeps the check conservative: it only flags strong title/content matches.
+ */
+export async function findPotentialTaskDuplicates(
+  orgId: string,
+  input: TaskDuplicateCheckInput,
+  options: { limit?: number; recentLimit?: number; threshold?: number } = {},
+): Promise<TaskDuplicateCandidate[]> {
+  const recentLimit = options.recentLimit ?? 50;
+  const candidates = await loadPotentialTaskDuplicateCandidates(orgId, recentLimit);
+  return scorePotentialTaskDuplicates(input, candidates, options);
 }
 
 /**
@@ -486,8 +494,8 @@ export async function deleteTask(
   const { count } = await db.task.deleteMany({ where: { id, orgId } });
   if (count === 0)
     return { ok: false, error: "Task not found", code: "NOT_FOUND" };
-  log.info("Task deleted", { orgId, taskId: id });
   if (existing && db === prisma) {
+    log.info("Task deleted", { orgId, taskId: id });
     recordAudit({
       orgId,
       actorId: actorId ?? null,

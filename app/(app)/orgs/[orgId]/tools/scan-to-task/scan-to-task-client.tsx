@@ -179,14 +179,18 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
    * from the visible queue.
    */
   const removeResultFromQueue = (resultId: string) => {
+    let nextResultsSnapshot: DraftScanResultItem[] = [];
     setResults((currentResults) => {
-      const nextResults = currentResults.filter((result) => result.clientId !== resultId);
-      if (selectedResultIdRef.current === resultId) {
-        const nextSelectedResultId = (nextResults.find((result) => result.ok) ?? nextResults[0] ?? null)?.clientId ?? null;
-        selectedResultIdRef.current = nextSelectedResultId;
-        setSelectedResultId(nextSelectedResultId);
-      }
-      return nextResults;
+      nextResultsSnapshot = currentResults.filter((result) => result.clientId !== resultId);
+      return nextResultsSnapshot;
+    });
+
+    setSelectedResultId((currentSelectedId) => {
+      if (currentSelectedId !== resultId) return currentSelectedId;
+
+      const nextSelectedResultId = (nextResultsSnapshot.find((result) => result.ok) ?? nextResultsSnapshot[0] ?? null)?.clientId ?? null;
+      selectedResultIdRef.current = nextSelectedResultId;
+      return nextSelectedResultId;
     });
 
     setDraftsById((current) => {
@@ -476,11 +480,6 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
     }
   };
 
-  // Delete the current task preview or fall back to clearing a queued draft.
-  const handleDeleteCurrentSelection = async (resultId: string) => {
-    handleRejectResult(resultId);
-  };
-
   /**
    * Remove a scan result from the queue or delete the linked task when the
    * scan row has already been confirmed.
@@ -611,7 +610,12 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
     setConfirmPending(true);
     try {
       if (selectedTaskId) {
-        const updateState = await updateTaskAction(orgId, selectedTaskId, null, buildUpdateTaskFormData(values));
+        const updateState = await updateTaskAction(
+          orgId,
+          selectedTaskId,
+          null,
+          buildUpdateTaskFormData(values, selectedTaskDetails?.preferredStartTimeMin),
+        );
         if (updateState && !updateState.ok) {
           toast.error(updateState.errors._?.[0] ?? "Failed to save task.");
           return;
@@ -735,7 +739,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
         sourceFileSize={selectedInspectorValues?.sourceFileSize ?? 0}
         taskDetailsLabel={selectedInspectorValues?.taskDetailsLabel ?? null}
         confirmPending={confirmPending}
-        onDelete={selectedResult ? () => handleDeleteCurrentSelection(selectedResult.clientId) : null}
+        onDelete={selectedResult ? () => void handleRejectResult(selectedResult.clientId) : null}
         onSave={selectedInspectorValues ? handleSaveSelection : null}
         onOpenChange={handleCloseInspector}
       />
@@ -873,7 +877,7 @@ function buildConfirmFormData(
   return formData;
 }
 
-function buildUpdateTaskFormData(values: InspectorFormValues) {
+function buildUpdateTaskFormData(values: InspectorFormValues, preferredStartTimeMin: number | null | undefined) {
   const formData = new FormData();
   formData.set("color", values.color);
   formData.set("title", values.title);
@@ -882,6 +886,7 @@ function buildUpdateTaskFormData(values: InspectorFormValues) {
   formData.set("peopleRequired", String(values.peopleRequired));
   formData.set("minWaitDays", values.minWaitDays == null ? "" : String(values.minWaitDays));
   formData.set("maxWaitDays", values.maxWaitDays == null ? "" : String(values.maxWaitDays));
+  formData.set("preferredStartTimeMin", preferredStartTimeMin == null ? "" : String(preferredStartTimeMin));
   return formData;
 }
 

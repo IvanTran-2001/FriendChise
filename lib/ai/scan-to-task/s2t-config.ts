@@ -25,6 +25,7 @@ export const scanToTaskConfig = {
   sourceTextMaxLength: 12000,
   chunkMaxLength: 4000,
   maxChunks: 5,
+  requestTimeoutMs: 20_000,
 } as const;
 
 export const scanToTaskOutputKeys =

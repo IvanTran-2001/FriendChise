@@ -134,26 +134,42 @@ export function ScanToTaskConflictList({
           const panelIsActive = activeTitle === panelTitle;
 
           return (
-            <details key={primaryResult.clientId} className="group overflow-hidden rounded-xl border border-amber-500/15 bg-background/90 text-foreground shadow-sm">
-              <ConflictItemRow
-                primaryResult={primaryResult}
-                titles={titles}
-                sourceLabel={sourceLabel}
-                taskLabel={taskLabel}
-                panelIsActive={panelIsActive}
-                taskCount={taskCandidates.length}
-                onOpenPanel={() => {
+            <div key={primaryResult.clientId} className="flex items-start gap-2">
+              <details className="group flex-1 overflow-hidden rounded-xl border border-amber-500/15 bg-background/90 text-foreground shadow-sm">
+                <ConflictItemRow
+                  primaryResult={primaryResult}
+                  titles={titles}
+                  sourceLabel={sourceLabel}
+                  taskLabel={taskLabel}
+                  taskCount={taskCandidates.length}
+                />
+                <ConflictItemDetails
+                  primaryResult={primaryResult}
+                  results={group.results}
+                  duplicateCandidates={group.duplicateCandidates}
+                  onSelectResult={onSelectResult}
+                  onInspectTaskCandidate={onInspectTaskCandidate}
+                />
+              </details>
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className={
+                  panelIsActive
+                    ? "mt-3 h-8 w-8 shrink-0 border border-amber-500/20 bg-amber-500/10 px-0 text-amber-700 hover:bg-amber-500/15 hover:text-amber-800 dark:text-amber-200"
+                    : "mt-3 h-8 w-8 shrink-0 px-0 text-muted-foreground hover:bg-amber-500/10 hover:text-foreground"
+                }
+                aria-label="Conflict item options"
+                onClick={(event) => {
+                  event.stopPropagation();
                   openConflictPanel(group);
                 }}
-              />
-              <ConflictItemDetails
-                primaryResult={primaryResult}
-                results={group.results}
-                duplicateCandidates={group.duplicateCandidates}
-                onSelectResult={onSelectResult}
-                onInspectTaskCandidate={onInspectTaskCandidate}
-              />
-            </details>
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </div>
           );
         })}
       </div>
@@ -166,9 +182,7 @@ type ConflictItemRowProps = {
   titles: string[];
   sourceLabel: string;
   taskLabel: string;
-  panelIsActive: boolean;
   taskCount: number;
-  onOpenPanel: () => void;
 };
 
 function formatItemTimestamp(value?: string) {
@@ -183,9 +197,7 @@ function ConflictItemRow({
   titles,
   sourceLabel,
   taskLabel,
-  panelIsActive,
   taskCount,
-  onOpenPanel,
 }: ConflictItemRowProps) {
   return (
     <>
@@ -210,26 +222,6 @@ function ConflictItemRow({
           <p className="mt-1 truncate text-xs text-muted-foreground">{primaryResult.fileName}</p>
         </div>
       </summary>
-
-      <div className="px-4 pb-3 pt-0">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className={
-            panelIsActive
-              ? "ml-auto h-8 w-8 shrink-0 border border-amber-500/20 bg-amber-500/10 px-0 text-amber-700 hover:bg-amber-500/15 hover:text-amber-800 dark:text-amber-200"
-              : "ml-auto h-8 w-8 shrink-0 px-0 text-muted-foreground hover:bg-amber-500/10 hover:text-foreground"
-          }
-          aria-label="Conflict item options"
-          onClick={(event) => {
-            event.stopPropagation();
-            onOpenPanel();
-          }}
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </div>
     </>
   );
 }

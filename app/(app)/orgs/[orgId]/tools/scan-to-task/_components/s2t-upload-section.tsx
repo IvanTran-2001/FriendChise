@@ -94,7 +94,7 @@ function UploadDropzone({ fileInputRef, onFilesChange }: UploadDropzoneProps) {
       <div className="flex justify-center">
         <label
           htmlFor="scan-to-task-files"
-          className="inline-flex h-9 cursor-pointer items-center justify-center rounded-full border border-border/70 bg-background px-4 text-sm font-medium text-foreground shadow-sm transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+          className="inline-flex h-9 cursor-pointer items-center justify-center rounded-full border border-border/70 bg-background px-4 text-sm font-medium text-foreground shadow-sm transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30"
         >
           Choose files
         </label>
@@ -110,7 +110,7 @@ function UploadDropzone({ fileInputRef, onFilesChange }: UploadDropzoneProps) {
           const files = Array.from(event.currentTarget.files ?? []);
           onFilesChange(files);
         }}
-        className="hidden"
+        className="peer sr-only"
       />
     </div>
   );

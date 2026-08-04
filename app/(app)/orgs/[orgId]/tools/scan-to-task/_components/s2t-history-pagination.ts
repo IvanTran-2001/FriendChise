@@ -127,6 +127,7 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
 
         const data = (await response.json()) as HistoryPage;
         if (requestId !== appendRequestIdRef.current) return;
+        setHistoryError(null);
         applyHistoryPage(data, true);
       } catch {
         if (requestId !== appendRequestIdRef.current) return;
@@ -151,6 +152,7 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
 
         const data = (await response.json()) as HistoryPage;
         if (requestId !== initialRequestIdRef.current) return;
+        setHistoryError(null);
         applyHistoryPage(data, false);
       } catch {
         if (requestId !== initialRequestIdRef.current) return;
