@@ -366,10 +366,6 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
       const mergedResult = nextState.result;
       const mergedClientId = mergedResult.resultId;
 
-      setResults((current) => [
-        { ...mergedResult, clientId: mergedClientId },
-        ...current.filter((result) => !selectedDraftResults.some((selected) => selected.clientId === result.clientId)),
-      ]);
       setDraftsById((current) => ({
         ...Object.fromEntries(Object.entries(current).filter(([resultId]) => !selectedDraftResults.some((selected) => selected.clientId === resultId))),
         [mergedClientId]: mergedResult.draft,
@@ -419,7 +415,6 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
         return;
       }
 
-      setResults((current) => current.filter((result) => !selectedDraftResults.some((selected) => selected.clientId === result.clientId)));
       setDraftsById((current) => {
         const next = { ...current };
         for (const selected of selectedDraftResults) {

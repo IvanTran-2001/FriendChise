@@ -1,6 +1,6 @@
 import type { ScanTaskDraft } from "@/lib/ai/scan-to-task";
 import type { DraftScanResultItem } from "./s2t-results-section";
-import type { TaskDuplicateCandidate } from "@/lib/services/tasks";
+import { getTaskDuplicateCandidateKey, type TaskDuplicateCandidate } from "@/lib/services/tasks";
 
 export type ReadyScanResult = Extract<DraftScanResultItem, { ok: true }>;
 
@@ -28,23 +28,34 @@ export function getMergedSourceSummary(result: {
   ok: boolean;
   metadata?: {
     mergedFromResultIds?: string[];
+    mergedFromResultSnapshots?: { id: string; fileName: string; title: string }[];
     mergedFromTaskIds?: string[];
+    mergedFromTaskSnapshots?: { id: string; name: string }[];
   } | null;
 }) {
   if (!result.ok) return null;
 
   const mergedFromResultIds = result.metadata?.mergedFromResultIds ?? [];
+  const mergedFromResultSnapshots = result.metadata?.mergedFromResultSnapshots ?? [];
   const mergedFromTaskIds = result.metadata?.mergedFromTaskIds ?? [];
-  if (mergedFromResultIds.length === 0 && mergedFromTaskIds.length === 0) return null;
+  const mergedFromTaskSnapshots = result.metadata?.mergedFromTaskSnapshots ?? [];
 
-  const draftCount = mergedFromResultIds.length;
-  const taskCount = mergedFromTaskIds.length;
+  const draftCount = mergedFromResultSnapshots.length > 0 ? mergedFromResultSnapshots.length : mergedFromResultIds.length;
+  const taskCount = mergedFromTaskSnapshots.length > 0 ? mergedFromTaskSnapshots.length : mergedFromTaskIds.length;
+  if (draftCount === 0 && taskCount === 0) return null;
+
+  const draftLabel = mergedFromResultSnapshots.length > 0
+    ? mergedFromResultSnapshots.map((snapshot) => snapshot.title).join(", ")
+    : mergedFromResultIds.join(", ");
+  const taskLabel = mergedFromTaskSnapshots.length > 0
+    ? mergedFromTaskSnapshots.map((snapshot) => snapshot.name).join(", ")
+    : mergedFromTaskIds.join(", ");
 
   return {
     label: `Merged from ${draftCount} draft${draftCount === 1 ? "" : "s"}${taskCount > 0 ? ` and ${taskCount} task${taskCount === 1 ? "" : "s"}` : ""}`,
     title: [
-      draftCount > 0 ? `Draft IDs: ${mergedFromResultIds.join(", ")}` : null,
-      taskCount > 0 ? `Task IDs: ${mergedFromTaskIds.join(", ")}` : null,
+      draftCount > 0 ? `Drafts: ${draftLabel}` : null,
+      taskCount > 0 ? `Tasks: ${taskLabel}` : null,
     ]
       .filter((value): value is string => Boolean(value))
       .join(" | "),
@@ -56,7 +67,7 @@ function dedupeTaskDuplicateCandidates(candidates: TaskDuplicateCandidate[]) {
   const uniqueCandidates: TaskDuplicateCandidate[] = [];
 
   for (const candidate of candidates) {
-    const candidateKey = candidate.taskId ?? candidate.id;
+    const candidateKey = getTaskDuplicateCandidateKey(candidate);
     if (seen.has(candidateKey)) continue;
     seen.add(candidateKey);
     uniqueCandidates.push(candidate);
@@ -68,7 +79,7 @@ function dedupeTaskDuplicateCandidates(candidates: TaskDuplicateCandidate[]) {
 function getCandidateIdentityKey(candidate: TaskDuplicateCandidate) {
   return candidate.sourceType === "scan-result"
     ? `draft:${candidate.resultId ?? candidate.id}`
-    : `task:${candidate.taskId ?? candidate.id}`;
+    : `task:${getTaskDuplicateCandidateKey(candidate)}`;
 }
 
 type ConflictGroupBucket = {

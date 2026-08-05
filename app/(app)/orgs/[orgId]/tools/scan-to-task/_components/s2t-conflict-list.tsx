@@ -49,6 +49,7 @@ export function ScanToTaskConflictList({
 
   useEffect(() => {
     if (activeTitle !== null) return;
+    // Defer the reset so the sidebar provider can finish its render path first.
     queueMicrotask(() => setActiveGroupId(null));
     lastOpenedPanelKeyRef.current = null;
   }, [activeTitle]);

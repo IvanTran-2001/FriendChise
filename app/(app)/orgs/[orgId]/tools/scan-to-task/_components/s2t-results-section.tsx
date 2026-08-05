@@ -270,7 +270,6 @@ function ScanResultListRow({
             className="h-8 w-full gap-1.5 px-2.5 text-muted-foreground"
             onClick={(event) => {
               event.stopPropagation();
-              if (result.ok && isCreatedOrConfirmed && result.taskId && !window.confirm(`Delete task "${result.draft.title}"?`)) return;
               onRemove(result.clientId);
             }}
           >

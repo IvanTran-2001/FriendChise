@@ -42,7 +42,7 @@
  * updateSectionLayoutAction — bulk-upsert section layout rows for a task+org (MANAGE_TASKS required).
  */
 
-import { PermissionAction } from "@prisma/client";
+import { PermissionAction, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/platform/prisma";
 import {
   requireOrgPermissionAction,
@@ -81,6 +81,7 @@ import { renameTaskImageIfNeeded } from "@/lib/services/images";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validators/task";
 import { checkDemoLimit } from "@/lib/demo";
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 
 /** Parses numeric and string fields from a task FormData submission. */
 function parseTaskFormData(formData: FormData) {
@@ -180,23 +181,27 @@ export async function createTaskAction(
       creatorName ?? null,
     );
   } catch (error) {
-    if ((error as { code?: string } | null | undefined)?.code === "P2002") {
-      return {
-        ok: false,
-        errors: { _: [`A task named "${parsed.data.title}" already exists.`] },
-      };
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      const target = error.meta?.target;
+      const isTaskNameConflict = Array.isArray(target)
+        && target.length === 2
+        && target.includes("orgId")
+        && target.includes("name");
+      if (isTaskNameConflict) {
+        return {
+          ok: false,
+          errors: { _: [`A task named "${parsed.data.title}" already exists.`] },
+        };
+      }
     }
 
     throw error;
   }
+
   try {
     const imageStoragePath = formData.get("imageStoragePath");
     if (typeof imageStoragePath === "string" && imageStoragePath.trim()) {
-      const imageResult = await saveTaskImagePath(
-        orgId,
-        task.id,
-        imageStoragePath,
-      );
+      const imageResult = await saveTaskImagePath(orgId, task.id, imageStoragePath);
       if (!imageResult.ok) {
         throw new Error(imageResult.error);
       }

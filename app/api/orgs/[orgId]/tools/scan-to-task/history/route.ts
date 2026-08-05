@@ -1,6 +1,7 @@
 import { PermissionAction } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireOrgPermission } from "@/lib/authz";
+import { log } from "@/lib/platform/observability";
 import { prisma } from "@/lib/platform/prisma";
 import {
   getTaskDuplicateCandidateKey,
@@ -22,13 +23,24 @@ export async function GET(
   if (!authz.ok) return authz.response;
 
   const { searchParams } = new URL(req.url);
-  const cursor = searchParams.get("cursor") ?? undefined;
+  const cursor = searchParams.get("cursor")?.trim() || null;
   const limit = Math.min(
     Math.max(1, Number.parseInt(searchParams.get("limit") ?? String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT),
     MAX_LIMIT,
   );
 
   try {
+    if (cursor) {
+      const cursorRecord = await prisma.scanTaskResult.findFirst({
+        where: { orgId, id: cursor, clearedAt: null },
+        select: { id: true },
+      });
+
+      if (!cursorRecord) {
+        return NextResponse.json({ error: "Invalid cursor." }, { status: 400 });
+      }
+    }
+
     const sharedCandidates = await loadPotentialTaskDuplicateCandidates(orgId, Math.max(limit, DEFAULT_LIMIT));
     const records = await prisma.scanTaskResult.findMany({
       where: { orgId, clearedAt: null },
@@ -87,7 +99,7 @@ export async function GET(
       nextCursor,
     });
   } catch (error) {
-    console.error("Failed to load scan history:", error);
+    log.error("Failed to load scan history", { orgId, error });
     return NextResponse.json({ error: "Failed to load scan history." }, { status: 500 });
   }
 }

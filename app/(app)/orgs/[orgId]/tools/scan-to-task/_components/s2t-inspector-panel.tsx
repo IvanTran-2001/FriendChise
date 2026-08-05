@@ -150,7 +150,12 @@ function InspectorBody({
                 min={1}
                 max={24 * 60}
                 value={draftDurationMin}
-                onChange={(event) => setDraftDurationMin(Number.isFinite(event.currentTarget.valueAsNumber) ? event.currentTarget.valueAsNumber : 0)}
+                onChange={(event) => {
+                  const nextDuration = event.currentTarget.valueAsNumber;
+                  if (Number.isFinite(nextDuration) && nextDuration >= 1) {
+                    setDraftDurationMin(nextDuration);
+                  }
+                }}
                 disabled={confirmPending}
               />
             </div>

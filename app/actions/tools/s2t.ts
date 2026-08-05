@@ -1000,7 +1000,7 @@ export async function confirmScanToTaskAction(
   }
 
   log.info("Task created", { orgId, taskId: task.id });
-  recordAudit({
+  await recordAudit({
     orgId,
     actorId: auth.userId,
     actorEmail: auth.userEmail ?? null,

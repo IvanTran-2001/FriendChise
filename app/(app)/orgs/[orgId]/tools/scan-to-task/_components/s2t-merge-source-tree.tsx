@@ -179,15 +179,14 @@ function MergeSourceTreeNode({
         onInspect={() => onInspectTaskCandidate(sourceResultId, node.taskId)}
         onDelete={() => onDeleteTask(node.taskId)}
         deleteLabel="Delete task source"
-        confirmMessage="Delete this linked task source?"
       />
     );
   }
 
   if (node.kind === "missing-result") {
     return (
-      <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-        Missing draft {node.resultId}
+      <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 px-3 py-2 text-xs text-muted-foreground" title={node.resultId}>
+        This source draft is no longer available.
       </div>
     );
   }
@@ -322,7 +321,6 @@ function SourceTreeRow({
   onInspect,
   onDelete,
   deleteLabel,
-  confirmMessage,
 }: {
   label: string;
   title: string;
@@ -330,7 +328,6 @@ function SourceTreeRow({
   onInspect: () => void;
   onDelete?: () => void;
   deleteLabel?: string;
-  confirmMessage?: string;
 }) {
   return (
     <div
@@ -368,7 +365,6 @@ function SourceTreeRow({
               aria-label={deleteLabel ?? `Remove source ${title}`}
               onClick={(event) => {
                 event.stopPropagation();
-                if (!window.confirm(confirmMessage ?? `Remove source "${title}"?`)) return;
                 onDelete();
               }}
             >
