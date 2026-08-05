@@ -176,12 +176,12 @@ function repairDraftResponse(content: string) {
   const normalized = normalizeDraftResponse(content);
   return scanTaskDraftSchema.safeParse({
     ...normalized,
-    description: limitText(normalized.description, 5000),
+    description: limitTextPreservingFormatting(normalized.description, 5000),
     durationMin: normalized.durationMin ?? 30,
     peopleRequired: normalized.peopleRequired ?? 1,
     minWaitDays: normalized.minWaitDays ?? 1,
     maxWaitDays: normalized.maxWaitDays ?? normalized.minWaitDays ?? 1,
-    sourceText: limitText(normalized.sourceText || "", scanToTaskConfig.sourceTextMaxLength),
+    sourceText: limitTextPreservingFormatting(normalized.sourceText || "", scanToTaskConfig.sourceTextMaxLength),
   });
 }
 
@@ -269,7 +269,7 @@ async function checkImageHasTaskContext(
     fileName,
     mimeType: normalized.mimeType,
     normalizedMimeType: normalized.mimeType,
-    instructionPreview: safeInstruction ? limitText(safeInstruction, 200) : "",
+    instructionPreview: "",
     imageBytes: normalized.bytes.byteLength,
   };
 
@@ -360,6 +360,7 @@ export function buildFallbackScanTaskDraft(
   const draft = buildTaskSuggestion({
     title,
     description: instruction || fileName,
+    descriptionBody: sourceText,
     sourceText,
     durationMin: 30,
     peopleRequired: 1,

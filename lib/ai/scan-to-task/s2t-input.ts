@@ -62,15 +62,23 @@ export async function normalizeImageBytesForVision(
  */
 export async function extractTextFromBytes(bytes: ArrayBuffer, kind: ScanFileKind) {
   if (kind === "pdf") {
-    const { PDFParse } = await import("pdf-parse");
-    const parser = new PDFParse({ data: bytes });
     try {
-      const result = await parser.getText();
-      return result.text ?? "";
+      const { PDFParse } = await import("pdf-parse");
+      const parser = new PDFParse({ data: bytes });
+      try {
+        const result = await parser.getText();
+        return result.text ?? "";
+      } catch {
+        return "";
+      } finally {
+        try {
+          await parser.destroy();
+        } catch {
+          // Ignore cleanup failures after extraction has already completed.
+        }
+      }
     } catch {
       return "";
-    } finally {
-      await parser.destroy();
     }
   }
 

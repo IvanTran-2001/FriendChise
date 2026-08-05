@@ -40,6 +40,7 @@ export type TaskDuplicateCheckInput = {
   sourceText?: string | null;
   importantDetails?: string | null;
   actionItems?: string | null;
+  // Display-only metadata for the conflict UI; duplicate scoring ignores it.
   topic?: string | null;
 };
 
@@ -73,6 +74,7 @@ type TaskDuplicateComparable = {
   durationMin: number;
   minPeople: number;
   maxPeople: number | null;
+  // Display-only metadata for the conflict UI; duplicate scoring ignores it.
   topic?: string | null;
 };
 
@@ -176,6 +178,10 @@ export function compareTaskDuplicateText(
     normalizedInputDescription.length > 0 &&
     normalizedTaskDescription.length > 0 &&
     normalizedInputDescription === normalizedTaskDescription;
+  const topicBoost =
+    input.topic && task.topic && normalizeDuplicateText(input.topic) === normalizeDuplicateText(task.topic)
+      ? 0.08
+      : 0;
 
   let score = 0;
   const matchedOn: string[] = [];
@@ -194,6 +200,11 @@ export function compareTaskDuplicateText(
   } else if (score === 0 && descriptionScore >= threshold) {
     score = descriptionScore;
     matchedOn.push("description");
+  }
+
+  if (topicBoost > 0 && score > 0) {
+    score = Math.min(1, score + topicBoost);
+    matchedOn.push("topic");
   }
 
   return {

@@ -97,9 +97,6 @@ export async function adjudicateScanTaskDuplicate(
   budget?: DuplicateAdjudicationBudget,
 ): Promise<ScanToTaskDuplicateAdjudication | null> {
   if (!openAiClient) return null;
-  if (budget) {
-    await acquireDuplicateAdjudicationSlot(budget);
-  }
 
   const input = {
     stage: "duplicate-adjudication",
@@ -110,8 +107,14 @@ export async function adjudicateScanTaskDuplicate(
     candidateDurationMin: candidate.durationMin,
     candidateMinPeople: candidate.minPeople,
   };
+  let acquiredSlot = false;
 
   try {
+    if (budget) {
+      await acquireDuplicateAdjudicationSlot(budget);
+      acquiredSlot = true;
+    }
+
     logScanToTaskModelInput(scanToTaskDebugLogging, "duplicate-adjudication", openAiModel, input);
 
     const response = await openAiClient.chat.completions.create({
@@ -162,7 +165,7 @@ export async function adjudicateScanTaskDuplicate(
     logScanToTaskModelError(scanToTaskDebugLogging, "duplicate-adjudication", openAiModel, error, input);
     return null;
   } finally {
-    if (budget) {
+    if (budget && acquiredSlot) {
       releaseDuplicateAdjudicationSlot(budget);
     }
   }

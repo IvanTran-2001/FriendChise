@@ -165,6 +165,18 @@ describe("confirmScanToTaskAction", () => {
     expect(result).toEqual({ ok: false, error: "Failed to confirm draft." });
     expect(tx.scanTaskResult.update).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
+    expect(log.error).toHaveBeenCalledWith("Unexpected error confirming scan draft", expect.any(Object));
+  });
+
+  it("returns a duplicate-name error when task creation rejects with P2002", async () => {
+    vi.mocked(tx.scanTaskResult.updateMany).mockResolvedValue({ count: 1 } as any);
+    vi.mocked(createTaskOnClient).mockRejectedValue({ code: "P2002" });
+
+    const result = await confirmScanToTaskAction("org-1", null, makeFormData());
+
+    expect(result).toEqual({ ok: false, error: 'A task named "Task A" already exists.' });
+    expect(log.error).not.toHaveBeenCalled();
+    expect(tx.scanTaskResult.update).not.toHaveBeenCalled();
   });
 
   it("rejects a scan result that no longer matches the claim query", async () => {

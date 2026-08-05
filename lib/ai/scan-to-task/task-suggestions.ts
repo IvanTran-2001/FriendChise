@@ -4,6 +4,7 @@
 type TaskSuggestionInput = {
   title: string;
   description?: string | null;
+  descriptionBody?: string | null;
   sourceText?: string | null;
   durationMin: number;
   peopleRequired: number;
@@ -132,9 +133,9 @@ function matchHint(text: string) {
 /**
  * Builds the final description body shown to the user.
  */
-function buildDescription(title: string, summary: string, body = "") {
+function buildDescription(title: string, summary: string, options: { descriptionBody?: string | null } = {}) {
   const bulletPoints = GENERIC_STEPS.map((step) => `- ${step}`).join("\n");
-  const trimmedBody = body.trim().slice(0, 4000);
+  const trimmedBody = (options.descriptionBody ?? "").trim().slice(0, 4000);
   return [
     summary,
     "",
@@ -169,7 +170,7 @@ export function buildTaskSuggestion(
 
   return {
     title,
-    description: buildDescription(title, summary, input.description ?? ""),
+    description: buildDescription(title, summary, { descriptionBody: input.descriptionBody ?? "" }),
     durationMin,
     peopleRequired,
     minWaitDays,

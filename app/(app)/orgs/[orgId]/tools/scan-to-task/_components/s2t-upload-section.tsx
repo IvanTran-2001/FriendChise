@@ -108,14 +108,12 @@ function UploadDropzone({ fileInputRef, scanPending, onFilesChange }: UploadDrop
           <p className="text-xs text-muted-foreground">Multiple files allowed. PDFs, images, DOCX, TXT, MD, CSV, JSON, and XML.</p>
         </div>
       </div>
-      <div className="flex flex-col items-center gap-3">
-        <label
-          htmlFor="scan-to-task-files"
-          className="inline-flex h-9 cursor-pointer items-center justify-center rounded-full border border-border/70 bg-background px-4 text-sm font-medium text-foreground shadow-sm transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30 peer-disabled:cursor-not-allowed peer-disabled:opacity-60"
-        >
-          Choose files
-        </label>
-      </div>
+      <label
+        htmlFor="scan-to-task-files"
+        className="inline-flex h-9 cursor-pointer items-center justify-center rounded-full border border-border/70 bg-background px-4 text-sm font-medium text-foreground shadow-sm transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30 peer-disabled:cursor-not-allowed peer-disabled:opacity-60"
+      >
+        Choose files
+      </label>
     </div>
   );
 }

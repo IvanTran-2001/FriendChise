@@ -158,7 +158,15 @@ export function splitTextIntoChunks(value: string, maxChunkLength = 4000, maxChu
   while (chunks.length > maxChunks) {
     const tail = chunks.pop();
     if (!tail) continue;
-    chunks[chunks.length - 1] = `${chunks[chunks.length - 1]}\n\n${tail}`;
+
+    let shortestIndex = 0;
+    for (let index = 1; index < chunks.length; index += 1) {
+      if (chunks[index].length < chunks[shortestIndex].length) {
+        shortestIndex = index;
+      }
+    }
+
+    chunks[shortestIndex] = `${chunks[shortestIndex]}\n\n${tail}`;
   }
 
   return chunks;

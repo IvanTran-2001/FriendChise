@@ -422,12 +422,6 @@ export async function deleteScanToTaskLinkedTaskAction(
     ? { userId: franchiseAuthz.userId, userEmail: franchiseAuthz.userEmail }
     : { userId: taskOrgAuthz.userId, userEmail: taskOrgAuthz.userEmail };
 
-  const existingTask = await prisma.task.findFirst({
-    where: { id: taskId, orgId: taskOrgId },
-    select: { name: true, color: true, description: true, durationMin: true },
-  });
-  if (!existingTask) return { ok: false, error: "Task not found." };
-
   try {
     await prisma.$transaction(async (tx) => {
       const deleteResult = await deleteTask(taskOrgId, taskId, authz.userId, authz.userEmail, tx);
@@ -445,7 +439,7 @@ export async function deleteScanToTaskLinkedTaskAction(
           action: "task.delete",
           targetType: "Task",
           targetId: taskId,
-          before: existingTask,
+          before: null,
         },
         tx,
       );
@@ -656,20 +650,18 @@ export async function deleteScanToTaskConflictItemsAction(
         throw new Error(result.error);
       }
 
-      if (deletedTask) {
-        await recordAudit(
-          {
-            orgId,
-            actorId: auth.userId,
-            actorEmail: auth.userEmail,
-            action: "task.delete",
-            targetType: "Task",
-            targetId: taskId,
-            before: deletedTask,
-          },
-          tx,
-        );
-      }
+      await recordAudit(
+        {
+          orgId,
+          actorId: auth.userId,
+          actorEmail: auth.userEmail,
+          action: "task.delete",
+          targetType: "Task",
+          targetId: taskId,
+          before: deletedTask ?? null,
+        },
+        tx,
+      );
     }
   });
 
@@ -804,6 +796,8 @@ export async function mergeScanToTaskConflictItemsAction(
         where: { orgId, id: { in: resultIds }, clearedAt: null },
         data: { clearedAt: new Date() },
       });
+
+      await pruneMergedSourceReferences(orgId, { resultIds }, tx);
 
       return created;
     });

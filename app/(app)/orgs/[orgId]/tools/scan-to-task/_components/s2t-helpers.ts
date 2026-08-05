@@ -46,10 +46,10 @@ export function getMergedSourceSummary(result: {
 
   const draftLabel = mergedFromResultSnapshots.length > 0
     ? mergedFromResultSnapshots.map((snapshot) => snapshot.title).join(", ")
-    : mergedFromResultIds.join(", ");
+    : `${draftCount} draft${draftCount === 1 ? "" : "s"}`;
   const taskLabel = mergedFromTaskSnapshots.length > 0
     ? mergedFromTaskSnapshots.map((snapshot) => snapshot.name).join(", ")
-    : mergedFromTaskIds.join(", ");
+    : `${taskCount} task${taskCount === 1 ? "" : "s"}`;
 
   const sourceParts = [
     draftCount > 0 ? `${draftCount} draft${draftCount === 1 ? "" : "s"}` : null,
