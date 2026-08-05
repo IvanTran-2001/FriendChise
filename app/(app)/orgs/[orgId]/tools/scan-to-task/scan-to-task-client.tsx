@@ -24,6 +24,7 @@ import { ScanToTaskInspectorPanel, type InspectorFormValues } from "./_component
 import { useScanTaskHistoryPagination } from "./_components/s2t-history-pagination";
 import { buildConflictGroups, type ConflictGroup } from "./_components/s2t-helpers";
 import type { TaskDuplicateCandidate } from "@/lib/services/tasks";
+import { MAX_FILE_BYTES } from "@/lib/services/scan-to-task";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -94,6 +95,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
     historyError,
     hasMore,
     sentinelRef,
+    scrollRootRef,
   } = useScanTaskHistoryPagination(orgId);
 
   // Local UI state for the selected result, upload form, and inspector lifecycle.
