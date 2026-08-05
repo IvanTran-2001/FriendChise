@@ -128,6 +128,7 @@ export function ScanToTaskConflictList({
                 <ConflictItemDetails
                   primaryResult={primaryResult}
                   results={group.results}
+                  draftsById={draftsById}
                   duplicateCandidates={group.duplicateCandidates}
                   onSelectResult={onSelectResult}
                   onInspectTaskCandidate={onInspectTaskCandidate}
@@ -202,6 +203,7 @@ function ConflictItemRow({
 type ConflictItemDetailsProps = {
   primaryResult: DraftScanResultItem & { ok: true };
   results: Array<Extract<DraftScanResultItem, { ok: true }>>;
+  draftsById: Record<string, { title: string }>;
   duplicateCandidates: TaskDuplicateCandidate[];
   onSelectResult: (resultId: string, source?: "queue" | "conflict") => void;
   onInspectTaskCandidate: (resultId: string, taskId: string) => void;
@@ -210,6 +212,7 @@ type ConflictItemDetailsProps = {
 function ConflictItemDetails({
   primaryResult,
   results,
+  draftsById,
   duplicateCandidates,
   onSelectResult,
   onInspectTaskCandidate,
@@ -230,7 +233,7 @@ function ConflictItemDetails({
                 onClick={() => onSelectResult(result.clientId, "conflict")}
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">{result.draft.title}</span>
+                  <span className="block truncate text-sm font-medium">{draftsById[result.clientId]?.title ?? result.draft.title}</span>
                   <span className="block text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                         {formatItemDate(result.createdAt) ?? "-"}
                   </span>

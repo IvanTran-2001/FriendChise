@@ -20,6 +20,7 @@ type ScanToTaskResultsSectionProps = {
   hasMore: boolean;
   isLoadingMore: boolean;
   sentinelRef: RefObject<HTMLDivElement | null>;
+  scrollRootRef?: RefObject<HTMLDivElement | null>;
   emptySelectedLabel: string;
   selectedResultId: string | null;
   confirmedTasksById: Record<string, { taskId: string; taskHref: string }>;
@@ -58,6 +59,7 @@ export function ScanToTaskResultsSection({
   hasMore,
   isLoadingMore,
   sentinelRef,
+  scrollRootRef,
   emptySelectedLabel,
   selectedResultId,
   confirmedTasksById,
@@ -92,7 +94,7 @@ export function ScanToTaskResultsSection({
           emptySelectedLabel={emptySelectedLabel}
         />
 
-        <div className="mt-4 min-h-0 overflow-y-auto overscroll-y-contain pr-1 [touch-action:pan-y]">
+        <div ref={scrollRootRef} className="mt-4 min-h-0 overflow-y-auto overscroll-y-contain pr-1 [touch-action:pan-y]">
           <div className="space-y-4">
             {loading ? <LoadingNotice /> : null}
 

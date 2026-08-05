@@ -71,6 +71,8 @@ type MergeSourceMetadata = {
   mergedFromTaskSnapshots?: { id: string; name: string }[];
 };
 
+const UPLOAD_TIMEOUT_MS = Math.max(30_000, Math.ceil(MAX_FILE_BYTES / (1024 * 1024)) * 1_000);
+
 /**
  * Coordinates the full scan-to-task workflow for an organization.
  * It keeps the upload form, result queue, selected draft, duplicate state,
@@ -125,8 +127,17 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
       const next = { ...current };
 
       for (const [resultId, candidates] of Object.entries(historyDuplicateCandidatesById)) {
-        if (!next[resultId] && candidates.length > 0) {
+        const currentCandidates = next[resultId];
+        const sameCandidates = currentCandidates && currentCandidates.length === candidates.length && currentCandidates.every((candidate, index) => candidate.id === candidates[index]?.id);
+        if (!sameCandidates) {
           next[resultId] = candidates;
+          changed = true;
+        }
+      }
+
+      for (const resultId of Object.keys(next)) {
+        if (!(resultId in historyDuplicateCandidatesById)) {
+          delete next[resultId];
           changed = true;
         }
       }
@@ -228,12 +239,18 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
         return {
           ...result,
           metadata:
-            nextMergedFromTaskIds.length > 0 || (metadata.mergedFromResultIds ?? []).length > 0 || (metadata.mergedFromTaskSnapshots ?? []).length > 0
+            nextMergedFromTaskIds.length > 0 || (metadata.mergedFromResultIds ?? []).length > 0 || (metadata.mergedFromResultSnapshots ?? []).length > 0 || (metadata.mergedFromTaskSnapshots ?? []).length > 0
               ? {
                   ...(metadata.mergedFromResultIds?.length ? { mergedFromResultIds: metadata.mergedFromResultIds } : {}),
                   ...(metadata.mergedFromResultSnapshots?.length ? { mergedFromResultSnapshots: metadata.mergedFromResultSnapshots } : {}),
                   ...(nextMergedFromTaskIds.length ? { mergedFromTaskIds: nextMergedFromTaskIds } : {}),
-                  ...(metadata.mergedFromTaskSnapshots?.length ? { mergedFromTaskSnapshots: metadata.mergedFromTaskSnapshots } : {}),
+                  ...(metadata.mergedFromTaskSnapshots?.length
+                    ? {
+                        mergedFromTaskSnapshots: metadata.mergedFromTaskSnapshots.filter((snapshot) =>
+                          nextMergedFromTaskIds.includes(snapshot.id),
+                        ),
+                      }
+                    : {}),
                 }
               : null,
         };
@@ -562,7 +579,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
     setSelectedTaskDetails(null);
     setSelectedSource(source);
     const clickedResult = results.find((result) => result.clientId === resultId);
-    if (clickedResult && clickedResult.ok && source === "queue" && clickedResult.taskId) {
+    if (clickedResult && clickedResult.ok && clickedResult.taskId) {
       setSelectedTaskId(clickedResult.taskId);
       setSelectedTaskDetails(null);
     } else if (clickedResult && clickedResult.ok) {
@@ -715,6 +732,7 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
         hasMore={hasMore}
         isLoadingMore={isLoadingMore}
         sentinelRef={sentinelRef}
+        scrollRootRef={scrollRootRef}
         emptySelectedLabel={emptySelectedLabel}
         selectedResultId={selectedResultId}
         confirmedTasksById={confirmedTasksById}
@@ -806,13 +824,20 @@ async function uploadSelectedFiles(
       fileSize: file.size,
     });
 
-    const uploadResponse = await fetch(uploadState.signedUrl, {
+    const timeoutController = new AbortController();
+    const timeoutId = window.setTimeout(() => timeoutController.abort(), UPLOAD_TIMEOUT_MS);
+    try {
+      const uploadResponse = await fetch(uploadState.signedUrl, {
       method: "PUT",
       body: file,
       headers: { "Content-Type": uploadContentType },
+      signal: timeoutController.signal,
     });
-    if (!uploadResponse.ok) {
-      throw new Error(`Failed to upload "${file.name}".`);
+      if (!uploadResponse.ok) {
+        throw new Error(`Failed to upload "${file.name}".`);
+      }
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 }

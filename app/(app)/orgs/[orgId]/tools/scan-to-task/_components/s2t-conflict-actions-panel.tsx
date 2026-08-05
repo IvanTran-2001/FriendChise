@@ -5,6 +5,16 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/core/utils";
 import { formatItemDate, type ConflictGroup } from "./s2t-helpers";
 import { useActionSidebar } from "@/components/layout/contexts/action-sidebar-context";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/dialogs/alert-dialog";
 
 type ConflictActionsPanelProps = {
   group: ConflictGroup;
@@ -52,13 +62,8 @@ export function ConflictActionsPanel({ group, draftsById, onMerge, onDelete }: C
   );
 
   const itemIds = useMemo(
-    () => [
-      ...group.results.map((result) => `draft:${result.clientId}`),
-      ...group.duplicateCandidates
-        .filter((candidate) => candidate.sourceType === "task")
-        .map((candidate) => `task:${candidate.taskId ?? candidate.id}`),
-    ],
-    [group.duplicateCandidates, group.results],
+    () => [...draftItems.map((item) => item.id), ...taskItems.map((item) => item.id)],
+    [draftItems, taskItems],
   );
 
   // Track only the deselected ids so refreshed item lists keep the user's current choices.
@@ -79,6 +84,7 @@ export function ConflictActionsPanel({ group, draftsById, onMerge, onDelete }: C
   // Delete works on any selected item, merge requires at least one draft.
   const canDelete = selectedIds.length > 0;
   const canMerge = selectedDraftIds.length > 0;
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<string[] | null>(null);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -140,17 +146,7 @@ export function ConflictActionsPanel({ group, draftsById, onMerge, onDelete }: C
             className="flex-1"
             // Execute delete for the selected items, then close the sidebar.
             onClick={() => {
-              const selectedTasks = taskItems.filter((item) => selectedIds.includes(item.id));
-              const draftCount = selectedIds.length - selectedTasks.length;
-              const taskList = selectedTasks.map((item) => `• ${item.label}`).join("\n");
-              const message = `Delete ${draftCount} draft${draftCount === 1 ? "" : "s"} and ${selectedTasks.length} task${selectedTasks.length === 1 ? "" : "s"}?${
-                taskList ? `\n\nTasks to delete permanently:\n${taskList}` : ""
-              }`;
-              if (!window.confirm(message)) {
-                return;
-              }
-              onDelete(group, selectedIds);
-              close();
+              setPendingDeleteIds(selectedIds);
             }}
             disabled={!canDelete}
           >
@@ -158,6 +154,44 @@ export function ConflictActionsPanel({ group, draftsById, onMerge, onDelete }: C
           </Button>
         </div>
       </div>
+
+      <AlertDialog
+        open={pendingDeleteIds !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteIds(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete selected items?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDeleteIds ? (() => {
+                const selectedTasks = taskItems.filter((item) => pendingDeleteIds.includes(item.id));
+                const draftCount = pendingDeleteIds.length - selectedTasks.length;
+                const taskList = selectedTasks.map((item) => `• ${item.label}`).join("\n");
+                return `Delete ${draftCount} draft${draftCount === 1 ? "" : "s"} and ${selectedTasks.length} task${selectedTasks.length === 1 ? "" : "s"}?${
+                  taskList ? `\n\nTasks to delete permanently:\n${taskList}` : ""
+                }`;
+              })() : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingDeleteIds(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const nextSelectedIds = pendingDeleteIds;
+                setPendingDeleteIds(null);
+                if (nextSelectedIds) {
+                  onDelete(group, nextSelectedIds);
+                  close();
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

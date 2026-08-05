@@ -70,6 +70,7 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const initialRequestIdRef = useRef(0);
   const appendRequestIdRef = useRef(0);
   const activeAppendRequestIdRef = useRef(0);
@@ -115,60 +116,78 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
   }, [mergeResults]);
 
   const loadHistoryPage = useCallback(async (cursor: string | null | undefined, append: boolean) => {
+    const runHistoryRequest = async ({
+      requestId,
+      requestIdRef,
+      loadingRef,
+      errorMessage,
+      onSuccess,
+      onStaleError,
+      onFinally,
+    }: {
+      requestId: number;
+      requestIdRef: React.MutableRefObject<number>;
+      loadingRef: React.MutableRefObject<number>;
+      errorMessage: string;
+      onSuccess: (data: HistoryPage) => void;
+      onStaleError: () => void;
+      onFinally: () => void;
+    }) => {
+      try {
+        const response = await fetch(buildUrl(cursor));
+        if (!response.ok) {
+          throw new Error(`Failed to load scan history (${response.status}).`);
+        }
+
+        const data = (await response.json()) as HistoryPage;
+        if (requestId !== requestIdRef.current) return;
+        setHistoryError(null);
+        onSuccess(data);
+      } catch {
+        if (requestId !== requestIdRef.current) return;
+        setHistoryError(errorMessage);
+        onStaleError();
+      } finally {
+        if (loadingRef.current === requestId) {
+          onFinally();
+        }
+      }
+    };
+
     if (append) {
       const requestId = ++appendRequestIdRef.current;
       activeAppendRequestIdRef.current = requestId;
       setIsLoadingMore(true);
 
-      try {
-        const response = await fetch(buildUrl(cursor));
-        if (!response.ok) {
-          throw new Error(`Failed to load scan history (${response.status}).`);
-        }
-
-        const data = (await response.json()) as HistoryPage;
-        if (requestId !== appendRequestIdRef.current) return;
-        setHistoryError(null);
-        applyHistoryPage(data, true);
-      } catch {
-        if (requestId !== appendRequestIdRef.current) return;
-        setHistoryError("Failed to load more scan history.");
-      } finally {
-        if (activeAppendRequestIdRef.current === requestId) {
-          setIsLoadingMore(false);
-        }
-      }
-
+      await runHistoryRequest({
+        requestId,
+        requestIdRef: appendRequestIdRef,
+        loadingRef: activeAppendRequestIdRef,
+        errorMessage: "Failed to load more scan history.",
+        onSuccess: (data) => applyHistoryPage(data, true),
+        onStaleError: () => {},
+        onFinally: () => setIsLoadingMore(false),
+      });
       return;
-    } else {
-      const requestId = ++initialRequestIdRef.current;
-      appendRequestIdRef.current += 1;
-      setIsLoadingInitial(true);
+    }
 
-      try {
-        const response = await fetch(buildUrl(cursor));
-        if (!response.ok) {
-          throw new Error(`Failed to load scan history (${response.status}).`);
-        }
+    const requestId = ++initialRequestIdRef.current;
+    appendRequestIdRef.current += 1;
+    setIsLoadingInitial(true);
 
-        const data = (await response.json()) as HistoryPage;
-        if (requestId !== initialRequestIdRef.current) return;
-        setHistoryError(null);
-        applyHistoryPage(data, false);
-      } catch {
-        if (requestId !== initialRequestIdRef.current) return;
-        setHistoryError("Failed to load scan history.");
+    await runHistoryRequest({
+      requestId,
+      requestIdRef: initialRequestIdRef,
+      loadingRef: initialRequestIdRef,
+      errorMessage: "Failed to load scan history.",
+      onSuccess: (data) => applyHistoryPage(data, false),
+      onStaleError: () => {
         setResults([]);
         setDuplicateCandidatesById({});
         setNextCursor(null);
-      } finally {
-        if (requestId === initialRequestIdRef.current) {
-          setIsLoadingInitial(false);
-        }
-      }
-
-      return;
-    }
+      },
+      onFinally: () => setIsLoadingInitial(false),
+    });
   }, [applyHistoryPage, buildUrl]);
 
   const refreshHistory = useCallback(() => loadHistoryPage(null, false), [loadHistoryPage]);
@@ -195,7 +214,7 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
           loadMore();
         }
       },
-      { rootMargin: "200px" },
+      { root: scrollRootRef.current, rootMargin: "200px" },
     );
 
     observer.observe(el);
@@ -211,6 +230,7 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
     historyError,
     hasMore: Boolean(nextCursor),
     sentinelRef,
+    scrollRootRef,
     setResults,
     refreshHistory,
   };

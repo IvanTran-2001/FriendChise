@@ -179,7 +179,7 @@ function MergeSourceTreeNode({
         onInspect={() => onInspectTaskCandidate(sourceResultId, node.taskId)}
         onDelete={() => onDeleteTask(node.taskId)}
         deleteLabel="Delete task source"
-        confirmMessage="Delete this linked task source permanently?"
+        confirmMessage={`Delete linked task source ${node.taskName ?? node.taskId} permanently?`}
       />
     );
   }
@@ -286,7 +286,7 @@ function MergeSourceTreeNode({
             aria-label={isTaskSource ? `Delete linked task source ${node.result.fileName}` : `Remove source draft ${node.result.fileName}`}
             onClick={(event) => {
               event.stopPropagation();
-              if (isTaskSource && !window.confirm("Delete this linked task source?")) return;
+              if (isTaskSource && !window.confirm(`Delete linked task source ${node.result.taskId ?? node.result.fileName}?`)) return;
               onRemoveResult(node.result.clientId);
             }}
           >

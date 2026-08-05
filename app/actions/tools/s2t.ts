@@ -602,6 +602,8 @@ export async function updateScanToTaskDraftAction(
     color: parsed.data.color ?? existingDraft.data.color,
     title: parsed.data.title,
     description: parsed.data.description,
+    summary: parsed.data.summary,
+    sourceText: parsed.data.sourceText ?? existingDraft.data.sourceText,
     durationMin: parsed.data.durationMin,
     peopleRequired: parsed.data.peopleRequired,
     minWaitDays: parsed.data.minWaitDays,
@@ -1028,10 +1030,8 @@ export async function confirmScanToTaskAction(
       };
     }
 
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Failed to confirm draft.",
-    };
+    log.error("Unexpected error confirming scan draft", { orgId, error });
+    return { ok: false, error: "Failed to confirm draft." };
   }
 
   log.info("Task created", { orgId, taskId: task.id });

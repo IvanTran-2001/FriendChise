@@ -72,7 +72,7 @@ function dedupeTaskDuplicateCandidates(candidates: TaskDuplicateCandidate[]) {
   const uniqueCandidates: TaskDuplicateCandidate[] = [];
 
   for (const candidate of candidates) {
-    const candidateKey = candidate.taskId ?? candidate.id;
+    const candidateKey = getCandidateIdentityKey(candidate);
     if (seen.has(candidateKey)) continue;
     seen.add(candidateKey);
     uniqueCandidates.push(candidate);
