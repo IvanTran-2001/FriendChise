@@ -155,7 +155,11 @@ function wordOverlapBoost(a: string, b: string) {
   return jaccardSimilarity(tokensA, tokensB);
 }
 
-export function compareTaskDuplicateText(input: TaskDuplicateCheckInput, task: TaskDuplicateComparable) {
+export function compareTaskDuplicateText(
+  input: TaskDuplicateCheckInput,
+  task: TaskDuplicateComparable,
+  threshold = 0.82,
+) {
   const titleScore = wordOverlapBoost(input.title, task.name);
   const sourceDescriptionParts = [input.description, input.sourceText, input.importantDetails, input.actionItems]
     .map((part) => part?.trim())
@@ -165,11 +169,13 @@ export function compareTaskDuplicateText(input: TaskDuplicateCheckInput, task: T
   const descriptionScore = wordOverlapBoost(inputDescription, taskDescription);
   const normalizedInputTitle = normalizeDuplicateText(input.title);
   const normalizedTaskTitle = normalizeDuplicateText(task.name);
+  const normalizedInputDescription = normalizeDuplicateText(inputDescription);
+  const normalizedTaskDescription = normalizeDuplicateText(taskDescription);
   const exactTitle = normalizedInputTitle.length > 0 && normalizedTaskTitle.length > 0 && normalizedInputTitle === normalizedTaskTitle;
   const exactDescription =
-    normalizeDuplicateText(inputDescription).length > 0 &&
-    normalizeDuplicateText(taskDescription).length > 0 &&
-    normalizeDuplicateText(inputDescription) === normalizeDuplicateText(taskDescription);
+    normalizedInputDescription.length > 0 &&
+    normalizedTaskDescription.length > 0 &&
+    normalizedInputDescription === normalizedTaskDescription;
 
   let score = 0;
   const matchedOn: string[] = [];
@@ -177,13 +183,16 @@ export function compareTaskDuplicateText(input: TaskDuplicateCheckInput, task: T
   if (exactTitle) {
     score = 1;
     matchedOn.push("title");
-  } else if (titleScore >= 0.5) {
-    score = Math.max(score, 0.9, titleScore);
+  } else if (titleScore >= threshold) {
+    score = titleScore;
     matchedOn.push("title");
   }
 
-  if (score === 0 && (exactDescription || descriptionScore >= 0.4)) {
-    score = Math.max(score, exactDescription ? 0.84 : 0.6, descriptionScore);
+  if (score === 0 && exactDescription) {
+    score = 1;
+    matchedOn.push("description");
+  } else if (score === 0 && descriptionScore >= threshold) {
+    score = descriptionScore;
     matchedOn.push("description");
   }
 
@@ -332,7 +341,7 @@ export function scorePotentialTaskDuplicates(
 
   const scoredCandidates = candidates
     .map((candidate) => {
-      const comparison = compareTaskDuplicateText(input, candidate);
+      const comparison = compareTaskDuplicateText(input, candidate, threshold);
       return {
         ...candidate,
         score: comparison.score,

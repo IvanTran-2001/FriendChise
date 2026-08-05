@@ -55,9 +55,10 @@ function ToolbarBtn({
       // Prevent blurring the editor when clicking toolbar buttons
       onMouseDown={(e) => {
         e.preventDefault();
-        onClick();
       }}
+      onClick={onClick}
       title={title}
+      aria-label={title}
       aria-pressed={active}
       className={cn(
         "p-1.5 rounded-sm transition-colors",
@@ -183,7 +184,7 @@ export function RichTextEditor({
 
     if (defaultMarkdown === lastAppliedExternalMarkdownRef.current) return;
 
-    editor.commands.setContent(defaultMarkdown);
+    editor.commands.setContent(defaultMarkdown, false);
     lastAppliedExternalMarkdownRef.current = defaultMarkdown;
     pendingLocalMarkdownRef.current = null;
     if (hiddenRef.current) {

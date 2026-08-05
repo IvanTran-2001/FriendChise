@@ -1,9 +1,11 @@
 const fallbackScanModel = "gpt-4.1-mini";
 const configuredScanModel = process.env.OPENAI_SCAN_MODEL?.trim();
 const scanDebugFlag =
+  process.env.NODE_ENV === "development" && (
   process.env.OPENAI_SCAN_DEBUG === "1" ||
   process.env.SCAN_TO_TASK_DEBUG === "1" ||
-  process.env.SCAN_DEBUG === "1";
+  process.env.SCAN_DEBUG === "1"
+  );
 const scanVerboseFlag =
   process.env.NODE_ENV === "development" && (
     process.env.OPENAI_SCAN_VERBOSE === "1" ||

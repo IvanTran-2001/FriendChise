@@ -51,8 +51,13 @@ export function getMergedSourceSummary(result: {
     ? mergedFromTaskSnapshots.map((snapshot) => snapshot.name).join(", ")
     : mergedFromTaskIds.join(", ");
 
+  const sourceParts = [
+    draftCount > 0 ? `${draftCount} draft${draftCount === 1 ? "" : "s"}` : null,
+    taskCount > 0 ? `${taskCount} task${taskCount === 1 ? "" : "s"}` : null,
+  ].filter((value): value is string => Boolean(value));
+
   return {
-    label: `Merged from ${draftCount} draft${draftCount === 1 ? "" : "s"}${taskCount > 0 ? ` and ${taskCount} task${taskCount === 1 ? "" : "s"}` : ""}`,
+    label: `Merged from ${sourceParts.join(" and ")}`,
     title: [
       draftCount > 0 ? `Drafts: ${draftLabel}` : null,
       taskCount > 0 ? `Tasks: ${taskLabel}` : null,

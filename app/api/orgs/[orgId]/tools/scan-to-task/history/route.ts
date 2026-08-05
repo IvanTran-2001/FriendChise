@@ -32,7 +32,7 @@ export async function GET(
   try {
     if (cursor) {
       const cursorRecord = await prisma.scanTaskResult.findFirst({
-        where: { orgId, id: cursor, clearedAt: null },
+        where: { orgId, id: cursor },
         select: { id: true },
       });
 

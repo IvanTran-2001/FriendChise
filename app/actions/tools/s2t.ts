@@ -301,6 +301,11 @@ function pruneMergedSourceMetadata(
   const mergedFromResultIds = Array.isArray(metadata.mergedFromResultIds)
     ? metadata.mergedFromResultIds.filter((value): value is string => typeof value === "string" && !resultIds.includes(value))
     : [];
+  const mergedFromResultSnapshots = Array.isArray(metadata.mergedFromResultSnapshots)
+    ? metadata.mergedFromResultSnapshots.filter((snapshot): snapshot is { id: string; fileName: string; title: string } =>
+        isRecord(snapshot) && typeof snapshot.id === "string" && !resultIds.includes(snapshot.id),
+      )
+    : [];
   if (Array.isArray(metadata.mergedFromResultIds)) {
     if (mergedFromResultIds.length > 0) {
       nextMetadata.mergedFromResultIds = mergedFromResultIds;
@@ -311,9 +316,24 @@ function pruneMergedSourceMetadata(
       changed = true;
     }
   }
+  if (Array.isArray(metadata.mergedFromResultSnapshots)) {
+    if (mergedFromResultSnapshots.length > 0) {
+      nextMetadata.mergedFromResultSnapshots = mergedFromResultSnapshots;
+    } else {
+      delete nextMetadata.mergedFromResultSnapshots;
+    }
+    if (mergedFromResultSnapshots.length !== metadata.mergedFromResultSnapshots.length) {
+      changed = true;
+    }
+  }
 
   const mergedFromTaskIds = Array.isArray(metadata.mergedFromTaskIds)
     ? metadata.mergedFromTaskIds.filter((value): value is string => typeof value === "string" && !taskIds.includes(value))
+    : [];
+  const mergedFromTaskSnapshots = Array.isArray(metadata.mergedFromTaskSnapshots)
+    ? metadata.mergedFromTaskSnapshots.filter((snapshot): snapshot is { id: string; name: string } =>
+        isRecord(snapshot) && typeof snapshot.id === "string" && !taskIds.includes(snapshot.id),
+      )
     : [];
   if (Array.isArray(metadata.mergedFromTaskIds)) {
     if (mergedFromTaskIds.length > 0) {
@@ -322,6 +342,16 @@ function pruneMergedSourceMetadata(
       delete nextMetadata.mergedFromTaskIds;
     }
     if (mergedFromTaskIds.length !== metadata.mergedFromTaskIds.length) {
+      changed = true;
+    }
+  }
+  if (Array.isArray(metadata.mergedFromTaskSnapshots)) {
+    if (mergedFromTaskSnapshots.length > 0) {
+      nextMetadata.mergedFromTaskSnapshots = mergedFromTaskSnapshots;
+    } else {
+      delete nextMetadata.mergedFromTaskSnapshots;
+    }
+    if (mergedFromTaskSnapshots.length !== metadata.mergedFromTaskSnapshots.length) {
       changed = true;
     }
   }
@@ -350,7 +380,12 @@ async function pruneMergedSourceReferences(
       .filter((row) => !resultIds.includes(row.id))
       .filter((row) =>
         isRecord(row.metadata) &&
-        (Array.isArray(row.metadata.mergedFromResultIds) || Array.isArray(row.metadata.mergedFromTaskIds)),
+        (
+          Array.isArray(row.metadata.mergedFromResultIds) ||
+          Array.isArray(row.metadata.mergedFromResultSnapshots) ||
+          Array.isArray(row.metadata.mergedFromTaskIds) ||
+          Array.isArray(row.metadata.mergedFromTaskSnapshots)
+        ),
       )
       .map(async (row) => {
         const nextMetadata = pruneMergedSourceMetadata(row.metadata, { resultIds, taskIds });

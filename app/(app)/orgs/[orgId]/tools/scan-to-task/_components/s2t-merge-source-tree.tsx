@@ -179,6 +179,7 @@ function MergeSourceTreeNode({
         onInspect={() => onInspectTaskCandidate(sourceResultId, node.taskId)}
         onDelete={() => onDeleteTask(node.taskId)}
         deleteLabel="Delete task source"
+        confirmMessage="Delete this linked task source permanently?"
       />
     );
   }
@@ -321,6 +322,7 @@ function SourceTreeRow({
   onInspect,
   onDelete,
   deleteLabel,
+  confirmMessage,
 }: {
   label: string;
   title: string;
@@ -328,6 +330,7 @@ function SourceTreeRow({
   onInspect: () => void;
   onDelete?: () => void;
   deleteLabel?: string;
+  confirmMessage?: string;
 }) {
   return (
     <div
@@ -365,6 +368,7 @@ function SourceTreeRow({
               aria-label={deleteLabel ?? `Remove source ${title}`}
               onClick={(event) => {
                 event.stopPropagation();
+                if (confirmMessage && !window.confirm(confirmMessage)) return;
                 onDelete();
               }}
             >

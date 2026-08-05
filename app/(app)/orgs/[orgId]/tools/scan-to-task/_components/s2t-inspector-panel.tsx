@@ -167,7 +167,12 @@ function InspectorBody({
                 min={1}
                 max={50}
                 value={draftPeopleRequired}
-                onChange={(event) => setDraftPeopleRequired(Number.isFinite(event.currentTarget.valueAsNumber) ? event.currentTarget.valueAsNumber : 1)}
+                onChange={(event) => {
+                  const nextPeopleRequired = event.currentTarget.valueAsNumber;
+                  if (Number.isFinite(nextPeopleRequired) && nextPeopleRequired >= 1) {
+                    setDraftPeopleRequired(nextPeopleRequired);
+                  }
+                }}
                 disabled={confirmPending}
               />
             </div>

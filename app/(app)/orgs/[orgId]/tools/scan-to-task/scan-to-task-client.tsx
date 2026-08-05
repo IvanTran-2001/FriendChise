@@ -427,15 +427,6 @@ export function ScanToTaskClient({ orgId }: { orgId: string }) {
         for (const selected of selectedDraftResults) {
           delete next[selected.clientId];
         }
-        for (const candidate of selectedTaskCandidates) {
-          const taskKey = candidate.taskId ?? candidate.id;
-          for (const [resultId, candidates] of Object.entries(next)) {
-            next[resultId] = candidates.filter((item) => (item.taskId ?? item.id) !== taskKey);
-            if (next[resultId].length === 0) {
-              delete next[resultId];
-            }
-          }
-        }
         return next;
       });
       const deletedTaskIds = new Set(selectedTaskCandidates.map((candidate) => candidate.taskId ?? candidate.id));
@@ -858,7 +849,7 @@ function buildSelectedInspectorValues(
     sourceFileName: selectedResult.fileName,
     sourceFileKind: selectedResult.fileKind,
     sourceFileSize: selectedResult.fileSize,
-    taskDetailsLabel: selectedTaskDetails ? `Confirmed task #${selectedTaskDetails.id}` : null,
+    taskDetailsLabel: selectedTaskDetails ? selectedTaskDetails.name : null,
   };
 }
 
