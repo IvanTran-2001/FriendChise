@@ -81,7 +81,6 @@ import { renameTaskImageIfNeeded } from "@/lib/services/images";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validators/task";
 import { checkDemoLimit } from "@/lib/demo";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
 
 /** Parses numeric and string fields from a task FormData submission. */
 function parseTaskFormData(formData: FormData) {
