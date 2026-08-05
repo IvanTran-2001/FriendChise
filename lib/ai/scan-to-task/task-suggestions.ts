@@ -4,6 +4,7 @@
 type TaskSuggestionInput = {
   title: string;
   description?: string | null;
+  sourceText?: string | null;
   durationMin: number;
   peopleRequired: number;
   minWaitDays: number;
@@ -156,7 +157,7 @@ export function buildTaskSuggestion(
   input: TaskSuggestionInput,
 ): TaskSuggestionResult {
   const title = deriveTitle(input);
-  const combinedText = `${input.title} ${input.description ?? ""}`;
+  const combinedText = [input.title, input.description ?? "", input.sourceText ?? ""].join(" ");
   const hint = matchHint(combinedText);
   const summary =
     hint?.summary ??

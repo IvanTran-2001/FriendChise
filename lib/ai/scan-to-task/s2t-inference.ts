@@ -176,11 +176,12 @@ function repairDraftResponse(content: string) {
   const normalized = normalizeDraftResponse(content);
   return scanTaskDraftSchema.safeParse({
     ...normalized,
+    description: limitText(normalized.description, 5000),
     durationMin: normalized.durationMin ?? 30,
     peopleRequired: normalized.peopleRequired ?? 1,
     minWaitDays: normalized.minWaitDays ?? 1,
     maxWaitDays: normalized.maxWaitDays ?? normalized.minWaitDays ?? 1,
-    sourceText: normalized.sourceText || "",
+    sourceText: limitText(normalized.sourceText || "", scanToTaskConfig.sourceTextMaxLength),
   });
 }
 
@@ -358,7 +359,8 @@ export function buildFallbackScanTaskDraft(
   const title = `${filenameToTitle(fileName)}${titleSuffix ? ` ${titleSuffix}` : ""}`.slice(0, 200);
   const draft = buildTaskSuggestion({
     title,
-    description: sourceText || fileName,
+    description: instruction || fileName,
+    sourceText,
     durationMin: 30,
     peopleRequired: 1,
     minWaitDays: 1,

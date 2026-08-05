@@ -27,9 +27,9 @@ Use these rules when validating changes, running package commands, or working wi
 ## Prisma Migrations
 
 - Use the repo's Prisma helpers instead of hand-running raw `prisma migrate` commands when possible.
-- For a new development migration, use `prisma-migrate-dev`.
-- For a migration-status check, use `prisma-migrate-status`.
-- For a dev database reset, use `prisma-migrate-reset` only after confirming it is safe.
+- For a new development migration, use `pnpm prisma migrate dev`.
+- For a migration-status check, use `pnpm prisma migrate status`.
+- For a dev database reset, use `pnpm prisma migrate reset` only after confirming it is safe.
 - For production deploy migrations, use `pnpm migrate:prod`.
 - Treat migrations as code changes: validate the schema impact, then run the narrowest follow-up test that covers the changed model or action.
 

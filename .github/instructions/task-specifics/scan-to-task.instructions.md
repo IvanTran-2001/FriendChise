@@ -39,13 +39,14 @@ Use these rules when working on the scan-to-task feature, including its client c
 - Keep canonical file and component names documented when the feature uses shorthand or aliases.
 - If a component has a repo-specific nickname, map it back to the actual component name before reasoning about it.
 - Treat these names as equivalent when used in instructions:
-  - `scan-to-task-client` = feature orchestrator
-  - `page-sidebar-content` = page sidebar orchestrator
-  - `action-sidebar-content` = action sidebar orchestrator
-  - `inspector` = draft/detail edit panel
-  - `results section` = queue and history surface
-  - `conflict list` = conflict grouping and decision surface
-  - `merge-source tree` = recursive nested source view
+  - `app/(app)/orgs/[orgId]/tools/scan-to-task/scan-to-task-client.tsx` = `scan-to-task-client` = feature orchestrator
+  - `app/(app)/orgs/[orgId]/tools/scan-to-task/_components/s2t-inspector-panel.tsx` = `inspector` = draft/detail edit panel
+  - `app/(app)/orgs/[orgId]/tools/scan-to-task/_components/s2t-results-section.tsx` = `results section` = queue and history surface
+  - `app/(app)/orgs/[orgId]/tools/scan-to-task/_components/s2t-conflict-list.tsx` = `conflict list` = conflict grouping and decision surface
+  - `app/(app)/orgs/[orgId]/tools/scan-to-task/_components/s2t-merge-source-tree.tsx` = `merge-source tree` = recursive nested source view
+  - `app/(app)/orgs/[orgId]/tools/scan-to-task/_components/s2t-conflict-actions-panel.tsx` = `action-sidebar-content` = action sidebar orchestrator
+  - `app/(app)/orgs/[orgId]/tools/scan-to-task/_components/s2t-upload-section.tsx` = upload section
+  - `app/(app)/orgs/[orgId]/tools/scan-to-task/_components/s2t-history-pagination.ts` = history pagination
 
 ## Validation Expectations
 

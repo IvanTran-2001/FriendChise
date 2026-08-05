@@ -42,11 +42,13 @@ function ToolbarBtn({
   onClick,
   active,
   title,
+  disabled,
   children,
 }: {
   onClick: () => void;
   active: boolean;
   title: string;
+  disabled?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -60,8 +62,9 @@ function ToolbarBtn({
       title={title}
       aria-label={title}
       aria-pressed={active}
+      disabled={disabled}
       className={cn(
-        "p-1.5 rounded-sm transition-colors",
+        "rounded-sm p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50",
         active
           ? "bg-primary/10 text-primary"
           : "text-muted-foreground hover:text-foreground hover:bg-muted",
@@ -79,6 +82,7 @@ interface RichTextEditorProps {
   defaultValue?: string | null;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
   /** Tailwind min-h-* class for the editor area; defaults to min-h-64 */
   minHeightClass?: string;
   ariaInvalid?: boolean;
@@ -93,6 +97,7 @@ export function RichTextEditor({
   defaultValue,
   placeholder,
   className,
+  disabled = false,
   minHeightClass = "min-h-64",
   ariaInvalid,
   ariaDescribedBy,
@@ -137,6 +142,7 @@ export function RichTextEditor({
       }),
     ],
     content: defaultValue ?? "",
+    editable: !disabled,
     // Avoid SSR mismatch — editor only runs on client
     immediatelyRender: false,
     editorProps: {
@@ -192,6 +198,10 @@ export function RichTextEditor({
     }
   }, [defaultMarkdown, editor]);
 
+  useEffect(() => {
+    editor?.setEditable(!disabled);
+  }, [disabled, editor]);
+
   const handleInsertImage = useCallback(() => {
     const url = window.prompt("Enter image URL");
     if (!url) return;
@@ -231,6 +241,7 @@ export function RichTextEditor({
           onClick={() => editor?.chain().focus().toggleBold().run()}
           active={editor?.isActive("bold") ?? false}
           title="Bold (Ctrl+B)"
+          disabled={disabled}
         >
           <Bold className="h-3.5 w-3.5" />
         </ToolbarBtn>
@@ -238,6 +249,7 @@ export function RichTextEditor({
           onClick={() => editor?.chain().focus().toggleItalic().run()}
           active={editor?.isActive("italic") ?? false}
           title="Italic (Ctrl+I)"
+          disabled={disabled}
         >
           <Italic className="h-3.5 w-3.5" />
         </ToolbarBtn>
@@ -245,6 +257,7 @@ export function RichTextEditor({
           onClick={() => editor?.chain().focus().toggleUnderline().run()}
           active={editor?.isActive("underline") ?? false}
           title="Underline (Ctrl+U)"
+          disabled={disabled}
         >
           <UnderlineIcon className="h-3.5 w-3.5" />
         </ToolbarBtn>
@@ -252,6 +265,7 @@ export function RichTextEditor({
           onClick={() => editor?.chain().focus().toggleStrike().run()}
           active={editor?.isActive("strike") ?? false}
           title="Strikethrough (Ctrl+Shift+S)"
+          disabled={disabled}
         >
           <Strikethrough className="h-3.5 w-3.5" />
         </ToolbarBtn>
@@ -259,6 +273,7 @@ export function RichTextEditor({
           onClick={handleInsertImage}
           active={editor?.isActive("image") ?? false}
           title="Insert image markdown"
+          disabled={disabled}
         >
           <ImagePlus className="h-3.5 w-3.5" />
         </ToolbarBtn>
@@ -266,6 +281,7 @@ export function RichTextEditor({
           onClick={handleInsertVideo}
           active={editor?.isActive("link", { "data-video": "true" }) ?? false}
           title="Insert Video markdown"
+          disabled={disabled}
         >
           <Video className="h-3.5 w-3.5" />
         </ToolbarBtn>
@@ -278,6 +294,7 @@ export function RichTextEditor({
           }
           active={editor?.isActive("heading", { level: 3 }) ?? false}
           title="Heading"
+          disabled={disabled}
         >
           <Heading3 className="h-3.5 w-3.5" />
         </ToolbarBtn>
@@ -288,6 +305,7 @@ export function RichTextEditor({
           onClick={() => editor?.chain().focus().toggleBulletList().run()}
           active={editor?.isActive("bulletList") ?? false}
           title="Bullet list"
+          disabled={disabled}
         >
           <List className="h-3.5 w-3.5" />
         </ToolbarBtn>
@@ -295,6 +313,7 @@ export function RichTextEditor({
           onClick={() => editor?.chain().focus().toggleOrderedList().run()}
           active={editor?.isActive("orderedList") ?? false}
           title="Ordered list"
+          disabled={disabled}
         >
           <ListOrdered className="h-3.5 w-3.5" />
         </ToolbarBtn>

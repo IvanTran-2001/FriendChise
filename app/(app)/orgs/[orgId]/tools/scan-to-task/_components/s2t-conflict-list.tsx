@@ -67,7 +67,6 @@ export function ScanToTaskConflictList({
       open(
         panelTitle,
         <ConflictActionsPanel
-          key={panelContentKey}
           group={group}
           draftsById={draftsById}
           onMerge={onStageMergeConflictItems}
@@ -90,7 +89,6 @@ export function ScanToTaskConflictList({
     open(
       panelTitle,
       <ConflictActionsPanel
-        key={panelContentKey}
         group={activeGroup}
         draftsById={draftsById}
         onMerge={onStageMergeConflictItems}

@@ -140,6 +140,7 @@ function InspectorBody({
                 className="bg-background"
                 ariaLabel="Task description"
                 onChange={setDraftDescription}
+                disabled={confirmPending}
               />
             </div>
 

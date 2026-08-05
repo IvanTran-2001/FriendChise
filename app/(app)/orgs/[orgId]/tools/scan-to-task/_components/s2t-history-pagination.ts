@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { z } from "zod";
 import type { ScanTaskDraft } from "@/lib/ai/scan-to-task";
 import { scanTaskDraftSchema, type ScanTaskResultMetadata } from "@/lib/validators/scan-to-task";
 import type { TaskDuplicateCandidate } from "@/lib/services/tasks";
@@ -25,6 +26,26 @@ type HistoryPage = {
   results: HistoryRecord[];
   nextCursor: string | null;
 };
+
+const historyDuplicateCandidateSchema = z.object({
+  id: z.string(),
+  sourceType: z.enum(["task", "scan-result"]),
+  name: z.string(),
+  description: z.string().nullable(),
+  durationMin: z.number().int(),
+  minPeople: z.number().int(),
+  maxPeople: z.number().int().nullable(),
+  color: z.string().nullable(),
+  createdAt: z.string(),
+  score: z.number(),
+  matchedOn: z.array(z.string()),
+  topic: z.string().nullable(),
+  taskId: z.string().nullable().optional(),
+  resultId: z.string().nullable().optional(),
+  clearedAt: z.string().nullable().optional(),
+  confirmedAt: z.string().nullable().optional(),
+  updatedAt: z.string(),
+});
 
 function toHistoryItem(record: HistoryRecord): DraftScanResultItem | null {
   const parsedDraft = record.draft ? scanTaskDraftSchema.safeParse(record.draft) : null;
@@ -101,9 +122,13 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
     const parsed = data.results.map(toHistoryItem).filter((item): item is DraftScanResultItem => item !== null);
     const nextCandidates = Object.fromEntries(
       data.results
-        .filter((record) => Array.isArray(record.duplicateCandidates))
-        .map((record) => [record.id, record.duplicateCandidates]),
-    ) as Record<string, TaskDuplicateCandidate[]>;
+        .map((record) => {
+          const parsedCandidates = historyDuplicateCandidateSchema.array().safeParse(record.duplicateCandidates);
+          if (!parsedCandidates.success) return null;
+          return [record.id, parsedCandidates.data] as const;
+        })
+        .filter((entry): entry is readonly [string, TaskDuplicateCandidate[]] => entry !== null),
+    );
 
     if (append) {
       setResults((current) => mergeResults(current, parsed));
@@ -181,11 +206,7 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
       loadingRef: initialRequestIdRef,
       errorMessage: "Failed to load scan history.",
       onSuccess: (data) => applyHistoryPage(data, false),
-      onStaleError: () => {
-        setResults([]);
-        setDuplicateCandidatesById({});
-        setNextCursor(null);
-      },
+      onStaleError: () => {},
       onFinally: () => setIsLoadingInitial(false),
     });
   }, [applyHistoryPage, buildUrl]);
