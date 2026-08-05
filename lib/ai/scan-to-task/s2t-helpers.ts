@@ -1,3 +1,5 @@
+import type { ScanTaskResultMetadata } from "@/lib/validators/scan-to-task";
+
 /**
  * Collapses repeated whitespace so extracted text and prompts stay compact
  * and easier for the model to parse.
@@ -42,12 +44,7 @@ export function formatItemDate(value?: string) {
 
 export function getMergedSourceSummary(result: {
   ok: boolean;
-  metadata?: {
-    mergedFromResultIds?: string[];
-    mergedFromResultSnapshots?: { id: string; fileName: string; title: string }[];
-    mergedFromTaskIds?: string[];
-    mergedFromTaskSnapshots?: { id: string; name: string }[];
-  } | null;
+  metadata?: ScanTaskResultMetadata | null;
 }) {
   if (!result.ok) return null;
 

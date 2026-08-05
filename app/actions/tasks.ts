@@ -85,6 +85,7 @@ import { revalidatePath } from "next/cache";
 function isTaskNameConflictTarget(target: unknown) {
   return (
     (Array.isArray(target) && target.length === 2 && target.includes("orgId") && target.includes("name")) ||
+    (Array.isArray(target) && target.length === 1 && target[0] === "Task_orgId_name_key") ||
     target === "Task_orgId_name_key"
   );
 }

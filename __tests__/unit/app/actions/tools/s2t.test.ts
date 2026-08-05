@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/authz", () => ({
   requireOrgPermissionAction: vi.fn(),
+  requireParentOrgOwnerAction: vi.fn(),
 }));
+
 vi.mock("@/lib/demo", () => ({
   checkDemoLimit: vi.fn(),
 }));
@@ -27,6 +29,10 @@ vi.mock("@/lib/services/tasks", () => ({
   createTask: vi.fn(),
   deleteTask: vi.fn(),
   findTaskByName: vi.fn(),
+  getTaskDuplicateCandidateKey: vi.fn(),
+  getTaskOwnerOrgId: vi.fn(),
+  loadPotentialTaskDuplicateCandidates: vi.fn(),
+  scorePotentialTaskDuplicates: vi.fn(),
 }));
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),

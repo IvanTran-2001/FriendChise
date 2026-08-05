@@ -33,7 +33,7 @@ export async function GET(
     let cursorRecord: { id: string; createdAt: Date } | null = null;
     if (cursor) {
       cursorRecord = await prisma.scanTaskResult.findFirst({
-        where: { orgId, id: cursor, clearedAt: null },
+        where: { orgId, id: cursor },
         select: { id: true, createdAt: true },
       });
 
@@ -83,9 +83,11 @@ export async function GET(
         continue;
       }
 
-      const filteredSharedCandidates = sharedCandidates.filter(
-        (candidate) => candidate.resultId !== record.id && candidate.taskId !== record.taskId,
-      );
+      const filteredSharedCandidates = sharedCandidates.filter((candidate) => {
+        if (candidate.resultId === record.id) return false;
+        if (record.taskId && candidate.taskId === record.taskId) return false;
+        return true;
+      });
 
       const duplicateCandidates = scorePotentialTaskDuplicates(
         {

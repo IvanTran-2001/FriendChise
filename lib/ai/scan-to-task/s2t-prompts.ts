@@ -1,4 +1,5 @@
 import { limitTextPreservingFormatting } from "./s2t-helpers";
+import { scanToTaskConfig } from "./s2t-config";
 
 function limitPromptText(value: string, maxLength = 1200) {
   return value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
@@ -236,7 +237,7 @@ export function buildScanToTaskChunkSplitPrompt(
   const user = [
     `File name: ${fileName}`,
     instruction.trim() ? `Instruction: ${limitPromptText(instruction.trim(), 1000)}` : null,
-    `Source text:\n${limitTextPreservingFormatting(safeSourceText, 8000)}`,
+    `Source text:\n${limitTextPreservingFormatting(safeSourceText, scanToTaskConfig.promptSourceTextMaxLength)}`,
   ]
     .filter(Boolean)
     .join("\n\n");

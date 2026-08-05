@@ -770,41 +770,49 @@ export async function mergeScanToTaskConflictItemsAction(
     mergedFromTaskSnapshots: mergedTaskSnapshots,
   };
 
-  const mergedResult = await prisma.$transaction(async (tx) => {
-    const created = await tx.scanTaskResult.create({
-      data: {
-        orgId,
-        createdById: auth.userId,
-        batchId: sourceRow.batchId,
-        fileName: sourceRow.fileName,
-        fileKind: sourceRow.fileKind,
-        fileSize: sourceRow.fileSize,
-        instruction: null,
-        draft: mergedDraft,
-        error: null,
-        metadata: mergedMetadata,
-        taskId: null,
-        confirmedAt: null,
-        clearedAt: null,
-      },
-      select: {
-        id: true,
-        batchId: true,
-        fileName: true,
-        fileKind: true,
-        fileSize: true,
-        draft: true,
-        metadata: true,
-      },
-    });
+  let mergedResult;
+  try {
+    mergedResult = await prisma.$transaction(async (tx) => {
+      const created = await tx.scanTaskResult.create({
+        data: {
+          orgId,
+          createdById: auth.userId,
+          batchId: sourceRow.batchId,
+          fileName: sourceRow.fileName,
+          fileKind: sourceRow.fileKind,
+          fileSize: sourceRow.fileSize,
+          instruction: null,
+          draft: mergedDraft,
+          error: null,
+          metadata: mergedMetadata,
+          taskId: null,
+          confirmedAt: null,
+          clearedAt: null,
+        },
+        select: {
+          id: true,
+          batchId: true,
+          fileName: true,
+          fileKind: true,
+          fileSize: true,
+          draft: true,
+          metadata: true,
+        },
+      });
 
-    await tx.scanTaskResult.updateMany({
-      where: { orgId, id: { in: resultIds }, clearedAt: null },
-      data: { clearedAt: new Date() },
-    });
+      await tx.scanTaskResult.updateMany({
+        where: { orgId, id: { in: resultIds }, clearedAt: null },
+        data: { clearedAt: new Date() },
+      });
 
-    return created;
-  });
+      return created;
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to merge items.",
+    };
+  }
 
   revalidatePath(`/orgs/${orgId}/tools/scan-to-task`);
 

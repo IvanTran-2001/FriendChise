@@ -207,7 +207,7 @@ function summarizeDraftForLog(draft: ScanTaskDraft, sectionLabel: string) {
 }
 
 function normalizeDraftIdentityPart(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  return value.normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").replace(/\s+/g, " ").trim();
 }
 
 function getDraftIdentity(draft: ScanTaskDraft): DraftIdentity {
@@ -221,12 +221,16 @@ function getDraftIdentity(draft: ScanTaskDraft): DraftIdentity {
 function isDuplicateDraft(left: ScanTaskDraft, right: ScanTaskDraft) {
   const leftIdentity = getDraftIdentity(left);
   const rightIdentity = getDraftIdentity(right);
-  if (leftIdentity.title && leftIdentity.title === rightIdentity.title) {
-    if (!leftIdentity.description || leftIdentity.description === rightIdentity.description) return true;
-    if (leftIdentity.sourceText && leftIdentity.sourceText === rightIdentity.sourceText) return true;
-  }
+  const sameTitle = leftIdentity.title && leftIdentity.title === rightIdentity.title;
+  const sameDescription =
+    leftIdentity.description.length > 0 &&
+    rightIdentity.description.length > 0 &&
+    leftIdentity.description === rightIdentity.description;
+  const sameSourceText =
+    leftIdentity.sourceText.length > 0 &&
+    leftIdentity.sourceText === rightIdentity.sourceText;
 
-  return leftIdentity.sourceText.length > 0 && leftIdentity.sourceText === rightIdentity.sourceText;
+  return Boolean((sameTitle && (sameDescription || sameSourceText)) || sameSourceText);
 }
 
 function dedupeDrafts(drafts: ScanTaskDraft[]) {
@@ -364,7 +368,7 @@ export function buildFallbackScanTaskDraft(
   return scanTaskDraftSchema.parse({
     ...draft,
     description: draft.description.slice(0, 5000),
-    sourceText: sourceText.slice(0, 3000),
+    sourceText: sourceText.slice(0, scanToTaskConfig.sourceTextMaxLength),
   });
 }
 
@@ -802,12 +806,20 @@ export async function inferScanTaskDraftsFromBytes(
     chunks: chunksToUse.map(summarizeChunkForLog),
   });
 
-  const drafts: ScanTaskDraft[] = [];
-  for (const { sourceText: chunk, sectionLabel } of chunksToUse) {
-    const draft = await draftFromTextChunk(fileName, instruction, chunk, sectionLabel);
+  const drafts: ScanTaskDraft[] = new Array(chunksToUse.length);
+  const workerCount = Math.min(3, chunksToUse.length);
+  let nextChunkIndex = 0;
 
-    drafts.push(draft);
-  }
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (nextChunkIndex < chunksToUse.length) {
+        const currentIndex = nextChunkIndex;
+        nextChunkIndex += 1;
+        const { sourceText: chunk, sectionLabel } = chunksToUse[currentIndex];
+        drafts[currentIndex] = await draftFromTextChunk(fileName, instruction, chunk, sectionLabel);
+      }
+    }),
+  );
 
   debugScanToTask("draft batch complete", {
     fileName,

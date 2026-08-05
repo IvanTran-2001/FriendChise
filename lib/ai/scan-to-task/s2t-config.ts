@@ -27,6 +27,7 @@ export const scanToTaskConfig = {
   contextCheckTemperature: 0,
   instructionMaxLength: 2000,
   sourceTextMaxLength: 12000,
+  promptSourceTextMaxLength: 8000,
   chunkMaxLength: 4000,
   maxChunks: 5,
   requestTimeoutMs: 20_000,
