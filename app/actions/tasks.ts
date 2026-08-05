@@ -82,6 +82,13 @@ import { createTaskSchema, updateTaskSchema } from "@/lib/validators/task";
 import { checkDemoLimit } from "@/lib/demo";
 import { revalidatePath } from "next/cache";
 
+function isTaskNameConflictTarget(target: unknown) {
+  return (
+    (Array.isArray(target) && target.length === 2 && target.includes("orgId") && target.includes("name")) ||
+    target === "Task_orgId_name_key"
+  );
+}
+
 /** Parses numeric and string fields from a task FormData submission. */
 function parseTaskFormData(formData: FormData) {
   const num = (key: string) => {
@@ -181,12 +188,7 @@ export async function createTaskAction(
     );
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      const target = error.meta?.target;
-      const isTaskNameConflict = Array.isArray(target)
-        && target.length === 2
-        && target.includes("orgId")
-        && target.includes("name");
-      if (isTaskNameConflict) {
+      if (isTaskNameConflictTarget(error.meta?.target)) {
         return {
           ok: false,
           errors: { _: [`A task named "${parsed.data.title}" already exists.`] },

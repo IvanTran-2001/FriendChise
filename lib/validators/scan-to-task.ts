@@ -48,6 +48,9 @@ export const confirmScanToTaskSchema = z.object({
   peopleRequired: z.coerce.number().int().min(1).max(50),
   minWaitDays: z.coerce.number().int().min(0).max(3650),
   maxWaitDays: z.coerce.number().int().min(0).max(3650),
+}).refine((value) => value.maxWaitDays >= value.minWaitDays, {
+  message: "maxWaitDays must be greater than or equal to minWaitDays",
+  path: ["maxWaitDays"],
 });
 
 /**

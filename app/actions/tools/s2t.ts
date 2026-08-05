@@ -108,6 +108,7 @@ async function processScanSource(
   batchId: string,
   source: ScanSourceInput,
   instruction: string,
+  budget: ReturnType<typeof createDuplicateAdjudicationBudget>,
 ): Promise<ScanToTaskResultItem[]> {
   const fileKind = getScanSourceKind(source.fileName, source.mimeType);
 
@@ -120,13 +121,12 @@ async function processScanSource(
     );
 
     const duplicateCandidates = await loadPotentialTaskDuplicateCandidates(orgId);
-    const duplicateAdjudicationBudget = createDuplicateAdjudicationBudget({ maxAttempts: 60, maxConcurrency: 3 });
 
     const draftRows = await Promise.all(
       drafts.map(async (draft) => ({
         resultId: randomUUID(),
         draft,
-        duplicateCandidateVerdicts: await buildDuplicateCandidateVerdicts(draft, duplicateCandidates, duplicateAdjudicationBudget),
+        duplicateCandidateVerdicts: await buildDuplicateCandidateVerdicts(draft, duplicateCandidates, budget),
       })),
     );
 
@@ -882,6 +882,7 @@ export async function scanToTaskAction(
   if (!demoCheck.ok) return { ok: false, error: demoCheck.error };
 
   const batchId = randomUUID();
+  const duplicateAdjudicationBudget = createDuplicateAdjudicationBudget({ maxAttempts: 60, maxConcurrency: 3 });
 
   for (const source of sources) {
     try {
@@ -903,7 +904,14 @@ export async function scanToTaskAction(
       while (nextIndex < sources.length) {
         const currentIndex = nextIndex;
         nextIndex += 1;
-        resultsBySource[currentIndex] = await processScanSource(orgId, auth.userId, batchId, sources[currentIndex], instruction);
+        resultsBySource[currentIndex] = await processScanSource(
+          orgId,
+          auth.userId,
+          batchId,
+          sources[currentIndex],
+          instruction,
+          duplicateAdjudicationBudget,
+        );
       }
     }),
   );

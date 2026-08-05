@@ -164,15 +164,34 @@ export function ConflictActionsPanel({ group, draftsById, onMerge, onDelete }: C
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete selected items?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingDeleteIds ? (() => {
-                const selectedTasks = taskItems.filter((item) => pendingDeleteIds.includes(item.id));
-                const draftCount = pendingDeleteIds.length - selectedTasks.length;
-                const taskList = selectedTasks.map((item) => `• ${item.label}`).join("\n");
-                return `Delete ${draftCount} draft${draftCount === 1 ? "" : "s"} and ${selectedTasks.length} task${selectedTasks.length === 1 ? "" : "s"}?${
-                  taskList ? `\n\nTasks to delete permanently:\n${taskList}` : ""
-                }`;
-              })() : null}
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                {pendingDeleteIds ? (() => {
+                  const selectedTasks = taskItems.filter((item) => pendingDeleteIds.includes(item.id));
+                  const draftCount = pendingDeleteIds.length - selectedTasks.length;
+
+                  return (
+                    <>
+                      <p>
+                        Delete {draftCount} draft{draftCount === 1 ? "" : "s"} and {selectedTasks.length} task
+                        {selectedTasks.length === 1 ? "" : "s"}?
+                      </p>
+                      {selectedTasks.length > 0 ? (
+                        <div className="space-y-2">
+                          <p className="font-medium text-foreground">Tasks to delete permanently:</p>
+                          <ul className="space-y-1 pl-5 text-foreground">
+                            {selectedTasks.map((item) => (
+                              <li key={item.id} className="list-disc">
+                                {item.label}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </>
+                  );
+                })() : null}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

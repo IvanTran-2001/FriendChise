@@ -286,7 +286,7 @@ function MergeSourceTreeNode({
             aria-label={isTaskSource ? `Delete linked task source ${node.result.fileName}` : `Remove source draft ${node.result.fileName}`}
             onClick={(event) => {
               event.stopPropagation();
-              if (isTaskSource && !window.confirm(`Delete linked task source ${node.result.taskId ?? node.result.fileName}?`)) return;
+              if (isTaskSource && !window.confirm(`Delete linked task source ${node.result.draft.title}?`)) return;
               onRemoveResult(node.result.clientId);
             }}
           >

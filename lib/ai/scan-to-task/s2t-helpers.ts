@@ -44,23 +44,33 @@ export function getMergedSourceSummary(result: {
   ok: boolean;
   metadata?: {
     mergedFromResultIds?: string[];
+    mergedFromResultSnapshots?: { id: string; fileName: string; title: string }[];
     mergedFromTaskIds?: string[];
+    mergedFromTaskSnapshots?: { id: string; name: string }[];
   } | null;
 }) {
   if (!result.ok) return null;
 
   const mergedFromResultIds = result.metadata?.mergedFromResultIds ?? [];
+  const mergedFromResultSnapshots = result.metadata?.mergedFromResultSnapshots ?? [];
   const mergedFromTaskIds = result.metadata?.mergedFromTaskIds ?? [];
+  const mergedFromTaskSnapshots = result.metadata?.mergedFromTaskSnapshots ?? [];
   if (mergedFromResultIds.length === 0 && mergedFromTaskIds.length === 0) return null;
 
   const draftCount = mergedFromResultIds.length;
   const taskCount = mergedFromTaskIds.length;
+  const draftLabels = mergedFromResultSnapshots.length > 0
+    ? mergedFromResultSnapshots.map((snapshot) => snapshot.title)
+    : mergedFromResultIds;
+  const taskLabels = mergedFromTaskSnapshots.length > 0
+    ? mergedFromTaskSnapshots.map((snapshot) => snapshot.name)
+    : mergedFromTaskIds;
 
   return {
     label: `Merged from ${draftCount} draft${draftCount === 1 ? "" : "s"}${taskCount > 0 ? ` and ${taskCount} task${taskCount === 1 ? "" : "s"}` : ""}`,
     title: [
-      draftCount > 0 ? `Draft IDs: ${mergedFromResultIds.join(", ")}` : null,
-      taskCount > 0 ? `Task IDs: ${mergedFromTaskIds.join(", ")}` : null,
+      draftCount > 0 ? `Drafts: ${draftLabels.join(", ")}` : null,
+      taskCount > 0 ? `Tasks: ${taskLabels.join(", ")}` : null,
     ]
       .filter((value): value is string => Boolean(value))
       .join(" | "),

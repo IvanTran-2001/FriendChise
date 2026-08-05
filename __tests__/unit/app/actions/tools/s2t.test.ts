@@ -140,6 +140,27 @@ describe("confirmScanToTaskAction", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/orgs/org-1/tools/scan-to-task");
   });
 
+  it("returns a duplicate-name error before creating a task", async () => {
+    vi.mocked(findTaskByName).mockResolvedValue({ id: "existing-task", name: "Task A" } as any);
+
+    const result = await confirmScanToTaskAction("org-1", null, makeFormData());
+
+    expect(result).toEqual({ ok: false, error: 'A task named "Task A" already exists.' });
+    expect(createTaskOnClient).not.toHaveBeenCalled();
+    expect(tx.scanTaskResult.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("returns a typed error when task creation rejects", async () => {
+    vi.mocked(tx.scanTaskResult.updateMany).mockResolvedValue({ count: 1 } as any);
+    vi.mocked(createTaskOnClient).mockRejectedValue(new Error("boom"));
+
+    const result = await confirmScanToTaskAction("org-1", null, makeFormData());
+
+    expect(result).toEqual({ ok: false, error: "Failed to confirm draft." });
+    expect(tx.scanTaskResult.update).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
   it("rejects a scan result that no longer matches the claim query", async () => {
     vi.mocked(tx.scanTaskResult.updateMany).mockResolvedValue({ count: 0 } as any);
 

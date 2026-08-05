@@ -30,10 +30,11 @@ export async function GET(
   );
 
   try {
+    let cursorRecord: { id: string; createdAt: Date } | null = null;
     if (cursor) {
-      const cursorRecord = await prisma.scanTaskResult.findFirst({
-        where: { orgId, id: cursor },
-        select: { id: true },
+      cursorRecord = await prisma.scanTaskResult.findFirst({
+        where: { orgId, id: cursor, clearedAt: null },
+        select: { id: true, createdAt: true },
       });
 
       if (!cursorRecord) {
@@ -43,10 +44,20 @@ export async function GET(
 
     const sharedCandidates = await loadPotentialTaskDuplicateCandidates(orgId, Math.max(limit, DEFAULT_LIMIT));
     const records = await prisma.scanTaskResult.findMany({
-      where: { orgId, clearedAt: null },
+      where: {
+        orgId,
+        clearedAt: null,
+        ...(cursorRecord
+          ? {
+              OR: [
+                { createdAt: { lt: cursorRecord.createdAt } },
+                { createdAt: cursorRecord.createdAt, id: { lt: cursorRecord.id } },
+              ],
+            }
+          : {}),
+      },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: limit + 1,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       select: {
         id: true,
         batchId: true,
@@ -72,7 +83,9 @@ export async function GET(
         continue;
       }
 
-      const filteredSharedCandidates = sharedCandidates.filter((candidate) => candidate.resultId !== record.id);
+      const filteredSharedCandidates = sharedCandidates.filter(
+        (candidate) => candidate.resultId !== record.id && candidate.taskId !== record.taskId,
+      );
 
       const duplicateCandidates = scorePotentialTaskDuplicates(
         {

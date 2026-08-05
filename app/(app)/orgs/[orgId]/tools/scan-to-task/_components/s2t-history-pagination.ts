@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import type { ScanTaskDraft } from "@/lib/ai/scan-to-task";
 import { scanTaskDraftSchema, type ScanTaskResultMetadata } from "@/lib/validators/scan-to-task";
 import type { TaskDuplicateCandidate } from "@/lib/services/tasks";
@@ -126,8 +126,8 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
       onFinally,
     }: {
       requestId: number;
-      requestIdRef: React.MutableRefObject<number>;
-      loadingRef: React.MutableRefObject<number>;
+      requestIdRef: RefObject<number>;
+      loadingRef: RefObject<number>;
       errorMessage: string;
       onSuccess: (data: HistoryPage) => void;
       onStaleError: () => void;
