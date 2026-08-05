@@ -184,7 +184,7 @@ export function RichTextEditor({
 
     if (defaultMarkdown === lastAppliedExternalMarkdownRef.current) return;
 
-    editor.commands.setContent(defaultMarkdown, false);
+    editor.commands.setContent(defaultMarkdown, { emitUpdate: false });
     lastAppliedExternalMarkdownRef.current = defaultMarkdown;
     pendingLocalMarkdownRef.current = null;
     if (hiddenRef.current) {

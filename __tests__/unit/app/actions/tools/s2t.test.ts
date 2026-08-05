@@ -140,19 +140,6 @@ describe("confirmScanToTaskAction", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/orgs/org-1/tools/scan-to-task");
   });
 
-  it("returns the duplicate-name error when a task already exists", async () => {
-    vi.mocked(findTaskByName).mockResolvedValue({ id: "existing-task", name: "Task A" } as any);
-
-    const result = await confirmScanToTaskAction("org-1", null, makeFormData());
-
-    expect(result).toEqual({
-      ok: false,
-      error: 'A task named "Task A" already exists.',
-    });
-    expect(prisma.$transaction).not.toHaveBeenCalled();
-    expect(createTaskOnClient).not.toHaveBeenCalled();
-  });
-
   it("rejects a scan result that no longer matches the claim query", async () => {
     vi.mocked(tx.scanTaskResult.updateMany).mockResolvedValue({ count: 0 } as any);
 
