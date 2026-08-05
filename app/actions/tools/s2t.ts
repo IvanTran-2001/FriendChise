@@ -22,6 +22,7 @@ import {
   confirmScanToTaskSchema,
   deleteUploadsSchema,
   getUploadUrlSchema,
+  isRecord,
   scanTaskDraftSchema,
   type ScanTaskResultMetadata,
   type ScanSourceInput,
@@ -284,10 +285,6 @@ type MergeSourcePruneInput = {
   resultIds?: string[];
   taskIds?: string[];
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
 
 function pruneMergedSourceMetadata(
   metadata: unknown,
@@ -717,28 +714,23 @@ export async function mergeScanToTaskConflictItemsAction(
       })
     : [];
 
-  const parsedDrafts = drafts
-    .map((row) => {
-      const parsed = scanTaskDraftSchema.safeParse(row.draft);
-      return parsed.success
-        ? {
-            title: parsed.data.title,
-            description: parsed.data.description,
-            summary: parsed.data.summary,
-            sourceText: parsed.data.sourceText,
-          }
-        : null;
-    })
+  const parsedDraftRows = drafts.map((row) => ({ row, parsed: scanTaskDraftSchema.safeParse(row.draft) }));
+  const parsedDrafts = parsedDraftRows
+    .map(({ parsed }) => (parsed.success
+      ? {
+          title: parsed.data.title,
+          description: parsed.data.description,
+          summary: parsed.data.summary,
+          sourceText: parsed.data.sourceText,
+        }
+      : null))
     .filter((value): value is { title: string; description: string; summary: string; sourceText: string } => value !== null);
 
-  const mergedSourceSnapshots = drafts.map((row) => {
-    const parsed = scanTaskDraftSchema.safeParse(row.draft);
-    return {
-      id: row.id,
-      fileName: row.fileName,
-      title: parsed.success ? parsed.data.title : row.fileName,
-    };
-  });
+  const mergedSourceSnapshots = parsedDraftRows.map(({ row, parsed }) => ({
+    id: row.id,
+    fileName: row.fileName,
+    title: parsed.success ? parsed.data.title : row.fileName,
+  }));
 
   const mergedTaskSnapshots = taskRows.map((row) => ({
     id: row.id,

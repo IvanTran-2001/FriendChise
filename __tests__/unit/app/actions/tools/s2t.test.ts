@@ -193,7 +193,7 @@ describe("confirmScanToTaskAction", () => {
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("rejects a second confirmation request after the first claims the result", async () => {
+  it("rejects a second confirmation request after the first claims the result in sequence", async () => {
     vi.mocked(tx.scanTaskResult.updateMany)
       .mockResolvedValueOnce({ count: 1 } as any)
       .mockResolvedValueOnce({ count: 0 } as any);

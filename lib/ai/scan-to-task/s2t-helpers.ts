@@ -98,6 +98,7 @@ export function limitTextPreservingFormatting(value: string, maxLength = 12000) 
 export function splitTextIntoChunks(value: string, maxChunkLength = 4000, maxChunks = 5) {
   const normalized = value.replace(/\r\n/g, "\n").trim();
   if (!normalized) return [];
+  const normalizedMaxChunks = Math.max(1, Math.floor(maxChunks));
 
   const paragraphs = normalized
     .split(/\n{2,}/)
@@ -155,7 +156,7 @@ export function splitTextIntoChunks(value: string, maxChunkLength = 4000, maxChu
 
   pushCurrentChunk();
 
-  while (chunks.length > maxChunks) {
+  while (chunks.length > normalizedMaxChunks) {
     const tail = chunks.pop();
     if (!tail) continue;
 

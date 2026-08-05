@@ -268,8 +268,6 @@ async function checkImageHasTaskContext(
     stage: "image-context-check",
     fileName,
     mimeType: normalized.mimeType,
-    normalizedMimeType: normalized.mimeType,
-    instructionPreview: "",
     imageBytes: normalized.bytes.byteLength,
   };
 
