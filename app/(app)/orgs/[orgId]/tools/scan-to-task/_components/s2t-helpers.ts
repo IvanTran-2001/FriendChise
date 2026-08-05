@@ -1,6 +1,6 @@
 import type { ScanTaskDraft } from "@/lib/ai/scan-to-task";
 import type { DraftScanResultItem } from "./s2t-results-section";
-import { getTaskDuplicateCandidateKey, type TaskDuplicateCandidate } from "@/lib/services/tasks";
+import type { TaskDuplicateCandidate } from "@/lib/services/tasks";
 
 export type ReadyScanResult = Extract<DraftScanResultItem, { ok: true }>;
 
@@ -67,7 +67,7 @@ function dedupeTaskDuplicateCandidates(candidates: TaskDuplicateCandidate[]) {
   const uniqueCandidates: TaskDuplicateCandidate[] = [];
 
   for (const candidate of candidates) {
-    const candidateKey = getTaskDuplicateCandidateKey(candidate);
+    const candidateKey = candidate.taskId ?? candidate.id;
     if (seen.has(candidateKey)) continue;
     seen.add(candidateKey);
     uniqueCandidates.push(candidate);
@@ -79,7 +79,7 @@ function dedupeTaskDuplicateCandidates(candidates: TaskDuplicateCandidate[]) {
 function getCandidateIdentityKey(candidate: TaskDuplicateCandidate) {
   return candidate.sourceType === "scan-result"
     ? `draft:${candidate.resultId ?? candidate.id}`
-    : `task:${getTaskDuplicateCandidateKey(candidate)}`;
+    : `task:${candidate.taskId ?? candidate.id}`;
 }
 
 type ConflictGroupBucket = {
