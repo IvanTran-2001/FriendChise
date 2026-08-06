@@ -298,6 +298,7 @@ export async function loadPotentialTaskDuplicateCandidates(orgId: string, recent
     prisma.task.findMany({
       where: { orgId },
       orderBy: { createdAt: "desc" },
+      take: recentLimit,
       select: {
         id: true,
         name: true,

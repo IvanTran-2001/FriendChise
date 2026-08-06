@@ -120,14 +120,17 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
 
   const applyHistoryPage = useCallback((data: HistoryPage, append: boolean) => {
     const parsed = data.results.map(toHistoryItem).filter((item): item is DraftScanResultItem => item !== null);
+    const parseFailureIds: string[] = [];
     const nextCandidates = Object.fromEntries(
       data.results
         .map((record) => {
           const parsedCandidates = historyDuplicateCandidateSchema.array().safeParse(record.duplicateCandidates);
-          if (!parsedCandidates.success) return null;
-          return [record.id, parsedCandidates.data] as const;
+          if (!parsedCandidates.success) {
+            parseFailureIds.push(record.id);
+          }
+          return [record.id, parsedCandidates.success ? parsedCandidates.data : []] as const;
         })
-        .filter((entry): entry is readonly [string, TaskDuplicateCandidate[]] => entry !== null),
+        .filter((entry): entry is readonly [string, TaskDuplicateCandidate[]] => Boolean(entry)),
     );
 
     if (append) {
@@ -136,6 +139,9 @@ export function useScanTaskHistoryPagination(orgId: string, pageSize = 25) {
     } else {
       setResults(parsed);
       setDuplicateCandidatesById(nextCandidates);
+    }
+    if (parseFailureIds.length > 0) {
+      setHistoryError(`Failed to parse duplicate candidates for ${parseFailureIds.length} history record${parseFailureIds.length === 1 ? "" : "s"}.`);
     }
     setNextCursor(data.nextCursor);
   }, [mergeResults]);

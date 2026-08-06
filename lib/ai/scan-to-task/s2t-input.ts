@@ -83,8 +83,12 @@ export async function extractTextFromBytes(bytes: ArrayBuffer, kind: ScanFileKin
   }
 
   if (kind === "docx") {
-    const result = await mammoth.extractRawText({ buffer: Buffer.from(bytes) });
-    return result.value ?? "";
+    try {
+      const result = await mammoth.extractRawText({ buffer: Buffer.from(bytes) });
+      return result.value ?? "";
+    } catch {
+      return "";
+    }
   }
 
   if (kind === "text") {

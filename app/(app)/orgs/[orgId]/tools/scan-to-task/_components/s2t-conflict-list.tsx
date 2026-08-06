@@ -142,7 +142,7 @@ export function ScanToTaskConflictList({
                     ? "mt-3 h-8 w-8 shrink-0 border border-amber-500/20 bg-amber-500/10 px-0 text-amber-700 hover:bg-amber-500/15 hover:text-amber-800 dark:text-amber-200"
                     : "mt-3 h-8 w-8 shrink-0 px-0 text-muted-foreground hover:bg-amber-500/10 hover:text-foreground"
                 }
-                aria-label="Conflict item options"
+                aria-label={`Conflict item options for ${primaryResult.draft.title ?? primaryResult.fileName}`}
                 onClick={(event) => {
                   event.stopPropagation();
                   openConflictPanel(group);

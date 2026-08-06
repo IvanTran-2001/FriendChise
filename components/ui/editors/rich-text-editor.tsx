@@ -61,7 +61,7 @@ function ToolbarBtn({
       onClick={onClick}
       title={title}
       aria-label={title}
-      aria-pressed={active}
+      {...(active !== undefined ? { "aria-pressed": active } : {})}
       disabled={disabled}
       className={cn(
         "rounded-sm p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50",
@@ -271,7 +271,6 @@ export function RichTextEditor({
         </ToolbarBtn>
         <ToolbarBtn
           onClick={handleInsertImage}
-          active={editor?.isActive("image") ?? false}
           title="Insert image markdown"
           disabled={disabled}
         >
@@ -279,7 +278,6 @@ export function RichTextEditor({
         </ToolbarBtn>
         <ToolbarBtn
           onClick={handleInsertVideo}
-          active={editor?.isActive("link", { "data-video": "true" }) ?? false}
           title="Insert Video markdown"
           disabled={disabled}
         >

@@ -259,7 +259,7 @@ async function checkImageHasTaskContext(
   },
   instruction: string,
 ) {
-  const safeInstruction = limitText(instruction, 1000);
+  const safeInstruction = limitText(instruction, scanToTaskConfig.instructionMaxLength);
   if (!openAiClient || safeInstruction) {
     return { actionable: true, reason: "" } satisfies ImageContextCheck;
   }
@@ -336,7 +336,7 @@ async function prepareImageInputForExtraction(
   bytes: ArrayBuffer,
   instruction: string,
 ) {
-  const safeInstruction = limitText(instruction, 1000);
+  const safeInstruction = limitText(instruction, scanToTaskConfig.instructionMaxLength);
   const normalized = await normalizeImageBytesForVision(fileName, bytes, mimeType);
   const imageContextCheck = await checkImageHasTaskContext(fileName, normalized, safeInstruction);
 
@@ -381,7 +381,7 @@ async function draftFromTextChunk(
   sourceText: string,
   sectionLabel = "",
 ): Promise<ScanTaskDraft> {
-  const safeInstruction = limitText(instruction, 2000);
+  const safeInstruction = limitText(instruction, scanToTaskConfig.instructionMaxLength);
   const safeSourceText = limitTextPreservingFormatting(sourceText, scanToTaskConfig.sourceTextMaxLength);
   const labeledFileName = sectionLabel ? `${fileName} (${sectionLabel})` : fileName;
 
@@ -516,7 +516,7 @@ async function splitImageIntoChunkSections(
   prepared: PreparedImageInput,
   instruction: string,
 ): Promise<ChunkSplitSection[] | null> {
-  const safeInstruction = limitText(instruction, 1000);
+  const safeInstruction = limitText(instruction, scanToTaskConfig.instructionMaxLength);
   if (!prepared.imageContextCheck.actionable) {
     throw new Error(
       prepared.imageContextCheck.reason ||
@@ -598,7 +598,7 @@ async function extractTextFromImage(
   prepared: PreparedImageInput,
   instruction: string,
 ): Promise<string> {
-  const safeInstruction = limitText(instruction, 2000);
+  const safeInstruction = limitText(instruction, scanToTaskConfig.instructionMaxLength);
   if (!prepared.imageContextCheck.actionable) {
     throw new Error(
       prepared.imageContextCheck.reason ||
@@ -687,7 +687,7 @@ async function splitTextIntoChunkSections(
   instruction: string,
   sourceText: string,
 ): Promise<ChunkSplitSection[] | null> {
-  const safeInstruction = limitText(instruction, 1000);
+  const safeInstruction = limitText(instruction, scanToTaskConfig.instructionMaxLength);
   const safeSourceText = limitTextPreservingFormatting(sourceText, scanToTaskConfig.sourceTextMaxLength);
 
   if (!openAiClient) return null;

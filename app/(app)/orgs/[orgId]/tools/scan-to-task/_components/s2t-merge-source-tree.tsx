@@ -6,6 +6,16 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/core/utils";
 import type { DraftScanResultItem } from "./s2t-results-section";
 import { formatItemDate, getMergedSourceSummary } from "./s2t-helpers";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/dialogs/alert-dialog";
 
 type MergeSourceNode =
   | {
@@ -169,6 +179,7 @@ function MergeSourceTreeNode({
   onDeleteTask: (taskId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
+  const [pendingDelete, setPendingDelete] = useState<{ title: string; onConfirm: () => void } | null>(null);
 
   if (node.kind === "task") {
     return (
@@ -177,7 +188,7 @@ function MergeSourceTreeNode({
         title={node.taskName ?? node.taskId}
         variant="task"
         onInspect={() => onInspectTaskCandidate(sourceResultId, node.taskId)}
-        onDelete={() => onDeleteTask(node.taskId)}
+        onDelete={() => setPendingDelete({ title: node.taskName ?? node.taskId, onConfirm: () => onDeleteTask(node.taskId) })}
         deleteLabel="Delete task source"
         confirmMessage={`Delete linked task source ${node.taskName ?? node.taskId} permanently?`}
       />
@@ -286,6 +297,10 @@ function MergeSourceTreeNode({
             aria-label={isTaskSource ? `Delete linked task source ${node.result.fileName}` : `Remove source draft ${node.result.fileName}`}
             onClick={(event) => {
               event.stopPropagation();
+              if (isTaskSource) {
+                setPendingDelete({ title: node.result.draft.title, onConfirm: () => onRemoveResult(node.result.clientId) });
+                return;
+              }
               onRemoveResult(node.result.clientId);
             }}
           >
@@ -310,6 +325,29 @@ function MergeSourceTreeNode({
           ))}
         </div>
       ) : null}
+
+      <AlertDialog open={pendingDelete !== null} onOpenChange={(open) => !open && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete linked task?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {pendingDelete?.title ?? "the selected task"} and remove it from the scan queue.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const nextPendingDelete = pendingDelete;
+                setPendingDelete(null);
+                nextPendingDelete?.onConfirm();
+              }}
+            >
+              Delete task
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

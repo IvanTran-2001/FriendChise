@@ -667,10 +667,8 @@ export async function deleteScanToTaskConflictItemsAction(
   revalidatePath(`/orgs/${orgId}/tools/scan-to-task`);
   return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Failed to delete selected items.",
-    };
+    log.error("Unexpected error deleting scan-to-task conflict items", { orgId, error });
+    return { ok: false, error: "Failed to delete selected items." };
   }
 }
 
@@ -794,10 +792,8 @@ export async function mergeScanToTaskConflictItemsAction(
       return created;
     });
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Failed to merge items.",
-    };
+    log.error("Unexpected error merging scan-to-task conflict items", { orgId, error });
+    return { ok: false, error: "Failed to merge items." };
   }
 
   revalidatePath(`/orgs/${orgId}/tools/scan-to-task`);
