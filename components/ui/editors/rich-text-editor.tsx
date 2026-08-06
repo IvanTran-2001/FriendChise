@@ -46,7 +46,7 @@ function ToolbarBtn({
   children,
 }: {
   onClick: () => void;
-  active: boolean;
+  active?: boolean;
   title: string;
   disabled?: boolean;
   children: React.ReactNode;
