@@ -373,7 +373,7 @@ export function OrgImagePicker({
               ) : (
                 <div
                   ref={scrollRef}
-                  className="grid max-h-80 grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3"
+                  className="grid max-h-[60vh] grid-cols-[repeat(auto-fit,minmax(7rem,1fr))] gap-2.5 overflow-y-auto pr-1 sm:max-h-80 sm:grid-cols-3 sm:gap-3"
                   onScroll={(event) => {
                     const el = event.currentTarget;
                     if (libraryLoading || libraryPage >= libraryTotalPages) return;
