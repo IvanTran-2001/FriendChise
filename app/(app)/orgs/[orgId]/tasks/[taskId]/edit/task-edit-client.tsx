@@ -497,6 +497,7 @@ export function TaskEditClient({
         {/* Hidden inputs for sidebar-controlled fields */}
         <input type="hidden" name="color" value={color} />
         <input type="hidden" name="durationMin" value={durationMin} />
+        <input type="hidden" name="toolsSubmitted" value="1" />
         <input
           type="hidden"
           name="preferredStartTimeMin"

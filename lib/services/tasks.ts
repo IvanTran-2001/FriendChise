@@ -34,10 +34,403 @@ export type TaskToolLinkInput = {
   toolLabel?: string | null;
 };
 
+export type TaskDuplicateCheckInput = {
+  title: string;
+  description?: string | null;
+  sourceText?: string | null;
+  importantDetails?: string | null;
+  actionItems?: string | null;
+  // Display-only metadata for the conflict UI; duplicate scoring ignores it.
+  topic?: string | null;
+};
+
+export type TaskDuplicateCandidate = {
+  id: string;
+  sourceType: "task" | "scan-result";
+  name: string;
+  description: string | null;
+  durationMin: number;
+  minPeople: number;
+  maxPeople: number | null;
+  color: string | null;
+  createdAt: string;
+  score: number;
+  matchedOn: string[];
+  topic: string | null;
+  taskId?: string | null;
+  resultId?: string | null;
+  clearedAt?: string | null;
+  confirmedAt?: string | null;
+  updatedAt: string;
+};
+
+export function getTaskDuplicateCandidateKey(candidate: Pick<TaskDuplicateCandidate, "id" | "taskId">) {
+  return candidate.taskId ?? candidate.id;
+}
+
+type TaskDuplicateComparable = {
+  name: string;
+  description: string | null;
+  durationMin: number;
+  minPeople: number;
+  maxPeople: number | null;
+  // Display-only metadata for the conflict UI; duplicate scoring ignores it.
+  topic?: string | null;
+};
+
+const taskTopicDefinitions = [
+  { topic: "kitchen", keywords: ["kitchen", "cook", "cooking", "prep", "recipe", "food", "menu", "dish", "oven", "fridge", "pantry", "fryer", "grill"] },
+  { topic: "cleaning", keywords: ["clean", "cleaning", "wipe", "mop", "sweep", "vacuum", "trash", "bin", "sanitize", "reset", "wash"] },
+  { topic: "roster", keywords: ["roster", "shift", "schedule", "staff", "cover", "availability", "timetable", "shift swap", "break"] },
+  { topic: "maintenance", keywords: ["maintenance", "repair", "fix", "replace", "check", "inspect", "fault", "broken", "service", "equipment"] },
+  { topic: "safety", keywords: ["safety", "hazard", "incident", "emergency", "first aid", "ppe", "fire", "risk", "compliance"] },
+  { topic: "training", keywords: ["training", "onboard", "onboarding", "teach", "coach", "learn", "induction", "handover"] },
+  { topic: "admin", keywords: ["admin", "report", "form", "paperwork", "notes", "message", "update", "review", "approval"] },
+  { topic: "customer", keywords: ["customer", "guest", "service", "order", "refund", "complaint", "call", "booking", "delivery"] },
+];
+
+const normalizedTaskTopicDefinitions = taskTopicDefinitions.map((definition) => ({
+  topic: definition.topic,
+  keywords: definition.keywords
+    .map((keyword) => normalizeDuplicateText(keyword))
+    .filter((keyword) => keyword.length > 0),
+}));
+
+function deriveTaskTopic(...parts: Array<string | null | undefined>) {
+  const normalized = normalizeDuplicateText(parts.filter((part): part is string => Boolean(part)).join(" \n"));
+  if (!normalized) return null;
+
+  const tokens = tokenizeDuplicateText(normalized);
+  let bestTopic: string | null = null;
+  let bestScore = 0;
+
+  for (const definition of normalizedTaskTopicDefinitions) {
+    let score = 0;
+    for (const normalizedKeyword of definition.keywords) {
+      if (tokens.has(normalizedKeyword)) score += normalizedKeyword.length >= 6 ? 2 : 1;
+      else if (normalized.includes(normalizedKeyword)) score += normalizedKeyword.length >= 6 ? 1.25 : 0.75;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestTopic = definition.topic;
+    }
+  }
+
+  return bestScore > 0 ? bestTopic : null;
+}
+
+function normalizeDuplicateText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenizeDuplicateText(value: string) {
+  return new Set(
+    normalizeDuplicateText(value)
+      .match(/[\p{L}\p{N}]+/gu)
+      ?.filter((part) => part.length > 2 || /[^\u0000-\u007f]/.test(part)) ?? [],
+  );
+}
+
+function jaccardSimilarity(a: Set<string>, b: Set<string>) {
+  if (a.size === 0 || b.size === 0) return 0;
+  let intersection = 0;
+  for (const value of a) {
+    if (b.has(value)) intersection += 1;
+  }
+  const union = a.size + b.size - intersection;
+  return union === 0 ? 0 : intersection / union;
+}
+
+function wordOverlapBoost(a: string, b: string) {
+  const normalizedA = normalizeDuplicateText(a);
+  const normalizedB = normalizeDuplicateText(b);
+  if (!normalizedA || !normalizedB) return 0;
+  if (normalizedA === normalizedB) return 1;
+
+  const tokensA = tokenizeDuplicateText(normalizedA);
+  const tokensB = tokenizeDuplicateText(normalizedB);
+  return jaccardSimilarity(tokensA, tokensB);
+}
+
+export function compareTaskDuplicateText(
+  input: TaskDuplicateCheckInput,
+  task: TaskDuplicateComparable,
+  threshold = 0.82,
+) {
+  const titleScore = wordOverlapBoost(input.title, task.name);
+  const sourceDescriptionParts = [input.description, input.sourceText, input.importantDetails, input.actionItems]
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part));
+  const inputDescription = sourceDescriptionParts.join("\n");
+  const taskDescription = task.description?.trim() ?? "";
+  const descriptionScore = wordOverlapBoost(inputDescription, taskDescription);
+  const normalizedInputTitle = normalizeDuplicateText(input.title);
+  const normalizedTaskTitle = normalizeDuplicateText(task.name);
+  const normalizedInputDescription = normalizeDuplicateText(inputDescription);
+  const normalizedTaskDescription = normalizeDuplicateText(taskDescription);
+  const exactTitle = normalizedInputTitle.length > 0 && normalizedTaskTitle.length > 0 && normalizedInputTitle === normalizedTaskTitle;
+  const exactDescription =
+    normalizedInputDescription.length > 0 &&
+    normalizedTaskDescription.length > 0 &&
+    normalizedInputDescription === normalizedTaskDescription;
+  const topicBoost =
+    input.topic && task.topic && normalizeDuplicateText(input.topic) === normalizeDuplicateText(task.topic)
+      ? 0.08
+      : 0;
+
+  let score = 0;
+  const matchedOn: string[] = [];
+
+  if (exactTitle) {
+    score = 1;
+    matchedOn.push("title");
+  } else if (titleScore >= threshold) {
+    score = titleScore;
+    matchedOn.push("title");
+  }
+
+  if (score === 0 && exactDescription) {
+    score = 1;
+    matchedOn.push("description");
+  } else if (score === 0 && descriptionScore >= threshold) {
+    score = descriptionScore;
+    matchedOn.push("description");
+  }
+
+  if (topicBoost > 0 && score > 0) {
+    score = Math.min(1, score + topicBoost);
+    matchedOn.push("topic");
+  }
+
+  return {
+    score,
+    matchedOn: Array.from(new Set(matchedOn)),
+  };
+}
+
+function candidateFromTaskRow(task: {
+  id: string;
+  name: string;
+  description: string | null;
+  durationMin: number;
+  minPeople: number;
+  maxPeople: number | null;
+  color: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  tags?: { tag: { name: string } }[];
+}): TaskDuplicateCandidate {
+  const topic = deriveTaskTopic(task.name, task.description, task.tags?.[0]?.tag.name ?? null);
+  return {
+    id: task.id,
+    sourceType: "task",
+    name: task.name,
+    description: task.description,
+    durationMin: task.durationMin,
+    minPeople: task.minPeople,
+    maxPeople: task.maxPeople,
+    color: task.color,
+    createdAt: task.createdAt.toISOString(),
+    score: 0,
+    matchedOn: [],
+    topic,
+    taskId: task.id,
+    resultId: null,
+    clearedAt: null,
+    confirmedAt: null,
+    updatedAt: task.updatedAt.toISOString(),
+  };
+}
+
+function candidateFromDraftRow(row: {
+  id: string;
+  taskId: string | null;
+  confirmedAt: Date | null;
+  clearedAt: Date | null;
+  draft: unknown;
+  createdAt: Date;
+  updatedAt: Date;
+}): TaskDuplicateCandidate | null {
+  if (!row.draft || typeof row.draft !== "object") return null;
+  const draft = row.draft as {
+    title?: unknown;
+    description?: unknown;
+    durationMin?: unknown;
+    peopleRequired?: unknown;
+  };
+
+  const name = typeof draft.title === "string" ? draft.title.trim() : "";
+  const description = typeof draft.description === "string" ? draft.description.trim() : "";
+  const durationMin = typeof draft.durationMin === "number" && Number.isFinite(draft.durationMin) ? draft.durationMin : null;
+  const minPeople = typeof draft.peopleRequired === "number" && Number.isFinite(draft.peopleRequired) ? draft.peopleRequired : null;
+  const topic = deriveTaskTopic(name, description);
+
+  if (!name || durationMin == null || minPeople == null) return null;
+
+  return {
+    id: row.id,
+    sourceType: "scan-result",
+    name,
+    description: description || null,
+    durationMin,
+    minPeople,
+    maxPeople: null,
+    color: null,
+    createdAt: row.createdAt.toISOString(),
+    score: 0,
+    matchedOn: [],
+    topic,
+    taskId: row.taskId,
+    resultId: row.id,
+    clearedAt: row.clearedAt?.toISOString() ?? null,
+    confirmedAt: row.confirmedAt?.toISOString() ?? null,
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+export async function loadPotentialTaskDuplicateCandidates(orgId: string, recentLimit = 50) {
+  const [tasks, scanResults] = await Promise.all([
+    prisma.task.findMany({
+      where: { orgId },
+      orderBy: { createdAt: "desc" },
+      take: recentLimit,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        durationMin: true,
+        minPeople: true,
+        maxPeople: true,
+        color: true,
+        createdAt: true,
+        updatedAt: true,
+        tags: {
+          select: {
+            tag: {
+              select: { name: true },
+            },
+          },
+        },
+      },
+    }),
+    prisma.scanTaskResult.findMany({
+      where: { orgId, clearedAt: null, taskId: null },
+      orderBy: { createdAt: "desc" },
+      take: recentLimit,
+      select: {
+        id: true,
+        taskId: true,
+        confirmedAt: true,
+        clearedAt: true,
+        draft: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+  ]);
+
+  return [
+    ...tasks.map((task) => candidateFromTaskRow(task)),
+    ...scanResults
+      .map((row) => candidateFromDraftRow(row))
+      .filter((candidate): candidate is TaskDuplicateCandidate => candidate !== null),
+  ];
+}
+
+export function scorePotentialTaskDuplicates(
+  input: TaskDuplicateCheckInput,
+  candidates: TaskDuplicateCandidate[],
+  options: { limit?: number; threshold?: number } = {},
+) {
+  const limit = options.limit ?? 3;
+  const threshold = options.threshold ?? 0.82;
+
+  const scoredCandidates = candidates
+    .map((candidate) => {
+      const comparison = compareTaskDuplicateText(input, candidate, threshold);
+      return {
+        ...candidate,
+        score: comparison.score,
+        matchedOn: comparison.matchedOn,
+      } satisfies TaskDuplicateCandidate;
+    })
+    .filter((candidate) => candidate.score >= threshold)
+    .sort((a, b) => b.score - a.score || b.createdAt.localeCompare(a.createdAt));
+
+  return scoredCandidates
+    .reduce<TaskDuplicateCandidate[]>((uniqueCandidates, candidate) => {
+      const candidateKey = getTaskDuplicateCandidateKey(candidate);
+      if (!uniqueCandidates.some((item) => getTaskDuplicateCandidateKey(item) === candidateKey)) {
+        uniqueCandidates.push(candidate);
+      }
+      return uniqueCandidates;
+    }, [])
+    .slice(0, limit);
+}
+
+/**
+ * Returns likely duplicate tasks for the given task draft data.
+ * Keeps the check conservative: it only flags strong title/content matches.
+ */
+export async function findPotentialTaskDuplicates(
+  orgId: string,
+  input: TaskDuplicateCheckInput,
+  options: { limit?: number; recentLimit?: number; threshold?: number } = {},
+): Promise<TaskDuplicateCandidate[]> {
+  const recentLimit = options.recentLimit ?? 50;
+  const candidates = await loadPotentialTaskDuplicateCandidates(orgId, recentLimit);
+  return scorePotentialTaskDuplicates(input, candidates, options);
+}
+
 /**
  * Creates a new task for the given org using validated input.
  * Optional fields are null-coalesced so callers never need to handle `undefined`.
  */
+export async function createTaskOnClient(
+  db: Prisma.TransactionClient | typeof prisma,
+  orgId: string,
+  data: CreateTaskInput,
+  actorId?: string | null,
+  actorEmail?: string | null,
+  actorName?: string | null,
+) {
+  const created = await db.task.create({
+    data: {
+      orgId,
+      name: data.title,
+      color: data.color,
+      description: data.description ?? null,
+      durationMin: data.durationMin,
+      preferredStartTimeMin: data.preferredStartTimeMin ?? null,
+      minPeople: data.peopleRequired ?? 1,
+      minWaitDays: data.minWaitDays ?? null,
+      maxWaitDays: data.maxWaitDays ?? null,
+      createdById: actorId ?? null,
+      createdByName: actorName ?? null,
+    },
+  });
+
+  await db.taskSectionLayout.createMany({
+    data: DEFAULT_SECTIONS.map((section) => ({
+      taskId: created.id,
+      orgId,
+      ...section,
+    })),
+    skipDuplicates: true,
+  });
+
+  await db.taskInheritance.create({
+    data: { taskId: created.id, orgId },
+  });
+
+  return created;
+}
+
 export async function createTask(
   orgId: string,
   data: CreateTaskInput,
@@ -45,38 +438,9 @@ export async function createTask(
   actorEmail?: string | null,
   actorName?: string | null,
 ) {
-  const task = await prisma.$transaction(async (tx) => {
-    const created = await tx.task.create({
-      data: {
-        orgId,
-        name: data.title,
-        color: data.color,
-        description: data.description ?? null,
-        durationMin: data.durationMin,
-        preferredStartTimeMin: data.preferredStartTimeMin ?? null,
-        minPeople: data.peopleRequired ?? 1,
-        minWaitDays: data.minWaitDays ?? null,
-        maxWaitDays: data.maxWaitDays ?? null,
-        createdById: actorId ?? null,
-        createdByName: actorName ?? null,
-      },
-    });
-
-    await tx.taskSectionLayout.createMany({
-      data: DEFAULT_SECTIONS.map((section) => ({
-        taskId: created.id,
-        orgId,
-        ...section,
-      })),
-      skipDuplicates: true,
-    });
-
-    await tx.taskInheritance.create({
-      data: { taskId: created.id, orgId },
-    });
-
-    return created;
-  });
+  const task = await prisma.$transaction(async (tx) =>
+    createTaskOnClient(tx, orgId, data, actorId, actorEmail, actorName),
+  );
 
   log.info("Task created", { orgId, taskId: task.id });
   recordAudit({
@@ -143,16 +507,17 @@ export async function deleteTask(
   id: string,
   actorId?: string | null,
   actorEmail?: string | null,
+  db: Prisma.TransactionClient | typeof prisma = prisma,
 ): Promise<ServiceResult<null>> {
-  const existing = await prisma.task.findFirst({
+  const existing = await db.task.findFirst({
     where: { id, orgId },
     select: { name: true, color: true, description: true, durationMin: true },
   });
-  const { count } = await prisma.task.deleteMany({ where: { id, orgId } });
+  const { count } = await db.task.deleteMany({ where: { id, orgId } });
   if (count === 0)
     return { ok: false, error: "Task not found", code: "NOT_FOUND" };
-  log.info("Task deleted", { orgId, taskId: id });
-  if (existing) {
+  if (existing && db === prisma) {
+    log.info("Task deleted", { orgId, taskId: id });
     recordAudit({
       orgId,
       actorId: actorId ?? null,
@@ -279,6 +644,26 @@ export async function getTasks(orgId: string) {
   }
 
   return tasks;
+}
+
+/**
+ * Finds a task in an org by name, ignoring surrounding whitespace and case.
+ * Used by create flows to warn before creating a duplicate task title.
+ */
+export async function findTaskByName(orgId: string, name: string) {
+  const trimmedName = name.trim();
+  if (!trimmedName) return null;
+
+  return prisma.task.findFirst({
+    where: {
+      orgId,
+      name: {
+        equals: trimmedName,
+        mode: "insensitive",
+      },
+    },
+    select: { id: true, name: true },
+  });
 }
 
 export type TaskSortOption =
@@ -566,18 +951,27 @@ export async function updateTask(
     where: { id: taskId, orgId },
     select: { name: true, color: true, description: true, durationMin: true },
   });
+  const updateData: Prisma.TaskUpdateManyMutationInput = {
+    name: data.title,
+    color: data.color,
+    description: data.description ?? null,
+    durationMin: data.durationMin,
+    minPeople: data.peopleRequired ?? 1,
+  };
+
+  if (data.preferredStartTimeMin !== undefined) {
+    updateData.preferredStartTimeMin = data.preferredStartTimeMin;
+  }
+  if (data.minWaitDays !== undefined) {
+    updateData.minWaitDays = data.minWaitDays;
+  }
+  if (data.maxWaitDays !== undefined) {
+    updateData.maxWaitDays = data.maxWaitDays;
+  }
+
   const { count } = await prisma.task.updateMany({
     where: { id: taskId, orgId },
-    data: {
-      name: data.title,
-      color: data.color,
-      description: data.description ?? null,
-      durationMin: data.durationMin,
-      preferredStartTimeMin: data.preferredStartTimeMin ?? null,
-      minPeople: data.peopleRequired ?? 1,
-      minWaitDays: data.minWaitDays ?? null,
-      maxWaitDays: data.maxWaitDays ?? null,
-    },
+    data: updateData,
   });
   if (count === 0)
     return { ok: false, error: "Task not found", code: "NOT_FOUND" };

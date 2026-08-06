@@ -1,7 +1,7 @@
 import { PermissionAction } from "@prisma/client";
 import { requireOrgPermissionPage } from "@/lib/authz";
 import { RegisterPageSidebar } from "@/components/layout/contexts/page-sidebar-context";
-import { ScanToTaskSidebarContent } from "./_components/scan-to-task-sidebar-content";
+import { ScanToTaskSidebarContent } from "./_components/s2t-sidebar-content";
 import { ScanToTaskClient } from "./scan-to-task-client";
 
 export default async function ScanToTaskPage({

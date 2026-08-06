@@ -179,6 +179,7 @@ model User {
   createdTasks        Task[]              @relation("CreatedTasks")
   taskComments        TaskComment[]
   taskCommentVotes    TaskCommentVote[]
+  scanTaskResults     ScanTaskResult[]
 
   accounts      Account[]
   sessions      Session[]
@@ -241,12 +242,53 @@ model Organization {
   orgImages           OrgImage[]
   demoSessions       DemoSession[] @relation("DemoSessionOrg")
   notePages           NotePage[]
+  scanTaskResults     ScanTaskResult[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([ownerId])
   @@index([parentId])
+}
+
+// ─────────────────────────────────────
+// SCAN TO TASK HISTORY
+// Persistent record of generated scan outputs so users can review and confirm
+// drafts later without depending on local browser state.
+// ─────────────────────────────────────
+
+model ScanTaskResult {
+  id          String   @id @default(cuid())
+
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  batchId     String   // groups results generated from the same scan submission
+  fileName    String
+  fileKind    String
+  fileSize    Int
+  instruction String?
+
+  draft       Json?
+  error       String?
+  metadata    Json?
+
+  taskId      String?
+  task        Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  confirmedAt DateTime?
+  clearedAt   DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([orgId, createdAt])
+  @@index([orgId, clearedAt, createdAt])
+  @@index([orgId, batchId])
+  @@index([orgId, taskId])
+  @@index([orgId, createdById])
 }
 
 // ─────────────────────────────────────
@@ -408,6 +450,7 @@ model Task {
   inheritedBy           TaskInheritance[]
   sectionLayouts        TaskSectionLayout[]
   comments              TaskComment[]
+  scanTaskResults       ScanTaskResult[]
 
   scope                 TaskScope @default(ORG)
 

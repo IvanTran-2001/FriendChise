@@ -20,12 +20,14 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
+import Underline from "@tiptap/extension-underline";
 import { Markdown } from "tiptap-markdown";
 import type { MarkdownStorage } from "tiptap-markdown";
 import {
   Bold,
   Italic,
   Strikethrough,
+  Underline as UnderlineIcon,
   List,
   ListOrdered,
   Heading3,
@@ -40,11 +42,13 @@ function ToolbarBtn({
   onClick,
   active,
   title,
+  disabled,
   children,
 }: {
   onClick: () => void;
-  active: boolean;
+  active?: boolean;
   title: string;
+  disabled?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -53,12 +57,14 @@ function ToolbarBtn({
       // Prevent blurring the editor when clicking toolbar buttons
       onMouseDown={(e) => {
         e.preventDefault();
-        onClick();
       }}
+      onClick={onClick}
       title={title}
-      aria-pressed={active}
+      aria-label={title}
+      {...(active !== undefined ? { "aria-pressed": active } : {})}
+      disabled={disabled}
       className={cn(
-        "p-1.5 rounded-sm transition-colors",
+        "rounded-sm p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50",
         active
           ? "bg-primary/10 text-primary"
           : "text-muted-foreground hover:text-foreground hover:bg-muted",
@@ -76,6 +82,7 @@ interface RichTextEditorProps {
   defaultValue?: string | null;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
   /** Tailwind min-h-* class for the editor area; defaults to min-h-64 */
   minHeightClass?: string;
   ariaInvalid?: boolean;
@@ -90,6 +97,7 @@ export function RichTextEditor({
   defaultValue,
   placeholder,
   className,
+  disabled = false,
   minHeightClass = "min-h-64",
   ariaInvalid,
   ariaDescribedBy,
@@ -97,10 +105,17 @@ export function RichTextEditor({
   onChange,
 }: RichTextEditorProps) {
   const hiddenRef = useRef<HTMLInputElement>(null);
+  const defaultMarkdown = defaultValue ?? "";
+  const lastAppliedExternalMarkdownRef = useRef(defaultMarkdown);
+  const pendingLocalMarkdownRef = useRef<string | null>(null);
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        link: false,
+        underline: false,
+      }),
+      Underline,
       Placeholder.configure({
         placeholder: placeholder ?? "Add a description…",
       }),
@@ -121,12 +136,13 @@ export function RichTextEditor({
         autolink: true,
       }),
       Markdown.configure({
-        html: false,
+        html: true,
         transformPastedText: true,
         transformCopiedText: false,
       }),
     ],
     content: defaultValue ?? "",
+    editable: !disabled,
     // Avoid SSR mismatch — editor only runs on client
     immediatelyRender: false,
     editorProps: {
@@ -154,6 +170,7 @@ export function RichTextEditor({
     onUpdate({ editor }) {
       const markdown =
         (editor.storage as unknown as { markdown: MarkdownStorage }).markdown.getMarkdown();
+      pendingLocalMarkdownRef.current = markdown;
       // Imperatively update the hidden input without triggering a re-render
       if (hiddenRef.current) {
         hiddenRef.current.value = markdown;
@@ -161,6 +178,29 @@ export function RichTextEditor({
       onChange?.(markdown);
     },
   });
+
+  useEffect(() => {
+    if (!editor) return;
+
+    if (defaultMarkdown === pendingLocalMarkdownRef.current) {
+      lastAppliedExternalMarkdownRef.current = defaultMarkdown;
+      pendingLocalMarkdownRef.current = null;
+      return;
+    }
+
+    if (defaultMarkdown === lastAppliedExternalMarkdownRef.current) return;
+
+    editor.commands.setContent(defaultMarkdown, { emitUpdate: false });
+    lastAppliedExternalMarkdownRef.current = defaultMarkdown;
+    pendingLocalMarkdownRef.current = null;
+    if (hiddenRef.current) {
+      hiddenRef.current.value = defaultMarkdown;
+    }
+  }, [defaultMarkdown, editor]);
+
+  useEffect(() => {
+    editor?.setEditable(!disabled);
+  }, [disabled, editor]);
 
   const handleInsertImage = useCallback(() => {
     const url = window.prompt("Enter image URL");
@@ -196,11 +236,12 @@ export function RichTextEditor({
       )}
     >
       {/* Formatting toolbar */}
-      <div className="flex items-center gap-0.5 px-2 py-1 border-b bg-muted/30 shrink-0">
+      <div className="flex flex-wrap items-center gap-0.5 px-2 py-1 border-b bg-muted/30 shrink-0">
         <ToolbarBtn
           onClick={() => editor?.chain().focus().toggleBold().run()}
           active={editor?.isActive("bold") ?? false}
           title="Bold (Ctrl+B)"
+          disabled={disabled}
         >
           <Bold className="h-3.5 w-3.5" />
         </ToolbarBtn>
@@ -208,27 +249,37 @@ export function RichTextEditor({
           onClick={() => editor?.chain().focus().toggleItalic().run()}
           active={editor?.isActive("italic") ?? false}
           title="Italic (Ctrl+I)"
+          disabled={disabled}
         >
           <Italic className="h-3.5 w-3.5" />
+        </ToolbarBtn>
+        <ToolbarBtn
+          onClick={() => editor?.chain().focus().toggleUnderline().run()}
+          active={editor?.isActive("underline") ?? false}
+          title="Underline (Ctrl+U)"
+          disabled={disabled}
+        >
+          <UnderlineIcon className="h-3.5 w-3.5" />
         </ToolbarBtn>
         <ToolbarBtn
           onClick={() => editor?.chain().focus().toggleStrike().run()}
           active={editor?.isActive("strike") ?? false}
           title="Strikethrough (Ctrl+Shift+S)"
+          disabled={disabled}
         >
           <Strikethrough className="h-3.5 w-3.5" />
         </ToolbarBtn>
         <ToolbarBtn
           onClick={handleInsertImage}
-          active={editor?.isActive("image") ?? false}
           title="Insert image markdown"
+          disabled={disabled}
         >
           <ImagePlus className="h-3.5 w-3.5" />
         </ToolbarBtn>
         <ToolbarBtn
           onClick={handleInsertVideo}
-          active={editor?.isActive("link", { "data-video": "true" }) ?? false}
           title="Insert Video markdown"
+          disabled={disabled}
         >
           <Video className="h-3.5 w-3.5" />
         </ToolbarBtn>
@@ -241,6 +292,7 @@ export function RichTextEditor({
           }
           active={editor?.isActive("heading", { level: 3 }) ?? false}
           title="Heading"
+          disabled={disabled}
         >
           <Heading3 className="h-3.5 w-3.5" />
         </ToolbarBtn>
@@ -251,6 +303,7 @@ export function RichTextEditor({
           onClick={() => editor?.chain().focus().toggleBulletList().run()}
           active={editor?.isActive("bulletList") ?? false}
           title="Bullet list"
+          disabled={disabled}
         >
           <List className="h-3.5 w-3.5" />
         </ToolbarBtn>
@@ -258,6 +311,7 @@ export function RichTextEditor({
           onClick={() => editor?.chain().focus().toggleOrderedList().run()}
           active={editor?.isActive("orderedList") ?? false}
           title="Ordered list"
+          disabled={disabled}
         >
           <ListOrdered className="h-3.5 w-3.5" />
         </ToolbarBtn>

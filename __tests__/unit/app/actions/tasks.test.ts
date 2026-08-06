@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { PermissionAction } from "@prisma/client";
+import { PermissionAction, Prisma } from "@prisma/client";
 
 // ─── Mock modules ─────────────────────────────────────────────────────────────
 
@@ -23,6 +23,7 @@ vi.mock("@/lib/services/tasks", () => ({
   deleteTask: vi.fn(),
   updateTask: vi.fn(),
   getTaskOwnerOrgId: vi.fn(),
+  findTaskByName: vi.fn(),
   addTaskEligibility: vi.fn(),
   removeTaskEligibility: vi.fn(),
   setTaskEligibilities: vi.fn(),
@@ -44,6 +45,7 @@ import {
   deleteTask,
   updateTask,
   getTaskOwnerOrgId,
+  findTaskByName,
   addTaskEligibility,
   removeTaskEligibility,
 } from "@/lib/services/tasks";
@@ -72,6 +74,10 @@ const authorised = {
 const unauthorised = { ok: false as const };
 
 beforeEach(() => vi.clearAllMocks());
+
+beforeEach(() => {
+  vi.mocked(findTaskByName).mockResolvedValue(null);
+});
 
 // ─── createTaskAction ─────────────────────────────────────────────────────────
 
@@ -107,6 +113,7 @@ describe("createTaskAction", () => {
       id: "task-1",
       name: "Task A",
     } as any);
+    vi.mocked(findTaskByName).mockResolvedValue(null);
 
     const fd = makeFormData({
       title: "Task A",
@@ -132,6 +139,123 @@ describe("createTaskAction", () => {
     );
     expect(revalidatePath).toHaveBeenCalledWith("/orgs/org-1/tasks");
     expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("returns a duplicate-name error when a task with the same title exists", async () => {
+    vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
+    vi.mocked(findTaskByName).mockResolvedValue({ id: "existing-task", name: "Task A" } as any);
+
+    const fd = makeFormData({
+      title: "Task A",
+      color: "#6366f1",
+      durationMin: "30",
+    });
+
+    const result = await createTaskAction("org-1", null, fd);
+
+    expect(result).toEqual({
+      ok: false,
+      errors: { _: ['A task named "Task A" already exists.'] },
+    });
+    expect(findTaskByName).toHaveBeenCalledWith("org-1", "Task A");
+    expect(createTask).not.toHaveBeenCalled();
+  });
+
+  it("returns a duplicate-name error when createTask raises Task_orgId_name_key", async () => {
+    vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
+    vi.mocked(findTaskByName).mockResolvedValue(null);
+    vi.mocked(createTask).mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError("Unique constraint", {
+        code: "P2002",
+        clientVersion: "5.0.0",
+        meta: { target: "Task_orgId_name_key" },
+      }),
+    );
+
+    const fd = makeFormData({
+      title: "Task A",
+      color: "#6366f1",
+      durationMin: "30",
+    });
+
+    const result = await createTaskAction("org-1", null, fd);
+
+    expect(result).toEqual({
+      ok: false,
+      errors: { _: ['A task named "Task A" already exists.'] },
+    });
+    expect(createTask).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns a duplicate-name error when createTask raises the compound orgId/name target", async () => {
+    vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
+    vi.mocked(findTaskByName).mockResolvedValue(null);
+    vi.mocked(createTask).mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError("Unique constraint", {
+        code: "P2002",
+        clientVersion: "5.0.0",
+        meta: { target: ["orgId", "name"] },
+      }),
+    );
+
+    const fd = makeFormData({
+      title: "Task A",
+      color: "#6366f1",
+      durationMin: "30",
+    });
+
+    const result = await createTaskAction("org-1", null, fd);
+
+    expect(result).toEqual({
+      ok: false,
+      errors: { _: ['A task named "Task A" already exists.'] },
+    });
+    expect(createTask).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns a duplicate-name error when createTask raises the single-element task key target", async () => {
+    vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
+    vi.mocked(findTaskByName).mockResolvedValue(null);
+    vi.mocked(createTask).mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError("Unique constraint", {
+        code: "P2002",
+        clientVersion: "5.0.0",
+        meta: { target: ["Task_orgId_name_key"] },
+      }),
+    );
+
+    const fd = makeFormData({
+      title: "Task A",
+      color: "#6366f1",
+      durationMin: "30",
+    });
+
+    const result = await createTaskAction("org-1", null, fd);
+
+    expect(result).toEqual({
+      ok: false,
+      errors: { _: ['A task named "Task A" already exists.'] },
+    });
+    expect(createTask).toHaveBeenCalledTimes(1);
+  });
+
+  it("rethrows unrelated P2002 targets", async () => {
+    vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
+    vi.mocked(findTaskByName).mockResolvedValue(null);
+    const err = new Prisma.PrismaClientKnownRequestError("Unique constraint", {
+      code: "P2002",
+      clientVersion: "5.0.0",
+      meta: { target: ["orgId", "description"] },
+    });
+    vi.mocked(createTask).mockRejectedValue(err);
+
+    const fd = makeFormData({
+      title: "Task A",
+      color: "#6366f1",
+      durationMin: "30",
+    });
+
+    await expect(createTaskAction("org-1", null, fd)).rejects.toBe(err);
   });
 
   it("checks MANAGE_TASKS permission for the org", async () => {

@@ -4,6 +4,8 @@
 type TaskSuggestionInput = {
   title: string;
   description?: string | null;
+  descriptionBody?: string | null;
+  sourceText?: string | null;
   durationMin: number;
   peopleRequired: number;
   minWaitDays: number;
@@ -131,12 +133,14 @@ function matchHint(text: string) {
 /**
  * Builds the final description body shown to the user.
  */
-function buildDescription(title: string, summary: string) {
+function buildDescription(title: string, summary: string, options: { descriptionBody?: string | null } = {}) {
   const bulletPoints = GENERIC_STEPS.map((step) => `- ${step}`).join("\n");
+  const trimmedBody = (options.descriptionBody ?? "").trim().slice(0, 4000);
   return [
     summary,
     "",
     `Task: ${title}.`,
+    ...(trimmedBody ? ["", trimmedBody] : []),
     "",
     "Suggested checklist:",
     bulletPoints,
@@ -154,7 +158,7 @@ export function buildTaskSuggestion(
   input: TaskSuggestionInput,
 ): TaskSuggestionResult {
   const title = deriveTitle(input);
-  const combinedText = `${input.title} ${input.description ?? ""}`;
+  const combinedText = [input.title, input.description ?? "", input.sourceText ?? ""].join(" ");
   const hint = matchHint(combinedText);
   const summary =
     hint?.summary ??
@@ -166,7 +170,7 @@ export function buildTaskSuggestion(
 
   return {
     title,
-    description: buildDescription(title, summary),
+    description: buildDescription(title, summary, { descriptionBody: input.descriptionBody ?? "" }),
     durationMin,
     peopleRequired,
     minWaitDays,

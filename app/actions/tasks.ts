@@ -42,7 +42,7 @@
  * updateSectionLayoutAction — bulk-upsert section layout rows for a task+org (MANAGE_TASKS required).
  */
 
-import { PermissionAction } from "@prisma/client";
+import { PermissionAction, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/platform/prisma";
 import {
   requireOrgPermissionAction,
@@ -53,6 +53,7 @@ import {
   createTask,
   deleteTask,
   getTaskOwnerOrgId,
+  findTaskByName,
   inheritTask,
   publishTask,
   removeInheritedTask,
@@ -63,6 +64,7 @@ import {
   setTaskEligibilities,
   setTaskToolLinks,
 } from "@/lib/services/tasks";
+import { isSameFranchise } from "@/lib/services/franchise-root";
 import {
   getSectionLayout,
   updateSectionLayouts,
@@ -79,6 +81,14 @@ import { renameTaskImageIfNeeded } from "@/lib/services/images";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validators/task";
 import { checkDemoLimit } from "@/lib/demo";
 import { revalidatePath } from "next/cache";
+
+function isTaskNameConflictTarget(target: unknown) {
+  return (
+    (Array.isArray(target) && target.length === 2 && target.includes("orgId") && target.includes("name")) ||
+    (Array.isArray(target) && target.length === 1 && target[0] === "Task_orgId_name_key") ||
+    target === "Task_orgId_name_key"
+  );
+}
 
 /** Parses numeric and string fields from a task FormData submission. */
 function parseTaskFormData(formData: FormData) {
@@ -149,6 +159,14 @@ export async function createTaskAction(
     };
   }
 
+  const duplicateTask = await findTaskByName(orgId, parsed.data.title);
+  if (duplicateTask) {
+    return {
+      ok: false,
+      errors: { _: [`A task named "${duplicateTask.name}" already exists.`] },
+    };
+  }
+
   let creatorName: string | undefined;
   try {
     const creator = await prisma.user.findUnique({
@@ -160,21 +178,32 @@ export async function createTaskAction(
     creatorName = undefined;
   }
 
-  const task = await createTask(
-    orgId,
-    parsed.data,
-    authz.userId,
-    authz.userEmail,
-    creatorName ?? null,
-  );
+  let task;
+  try {
+    task = await createTask(
+      orgId,
+      parsed.data,
+      authz.userId,
+      authz.userEmail,
+      creatorName ?? null,
+    );
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      if (isTaskNameConflictTarget(error.meta?.target)) {
+        return {
+          ok: false,
+          errors: { _: [`A task named "${parsed.data.title}" already exists.`] },
+        };
+      }
+    }
+
+    throw error;
+  }
+
   try {
     const imageStoragePath = formData.get("imageStoragePath");
     if (typeof imageStoragePath === "string" && imageStoragePath.trim()) {
-      const imageResult = await saveTaskImagePath(
-        orgId,
-        task.id,
-        imageStoragePath,
-      );
+      const imageResult = await saveTaskImagePath(orgId, task.id, imageStoragePath);
       if (!imageResult.ok) {
         throw new Error(imageResult.error);
       }
@@ -363,25 +392,106 @@ export async function updateTaskAction(
     await setTaskEligibilities(taskOrgId, taskId, roleIds);
   }
 
-  const toolPaths = formData
-    .getAll("toolPaths")
-    .filter((v): v is string => typeof v === "string")
-    .filter((path) => !path.startsWith("//"));
-  const toolLabels = formData
-    .getAll("toolLabels")
-    .filter((v): v is string => typeof v === "string");
-  await setTaskToolLinks(
-    taskOrgId,
-    taskId,
-    toolPaths.map((toolPath, index) => ({
-      toolPath,
-      toolLabel: normalizeToolLabel(toolLabels[index] ?? null),
-    })),
-  );
+  if (formData.get("toolsSubmitted") === "1") {
+    const toolPaths = formData
+      .getAll("toolPaths")
+      .filter((v): v is string => typeof v === "string")
+      .filter((path) => !path.startsWith("//"));
+    const toolLabels = formData
+      .getAll("toolLabels")
+      .filter((v): v is string => typeof v === "string");
+    await setTaskToolLinks(
+      taskOrgId,
+      taskId,
+      toolPaths.map((toolPath, index) => ({
+        toolPath,
+        toolLabel: normalizeToolLabel(toolLabels[index] ?? null),
+      })),
+    );
+  }
 
   revalidatePath(`/orgs/${orgId}/tasks`);
   revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);
   return { ok: true };
+}
+
+export type TaskDetailsActionState =
+  | {
+      ok: true;
+      task: {
+        id: string;
+        orgId: string;
+        color: string;
+        name: string;
+        description: string | null;
+        durationMin: number;
+        preferredStartTimeMin: number | null;
+        minPeople: number;
+        minWaitDays: number | null;
+        maxWaitDays: number | null;
+      };
+    }
+  | { ok: false; error: string }
+  | null;
+
+export async function getTaskDetailsAction(
+  orgId: string,
+  taskId: string,
+): Promise<NonNullable<TaskDetailsActionState>> {
+  const taskOrgId = await getTaskOwnerOrgId(taskId);
+  if (!taskOrgId) return { ok: false, error: "Task not found." };
+
+  const [requestOrg, taskOrg] = await Promise.all([
+    prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { id: true, parentId: true },
+    }),
+    prisma.organization.findUnique({
+      where: { id: taskOrgId },
+      select: { id: true, parentId: true },
+    }),
+  ]);
+  if (!requestOrg || !taskOrg) return { ok: false, error: "Task not found." };
+  if (!isSameFranchise(requestOrg, taskOrg)) return { ok: false, error: "Unauthorized." };
+
+  const [franchiseAuthz, taskOrgAuthz] = await Promise.all([
+    requireParentOrgOwnerAction(orgId),
+    requireOrgPermissionAction(taskOrgId, PermissionAction.MANAGE_TASKS),
+  ]);
+  if (!franchiseAuthz.ok && !taskOrgAuthz.ok) return { ok: false, error: "Unauthorized." };
+
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, orgId: taskOrgId },
+    select: {
+      id: true,
+      orgId: true,
+      color: true,
+      name: true,
+      description: true,
+      durationMin: true,
+      preferredStartTimeMin: true,
+      minPeople: true,
+      minWaitDays: true,
+      maxWaitDays: true,
+    },
+  });
+  if (!task) return { ok: false, error: "Task not found." };
+
+  return {
+    ok: true,
+    task: {
+      id: task.id,
+      orgId: task.orgId,
+      color: task.color,
+      name: task.name,
+      description: task.description,
+      durationMin: task.durationMin,
+      preferredStartTimeMin: task.preferredStartTimeMin,
+      minPeople: task.minPeople,
+      minWaitDays: task.minWaitDays,
+      maxWaitDays: task.maxWaitDays,
+    },
+  };
 }
 
 /**

@@ -1,1 +1,1 @@
-export * from "@/lib/ai/task-suggestions";
+export * from "@/lib/ai/scan-to-task/task-suggestions";

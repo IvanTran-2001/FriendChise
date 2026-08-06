@@ -1,0 +1,135 @@
+import { PermissionAction } from "@prisma/client";
+import { NextResponse } from "next/server";
+import { requireOrgPermission } from "@/lib/authz";
+import { log } from "@/lib/platform/observability";
+import { prisma } from "@/lib/platform/prisma";
+import {
+  getTaskDuplicateCandidateKey,
+  loadPotentialTaskDuplicateCandidates,
+  scorePotentialTaskDuplicates,
+} from "@/lib/services/tasks";
+import { scanTaskDraftSchema } from "@/lib/validators/scan-to-task";
+
+const DEFAULT_LIMIT = 25;
+const MAX_LIMIT = 50;
+
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ orgId: string }> },
+) {
+  const { orgId } = await params;
+
+  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return authz.response;
+
+  const { searchParams } = new URL(req.url);
+  const cursor = searchParams.get("cursor")?.trim() || null;
+  const limit = Math.min(
+    Math.max(1, Number.parseInt(searchParams.get("limit") ?? String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT),
+    MAX_LIMIT,
+  );
+
+  try {
+    let cursorRecord: { id: string; createdAt: Date } | null = null;
+    if (cursor) {
+      cursorRecord = await prisma.scanTaskResult.findFirst({
+        where: { orgId, id: cursor },
+        select: { id: true, createdAt: true },
+      });
+
+      if (!cursorRecord) {
+        return NextResponse.json({ error: "Invalid cursor." }, { status: 400 });
+      }
+    }
+
+    const sharedCandidates = await loadPotentialTaskDuplicateCandidates(orgId, Math.max(limit, DEFAULT_LIMIT));
+    const records = await prisma.scanTaskResult.findMany({
+      where: {
+        orgId,
+        clearedAt: null,
+        ...(cursorRecord
+          ? {
+              OR: [
+                { createdAt: { lt: cursorRecord.createdAt } },
+                { createdAt: cursorRecord.createdAt, id: { lt: cursorRecord.id } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+      select: {
+        id: true,
+        batchId: true,
+        fileName: true,
+        fileKind: true,
+        fileSize: true,
+        draft: true,
+        error: true,
+        taskId: true,
+        metadata: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    const hasMore = records.length > limit;
+    const pageRecords = hasMore ? records.slice(0, limit) : records;
+    const recordsWithDuplicates = [];
+    for (const record of pageRecords) {
+      const parsedDraft = record.draft ? scanTaskDraftSchema.safeParse(record.draft) : null;
+      if (!parsedDraft?.success) {
+        recordsWithDuplicates.push({ ...record, duplicateCandidates: [] });
+        continue;
+      }
+
+      const filteredSharedCandidates = sharedCandidates.filter((candidate) => {
+        if (candidate.resultId === record.id) return false;
+        if (record.taskId && candidate.taskId === record.taskId) return false;
+        return true;
+      });
+
+      const duplicateCandidates = scorePotentialTaskDuplicates(
+        {
+          title: parsedDraft.data.title,
+          description: parsedDraft.data.description,
+          sourceText: parsedDraft.data.sourceText || undefined,
+        },
+        filteredSharedCandidates,
+        { limit: 3, threshold: 0.82 },
+      );
+
+      const duplicateVerdicts = getDuplicateCandidateVerdicts(record.metadata);
+      const filteredCandidates = duplicateCandidates.filter(
+        (candidate) => duplicateVerdicts?.[getTaskDuplicateCandidateKey(candidate)] !== false,
+      );
+
+      recordsWithDuplicates.push({ ...record, duplicateCandidates: filteredCandidates });
+    }
+
+    const nextCursor = hasMore ? pageRecords[pageRecords.length - 1]?.id ?? null : null;
+
+    return NextResponse.json({
+      results: recordsWithDuplicates,
+      nextCursor,
+    });
+  } catch (error) {
+    log.error("Failed to load scan history", { orgId, error });
+    return NextResponse.json({ error: "Failed to load scan history." }, { status: 500 });
+  }
+}
+
+function getDuplicateCandidateVerdicts(metadata: unknown) {
+  if (!isRecord(metadata)) return null;
+  const verdicts = metadata.duplicateCandidateVerdicts;
+  if (!isRecord(verdicts)) return null;
+
+  return Object.fromEntries(Object.entries(verdicts).filter(([, verdict]) => typeof verdict === "boolean")) as Record<
+    string,
+    boolean
+  >;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
