@@ -950,18 +950,27 @@ export async function updateTask(
     where: { id: taskId, orgId },
     select: { name: true, color: true, description: true, durationMin: true },
   });
+  const updateData: Prisma.TaskUpdateManyMutationInput = {
+    name: data.title,
+    color: data.color,
+    description: data.description ?? null,
+    durationMin: data.durationMin,
+    minPeople: data.peopleRequired ?? 1,
+  };
+
+  if (data.preferredStartTimeMin !== undefined) {
+    updateData.preferredStartTimeMin = data.preferredStartTimeMin;
+  }
+  if (data.minWaitDays !== undefined) {
+    updateData.minWaitDays = data.minWaitDays;
+  }
+  if (data.maxWaitDays !== undefined) {
+    updateData.maxWaitDays = data.maxWaitDays;
+  }
+
   const { count } = await prisma.task.updateMany({
     where: { id: taskId, orgId },
-    data: {
-      name: data.title,
-      color: data.color,
-      description: data.description ?? null,
-      durationMin: data.durationMin,
-      preferredStartTimeMin: data.preferredStartTimeMin ?? null,
-      minPeople: data.peopleRequired ?? 1,
-      minWaitDays: data.minWaitDays ?? null,
-      maxWaitDays: data.maxWaitDays ?? null,
-    },
+    data: updateData,
   });
   if (count === 0)
     return { ok: false, error: "Task not found", code: "NOT_FOUND" };
