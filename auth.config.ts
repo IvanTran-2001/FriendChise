@@ -12,6 +12,10 @@ import { normalizeEmail } from "@/lib/core/utils";
  * For the full config with Prisma adapter and session callbacks, see auth.ts.
  */
 export const authConfig: NextAuthConfig = {
+  // Required behind Vercel's proxy — without it Auth.js can reject the
+  // incoming Host header as untrusted, which surfaces as error=Configuration
+  // on every signin/callback request (Google, LinkedIn, and Credentials alike).
+  trustHost: true,
   // allowDangerousEmailAccountLinking is safe here because we are OAuth-only
   // (no email/password sign-up). If email+password is ever added, remove this
   // flag and verify emails before linking accounts.
