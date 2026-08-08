@@ -183,16 +183,9 @@ export function MarkdownEditor({
         label: "Numbered list",
         action: () => prefixLines("1. "),
       },
-      null,
       { icon: Heading3, label: "Heading", action: toggleHeading },
-      null,
-      {
-        icon: Video,
-        label: "Insert video link",
-        action: handleInsertVideoLink,
-      },
     ],
-    [wrapSelection, prefixLines, toggleHeading, handleInsertVideoLink],
+    [wrapSelection, prefixLines, toggleHeading],
   );
 
   return (
@@ -243,9 +236,18 @@ export function MarkdownEditor({
                 </button>
               ),
             )}
+            {/* Media buttons — grouped together, separated from formatting */}
+            <div className="w-px h-3.5 bg-border mx-1" />
+            <button
+              type="button"
+              title="Insert video link"
+              onClick={handleInsertVideoLink}
+              className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Video className="h-3.5 w-3.5" />
+            </button>
             {orgId && (
               <>
-                <div className="w-px h-3.5 bg-border mx-1" />
                 <button
                   type="button"
                   title="Insert image"

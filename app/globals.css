@@ -318,11 +318,18 @@ a:active,
   color: var(--primary);
   text-decoration: underline;
 }
+/* Video links look like a media chip so they're easy to recognize in the editor */
 .tiptap a[data-video] {
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 0.375rem;
+  background: oklch(0.75 0.12 263 / 0.12);
+  text-decoration: none;
+  font-weight: 600;
 }
 .tiptap a[data-video]::before {
   content: "▶";
   font-size: 0.75rem;
-  margin-right: 0.25rem;
 }

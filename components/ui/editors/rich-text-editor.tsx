@@ -15,7 +15,7 @@
  */
 
 import { useCallback, useEffect, useRef } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, useEditorState, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
@@ -35,6 +35,18 @@ import {
   Video,
 } from "lucide-react";
 import { cn } from "@/lib/core/utils";
+
+// ── Toolbar state ─────────────────────────────────────────────────────────────
+
+const DEFAULT_TOOLBAR_STATE = {
+  bold: false,
+  italic: false,
+  underline: false,
+  strike: false,
+  heading3: false,
+  bulletList: false,
+  orderedList: false,
+} as const;
 
 // ── Toolbar button ────────────────────────────────────────────────────────────
 
@@ -179,6 +191,24 @@ export function RichTextEditor({
     },
   });
 
+  // Reactive toolbar state — TipTap v3's `useEditor` does not re-render on
+  // transactions by default, so reading `editor.isActive()` during render
+  // would only reflect the toolbar state after the next parent re-render
+  // (e.g. after typing). `useEditorState` re-renders the toolbar as soon as
+  // the selection/marks change, so buttons highlight immediately on click.
+  const toolbar = useEditorState({
+    editor,
+    selector: ({ editor }) => ({
+      bold: editor?.isActive("bold") ?? false,
+      italic: editor?.isActive("italic") ?? false,
+      underline: editor?.isActive("underline") ?? false,
+      strike: editor?.isActive("strike") ?? false,
+      heading3: editor?.isActive("heading", { level: 3 }) ?? false,
+      bulletList: editor?.isActive("bulletList") ?? false,
+      orderedList: editor?.isActive("orderedList") ?? false,
+    }),
+  }) ?? DEFAULT_TOOLBAR_STATE;
+
   useEffect(() => {
     if (!editor) return;
 
@@ -237,9 +267,10 @@ export function RichTextEditor({
     >
       {/* Formatting toolbar */}
       <div className="flex flex-wrap items-center gap-0.5 px-2 py-1 border-b bg-muted/30 shrink-0">
+        {/* Text formatting */}
         <ToolbarBtn
           onClick={() => editor?.chain().focus().toggleBold().run()}
-          active={editor?.isActive("bold") ?? false}
+          active={toolbar.bold}
           title="Bold (Ctrl+B)"
           disabled={disabled}
         >
@@ -247,7 +278,7 @@ export function RichTextEditor({
         </ToolbarBtn>
         <ToolbarBtn
           onClick={() => editor?.chain().focus().toggleItalic().run()}
-          active={editor?.isActive("italic") ?? false}
+          active={toolbar.italic}
           title="Italic (Ctrl+I)"
           disabled={disabled}
         >
@@ -255,7 +286,7 @@ export function RichTextEditor({
         </ToolbarBtn>
         <ToolbarBtn
           onClick={() => editor?.chain().focus().toggleUnderline().run()}
-          active={editor?.isActive("underline") ?? false}
+          active={toolbar.underline}
           title="Underline (Ctrl+U)"
           disabled={disabled}
         >
@@ -263,12 +294,50 @@ export function RichTextEditor({
         </ToolbarBtn>
         <ToolbarBtn
           onClick={() => editor?.chain().focus().toggleStrike().run()}
-          active={editor?.isActive("strike") ?? false}
+          active={toolbar.strike}
           title="Strikethrough (Ctrl+Shift+S)"
           disabled={disabled}
         >
           <Strikethrough className="h-3.5 w-3.5" />
         </ToolbarBtn>
+
+        <div className="w-px h-4 bg-border mx-1 shrink-0" />
+
+        {/* Block formatting */}
+        <ToolbarBtn
+          onClick={() =>
+            editor?.chain().focus().toggleHeading({ level: 3 }).run()
+          }
+          active={toolbar.heading3}
+          title="Heading"
+          disabled={disabled}
+        >
+          <Heading3 className="h-3.5 w-3.5" />
+        </ToolbarBtn>
+
+        <div className="w-px h-4 bg-border mx-1 shrink-0" />
+
+        {/* Lists */}
+        <ToolbarBtn
+          onClick={() => editor?.chain().focus().toggleBulletList().run()}
+          active={toolbar.bulletList}
+          title="Bullet list"
+          disabled={disabled}
+        >
+          <List className="h-3.5 w-3.5" />
+        </ToolbarBtn>
+        <ToolbarBtn
+          onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+          active={toolbar.orderedList}
+          title="Ordered list"
+          disabled={disabled}
+        >
+          <ListOrdered className="h-3.5 w-3.5" />
+        </ToolbarBtn>
+
+        <div className="w-px h-4 bg-border mx-1 shrink-0" />
+
+        {/* Media */}
         <ToolbarBtn
           onClick={handleInsertImage}
           title="Insert image markdown"
@@ -282,38 +351,6 @@ export function RichTextEditor({
           disabled={disabled}
         >
           <Video className="h-3.5 w-3.5" />
-        </ToolbarBtn>
-
-        <div className="w-px h-4 bg-border mx-1 shrink-0" />
-
-        <ToolbarBtn
-          onClick={() =>
-            editor?.chain().focus().toggleHeading({ level: 3 }).run()
-          }
-          active={editor?.isActive("heading", { level: 3 }) ?? false}
-          title="Heading"
-          disabled={disabled}
-        >
-          <Heading3 className="h-3.5 w-3.5" />
-        </ToolbarBtn>
-
-        <div className="w-px h-4 bg-border mx-1 shrink-0" />
-
-        <ToolbarBtn
-          onClick={() => editor?.chain().focus().toggleBulletList().run()}
-          active={editor?.isActive("bulletList") ?? false}
-          title="Bullet list"
-          disabled={disabled}
-        >
-          <List className="h-3.5 w-3.5" />
-        </ToolbarBtn>
-        <ToolbarBtn
-          onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-          active={editor?.isActive("orderedList") ?? false}
-          title="Ordered list"
-          disabled={disabled}
-        >
-          <ListOrdered className="h-3.5 w-3.5" />
         </ToolbarBtn>
       </div>
 
