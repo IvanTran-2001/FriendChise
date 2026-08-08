@@ -77,8 +77,8 @@ export async function requireParentOrgOwnerPage(
  * Requires the caller to be a member of the org whose role(s) grant
  * the given permission action.
  * - Not signed in     → redirects to /signin
- * - Not a member      → redirects to redirectTo (default: /orgs/[orgId])
- * - Permission denied → redirects to redirectTo (default: /orgs/[orgId])
+ * - Not a member      → redirects to redirectTo (default: /settings)
+ * - Permission denied → redirects to redirectTo (default: /settings)
  * - Otherwise         → returns { userId }
  */
 export async function requireOrgPermissionPage(
@@ -90,10 +90,10 @@ export async function requireOrgPermissionPage(
   if (!userId) redirect("/signin");
 
   const membership = await getOrgMembership(orgId, userId);
-  if (!membership) redirect(redirectTo ?? `/orgs/${orgId}`);
+  if (!membership) redirect(redirectTo ?? "/settings");
 
   if (!(await memberHasPermission(membership.id, orgId, permission))) {
-    const base = redirectTo ?? `/orgs/${orgId}`;
+    const base = redirectTo ?? "/settings";
     redirect(
       base.includes("?") ? `${base}&unauthorized=1` : `${base}?unauthorized=1`,
     );
