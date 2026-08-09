@@ -67,7 +67,7 @@ export async function listTimetableEntries(
 
   return prisma.timetableEntry.findMany({
     where,
-    orderBy: { date: "desc" },
+    orderBy: [{ date: "desc" }, { startTimeMin: "asc" }, { id: "asc" }],
     take: limit,
   });
 }

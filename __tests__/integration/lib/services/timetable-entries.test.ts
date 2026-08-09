@@ -146,6 +146,41 @@ describe("listTimetableEntries", () => {
       await cleanupTempOrg(org.id);
     }
   });
+
+  it("returns tied cutoff entries consistently with a deterministic order", async () => {
+    const { org, task } = await createTempOrgWithTask();
+    try {
+      const date = new Date("2026-08-11T00:00:00Z");
+      const createdIds: string[] = [];
+
+      for (let index = 0; index < 3; index += 1) {
+        const created = await prisma.timetableEntry.create({
+          data: {
+            orgId: org.id,
+            taskId: task.id,
+            taskName: task.name,
+            taskColor: task.color,
+            taskDescription: task.description,
+            durationMin: task.durationMin,
+            date,
+            startTimeMin: 480,
+            endTimeMin: 510,
+          },
+          select: { id: true },
+        });
+        createdIds.push(created.id);
+      }
+
+      const firstPage = await listTimetableEntries(org.id, { limit: 2 });
+      const secondPage = await listTimetableEntries(org.id, { limit: 2 });
+      const expectedIds = [...createdIds].sort();
+
+      expect(firstPage.map((entry) => entry.id)).toEqual(expectedIds.slice(0, 2));
+      expect(secondPage.map((entry) => entry.id)).toEqual(expectedIds.slice(0, 2));
+    } finally {
+      await cleanupTempOrg(org.id);
+    }
+  });
 });
 
 describe("getTimetableEntry", () => {
