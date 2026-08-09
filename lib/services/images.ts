@@ -319,16 +319,19 @@ export async function renameTaskImageIfNeeded(
     return currentPath;
   }
 
-  const [otherTasksCount, itemsCount] = await Promise.all([
+  const [otherTasksCount, itemsCount, orgImagesCount] = await Promise.all([
     db.task.count({
       where: { imageUrl: currentPath, NOT: { id: taskId } },
     }),
     db.toolItem.count({
       where: { imgUrl: currentPath },
     }),
+    db.orgImage.count({
+      where: { orgId, storagePath: currentPath },
+    }),
   ]);
 
-  const isShared = otherTasksCount + itemsCount > 0;
+  const isShared = otherTasksCount + itemsCount + orgImagesCount > 0;
 
   if (isShared) {
     const copyResult = await copyStorageFile(currentPath, expectedPath);
@@ -398,16 +401,19 @@ export async function renameToolItemImageIfNeeded(
     return currentPath;
   }
 
-  const [tasksCount, otherItemsCount] = await Promise.all([
+  const [tasksCount, otherItemsCount, orgImagesCount] = await Promise.all([
     db.task.count({
       where: { imageUrl: currentPath },
     }),
     db.toolItem.count({
       where: { imgUrl: currentPath, NOT: { id: itemId } },
     }),
+    db.orgImage.count({
+      where: { orgId, storagePath: currentPath },
+    }),
   ]);
 
-  const isShared = tasksCount + otherItemsCount > 0;
+  const isShared = tasksCount + otherItemsCount + orgImagesCount > 0;
 
   if (isShared) {
     const copyResult = await copyStorageFile(currentPath, expectedPath);
