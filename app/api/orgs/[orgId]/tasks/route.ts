@@ -128,6 +128,21 @@ export async function POST(
     );
   }
 
+  const requestedRoleIds = [...new Set(payload.roleIds)];
+  if (requestedRoleIds.length > 0) {
+    const validRoles = await prisma.role.findMany({
+      where: { orgId, id: { in: requestedRoleIds } },
+      select: { id: true },
+    });
+
+    if (validRoles.length !== requestedRoleIds.length) {
+      return NextResponse.json(
+        { error: "One or more role IDs are invalid for this organization." },
+        { status: 400 },
+      );
+    }
+  }
+
   if (parsed.data.imageStoragePath) {
     const normalizedImagePath = normalizeImageStoragePath(orgId, parsed.data.imageStoragePath);
     if (!normalizedImagePath) {
@@ -170,8 +185,8 @@ export async function POST(
       }
     }
 
-    if (payload.roleIds.length > 0) {
-      await setTaskEligibilities(orgId, task.id, payload.roleIds);
+    if (requestedRoleIds.length > 0) {
+      await setTaskEligibilities(orgId, task.id, requestedRoleIds);
     }
 
     return NextResponse.json({ taskId: task.id }, { status: 201 });

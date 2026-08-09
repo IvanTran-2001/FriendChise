@@ -5,6 +5,7 @@ import { requireOrgPermissionAction } from "@/lib/authz/action";
 import { prisma } from "@/lib/platform/prisma";
 import {
   createSignedReadUrl,
+  createSignedReadUrls,
   createSignedUploadUrl,
   moveStorageFile,
   copyStorageFile,
@@ -197,18 +198,19 @@ export async function getOrgImagesWithSignedUrls(
   const rows = await getOrgImages(orgId);
   if (rows.length === 0) return { ok: true, images: [] };
 
-  const images = await Promise.all(
-    rows.map(async (row) => {
-      const signedUrl = await createSignedReadUrl(row.storagePath);
+  const signedUrls = await createSignedReadUrls(rows.map((row) => row.storagePath));
+  const images = rows
+    .map((row) => {
+      const signedUrl = signedUrls.get(row.storagePath);
       return signedUrl
         ? { id: row.id, storagePath: row.storagePath, name: row.name, signedUrl }
         : null;
-    }),
-  );
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null);
 
   return {
     ok: true,
-    images: images.filter((row): row is NonNullable<typeof row> => row !== null),
+    images,
   };
 }
 
@@ -242,18 +244,19 @@ export async function getOrgImagesPageWithSignedUrls(
     };
   }
 
-  const images = await Promise.all(
-    pageData.images.map(async (row) => {
-      const signedUrl = await createSignedReadUrl(row.storagePath);
+  const signedUrls = await createSignedReadUrls(pageData.images.map((row) => row.storagePath));
+  const images = pageData.images
+    .map((row) => {
+      const signedUrl = signedUrls.get(row.storagePath);
       return signedUrl
         ? { id: row.id, storagePath: row.storagePath, name: row.name, signedUrl }
         : null;
-    }),
-  );
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null);
 
   return {
     ok: true,
-    images: images.filter((row): row is NonNullable<typeof row> => row !== null),
+    images,
     totalCount: pageData.totalCount,
     totalPages: pageData.totalPages,
     page: pageData.page,
