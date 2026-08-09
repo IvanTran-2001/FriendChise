@@ -1,9 +1,11 @@
 import crypto from "crypto";
 import { PermissionAction } from "@prisma/client";
 import { isDemoEmail } from "@/lib/demo";
-import crypto from "crypto";
+import { requireOrgPermissionAction } from "@/lib/authz/action";
 import { prisma } from "@/lib/platform/prisma";
 import {
+  createSignedReadUrl,
+  createSignedUploadUrl,
   moveStorageFile,
   copyStorageFile,
   deleteStorageFile,
@@ -11,9 +13,22 @@ import {
 
 type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
-type OrgImageRow = { id: string; storagePath: string; name: string | null; createdAt: Date };
+type OrgImageRow = {
+  id: string;
+  storagePath: string;
+  name: string | null;
+  createdAt: Date;
+};
 
 const MAX_PAGE_SIZE = 100;
+
+type AllowedMime = "image/jpeg" | "image/png" | "image/webp";
+const ALLOWED_MIME_TYPES: AllowedMime[] = ["image/jpeg", "image/png", "image/webp"];
+const EXT: Record<AllowedMime, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
 
 export type OrgImagePage = {
   images: OrgImageRow[];
@@ -102,14 +117,6 @@ export async function getOrgImagesPage(
 
   return { images, totalCount, totalPages, page, pageSize };
 }
-    const pageData = await getOrgImagesPage(orgId, { page: 1, pageSize: MAX_PAGE_SIZE });
-    return pageData.images;
-    take: pageSize,
-    select: { id: true, storagePath: true, name: true, createdAt: true },
-  });
-
-  return { images, totalCount, totalPages, page, pageSize };
-}
 
 export async function addOrgImage(
   orgId: string,
@@ -125,7 +132,7 @@ export async function addOrgImage(
 /**
  * Returns a signed upload URL for an org library image.
  * Path format: `orgs/{orgId}/images/{uuid}.{ext}`
-    const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(options.pageSize ?? 12)));
+ */
 export async function getSignedOrgImageUploadUrl(
   orgId: string,
   mimeType: string,
@@ -150,7 +157,7 @@ export async function getSignedOrgImageUploadUrl(
  * Saves an uploaded org image after a successful PUT to storage.
  */
 export async function saveOrgImageToLibrary(
-    const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(options.pageSize ?? 24)));
+  orgId: string,
   storagePath: string,
   name?: string,
 ): Promise<
@@ -172,6 +179,82 @@ export async function saveOrgImageToLibrary(
   return { ok: true, image: { ...img, signedUrl } };
 }
 
+/** Returns a bounded slice of org library images with fresh signed URLs. */
+export async function getOrgImagesWithSignedUrls(
+  orgId: string,
+): Promise<
+  | { ok: true; images: { id: string; storagePath: string; name: string | null; signedUrl: string }[] }
+  | { ok: false; error: string }
+> {
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  const rows = await getOrgImages(orgId);
+  if (rows.length === 0) return { ok: true, images: [] };
+
+  const images = await Promise.all(
+    rows.map(async (row) => {
+      const signedUrl = await createSignedReadUrl(row.storagePath);
+      return signedUrl
+        ? { id: row.id, storagePath: row.storagePath, name: row.name, signedUrl }
+        : null;
+    }),
+  );
+
+  return {
+    ok: true,
+    images: images.filter((row): row is NonNullable<typeof row> => row !== null),
+  };
+}
+
+/** Returns a paginated slice of org library images with fresh signed URLs. */
+export async function getOrgImagesPageWithSignedUrls(
+  orgId: string,
+  options: { page?: number; pageSize?: number; search?: string } = {},
+): Promise<
+  | {
+      ok: true;
+      images: { id: string; storagePath: string; name: string | null; signedUrl: string }[];
+      totalCount: number;
+      totalPages: number;
+      page: number;
+      pageSize: number;
+    }
+  | { ok: false; error: string }
+> {
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+
+  const pageData = await getOrgImagesPage(orgId, options);
+  if (pageData.images.length === 0) {
+    return {
+      ok: true,
+      images: [],
+      totalCount: pageData.totalCount,
+      totalPages: pageData.totalPages,
+      page: pageData.page,
+      pageSize: pageData.pageSize,
+    };
+  }
+
+  const images = await Promise.all(
+    pageData.images.map(async (row) => {
+      const signedUrl = await createSignedReadUrl(row.storagePath);
+      return signedUrl
+        ? { id: row.id, storagePath: row.storagePath, name: row.name, signedUrl }
+        : null;
+    }),
+  );
+
+  return {
+    ok: true,
+    images: images.filter((row): row is NonNullable<typeof row> => row !== null),
+    totalCount: pageData.totalCount,
+    totalPages: pageData.totalPages,
+    page: pageData.page,
+    pageSize: pageData.pageSize,
+  };
+}
+
 export async function deleteOrgImage(orgId: string, imageId: string) {
   const img = await prisma.orgImage.findFirst({
     where: { id: imageId, orgId },
@@ -190,10 +273,10 @@ export async function deleteOrgImage(orgId: string, imageId: string) {
 export function sanitizeFilename(name: string): string {
   const clean = name
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")      // Replace non-alphanumeric with hyphens
-    .replace(/(^-|-$)/g, "");          // Trim hyphens
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
   return clean || "image";
 }
 
@@ -218,7 +301,6 @@ export async function renameTaskImageIfNeeded(
   const parts = currentPath.split(".");
   const ext = parts.length > 1 ? parts.pop()?.toLowerCase() || "jpg" : "jpg";
 
-  // Extract existing UUID if present, otherwise generate a fresh one
   const filenameWithExt = currentPath.split("/").pop() || "";
   const filenameBase = filenameWithExt.split(".").slice(0, -1).join(".");
   const uuidMatch = filenameBase.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
@@ -231,7 +313,6 @@ export async function renameTaskImageIfNeeded(
     return currentPath;
   }
 
-  // Count references to the current image path in other records across both tables
   const [otherTasksCount, itemsCount] = await Promise.all([
     db.task.count({
       where: { imageUrl: currentPath, NOT: { id: taskId } },
@@ -241,34 +322,35 @@ export async function renameTaskImageIfNeeded(
     }),
   ]);
 
-  const isShared = (otherTasksCount + itemsCount) > 0;
+  const isShared = otherTasksCount + itemsCount > 0;
 
   if (isShared) {
-    // Copy the file in storage to avoid breaking other references
     const copyResult = await copyStorageFile(currentPath, expectedPath);
     if (!copyResult.ok) {
-      console.error(`[renameTaskImageIfNeeded] Failed to copy storage file from ${currentPath} to ${expectedPath}:`, copyResult.error);
+      console.error(
+        `[renameTaskImageIfNeeded] Failed to copy storage file from ${currentPath} to ${expectedPath}:`,
+        copyResult.error,
+      );
       return null;
     }
   } else {
-    // Delete any existing file at the expected path first (only if different from current source)
     if (currentPath !== expectedPath) {
       await deleteStorageFile(expectedPath);
     }
-    // Move/rename the file in storage
     const moveResult = await moveStorageFile(currentPath, expectedPath);
     if (!moveResult.ok) {
-      console.error(`[renameTaskImageIfNeeded] Failed to move storage file from ${currentPath} to ${expectedPath}:`, moveResult.error);
+      console.error(
+        `[renameTaskImageIfNeeded] Failed to move storage file from ${currentPath} to ${expectedPath}:`,
+        moveResult.error,
+      );
       return null;
     }
-    // Update any library OrgImage row pointing to the old path
     await db.orgImage.updateMany({
       where: { orgId, storagePath: currentPath },
       data: { storagePath: expectedPath, name: task.name },
     });
   }
 
-  // Update the task's imageUrl in the DB
   await db.task.update({
     where: { id: taskId },
     data: { imageUrl: expectedPath },
@@ -298,7 +380,6 @@ export async function renameToolItemImageIfNeeded(
   const parts = currentPath.split(".");
   const ext = parts.length > 1 ? parts.pop()?.toLowerCase() || "jpg" : "jpg";
 
-  // Extract existing UUID if present, otherwise generate a fresh one
   const filenameWithExt = currentPath.split("/").pop() || "";
   const filenameBase = filenameWithExt.split(".").slice(0, -1).join(".");
   const uuidMatch = filenameBase.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
@@ -311,7 +392,6 @@ export async function renameToolItemImageIfNeeded(
     return currentPath;
   }
 
-  // Count references to the current image path in other records across both tables
   const [tasksCount, otherItemsCount] = await Promise.all([
     db.task.count({
       where: { imageUrl: currentPath },
@@ -321,34 +401,35 @@ export async function renameToolItemImageIfNeeded(
     }),
   ]);
 
-  const isShared = (tasksCount + otherItemsCount) > 0;
+  const isShared = tasksCount + otherItemsCount > 0;
 
   if (isShared) {
-    // Copy the file in storage to avoid breaking other references
     const copyResult = await copyStorageFile(currentPath, expectedPath);
     if (!copyResult.ok) {
-      console.error(`[renameToolItemImageIfNeeded] Failed to copy storage file from ${currentPath} to ${expectedPath}:`, copyResult.error);
+      console.error(
+        `[renameToolItemImageIfNeeded] Failed to copy storage file from ${currentPath} to ${expectedPath}:`,
+        copyResult.error,
+      );
       return null;
     }
   } else {
-    // Delete any existing file at the expected path first (only if different from current source)
     if (currentPath !== expectedPath) {
       await deleteStorageFile(expectedPath);
     }
-    // Move/rename the file in storage
     const moveResult = await moveStorageFile(currentPath, expectedPath);
     if (!moveResult.ok) {
-      console.error(`[renameToolItemImageIfNeeded] Failed to move storage file from ${currentPath} to ${expectedPath}:`, moveResult.error);
+      console.error(
+        `[renameToolItemImageIfNeeded] Failed to move storage file from ${currentPath} to ${expectedPath}:`,
+        moveResult.error,
+      );
       return null;
     }
-    // Update any library OrgImage row pointing to the old path
     await db.orgImage.updateMany({
       where: { orgId, storagePath: currentPath },
       data: { storagePath: expectedPath, name: item.name },
     });
   }
 
-  // Update the tool item's imgUrl in the DB
   await db.toolItem.update({
     where: { id: itemId },
     data: { imgUrl: expectedPath },
