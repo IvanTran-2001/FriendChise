@@ -47,7 +47,11 @@ export async function listTimetableEntries(
   options: ListTimetableEntriesOptions = {},
 ) {
   const where: Prisma.TimetableEntryWhereInput = { orgId };
-  const limit = Math.min(MAX_LIMIT, Math.max(1, Math.floor(options.limit ?? MAX_LIMIT)));
+  const normalizedLimit =
+    typeof options.limit === "number" && Number.isFinite(options.limit)
+      ? options.limit
+      : MAX_LIMIT;
+  const limit = Math.min(MAX_LIMIT, Math.max(1, Math.floor(normalizedLimit)));
 
   if (options.status != null) {
     where.status = options.status;

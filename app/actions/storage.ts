@@ -44,6 +44,7 @@ import { isDemoEmail } from "@/lib/demo";
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 type AllowedMime = (typeof ALLOWED_MIME_TYPES)[number];
+const ORG_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 
 const EXT: Record<AllowedMime, string> = {
   "image/jpeg": "jpg",
@@ -334,6 +335,7 @@ export async function reuseToolItemImageAction(
 export async function getSignedOrgImageUploadUrl(
   orgId: string,
   mimeType: string,
+  maxSizeBytes: number = ORG_IMAGE_MAX_BYTES,
 ): Promise<
   { ok: true; signedUrl: string; path: string } | { ok: false; error: string }
 > {
@@ -345,7 +347,7 @@ export async function getSignedOrgImageUploadUrl(
     return { ok: false, error: "Unsupported file type. Use JPEG, PNG, or WebP." };
   const ext = EXT[mimeType as AllowedMime];
   const uuid = crypto.randomUUID();
-  return createSignedUploadUrl(`orgs/${orgId}/images/${uuid}.${ext}`);
+  return createSignedUploadUrl(`orgs/${orgId}/images/${uuid}.${ext}`, maxSizeBytes);
 }
 
 /** Saves an uploaded image to the org library after a successful upload. */
@@ -362,9 +364,9 @@ export async function saveOrgImageToLibrary(
   const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
   if (!normalized.startsWith(`orgs/${orgId}/images/`))
     return { ok: false, error: "Invalid storage path" };
-  const img = await addOrgImage(orgId, normalized, name);
   const signedUrl = (await createSignedReadUrl(normalized)) ?? null;
   if (!signedUrl) return { ok: false, error: "Failed to generate image URL" };
+  const img = await addOrgImage(orgId, normalized, name);
   return { ok: true, image: { ...img, signedUrl } };
 }
 
@@ -451,11 +453,12 @@ export async function deleteOrgImageAction(
   const storagePath = await deleteOrgImage(orgId, imageId);
   if (!storagePath) return { ok: false, error: "Image not found" };
   // Delete the file only if no task or tool item still points at this path
-  const [taskRef, itemRef] = await Promise.all([
+  const [taskRef, itemRef, imageRef] = await Promise.all([
     prisma.task.count({ where: { orgId, imageUrl: storagePath } }),
     prisma.toolItem.count({ where: { orgId, imgUrl: storagePath } }),
+    prisma.orgImage.count({ where: { orgId, storagePath } }),
   ]);
-  if (taskRef === 0 && itemRef === 0) await deleteStorageFile(storagePath);
+  if (taskRef === 0 && itemRef === 0 && imageRef === 0) await deleteStorageFile(storagePath);
   return { ok: true };
 }
 

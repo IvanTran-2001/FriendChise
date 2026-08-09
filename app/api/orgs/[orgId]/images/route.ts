@@ -21,6 +21,32 @@ function extractPayload(body: FormData | Record<string, unknown>) {
   };
 }
 
+async function parseRequestBody(req: Request) {
+  const contentType = req.headers.get("content-type") ?? "";
+  const isJson = contentType.includes("application/json");
+  const isForm =
+    contentType.includes("multipart/form-data") ||
+    contentType.includes("application/x-www-form-urlencoded");
+
+  if (!isJson && !isForm) {
+    return NextResponse.json({ error: "Unsupported media type." }, { status: 415 });
+  }
+
+  if (isJson) {
+    try {
+      return ((await req.json()) as Record<string, unknown> | null) ?? {};
+    } catch {
+      return NextResponse.json({ error: "Malformed JSON body." }, { status: 400 });
+    }
+  }
+
+  try {
+    return await req.formData();
+  } catch {
+    return NextResponse.json({ error: "Malformed form body." }, { status: 400 });
+  }
+}
+
 function extractQueryParams(url: URL) {
   const page = Number(url.searchParams.get("page") ?? "1");
   const pageSize = Number(url.searchParams.get("pageSize") ?? "24");
@@ -55,10 +81,8 @@ export async function POST(
   { params }: { params: Promise<{ orgId: string }> },
 ) {
   const { orgId } = await params;
-  const contentType = req.headers.get("content-type") ?? "";
-  const body = contentType.includes("application/json")
-    ? ((await req.json().catch(() => null)) as Record<string, unknown> | null) ?? {}
-    : await req.formData();
+  const body = await parseRequestBody(req);
+  if (body instanceof NextResponse) return body;
 
   const payload = extractPayload(body);
   if (!payload.storagePath) {

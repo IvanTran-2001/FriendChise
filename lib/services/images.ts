@@ -136,6 +136,7 @@ export async function addOrgImage(
 export async function getSignedOrgImageUploadUrl(
   orgId: string,
   mimeType: string,
+  maxSizeBytes: number = 5 * 1024 * 1024,
 ): Promise<
   { ok: true; signedUrl: string; path: string } | { ok: false; error: string }
 > {
@@ -150,7 +151,7 @@ export async function getSignedOrgImageUploadUrl(
 
   const ext = EXT[mimeType as AllowedMime];
   const uuid = crypto.randomUUID();
-  return createSignedUploadUrl(`orgs/${orgId}/images/${uuid}.${ext}`);
+  return createSignedUploadUrl(`orgs/${orgId}/images/${uuid}.${ext}`, maxSizeBytes);
 }
 
 /**
@@ -172,9 +173,10 @@ export async function saveOrgImageToLibrary(
     return { ok: false, error: "Invalid storage path" };
   }
 
-  const img = await addOrgImage(orgId, normalized, name);
   const signedUrl = (await createSignedReadUrl(normalized)) ?? null;
   if (!signedUrl) return { ok: false, error: "Failed to generate image URL" };
+
+  const img = await addOrgImage(orgId, normalized, name);
 
   return { ok: true, image: { ...img, signedUrl } };
 }

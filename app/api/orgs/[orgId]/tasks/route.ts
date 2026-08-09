@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { requireOrgPermission } from "@/lib/authz";
-import { createTask, findTaskByName, setTaskEligibilities } from "@/lib/services/tasks";
+import { createTask, deleteTask, findTaskByName, setTaskEligibilities } from "@/lib/services/tasks";
 import { PermissionAction } from "@prisma/client";
 import { createTaskSchema } from "@/lib/validators/task";
 import { saveTaskImagePath } from "@/app/actions/storage";
@@ -62,6 +62,11 @@ function extractPayload(body: FormData | Record<string, unknown>) {
   };
 }
 
+function normalizeImageStoragePath(orgId: string, imageStoragePath: string) {
+  const normalized = imageStoragePath.replace(/^\/+/, "").replace(/\.\./g, "");
+  return normalized.startsWith(`orgs/${orgId}/images/`) ? normalized : null;
+}
+
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ orgId: string }> },
@@ -95,6 +100,14 @@ export async function POST(
     );
   }
 
+  if (parsed.data.imageStoragePath) {
+    const normalizedImagePath = normalizeImageStoragePath(orgId, parsed.data.imageStoragePath);
+    if (!normalizedImagePath) {
+      return NextResponse.json({ error: "Invalid storage path" }, { status: 400 });
+    }
+  }
+
+  let createdTaskId: string | null = null;
   try {
     const task = await createTask(
       orgId,
@@ -103,6 +116,7 @@ export async function POST(
       authz.userEmail,
       null,
     );
+    createdTaskId = task.id;
 
     if (parsed.data.imageStoragePath) {
       const imageResult = await saveTaskImagePath(orgId, task.id, parsed.data.imageStoragePath);
@@ -117,6 +131,10 @@ export async function POST(
 
     return NextResponse.json({ taskId: task.id }, { status: 201 });
   } catch (error) {
+    if (createdTaskId) {
+      await deleteTask(orgId, createdTaskId, authz.userId, authz.userEmail).catch(() => null);
+    }
+
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json(
         { error: `A task named "${parsed.data.title}" already exists.` },
