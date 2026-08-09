@@ -21,7 +21,7 @@ type OrgImageRow = {
   createdAt: Date;
 };
 
-const MAX_PAGE_SIZE = 100;
+export const MAX_PAGE_SIZE = 100;
 
 type AllowedMime = "image/jpeg" | "image/png" | "image/webp";
 const ALLOWED_MIME_TYPES: AllowedMime[] = ["image/jpeg", "image/png", "image/webp"];

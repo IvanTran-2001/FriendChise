@@ -192,7 +192,11 @@ export async function POST(
     return NextResponse.json({ taskId: task.id }, { status: 201 });
   } catch (error) {
     if (createdTaskId) {
-      await deleteTask(orgId, createdTaskId, authz.userId, authz.userEmail).catch(() => null);
+      try {
+        await deleteTask(orgId, createdTaskId, authz.userId, authz.userEmail);
+      } catch (cleanupError) {
+        console.error("Failed to clean up created task after create failure", cleanupError);
+      }
     }
 
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {

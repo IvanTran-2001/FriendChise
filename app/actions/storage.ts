@@ -32,6 +32,7 @@ import { updateTaskImageUrl } from "@/lib/services/tasks";
 import { updateToolItemImageUrl } from "@/lib/services/tools";
 import { updateOrgImage } from "@/lib/services/orgs";
 import {
+  MAX_PAGE_SIZE,
   getOrgImagesPage,
   addOrgImage,
   deleteOrgImage,
@@ -388,38 +389,7 @@ export async function getOrgImagesWithSignedUrls(
     }
   | { ok: false; error: string }
 > {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
-  if (!authz.ok) return { ok: false, error: "Unauthorized" };
-  const pageData = await getOrgImagesPage(orgId, { page: 1, pageSize: 100 });
-  if (pageData.images.length === 0) {
-    return {
-      ok: true,
-      images: [],
-      totalCount: pageData.totalCount,
-      totalPages: pageData.totalPages,
-      page: pageData.page,
-      pageSize: pageData.pageSize,
-    };
-  }
-
-  const signedMap = await createSignedReadUrls(pageData.images.map((r) => r.storagePath));
-  const images = pageData.images
-    .map((r) => ({
-      id: r.id,
-      storagePath: r.storagePath,
-      name: r.name,
-      signedUrl: signedMap.get(r.storagePath) ?? null,
-    }))
-    .filter((r): r is typeof r & { signedUrl: string } => !!r.signedUrl);
-
-  return {
-    ok: true,
-    images,
-    totalCount: pageData.totalCount,
-    totalPages: pageData.totalPages,
-    page: pageData.page,
-    pageSize: pageData.pageSize,
-  };
+  return getOrgImagesPageWithSignedUrls(orgId, { page: 1, pageSize: MAX_PAGE_SIZE });
 }
 
 /** Returns a paginated slice of org library images with fresh signed URLs. */
