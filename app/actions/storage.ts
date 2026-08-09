@@ -368,7 +368,7 @@ export async function saveOrgImageToLibrary(
   return { ok: true, image: { ...img, signedUrl } };
 }
 
-/** Returns all org library images with fresh signed URLs. */
+/** Returns a bounded slice of org library images with fresh signed URLs. */
 export async function getOrgImagesWithSignedUrls(
   orgId: string,
 ): Promise<

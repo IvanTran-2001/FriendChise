@@ -1,4 +1,7 @@
 import crypto from "crypto";
+import { PermissionAction } from "@prisma/client";
+import { isDemoEmail } from "@/lib/demo";
+import crypto from "crypto";
 import { prisma } from "@/lib/platform/prisma";
 import {
   moveStorageFile,
@@ -10,6 +13,8 @@ type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 type OrgImageRow = { id: string; storagePath: string; name: string | null; createdAt: Date };
 
+const MAX_PAGE_SIZE = 100;
+
 export type OrgImagePage = {
   images: OrgImageRow[];
   totalCount: number;
@@ -20,15 +25,11 @@ export type OrgImagePage = {
 
 /**
  * @deprecated For super-admin global views use `getGlobalOrgImagesPage()` instead.
- * This function returns all images for a single org without pagination and is
- * only appropriate for org-scoped contexts where the set is bounded.
+ * This helper is still bounded to keep memory usage predictable.
  */
 export async function getOrgImages(orgId: string): Promise<OrgImageRow[]> {
-  return prisma.orgImage.findMany({
-    where: { orgId },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, storagePath: true, name: true, createdAt: true },
-  });
+  const pageData = await getOrgImagesPage(orgId, { page: 1, pageSize: MAX_PAGE_SIZE });
+  return pageData.images;
 }
 
 type GlobalOrgImageRow = OrgImageRow & { org: { name: string } | null };
@@ -50,7 +51,7 @@ export type GlobalOrgImagesPage = {
 export async function getGlobalOrgImagesPage(
   options: { page?: number; pageSize?: number } = {},
 ): Promise<GlobalOrgImagesPage> {
-  const pageSize = Math.max(1, Math.floor(options.pageSize ?? 12));
+  const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(options.pageSize ?? 12)));
   const totalCount = await prisma.orgImage.count();
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const page = Math.min(Math.max(1, Math.floor(options.page ?? 1)), totalPages);
@@ -68,14 +69,14 @@ export async function getGlobalOrgImagesPage(
     },
   });
 
-  return { images, totalCount, totalPages, page, pageSize };
+  return { images: images as GlobalOrgImageRow[], totalCount, totalPages, page, pageSize };
 }
 
 export async function getOrgImagesPage(
   orgId: string,
   options: { page?: number; pageSize?: number; search?: string } = {},
 ): Promise<OrgImagePage> {
-  const pageSize = Math.max(1, Math.floor(options.pageSize ?? 24));
+  const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(options.pageSize ?? 24)));
   const search = options.search?.trim() ?? "";
   const where = search
     ? {
@@ -101,6 +102,14 @@ export async function getOrgImagesPage(
 
   return { images, totalCount, totalPages, page, pageSize };
 }
+    const pageData = await getOrgImagesPage(orgId, { page: 1, pageSize: MAX_PAGE_SIZE });
+    return pageData.images;
+    take: pageSize,
+    select: { id: true, storagePath: true, name: true, createdAt: true },
+  });
+
+  return { images, totalCount, totalPages, page, pageSize };
+}
 
 export async function addOrgImage(
   orgId: string,
@@ -111,6 +120,56 @@ export async function addOrgImage(
     data: { orgId, storagePath, name },
     select: { id: true, storagePath: true, name: true, createdAt: true },
   });
+}
+
+/**
+ * Returns a signed upload URL for an org library image.
+ * Path format: `orgs/{orgId}/images/{uuid}.{ext}`
+    const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(options.pageSize ?? 12)));
+export async function getSignedOrgImageUploadUrl(
+  orgId: string,
+  mimeType: string,
+): Promise<
+  { ok: true; signedUrl: string; path: string } | { ok: false; error: string }
+> {
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  if (isDemoEmail(authz.userEmail)) {
+    return { ok: false, error: "Image uploads are not available in demo mode." };
+  }
+  if (!ALLOWED_MIME_TYPES.includes(mimeType as AllowedMime)) {
+    return { ok: false, error: "Unsupported file type. Use JPEG, PNG, or WebP." };
+  }
+
+  const ext = EXT[mimeType as AllowedMime];
+  const uuid = crypto.randomUUID();
+  return createSignedUploadUrl(`orgs/${orgId}/images/${uuid}.${ext}`);
+}
+
+/**
+ * Saves an uploaded org image after a successful PUT to storage.
+ */
+export async function saveOrgImageToLibrary(
+    const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(options.pageSize ?? 24)));
+  storagePath: string,
+  name?: string,
+): Promise<
+  | { ok: true; image: { id: string; storagePath: string; name: string | null; signedUrl: string } }
+  | { ok: false; error: string }
+> {
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+
+  const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
+  if (!normalized.startsWith(`orgs/${orgId}/images/`)) {
+    return { ok: false, error: "Invalid storage path" };
+  }
+
+  const img = await addOrgImage(orgId, normalized, name);
+  const signedUrl = (await createSignedReadUrl(normalized)) ?? null;
+  if (!signedUrl) return { ok: false, error: "Failed to generate image URL" };
+
+  return { ok: true, image: { ...img, signedUrl } };
 }
 
 export async function deleteOrgImage(orgId: string, imageId: string) {

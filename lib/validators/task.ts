@@ -16,6 +16,7 @@ export const createTaskSchema = z
     color: hexColorSchema,
     title: z.string().min(1).max(200),
     description: z.string().max(5000).optional(),
+    imageStoragePath: z.string().max(2048).optional(),
     durationMin: z
       .number()
       .int()
