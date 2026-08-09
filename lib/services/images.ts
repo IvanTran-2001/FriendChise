@@ -40,7 +40,8 @@ export type OrgImagePage = {
 
 /**
  * @deprecated For super-admin global views use `getGlobalOrgImagesPage()` instead.
- * This helper is still bounded to keep memory usage predictable.
+ * This helper returns at most `MAX_PAGE_SIZE` rows and is not exhaustive.
+ * Callers that need completeness should use `getOrgImagesPage()`.
  */
 export async function getOrgImages(orgId: string): Promise<OrgImageRow[]> {
   const pageData = await getOrgImagesPage(orgId, { page: 1, pageSize: MAX_PAGE_SIZE });
@@ -181,7 +182,10 @@ export async function saveOrgImageToLibrary(
   return { ok: true, image: { ...img, signedUrl } };
 }
 
-/** Returns a bounded slice of org library images with fresh signed URLs. */
+/**
+ * Returns at most `MAX_PAGE_SIZE` org library images with fresh signed URLs.
+ * This is a bounded slice, not a complete list.
+ */
 export async function getOrgImagesWithSignedUrls(
   orgId: string,
 ): Promise<

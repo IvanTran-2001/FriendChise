@@ -5,6 +5,8 @@ import { createTask, deleteTask, findTaskByName, setTaskEligibilities } from "@/
 import { PermissionAction } from "@prisma/client";
 import { createTaskSchema } from "@/lib/validators/task";
 import { saveTaskImagePath } from "@/app/actions/storage";
+import { prisma } from "@/lib/platform/prisma";
+import { createSignedReadUrl } from "@/lib/platform/supabase-storage";
 
 function asString(value: FormDataEntryValue | null | undefined) {
   return typeof value === "string" ? value : undefined;
@@ -105,6 +107,23 @@ export async function POST(
     if (!normalizedImagePath) {
       return NextResponse.json({ error: "Invalid storage path" }, { status: 400 });
     }
+
+    const libraryImage = await prisma.orgImage.findFirst({
+      where: { orgId, storagePath: normalizedImagePath },
+      select: { id: true },
+    });
+
+    const storageImageExists = libraryImage
+      ? true
+      : await createSignedReadUrl(normalizedImagePath)
+          .then((signedUrl) => Boolean(signedUrl))
+          .catch(() => false);
+
+    if (!storageImageExists) {
+      return NextResponse.json({ error: "Image not found" }, { status: 404 });
+    }
+
+    parsed.data.imageStoragePath = normalizedImagePath;
   }
 
   let createdTaskId: string | null = null;
@@ -142,9 +161,8 @@ export async function POST(
       );
     }
 
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create task." },
-      { status: 500 },
-    );
+    console.error("Failed to create task", error);
+
+    return NextResponse.json({ error: "Failed to create task." }, { status: 500 });
   }
 }
