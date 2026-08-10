@@ -63,10 +63,7 @@ async function drainImageSaveResult(result: ImageSaveResult): Promise<{ ok: true
   }
 
   for (const oldImagePath of result.oldImagePathsToDelete) {
-    const deleted = await deleteStorageFile(oldImagePath);
-    if (!deleted.ok) {
-      return { ok: false, error: deleted.error };
-    }
+    await deleteStorageFile(oldImagePath);
   }
 
   return { ok: true };
@@ -421,15 +418,15 @@ export async function getOrgImagesPageWithSignedUrls(
 export async function deleteOrgImageAction(
   orgId: string,
   imageId: string,
-): Promise<{ ok: true } | { ok: false; error: string; code: "storage_failure" | "unauthorized" | "invalid_input" }> {
+): Promise<{ ok: true } | { ok: false; error: string; code: "unauthorized" | "invalid_input" }> {
   const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
-  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  if (!authz.ok) return { ok: false, error: "Unauthorized", code: "unauthorized" };
 
   const image = await prisma.orgImage.findFirst({
     where: { id: imageId, orgId },
     select: { storagePath: true },
   });
-  if (!image) return { ok: false, error: "Image not found" };
+  if (!image) return { ok: false, error: "Image not found", code: "invalid_input" };
 
   const storagePathToDelete = await withOrgImageStorageLock(orgId, image.storagePath, async (tx) => {
     const { count } = await tx.orgImage.deleteMany({ where: { id: imageId, orgId } });
@@ -444,10 +441,7 @@ export async function deleteOrgImageAction(
   });
 
   if (storagePathToDelete) {
-    const deleteResult = await deleteStorageFile(storagePathToDelete);
-    if (!deleteResult.ok) {
-      return { ok: false, error: deleteResult.error, code: deleteResult.code };
-    }
+    await deleteStorageFile(storagePathToDelete);
   }
   return { ok: true };
 }
