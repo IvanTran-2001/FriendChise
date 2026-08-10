@@ -4,7 +4,7 @@ import { requireOrgPermission } from "@/lib/authz";
 import { createTask, deleteTask, findTaskByName, setTaskEligibilities } from "@/lib/services/tasks";
 import { PermissionAction } from "@prisma/client";
 import { createTaskSchema } from "@/lib/validators/task";
-import { saveTaskImagePath } from "@/app/actions/storage";
+import { removeTaskImage, saveTaskImagePath } from "@/app/actions/storage";
 import { prisma } from "@/lib/platform/prisma";
 import { createSignedReadUrl } from "@/lib/platform/supabase-storage";
 import { parseRequestBody } from "@/lib/http/request-body";
@@ -89,6 +89,7 @@ export async function POST(
   if (body instanceof NextResponse) return body;
 
   const payload = extractPayload(body);
+  let taskImagePath: string | null = null;
 
   const parsed = createTaskSchema.safeParse(payload);
   if (!parsed.success) {
@@ -154,6 +155,7 @@ export async function POST(
     const taskInput = normalizedImagePath
       ? { ...parsed.data, imageStoragePath: normalizedImagePath }
       : parsed.data;
+    taskImagePath = taskInput.imageStoragePath ?? null;
 
     const task = await createTask(
       orgId,
@@ -179,6 +181,9 @@ export async function POST(
   } catch (error) {
     if (createdTaskId) {
       try {
+        if (taskImagePath) {
+          await removeTaskImage(orgId, createdTaskId);
+        }
         await deleteTask(orgId, createdTaskId, authz.userId, authz.userEmail);
       } catch (cleanupError) {
         console.error("Failed to clean up created task after create failure", cleanupError);

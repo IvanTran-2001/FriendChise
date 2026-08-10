@@ -1363,6 +1363,7 @@ model OrgImage {
   name        String?      // Optional display name
   createdAt   DateTime     @default(now())
 
+  @@unique([orgId, storagePath])
   @@index([orgId])
 }
 

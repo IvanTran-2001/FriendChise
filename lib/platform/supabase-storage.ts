@@ -23,10 +23,10 @@
  * Never import this file from a "use client" component.
  */
 
+import type { StorageErrorCode } from "@/lib/http/storage-error";
+
 const BUCKET = "friendchise-private";
 const PUBLIC_BUCKET = "friendchise-public";
-
-type StorageErrorCode = "storage_failure";
 
 function getConfig() {
 	const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -59,6 +59,7 @@ export async function createSignedUploadUrl(
 			body: JSON.stringify(
 				maxSizeBytes !== undefined ? { sizeInBytes: maxSizeBytes } : {},
 			),
+			signal: AbortSignal.timeout(15_000),
 		},
 	);
 	if (!res.ok) {
@@ -149,6 +150,7 @@ export async function createSignedReadUrl(
 			"Content-Type": "application/json",
 		},
 		body: JSON.stringify({ expiresIn, paths: [storagePath] }),
+		signal: AbortSignal.timeout(15_000),
 	});
 	if (!res.ok) return null;
 	const data = (await res.json()) as Array<{
