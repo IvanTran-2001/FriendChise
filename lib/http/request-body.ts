@@ -16,7 +16,12 @@ export async function parseRequestBody(req: Request, options: ParseRequestBodyOp
 
   if (isJson) {
     try {
-      return ((await req.json()) as Record<string, unknown> | null) ?? {};
+      const parsed = await req.json();
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        return NextResponse.json({ error: "Malformed JSON body." }, { status: 400 });
+      }
+
+      return parsed as Record<string, unknown>;
     } catch {
       return NextResponse.json({ error: "Malformed JSON body." }, { status: 400 });
     }

@@ -9,7 +9,7 @@ import { prisma } from "@/lib/platform/prisma";
 import { createSignedReadUrl } from "@/lib/platform/supabase-storage";
 import { parseRequestBody } from "@/lib/http/request-body";
 
-function asString(value: FormDataEntryValue | null | undefined) {
+function asString(value: unknown) {
   return typeof value === "string" ? value : undefined;
 }
 
@@ -20,50 +20,54 @@ function asNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function extractPayload(body: FormData | Record<string, unknown>) {
+function normalizePayload(body: FormData | Record<string, unknown>) {
   if (body instanceof FormData) {
-    const minWaitDays = asNumber(body.get("minWaitDays"));
-    const maxWaitDays = asNumber(body.get("maxWaitDays"));
-    const bothEmpty = minWaitDays === undefined && maxWaitDays === undefined;
-
-    return {
-      color: asString(body.get("color")) ?? "#6366f1",
-      title: asString(body.get("title")) ?? "",
-      description: asString(body.get("description")) || undefined,
-      imageStoragePath: asString(body.get("imageStoragePath")) || undefined,
-      durationMin: asNumber(body.get("durationMin")),
-      preferredStartTimeMin: asNumber(body.get("preferredStartTimeMin")),
-      peopleRequired: asNumber(body.get("peopleRequired")) ?? 1,
-      minWaitDays: bothEmpty ? 0 : minWaitDays,
-      maxWaitDays: bothEmpty ? 0 : maxWaitDays,
-      roleIds: body
-        .getAll("roleIds")
-        .filter((value): value is string => typeof value === "string"),
-    };
+    const normalized: Record<string, unknown> = {};
+    for (const [key, value] of body.entries()) {
+      const existing = normalized[key];
+      if (existing === undefined) {
+        normalized[key] = value;
+      } else if (Array.isArray(existing)) {
+        normalized[key] = [...existing, value];
+      } else {
+        normalized[key] = [existing, value];
+      }
+    }
+    return normalized;
   }
 
-  const minWaitDays = asNumber(body.minWaitDays);
-  const maxWaitDays = asNumber(body.maxWaitDays);
+  return body;
+}
+
+function getStringArray(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.filter((entry): entry is string => typeof entry === "string");
+  }
+
+  if (typeof value === "string") {
+    return [value];
+  }
+
+  return [];
+}
+
+function extractPayload(body: FormData | Record<string, unknown>) {
+  const normalized = normalizePayload(body);
+  const minWaitDays = asNumber(normalized.minWaitDays);
+  const maxWaitDays = asNumber(normalized.maxWaitDays);
   const bothEmpty = minWaitDays === undefined && maxWaitDays === undefined;
 
   return {
-    color: typeof body.color === "string" ? body.color : "#6366f1",
-    title: typeof body.title === "string" ? body.title : "",
-    description: typeof body.description === "string" ? body.description || undefined : undefined,
-    imageStoragePath:
-      typeof body.imageStoragePath === "string" && body.imageStoragePath.trim()
-        ? body.imageStoragePath.trim()
-        : undefined,
-    durationMin: asNumber(body.durationMin),
-    preferredStartTimeMin: asNumber(body.preferredStartTimeMin),
-    peopleRequired: asNumber(body.peopleRequired) ?? 1,
+    color: asString(normalized.color) ?? "#6366f1",
+    title: asString(normalized.title) ?? "",
+    description: asString(normalized.description) || undefined,
+    imageStoragePath: asString(normalized.imageStoragePath)?.trim() || undefined,
+    durationMin: asNumber(normalized.durationMin),
+    preferredStartTimeMin: asNumber(normalized.preferredStartTimeMin),
+    peopleRequired: asNumber(normalized.peopleRequired) ?? 1,
     minWaitDays: bothEmpty ? 0 : minWaitDays,
     maxWaitDays: bothEmpty ? 0 : maxWaitDays,
-    roleIds: Array.isArray(body.roleIds)
-      ? body.roleIds.filter((value): value is string => typeof value === "string")
-      : typeof body.roleIds === "string"
-        ? [body.roleIds]
-        : [],
+    roleIds: getStringArray(normalized.roleIds),
   };
 }
 

@@ -1002,8 +1002,9 @@ export async function updateTaskImageUrl(
   orgId: string,
   taskId: string,
   imageUrl: string | null,
+  db: Prisma.TransactionClient | typeof prisma = prisma,
 ): Promise<ServiceResult<null>> {
-  const { count } = await prisma.task.updateMany({
+  const { count } = await db.task.updateMany({
     where: { id: taskId, orgId },
     data: { imageUrl },
   });

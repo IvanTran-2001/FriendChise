@@ -26,6 +26,8 @@
 const BUCKET = "friendchise-private";
 const PUBLIC_BUCKET = "friendchise-public";
 
+type StorageErrorCode = "storage_failure";
+
 function getConfig() {
 	const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 	const key = process.env.SUPABASE_SECRET_KEY;
@@ -43,7 +45,7 @@ export async function createSignedUploadUrl(
 	storagePath: string,
 	maxSizeBytes?: number,
 ): Promise<
-	{ ok: true; signedUrl: string; path: string } | { ok: false; error: string }
+	{ ok: true; signedUrl: string; path: string } | { ok: false; error: string; code: StorageErrorCode }
 > {
 	const { url, key } = getConfig();
 	const res = await fetch(
@@ -61,14 +63,14 @@ export async function createSignedUploadUrl(
 	);
 	if (!res.ok) {
 		const body = await res.text().catch(() => res.statusText);
-		return { ok: false, error: `Storage error: ${body}` };
+		return { ok: false, error: `Storage error: ${body}`, code: "storage_failure" };
 	}
 	const data = (await res.json()) as Record<string, unknown>;
 	const rawUrl = (data.signedURL ?? data.signedUrl ?? data.url) as
 		| string
 		| undefined;
 	if (!rawUrl) {
-		return { ok: false, error: `Storage error: unexpected response shape` };
+		return { ok: false, error: `Storage error: unexpected response shape`, code: "storage_failure" };
 	}
 	return {
 		ok: true,
@@ -130,6 +132,16 @@ export async function createSignedReadUrl(
 	expiresIn = 3600,
 ): Promise<string | null> {
 	const { url, key } = getConfig();
+	const encodedPath = storagePath.split("/").map(encodeURIComponent).join("/");
+	const existsRes = await fetch(`${url}/storage/v1/object/${BUCKET}/${encodedPath}`, {
+		method: "HEAD",
+		headers: {
+			Authorization: `Bearer ${key}`,
+		},
+		signal: AbortSignal.timeout(15_000),
+	});
+	if (!existsRes.ok) return null;
+
 	const res = await fetch(`${url}/storage/v1/object/sign/${BUCKET}`, {
 		method: "POST",
 		headers: {
@@ -276,7 +288,7 @@ export async function createSignedUploadUrlPublic(
 	storagePath: string,
 	maxSizeBytes?: number,
 ): Promise<
-	{ ok: true; signedUrl: string; path: string } | { ok: false; error: string }
+	{ ok: true; signedUrl: string; path: string } | { ok: false; error: string; code: StorageErrorCode }
 > {
 	const { url, key } = getConfig();
 	const res = await fetch(
@@ -294,14 +306,14 @@ export async function createSignedUploadUrlPublic(
 	);
 	if (!res.ok) {
 		const body = await res.text().catch(() => res.statusText);
-		return { ok: false, error: `Storage error: ${body}` };
+		return { ok: false, error: `Storage error: ${body}`, code: "storage_failure" };
 	}
 	const data = (await res.json()) as Record<string, unknown>;
 	const rawUrl = (data.signedURL ?? data.signedUrl ?? data.url) as
 		| string
 		| undefined;
 	if (!rawUrl) {
-		return { ok: false, error: `Storage error: unexpected response shape` };
+		return { ok: false, error: `Storage error: unexpected response shape`, code: "storage_failure" };
 	}
 	return {
 		ok: true,

@@ -11,6 +11,7 @@ import {
   copyStorageFile,
   deleteStorageFile,
 } from "@/lib/platform/supabase-storage";
+import type { StorageErrorCode } from "@/lib/http/storage-error";
 
 type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -124,10 +125,28 @@ export async function addOrgImage(
   orgId: string,
   storagePath: string,
   name?: string,
+  db: Tx | typeof prisma = prisma,
 ) {
-  return prisma.orgImage.create({
+  const existing = await db.orgImage.findFirst({
+    where: { orgId, storagePath },
+    select: { id: true, storagePath: true, name: true, createdAt: true },
+  });
+  if (existing) return existing;
+
+  return db.orgImage.create({
     data: { orgId, storagePath, name },
     select: { id: true, storagePath: true, name: true, createdAt: true },
+  });
+}
+
+export async function withOrgImageStorageLock<T>(
+  orgId: string,
+  storagePath: string,
+  action: (tx: Tx) => Promise<T>,
+) {
+  return prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`${orgId}:${storagePath}`}))`;
+    return action(tx);
   });
 }
 
@@ -140,15 +159,15 @@ export async function getSignedOrgImageUploadUrl(
   mimeType: string,
   maxSizeBytes: number = 5 * 1024 * 1024,
 ): Promise<
-  { ok: true; signedUrl: string; path: string } | { ok: false; error: string }
+  { ok: true; signedUrl: string; path: string } | { ok: false; error: string; code: StorageErrorCode | "unauthorized" | "invalid_input" }
 > {
   const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
-  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  if (!authz.ok) return { ok: false, error: "Unauthorized", code: "unauthorized" };
   if (isDemoEmail(authz.userEmail)) {
-    return { ok: false, error: "Image uploads are not available in demo mode." };
+    return { ok: false, error: "Image uploads are not available in demo mode.", code: "invalid_input" };
   }
   if (!ALLOWED_MIME_TYPES.includes(mimeType as AllowedMime)) {
-    return { ok: false, error: "Unsupported file type. Use JPEG, PNG, or WebP." };
+    return { ok: false, error: "Unsupported file type. Use JPEG, PNG, or WebP.", code: "invalid_input" };
   }
 
   const ext = EXT[mimeType as AllowedMime];
@@ -165,21 +184,21 @@ export async function saveOrgImageToLibrary(
   name?: string,
 ): Promise<
   | { ok: true; image: { id: string; storagePath: string; name: string | null; signedUrl: string } }
-  | { ok: false; error: string }
+  | { ok: false; error: string; code: StorageErrorCode | "unauthorized" | "invalid_input" }
 > {
   const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
-  if (!authz.ok) return { ok: false, error: "Unauthorized" };
-  if (isDemoEmail(authz.userEmail)) return { ok: false, error: "Image uploads are not available in demo mode." };
+  if (!authz.ok) return { ok: false, error: "Unauthorized", code: "unauthorized" };
+  if (isDemoEmail(authz.userEmail)) return { ok: false, error: "Image uploads are not available in demo mode.", code: "invalid_input" };
 
   const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
   if (!normalized.startsWith(`orgs/${orgId}/images/`)) {
-    return { ok: false, error: "Invalid storage path" };
+    return { ok: false, error: "Invalid storage path", code: "invalid_input" };
   }
 
   const signedUrl = (await createSignedReadUrl(normalized)) ?? null;
-  if (!signedUrl) return { ok: false, error: "Failed to generate image URL" };
+  if (!signedUrl) return { ok: false, error: "Failed to generate image URL", code: "storage_failure" };
 
-  const img = await addOrgImage(orgId, normalized, name);
+  const img = await withOrgImageStorageLock(orgId, normalized, async (tx) => addOrgImage(orgId, normalized, name, tx));
 
   return { ok: true, image: { ...img, signedUrl } };
 }
@@ -197,10 +216,10 @@ export async function getOrgImagesPageWithSignedUrls(
       page: number;
       pageSize: number;
     }
-  | { ok: false; error: string }
+  | { ok: false; error: string; code: StorageErrorCode | "unauthorized" | "invalid_input" }
 > {
   const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
-  if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  if (!authz.ok) return { ok: false, error: "Unauthorized", code: "unauthorized" };
 
   const pageData = await getOrgImagesPage(orgId, options);
   if (pageData.images.length === 0) {
@@ -226,7 +245,7 @@ export async function getOrgImagesPageWithSignedUrls(
     .filter((row): row is NonNullable<typeof row> => row !== null);
 
   if (images.length === 0) {
-    return { ok: false, error: "Failed to generate signed URLs for org images." };
+    return { ok: false, error: "Failed to generate signed URLs for org images.", code: "storage_failure" };
   }
 
   if (omittedRows.length > 0) {
@@ -274,6 +293,57 @@ export function sanitizeFilename(name: string): string {
   return clean || "image";
 }
 
+async function relocateImage({
+  orgId,
+  currentPath,
+  expectedPath,
+  excludeTaskId,
+  excludeItemId,
+  logPrefix,
+  db = prisma,
+}: {
+  orgId: string;
+  currentPath: string;
+  expectedPath: string;
+  excludeTaskId?: string;
+  excludeItemId?: string;
+  logPrefix: string;
+  db?: Tx | typeof prisma;
+}): Promise<boolean> {
+  const [otherTasksCount, itemsCount, orgImagesCount] = await Promise.all([
+    db.task.count({
+      where: excludeTaskId ? { imageUrl: currentPath, NOT: { id: excludeTaskId } } : { imageUrl: currentPath },
+    }),
+    db.toolItem.count({
+      where: excludeItemId ? { imgUrl: currentPath, NOT: { id: excludeItemId } } : { imgUrl: currentPath },
+    }),
+    db.orgImage.count({
+      where: { orgId, storagePath: currentPath },
+    }),
+  ]);
+
+  const isShared = otherTasksCount + itemsCount + orgImagesCount > 0;
+
+  if (isShared) {
+    const copyResult = await copyStorageFile(currentPath, expectedPath);
+    if (!copyResult.ok) {
+      console.error(`${logPrefix} Failed to copy storage file from ${currentPath} to ${expectedPath}:`, copyResult.error);
+      return false;
+    }
+  } else {
+    if (currentPath !== expectedPath) {
+      await deleteStorageFile(expectedPath);
+    }
+    const moveResult = await moveStorageFile(currentPath, expectedPath);
+    if (!moveResult.ok) {
+      console.error(`${logPrefix} Failed to move storage file from ${currentPath} to ${expectedPath}:`, moveResult.error);
+      return false;
+    }
+  }
+
+  return true;
+}
+
 /**
  * Safely renames/copies the task image to match the sanitized task name.
  * DB write is updated with the new path.
@@ -307,42 +377,15 @@ export async function renameTaskImageIfNeeded(
     return currentPath;
   }
 
-  const [otherTasksCount, itemsCount, orgImagesCount] = await Promise.all([
-    db.task.count({
-      where: { imageUrl: currentPath, NOT: { id: taskId } },
-    }),
-    db.toolItem.count({
-      where: { imgUrl: currentPath },
-    }),
-    db.orgImage.count({
-      where: { orgId, storagePath: currentPath },
-    }),
-  ]);
-
-  const isShared = otherTasksCount + itemsCount + orgImagesCount > 0;
-
-  if (isShared) {
-    const copyResult = await copyStorageFile(currentPath, expectedPath);
-    if (!copyResult.ok) {
-      console.error(
-        `[renameTaskImageIfNeeded] Failed to copy storage file from ${currentPath} to ${expectedPath}:`,
-        copyResult.error,
-      );
-      return null;
-    }
-  } else {
-    if (currentPath !== expectedPath) {
-      await deleteStorageFile(expectedPath);
-    }
-    const moveResult = await moveStorageFile(currentPath, expectedPath);
-    if (!moveResult.ok) {
-      console.error(
-        `[renameTaskImageIfNeeded] Failed to move storage file from ${currentPath} to ${expectedPath}:`,
-        moveResult.error,
-      );
-      return null;
-    }
-  }
+  const relocated = await relocateImage({
+    orgId,
+    currentPath,
+    expectedPath,
+    excludeTaskId: taskId,
+    logPrefix: "[renameTaskImageIfNeeded]",
+    db,
+  });
+  if (!relocated) return null;
 
   await db.task.update({
     where: { id: taskId },
@@ -385,42 +428,15 @@ export async function renameToolItemImageIfNeeded(
     return currentPath;
   }
 
-  const [tasksCount, otherItemsCount, orgImagesCount] = await Promise.all([
-    db.task.count({
-      where: { imageUrl: currentPath },
-    }),
-    db.toolItem.count({
-      where: { imgUrl: currentPath, NOT: { id: itemId } },
-    }),
-    db.orgImage.count({
-      where: { orgId, storagePath: currentPath },
-    }),
-  ]);
-
-  const isShared = tasksCount + otherItemsCount + orgImagesCount > 0;
-
-  if (isShared) {
-    const copyResult = await copyStorageFile(currentPath, expectedPath);
-    if (!copyResult.ok) {
-      console.error(
-        `[renameToolItemImageIfNeeded] Failed to copy storage file from ${currentPath} to ${expectedPath}:`,
-        copyResult.error,
-      );
-      return null;
-    }
-  } else {
-    if (currentPath !== expectedPath) {
-      await deleteStorageFile(expectedPath);
-    }
-    const moveResult = await moveStorageFile(currentPath, expectedPath);
-    if (!moveResult.ok) {
-      console.error(
-        `[renameToolItemImageIfNeeded] Failed to move storage file from ${currentPath} to ${expectedPath}:`,
-        moveResult.error,
-      );
-      return null;
-    }
-  }
+  const relocated = await relocateImage({
+    orgId,
+    currentPath,
+    expectedPath,
+    excludeItemId: itemId,
+    logPrefix: "[renameToolItemImageIfNeeded]",
+    db,
+  });
+  if (!relocated) return null;
 
   await db.toolItem.update({
     where: { id: itemId },

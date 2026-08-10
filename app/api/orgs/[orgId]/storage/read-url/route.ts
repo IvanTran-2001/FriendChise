@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getOrgStorageReadUrl } from "@/app/actions/storage";
 import { getStringField, parseRequestBody } from "@/lib/http/request-body";
+import { storageErrorStatus } from "@/lib/http/storage-error";
 
 export async function POST(
   req: Request,
@@ -17,11 +18,7 @@ export async function POST(
 
   const result = await getOrgStorageReadUrl(orgId, storagePath);
   if (!result.ok) {
-    const status = result.error === "Unauthorized"
-      ? 403
-      : result.error === "Failed to generate signed URL"
-        ? 500
-        : 400;
+    const status = storageErrorStatus(result.code);
     return NextResponse.json({ error: result.error }, { status });
   }
 

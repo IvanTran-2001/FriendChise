@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { MAX_PAGE_SIZE, getOrgImagesPageWithSignedUrls, saveOrgImageToLibrary } from "@/lib/services/images";
 import { getStringField, parseRequestBody } from "@/lib/http/request-body";
+import { storageErrorStatus } from "@/lib/http/storage-error";
 
 function extractPayload(body: Record<string, unknown> | FormData) {
   return {
@@ -31,11 +32,7 @@ export async function GET(
 
   const result = await getOrgImagesPageWithSignedUrls(orgId, options);
   if (!result.ok) {
-    const status = result.error === "Unauthorized"
-      ? 403
-      : result.error === "Failed to generate signed URLs for org images."
-        ? 500
-        : 400;
+    const status = storageErrorStatus(result.code);
     return NextResponse.json({ error: result.error }, { status });
   }
 
@@ -57,11 +54,7 @@ export async function POST(
 
   const result = await saveOrgImageToLibrary(orgId, payload.storagePath, payload.name);
   if (!result.ok) {
-    const status = result.error === "Unauthorized"
-      ? 403
-      : result.error === "Failed to generate image URL"
-        ? 500
-        : 400;
+    const status = storageErrorStatus(result.code);
     return NextResponse.json({ error: result.error }, { status });
   }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSignedOrgImageUploadUrl } from "@/lib/services/images";
 import { getStringField, parseRequestBody } from "@/lib/http/request-body";
+import { storageErrorStatus } from "@/lib/http/storage-error";
 
 export async function POST(
   req: Request,
@@ -17,11 +18,7 @@ export async function POST(
 
   const result = await getSignedOrgImageUploadUrl(orgId, mimeType);
   if (!result.ok) {
-    const status = result.error === "Unauthorized"
-      ? 403
-      : result.error.startsWith("Storage error: ")
-        ? 500
-        : 400;
+    const status = storageErrorStatus(result.code);
     return NextResponse.json({ error: result.error }, { status });
   }
 
