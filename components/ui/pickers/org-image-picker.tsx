@@ -46,7 +46,7 @@ import {
   getSignedOrgImageUploadUrl,
   saveOrgImageToLibrary,
   getOrgImagesPageWithSignedUrls,
-} from "@/lib/services/images";
+} from "@/app/actions/storage";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

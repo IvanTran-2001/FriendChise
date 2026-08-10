@@ -35,13 +35,19 @@ import {
   deleteOrgImage,
   renameTaskImageIfNeeded,
   renameToolItemImageIfNeeded,
-  ALLOWED_MIME_TYPES,
-  EXT,
-  getOrgImagesPageWithSignedUrls,
+  getOrgImagesPageWithSignedUrls as getOrgImagesPageWithSignedUrlsService,
+  getSignedOrgImageUploadUrl as getSignedOrgImageUploadUrlService,
+  saveOrgImageToLibrary as saveOrgImageToLibraryService,
 } from "@/lib/services/images";
 import { prisma } from "@/lib/platform/prisma";
 import { isDemoEmail } from "@/lib/demo";
-type AllowedMime = (typeof ALLOWED_MIME_TYPES)[number];
+type AllowedMime = "image/jpeg" | "image/png" | "image/webp";
+const ALLOWED_MIME_TYPES: AllowedMime[] = ["image/jpeg", "image/png", "image/webp"];
+const EXT: Record<AllowedMime, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
 
 /**
  * Returns a signed upload URL for a task image.
@@ -339,7 +345,22 @@ export async function getOrgImagesWithSignedUrls(
     }
   | { ok: false; error: string }
 > {
-  return getOrgImagesPageWithSignedUrls(orgId, { page: 1, pageSize: MAX_PAGE_SIZE });
+  return getOrgImagesPageWithSignedUrlsService(orgId, { page: 1, pageSize: MAX_PAGE_SIZE });
+}
+
+export async function getSignedOrgImageUploadUrl(orgId: string, mimeType: string) {
+  return getSignedOrgImageUploadUrlService(orgId, mimeType);
+}
+
+export async function saveOrgImageToLibrary(orgId: string, storagePath: string, name?: string) {
+  return saveOrgImageToLibraryService(orgId, storagePath, name);
+}
+
+export async function getOrgImagesPageWithSignedUrls(
+  orgId: string,
+  options: Parameters<typeof getOrgImagesPageWithSignedUrlsService>[1] = {},
+) {
+  return getOrgImagesPageWithSignedUrlsService(orgId, options);
 }
 
 /** Deletes a library image. Only removes from storage if nothing else references it. */

@@ -22,7 +22,7 @@ export function UnauthorizedToast() {
       // Strip the param from the URL without adding to history
       const url = new URL(window.location.href);
       url.searchParams.delete("unauthorized");
-      router.replace(url.pathname + url.search + url.hash);
+      router.replace(url.pathname + url.search);
     }
     if (!unauthorized) {
       shownRef.current = false;
