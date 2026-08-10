@@ -13,7 +13,8 @@ function asString(value: FormDataEntryValue | null | undefined) {
   return typeof value === "string" ? value : undefined;
 }
 
-function asNumber(value: FormDataEntryValue | null | undefined) {
+function asNumber(value: unknown) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
   if (typeof value !== "string" || value.trim() === "") return undefined;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
@@ -41,8 +42,8 @@ function extractPayload(body: FormData | Record<string, unknown>) {
     };
   }
 
-  const minWaitDays = typeof body.minWaitDays === "number" ? body.minWaitDays : undefined;
-  const maxWaitDays = typeof body.maxWaitDays === "number" ? body.maxWaitDays : undefined;
+  const minWaitDays = asNumber(body.minWaitDays);
+  const maxWaitDays = asNumber(body.maxWaitDays);
   const bothEmpty = minWaitDays === undefined && maxWaitDays === undefined;
 
   return {
@@ -53,15 +54,16 @@ function extractPayload(body: FormData | Record<string, unknown>) {
       typeof body.imageStoragePath === "string" && body.imageStoragePath.trim()
         ? body.imageStoragePath.trim()
         : undefined,
-    durationMin: typeof body.durationMin === "number" ? body.durationMin : undefined,
-    preferredStartTimeMin:
-      typeof body.preferredStartTimeMin === "number" ? body.preferredStartTimeMin : undefined,
-    peopleRequired: typeof body.peopleRequired === "number" ? body.peopleRequired : 1,
+    durationMin: asNumber(body.durationMin),
+    preferredStartTimeMin: asNumber(body.preferredStartTimeMin),
+    peopleRequired: asNumber(body.peopleRequired) ?? 1,
     minWaitDays: bothEmpty ? 0 : minWaitDays,
     maxWaitDays: bothEmpty ? 0 : maxWaitDays,
     roleIds: Array.isArray(body.roleIds)
       ? body.roleIds.filter((value): value is string => typeof value === "string")
-      : [],
+      : typeof body.roleIds === "string"
+        ? [body.roleIds]
+        : [],
   };
 }
 
@@ -79,7 +81,7 @@ export async function POST(
   const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TASKS);
   if (!authz.ok) return authz.response;
 
-  const body = await parseRequestBody(req);
+  const body = await parseRequestBody(req, { multipart: true });
   if (body instanceof NextResponse) return body;
 
   const payload = extractPayload(body);

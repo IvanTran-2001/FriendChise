@@ -57,7 +57,11 @@ export async function POST(
 
   const result = await saveOrgImageToLibrary(orgId, payload.storagePath, payload.name);
   if (!result.ok) {
-    const status = result.error === "Unauthorized" ? 403 : 400;
+    const status = result.error === "Unauthorized"
+      ? 403
+      : result.error === "Failed to generate image URL"
+        ? 500
+        : 400;
     return NextResponse.json({ error: result.error }, { status });
   }
 
