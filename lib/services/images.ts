@@ -41,6 +41,7 @@ export type OrgImagePage = {
 
 /**
  * @deprecated For super-admin global views use `getGlobalOrgImagesPage()` instead.
+  if (!relocated) return null;
  * This helper returns at most `MAX_PAGE_SIZE` rows and is not exhaustive.
  * Callers that need completeness should use `getOrgImagesPage()`.
  */
@@ -104,7 +105,6 @@ export async function getOrgImagesPage(
         ],
       }
     : { orgId };
-
   const totalCount = await prisma.orgImage.count({ where });
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const page = Math.min(Math.max(1, Math.floor(options.page ?? 1)), totalPages);
@@ -112,7 +112,6 @@ export async function getOrgImagesPage(
   const images = await prisma.orgImage.findMany({
     where,
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    skip: (page - 1) * pageSize,
     take: pageSize,
     select: { id: true, storagePath: true, name: true, createdAt: true },
   });
@@ -335,7 +334,7 @@ async function relocateImage({
   excludeItemId?: string;
   logPrefix: string;
   db?: Tx | typeof prisma;
-}): Promise<ImageRelocationDecision | null> {
+}): Promise<ImageRelocationDecision> {
   const [otherTasksCount, itemsCount, orgImagesCount] = await Promise.all([
     db.task.count({
       where: excludeTaskId ? { imageUrl: currentPath, NOT: { id: excludeTaskId } } : { imageUrl: currentPath },
@@ -387,6 +386,10 @@ export async function renameTaskImageIfNeeded(
   const sanitizedName = sanitizeFilename(task.name);
   const expectedPath = `orgs/${orgId}/tasks/${taskId}/${sanitizedName}-${uuid}.${ext}`;
 
+  if (currentPath === expectedPath) {
+    return currentPath;
+  }
+
   const relocated = await relocateImage({
     orgId,
     currentPath,
@@ -395,7 +398,6 @@ export async function renameTaskImageIfNeeded(
     logPrefix: "[renameTaskImageIfNeeded]",
     db,
   });
-  if (!relocated) return null;
 
   if (onRelocation) {
     onRelocation(relocated);
@@ -454,7 +456,6 @@ export async function renameToolItemImageIfNeeded(
     logPrefix: "[renameToolItemImageIfNeeded]",
     db,
   });
-  if (!relocated) return null;
 
   if (onRelocation) {
     onRelocation(relocated);

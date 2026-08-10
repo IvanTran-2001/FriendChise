@@ -5,10 +5,10 @@
  * survives Next.js hot-module reloads without exhausting the connection pool.
  * In production a fresh instance is created once per process.
  */
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
-export type PrismaTransactionClient = Parameters<Parameters<PrismaClient["$transaction"]>[0]>[0];
+export type PrismaTransactionClient = Prisma.TransactionClient;
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 

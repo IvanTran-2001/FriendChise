@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { deleteOrgImageAction } from "@/app/actions/storage";
+import { storageErrorStatus } from "@/lib/http/storage-error";
 
 export async function DELETE(
   req: Request,
@@ -9,7 +10,7 @@ export async function DELETE(
 
   const result = await deleteOrgImageAction(orgId, imageId);
   if (!result.ok) {
-    const status = result.error === "Unauthorized" ? 403 : 404;
+    const status = result.error === "Unauthorized" ? 403 : storageErrorStatus(result.code);
     return NextResponse.json({ error: result.error }, { status });
   }
 

@@ -28,7 +28,7 @@ function normalizePayload(body: FormData | Record<string, unknown>) {
       if (existing === undefined) {
         normalized[key] = value;
       } else if (Array.isArray(existing)) {
-        normalized[key] = [...existing, value];
+        existing.push(value);
       } else {
         normalized[key] = [existing, value];
       }

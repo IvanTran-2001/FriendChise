@@ -48,6 +48,30 @@ import { isDemoEmail } from "@/lib/demo";
 type AllowedMime = (typeof ALLOWED_MIME_TYPES)[number];
 type Tx = PrismaTransactionClient;
 
+type ImageSaveResult =
+  | { ok: true; oldImagePathsToDelete: string[]; relocations: ImageRelocationDecision[] }
+  | { ok: false; error: string };
+
+async function drainImageSaveResult(result: ImageSaveResult): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!result.ok) return result;
+
+  for (const relocation of result.relocations) {
+    const applied = await applyRelocationDecision(relocation);
+    if (!applied) {
+      return { ok: false, error: `Failed to relocate image.` };
+    }
+  }
+
+  for (const oldImagePath of result.oldImagePathsToDelete) {
+    const deleted = await deleteStorageFile(oldImagePath);
+    if (!deleted.ok) {
+      return { ok: false, error: deleted.error };
+    }
+  }
+
+  return { ok: true };
+}
+
 /**
  * Returns a signed upload URL for a task image.
  * The browser PUTs the compressed file directly to this URL.
@@ -119,10 +143,7 @@ export async function saveTaskImagePath(
 
   const run = async (
     db: Tx | typeof prisma = prisma,
-  ): Promise<
-    | { ok: true; oldImagePathsToDelete: string[]; relocations: ImageRelocationDecision[] }
-    | { ok: false; error: string }
-  > => {
+  ): Promise<ImageSaveResult> => {
     const oldImagePathsToDelete: string[] = [];
     const relocations: ImageRelocationDecision[] = [];
     const existing = await db.task.findFirst({
@@ -158,28 +179,14 @@ export async function saveTaskImagePath(
     return { ok: true, oldImagePathsToDelete, relocations };
   };
 
-  if (isLibraryPath) {
-    const result = await withOrgImageStorageLock(orgId, normalized, async (tx) => run(tx));
-    if (!result.ok) return result;
-
-    for (const relocation of result.relocations) {
-      await applyRelocationDecision(relocation);
-    }
-    for (const oldImagePath of result.oldImagePathsToDelete) {
-      await deleteStorageFile(oldImagePath);
-    }
-
-    return { ok: true };
-  }
-
-  const result = await run();
+  const result = isLibraryPath
+    ? await withOrgImageStorageLock(orgId, normalized, async (tx) => run(tx))
+    : await run();
   if (!result.ok) return result;
 
-  for (const relocation of result.relocations) {
-    await applyRelocationDecision(relocation);
-  }
-  for (const oldImagePath of result.oldImagePathsToDelete) {
-    await deleteStorageFile(oldImagePath);
+  const drained = await drainImageSaveResult(result);
+  if (!drained.ok) {
+    return drained;
   }
 
   return { ok: true };
@@ -266,10 +273,7 @@ export async function saveToolItemImagePath(
 
   const run = async (
     db: Tx | typeof prisma = prisma,
-  ): Promise<
-    | { ok: true; oldImagePathsToDelete: string[]; relocations: ImageRelocationDecision[] }
-    | { ok: false; error: string }
-  > => {
+  ): Promise<ImageSaveResult> => {
     const oldImagePathsToDelete: string[] = [];
     const relocations: ImageRelocationDecision[] = [];
     const existing = await db.toolItem.findFirst({
@@ -304,28 +308,14 @@ export async function saveToolItemImagePath(
     return { ok: true, oldImagePathsToDelete, relocations };
   };
 
-  if (isLibraryPath) {
-    const result = await withOrgImageStorageLock(orgId, normalized, async (tx) => run(tx));
-    if (!result.ok) return result;
-
-    for (const relocation of result.relocations) {
-      await applyRelocationDecision(relocation);
-    }
-    for (const oldImagePath of result.oldImagePathsToDelete) {
-      await deleteStorageFile(oldImagePath);
-    }
-
-    return { ok: true };
-  }
-
-  const result = await run();
+  const result = isLibraryPath
+    ? await withOrgImageStorageLock(orgId, normalized, async (tx) => run(tx))
+    : await run();
   if (!result.ok) return result;
 
-  for (const relocation of result.relocations) {
-    await applyRelocationDecision(relocation);
-  }
-  for (const oldImagePath of result.oldImagePathsToDelete) {
-    await deleteStorageFile(oldImagePath);
+  const drained = await drainImageSaveResult(result);
+  if (!drained.ok) {
+    return drained;
   }
 
   return { ok: true };
@@ -431,7 +421,7 @@ export async function getOrgImagesPageWithSignedUrls(
 export async function deleteOrgImageAction(
   orgId: string,
   imageId: string,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true } | { ok: false; error: string; code: "storage_failure" | "unauthorized" | "invalid_input" }> {
   const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
@@ -454,7 +444,10 @@ export async function deleteOrgImageAction(
   });
 
   if (storagePathToDelete) {
-    await deleteStorageFile(storagePathToDelete);
+    const deleteResult = await deleteStorageFile(storagePathToDelete);
+    if (!deleteResult.ok) {
+      return { ok: false, error: deleteResult.error, code: deleteResult.code };
+    }
   }
   return { ok: true };
 }

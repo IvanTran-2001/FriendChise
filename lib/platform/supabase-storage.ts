@@ -37,6 +37,48 @@ function getConfig() {
 	return { url, key };
 }
 
+async function requestSignedUploadUrl(
+	bucket: string,
+	storagePath: string,
+	maxSizeBytes?: number,
+) {
+	const { url, key } = getConfig();
+	try {
+		const res = await fetch(
+			`${url}/storage/v1/object/upload/sign/${bucket}/${storagePath}`,
+			{
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${key}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(maxSizeBytes !== undefined ? { sizeInBytes: maxSizeBytes } : {}),
+				signal: AbortSignal.timeout(15_000),
+			},
+		);
+		if (!res.ok) {
+			const body = await res.text().catch(() => res.statusText);
+			return { ok: false as const, error: `Storage error: ${body}`, code: "storage_failure" as const };
+		}
+		const data = (await res.json()) as Record<string, unknown>;
+		const rawUrl = (data.signedURL ?? data.signedUrl ?? data.url) as string | undefined;
+		if (!rawUrl) {
+			return { ok: false as const, error: "Storage error: unexpected response shape", code: "storage_failure" as const };
+		}
+		return {
+			ok: true as const,
+			signedUrl: rawUrl.startsWith("http") ? rawUrl : `${url}/storage/v1${rawUrl}`,
+			path: (data.path as string | undefined) ?? storagePath,
+		};
+	} catch (error) {
+		return {
+			ok: false as const,
+			error: `Storage error: ${error instanceof Error ? error.message : String(error)}`,
+			code: "storage_failure" as const,
+		};
+	}
+}
+
 /**
  * Creates a signed URL that the browser can PUT a file to directly,
  * bypassing Vercel's 4.5 MB body limit.
@@ -47,47 +89,7 @@ export async function createSignedUploadUrl(
 ): Promise<
 	{ ok: true; signedUrl: string; path: string } | { ok: false; error: string; code: StorageErrorCode }
 > {
-	const { url, key } = getConfig();
-	try {
-		const res = await fetch(
-			`${url}/storage/v1/object/upload/sign/${BUCKET}/${storagePath}`,
-			{
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${key}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(
-					maxSizeBytes !== undefined ? { sizeInBytes: maxSizeBytes } : {},
-				),
-				signal: AbortSignal.timeout(15_000),
-			},
-		);
-		if (!res.ok) {
-			const body = await res.text().catch(() => res.statusText);
-			return { ok: false, error: `Storage error: ${body}`, code: "storage_failure" };
-		}
-		const data = (await res.json()) as Record<string, unknown>;
-		const rawUrl = (data.signedURL ?? data.signedUrl ?? data.url) as
-			| string
-			| undefined;
-		if (!rawUrl) {
-			return { ok: false, error: `Storage error: unexpected response shape`, code: "storage_failure" };
-		}
-		return {
-			ok: true,
-			signedUrl: rawUrl.startsWith("http")
-				? rawUrl
-				: `${url}/storage/v1${rawUrl}`,
-			path: (data.path as string | undefined) ?? storagePath,
-		};
-	} catch (error) {
-		return {
-			ok: false,
-			error: `Storage error: ${error instanceof Error ? error.message : String(error)}`,
-			code: "storage_failure",
-		};
-	}
+	return requestSignedUploadUrl(BUCKET, storagePath, maxSizeBytes);
 }
 
 /**
@@ -294,47 +296,7 @@ export async function createSignedUploadUrlPublic(
 ): Promise<
 	{ ok: true; signedUrl: string; path: string } | { ok: false; error: string; code: StorageErrorCode }
 > {
-	const { url, key } = getConfig();
-	try {
-		const res = await fetch(
-			`${url}/storage/v1/object/upload/sign/${PUBLIC_BUCKET}/${storagePath}`,
-			{
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${key}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(
-					maxSizeBytes !== undefined ? { sizeInBytes: maxSizeBytes } : {},
-				),
-				signal: AbortSignal.timeout(15_000),
-			},
-		);
-		if (!res.ok) {
-			const body = await res.text().catch(() => res.statusText);
-			return { ok: false, error: `Storage error: ${body}`, code: "storage_failure" };
-		}
-		const data = (await res.json()) as Record<string, unknown>;
-		const rawUrl = (data.signedURL ?? data.signedUrl ?? data.url) as
-			| string
-			| undefined;
-		if (!rawUrl) {
-			return { ok: false, error: `Storage error: unexpected response shape`, code: "storage_failure" };
-		}
-		return {
-			ok: true,
-			signedUrl: rawUrl.startsWith("http")
-				? rawUrl
-				: `${url}/storage/v1${rawUrl}`,
-			path: (data.path as string | undefined) ?? storagePath,
-		};
-	} catch (error) {
-		return {
-			ok: false,
-			error: `Storage error: ${error instanceof Error ? error.message : String(error)}`,
-			code: "storage_failure",
-		};
-	}
+	return requestSignedUploadUrl(PUBLIC_BUCKET, storagePath, maxSizeBytes);
 }
 
 /**
