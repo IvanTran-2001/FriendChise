@@ -20,7 +20,7 @@
  */
 import { Prisma, TaskScope } from "@prisma/client";
 import { log } from "@/lib/platform/observability";
-import { prisma } from "@/lib/platform/prisma";
+import { prisma, type PrismaTransactionClient } from "@/lib/platform/prisma";
 import { recordAudit } from "@/lib/services/audit-log";
 import {
   copySectionLayout,
@@ -392,7 +392,7 @@ export async function findPotentialTaskDuplicates(
  * Optional fields are null-coalesced so callers never need to handle `undefined`.
  */
 export async function createTaskOnClient(
-  db: Prisma.TransactionClient | typeof prisma,
+  db: PrismaTransactionClient | typeof prisma,
   orgId: string,
   data: CreateTaskInput,
   actorId?: string | null,
@@ -507,7 +507,7 @@ export async function deleteTask(
   id: string,
   actorId?: string | null,
   actorEmail?: string | null,
-  db: Prisma.TransactionClient | typeof prisma = prisma,
+  db: PrismaTransactionClient | typeof prisma = prisma,
 ): Promise<ServiceResult<null>> {
   const existing = await db.task.findFirst({
     where: { id, orgId },
@@ -1002,7 +1002,7 @@ export async function updateTaskImageUrl(
   orgId: string,
   taskId: string,
   imageUrl: string | null,
-  db: Prisma.TransactionClient | typeof prisma = prisma,
+  db: PrismaTransactionClient | typeof prisma = prisma,
 ): Promise<ServiceResult<null>> {
   const { count } = await db.task.updateMany({
     where: { id: taskId, orgId },

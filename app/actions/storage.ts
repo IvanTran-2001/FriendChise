@@ -35,16 +35,18 @@ import {
   ALLOWED_MIME_TYPES,
   EXT,
   withOrgImageStorageLock,
+  applyRelocationDecision,
   renameTaskImageIfNeeded,
   renameToolItemImageIfNeeded,
   getOrgImagesPageWithSignedUrls as getOrgImagesPageWithSignedUrlsService,
   getSignedOrgImageUploadUrl as getSignedOrgImageUploadUrlService,
   saveOrgImageToLibrary as saveOrgImageToLibraryService,
+  type ImageRelocationDecision,
 } from "@/lib/services/images";
-import { prisma } from "@/lib/platform/prisma";
+import { prisma, type PrismaTransactionClient } from "@/lib/platform/prisma";
 import { isDemoEmail } from "@/lib/demo";
 type AllowedMime = (typeof ALLOWED_MIME_TYPES)[number];
-type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+type Tx = PrismaTransactionClient;
 
 /**
  * Returns a signed upload URL for a task image.
@@ -117,7 +119,12 @@ export async function saveTaskImagePath(
 
   const run = async (
     db: Tx | typeof prisma = prisma,
-  ): Promise<{ ok: true } | { ok: false; error: string }> => {
+  ): Promise<
+    | { ok: true; oldImagePathsToDelete: string[]; relocations: ImageRelocationDecision[] }
+    | { ok: false; error: string }
+  > => {
+    const oldImagePathsToDelete: string[] = [];
+    const relocations: ImageRelocationDecision[] = [];
     const existing = await db.task.findFirst({
       where: { id: taskId, orgId },
       select: { imageUrl: true },
@@ -127,7 +134,12 @@ export async function saveTaskImagePath(
     if (!result.ok) return { ok: false, error: result.error };
 
     try {
-      await renameTaskImageIfNeeded(orgId, taskId, db === prisma ? undefined : db);
+      await renameTaskImageIfNeeded(
+        orgId,
+        taskId,
+        db === prisma ? undefined : db,
+        db === prisma ? undefined : (decision) => relocations.push(decision),
+      );
     } catch (err) {
       console.error(`Failed to rename task image after saving:`, err);
     }
@@ -140,17 +152,37 @@ export async function saveTaskImagePath(
       const refCount = await db.task.count({
         where: { imageUrl: existing.imageUrl, NOT: { id: taskId } },
       });
-      if (refCount === 0) await deleteStorageFile(existing.imageUrl);
+      if (refCount === 0) oldImagePathsToDelete.push(existing.imageUrl);
     }
 
-    return { ok: true };
+    return { ok: true, oldImagePathsToDelete, relocations };
   };
 
   if (isLibraryPath) {
-    return withOrgImageStorageLock(orgId, normalized, async (tx) => run(tx));
+    const result = await withOrgImageStorageLock(orgId, normalized, async (tx) => run(tx));
+    if (!result.ok) return result;
+
+    for (const relocation of result.relocations) {
+      await applyRelocationDecision(relocation);
+    }
+    for (const oldImagePath of result.oldImagePathsToDelete) {
+      await deleteStorageFile(oldImagePath);
+    }
+
+    return { ok: true };
   }
 
-  return run();
+  const result = await run();
+  if (!result.ok) return result;
+
+  for (const relocation of result.relocations) {
+    await applyRelocationDecision(relocation);
+  }
+  for (const oldImagePath of result.oldImagePathsToDelete) {
+    await deleteStorageFile(oldImagePath);
+  }
+
+  return { ok: true };
 }
 
 /**
@@ -234,7 +266,12 @@ export async function saveToolItemImagePath(
 
   const run = async (
     db: Tx | typeof prisma = prisma,
-  ): Promise<{ ok: true } | { ok: false; error: string }> => {
+  ): Promise<
+    | { ok: true; oldImagePathsToDelete: string[]; relocations: ImageRelocationDecision[] }
+    | { ok: false; error: string }
+  > => {
+    const oldImagePathsToDelete: string[] = [];
+    const relocations: ImageRelocationDecision[] = [];
     const existing = await db.toolItem.findFirst({
       where: { id: itemId, orgId },
       select: { imgUrl: true },
@@ -243,7 +280,12 @@ export async function saveToolItemImagePath(
     await updateToolItemImageUrl(orgId, itemId, normalized, db);
 
     try {
-      await renameToolItemImageIfNeeded(orgId, itemId, db === prisma ? undefined : db);
+      await renameToolItemImageIfNeeded(
+        orgId,
+        itemId,
+        db === prisma ? undefined : db,
+        db === prisma ? undefined : (decision) => relocations.push(decision),
+      );
     } catch (err) {
       console.error(`Failed to rename tool item image after saving:`, err);
     }
@@ -256,17 +298,37 @@ export async function saveToolItemImagePath(
       const refCount = await db.toolItem.count({
         where: { imgUrl: existing.imgUrl },
       });
-      if (refCount === 0) await deleteStorageFile(existing.imgUrl);
+      if (refCount === 0) oldImagePathsToDelete.push(existing.imgUrl);
     }
 
-    return { ok: true };
+    return { ok: true, oldImagePathsToDelete, relocations };
   };
 
   if (isLibraryPath) {
-    return withOrgImageStorageLock(orgId, normalized, async (tx) => run(tx));
+    const result = await withOrgImageStorageLock(orgId, normalized, async (tx) => run(tx));
+    if (!result.ok) return result;
+
+    for (const relocation of result.relocations) {
+      await applyRelocationDecision(relocation);
+    }
+    for (const oldImagePath of result.oldImagePathsToDelete) {
+      await deleteStorageFile(oldImagePath);
+    }
+
+    return { ok: true };
   }
 
-  return run();
+  const result = await run();
+  if (!result.ok) return result;
+
+  for (const relocation of result.relocations) {
+    await applyRelocationDecision(relocation);
+  }
+  for (const oldImagePath of result.oldImagePathsToDelete) {
+    await deleteStorageFile(oldImagePath);
+  }
+
+  return { ok: true };
 }
 
 /** Deletes a ToolItem image from storage and clears the imgUrl field. */
@@ -346,17 +408,7 @@ export async function reuseToolItemImageAction(
  */
 export async function getOrgImagesWithSignedUrls(
   orgId: string,
-): Promise<
-  | {
-      ok: true;
-      images: { id: string; storagePath: string; name: string | null; signedUrl: string }[];
-      totalCount: number;
-      totalPages: number;
-      page: number;
-      pageSize: number;
-    }
-  | { ok: false; error: string }
-> {
+): Promise<Awaited<ReturnType<typeof getOrgImagesPageWithSignedUrlsService>>> {
   return getOrgImagesPageWithSignedUrlsService(orgId, { page: 1, pageSize: MAX_PAGE_SIZE });
 }
 
@@ -389,17 +441,21 @@ export async function deleteOrgImageAction(
   });
   if (!image) return { ok: false, error: "Image not found" };
 
-  await withOrgImageStorageLock(orgId, image.storagePath, async (tx) => {
+  const storagePathToDelete = await withOrgImageStorageLock(orgId, image.storagePath, async (tx) => {
     const { count } = await tx.orgImage.deleteMany({ where: { id: imageId, orgId } });
-    if (count === 0) return;
+    if (count === 0) return null;
 
     const [taskRef, itemRef, imageRef] = await Promise.all([
       tx.task.count({ where: { orgId, imageUrl: image.storagePath } }),
       tx.toolItem.count({ where: { orgId, imgUrl: image.storagePath } }),
       tx.orgImage.count({ where: { orgId, storagePath: image.storagePath } }),
     ]);
-    if (taskRef === 0 && itemRef === 0 && imageRef === 0) await deleteStorageFile(image.storagePath);
+    return taskRef === 0 && itemRef === 0 && imageRef === 0 ? image.storagePath : null;
   });
+
+  if (storagePathToDelete) {
+    await deleteStorageFile(storagePathToDelete);
+  }
   return { ok: true };
 }
 

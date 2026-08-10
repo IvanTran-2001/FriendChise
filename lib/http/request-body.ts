@@ -43,7 +43,7 @@ export async function parseRequestBody(req: Request, options: ParseRequestBodyOp
       if (existing === undefined) {
         parsed[key] = value;
       } else if (Array.isArray(existing)) {
-        parsed[key] = [...existing, value];
+        existing.push(value);
       } else {
         parsed[key] = [existing, value];
       }

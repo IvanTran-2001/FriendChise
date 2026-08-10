@@ -48,38 +48,46 @@ export async function createSignedUploadUrl(
 	{ ok: true; signedUrl: string; path: string } | { ok: false; error: string; code: StorageErrorCode }
 > {
 	const { url, key } = getConfig();
-	const res = await fetch(
-		`${url}/storage/v1/object/upload/sign/${BUCKET}/${storagePath}`,
-		{
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${key}`,
-				"Content-Type": "application/json",
+	try {
+		const res = await fetch(
+			`${url}/storage/v1/object/upload/sign/${BUCKET}/${storagePath}`,
+			{
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${key}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(
+					maxSizeBytes !== undefined ? { sizeInBytes: maxSizeBytes } : {},
+				),
+				signal: AbortSignal.timeout(15_000),
 			},
-			body: JSON.stringify(
-				maxSizeBytes !== undefined ? { sizeInBytes: maxSizeBytes } : {},
-			),
-			signal: AbortSignal.timeout(15_000),
-		},
-	);
-	if (!res.ok) {
-		const body = await res.text().catch(() => res.statusText);
-		return { ok: false, error: `Storage error: ${body}`, code: "storage_failure" };
+		);
+		if (!res.ok) {
+			const body = await res.text().catch(() => res.statusText);
+			return { ok: false, error: `Storage error: ${body}`, code: "storage_failure" };
+		}
+		const data = (await res.json()) as Record<string, unknown>;
+		const rawUrl = (data.signedURL ?? data.signedUrl ?? data.url) as
+			| string
+			| undefined;
+		if (!rawUrl) {
+			return { ok: false, error: `Storage error: unexpected response shape`, code: "storage_failure" };
+		}
+		return {
+			ok: true,
+			signedUrl: rawUrl.startsWith("http")
+				? rawUrl
+				: `${url}/storage/v1${rawUrl}`,
+			path: (data.path as string | undefined) ?? storagePath,
+		};
+	} catch (error) {
+		return {
+			ok: false,
+			error: `Storage error: ${error instanceof Error ? error.message : String(error)}`,
+			code: "storage_failure",
+		};
 	}
-	const data = (await res.json()) as Record<string, unknown>;
-	const rawUrl = (data.signedURL ?? data.signedUrl ?? data.url) as
-		| string
-		| undefined;
-	if (!rawUrl) {
-		return { ok: false, error: `Storage error: unexpected response shape`, code: "storage_failure" };
-	}
-	return {
-		ok: true,
-		signedUrl: rawUrl.startsWith("http")
-			? rawUrl
-			: `${url}/storage/v1${rawUrl}`,
-		path: (data.path as string | undefined) ?? storagePath,
-	};
 }
 
 /**
@@ -133,35 +141,29 @@ export async function createSignedReadUrl(
 	expiresIn = 3600,
 ): Promise<string | null> {
 	const { url, key } = getConfig();
-	const encodedPath = storagePath.split("/").map(encodeURIComponent).join("/");
-	const existsRes = await fetch(`${url}/storage/v1/object/${BUCKET}/${encodedPath}`, {
-		method: "HEAD",
-		headers: {
-			Authorization: `Bearer ${key}`,
-		},
-		signal: AbortSignal.timeout(15_000),
-	});
-	if (!existsRes.ok) return null;
-
-	const res = await fetch(`${url}/storage/v1/object/sign/${BUCKET}`, {
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${key}`,
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({ expiresIn, paths: [storagePath] }),
-		signal: AbortSignal.timeout(15_000),
-	});
-	if (!res.ok) return null;
-	const data = (await res.json()) as Array<{
-		signedURL: string | null;
-		error: string | null;
-	}>;
-	const entry = data[0];
-	if (!entry?.signedURL) return null;
-	return entry.signedURL.startsWith("http")
-		? entry.signedURL
-		: `${url}/storage/v1${entry.signedURL}`;
+	try {
+		const res = await fetch(`${url}/storage/v1/object/sign/${BUCKET}`, {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${key}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ expiresIn, paths: [storagePath] }),
+			signal: AbortSignal.timeout(15_000),
+		});
+		if (!res.ok) return null;
+		const data = (await res.json()) as Array<{
+			signedURL: string | null;
+			error: string | null;
+		}>;
+		const entry = data[0];
+		if (!entry?.signedURL) return null;
+		return entry.signedURL.startsWith("http")
+			? entry.signedURL
+			: `${url}/storage/v1${entry.signedURL}`;
+	} catch {
+		return null;
+	}
 }
 
 /**
@@ -293,37 +295,46 @@ export async function createSignedUploadUrlPublic(
 	{ ok: true; signedUrl: string; path: string } | { ok: false; error: string; code: StorageErrorCode }
 > {
 	const { url, key } = getConfig();
-	const res = await fetch(
-		`${url}/storage/v1/object/upload/sign/${PUBLIC_BUCKET}/${storagePath}`,
-		{
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${key}`,
-				"Content-Type": "application/json",
+	try {
+		const res = await fetch(
+			`${url}/storage/v1/object/upload/sign/${PUBLIC_BUCKET}/${storagePath}`,
+			{
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${key}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(
+					maxSizeBytes !== undefined ? { sizeInBytes: maxSizeBytes } : {},
+				),
+				signal: AbortSignal.timeout(15_000),
 			},
-			body: JSON.stringify(
-				maxSizeBytes !== undefined ? { sizeInBytes: maxSizeBytes } : {},
-			),
-		},
-	);
-	if (!res.ok) {
-		const body = await res.text().catch(() => res.statusText);
-		return { ok: false, error: `Storage error: ${body}`, code: "storage_failure" };
+		);
+		if (!res.ok) {
+			const body = await res.text().catch(() => res.statusText);
+			return { ok: false, error: `Storage error: ${body}`, code: "storage_failure" };
+		}
+		const data = (await res.json()) as Record<string, unknown>;
+		const rawUrl = (data.signedURL ?? data.signedUrl ?? data.url) as
+			| string
+			| undefined;
+		if (!rawUrl) {
+			return { ok: false, error: `Storage error: unexpected response shape`, code: "storage_failure" };
+		}
+		return {
+			ok: true,
+			signedUrl: rawUrl.startsWith("http")
+				? rawUrl
+				: `${url}/storage/v1${rawUrl}`,
+			path: (data.path as string | undefined) ?? storagePath,
+		};
+	} catch (error) {
+		return {
+			ok: false,
+			error: `Storage error: ${error instanceof Error ? error.message : String(error)}`,
+			code: "storage_failure",
+		};
 	}
-	const data = (await res.json()) as Record<string, unknown>;
-	const rawUrl = (data.signedURL ?? data.signedUrl ?? data.url) as
-		| string
-		| undefined;
-	if (!rawUrl) {
-		return { ok: false, error: `Storage error: unexpected response shape`, code: "storage_failure" };
-	}
-	return {
-		ok: true,
-		signedUrl: rawUrl.startsWith("http")
-			? rawUrl
-			: `${url}/storage/v1${rawUrl}`,
-		path: (data.path as string | undefined) ?? storagePath,
-	};
 }
 
 /**

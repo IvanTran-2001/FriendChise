@@ -11,8 +11,7 @@
  *   ConversionSet  ──< ConversionTemplate ──< ConversionTemplateEntry
  *   ToolItem (org-scoped, shared across all sets)
  */
-import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/platform/prisma";
+import { prisma, type PrismaTransactionClient } from "@/lib/platform/prisma";
 
 // ─── ConversionSet ────────────────────────────────────────────────────────────
 
@@ -124,7 +123,7 @@ export async function updateToolItemImageUrl(
   orgId: string,
   id: string,
   imgUrl: string | null,
-  db: Prisma.TransactionClient | typeof prisma = prisma,
+  db: PrismaTransactionClient | typeof prisma = prisma,
 ) {
   await db.toolItem.updateMany({ where: { id, orgId }, data: { imgUrl } });
 }

@@ -180,13 +180,18 @@ export async function POST(
     return NextResponse.json({ taskId: task.id }, { status: 201 });
   } catch (error) {
     if (createdTaskId) {
-      try {
-        if (taskImagePath) {
+      if (taskImagePath) {
+        try {
           await removeTaskImage(orgId, createdTaskId);
+        } catch (cleanupError) {
+          console.error("Failed to clean up task image after create failure", cleanupError);
         }
+      }
+
+      try {
         await deleteTask(orgId, createdTaskId, authz.userId, authz.userEmail);
       } catch (cleanupError) {
-        console.error("Failed to clean up created task after create failure", cleanupError);
+        console.error("Failed to delete created task after create failure", cleanupError);
       }
     }
 

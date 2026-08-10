@@ -12,14 +12,14 @@
 
 import { InviteType, TaskScope } from "@prisma/client";
 import { log } from "@/lib/platform/observability";
-import { prisma } from "@/lib/platform/prisma";
+import { prisma, type PrismaTransactionClient } from "@/lib/platform/prisma";
 import { ROLE_KEYS } from "@/lib/auth/rbac";
 import { recordAudit } from "@/lib/services/audit-log";
 import { DEFAULT_SECTIONS } from "@/lib/services/task-sections";
 import type { ServiceResult } from "./types";
 import { normalizeEmail } from "@/lib/core/utils";
 
-export type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+export type Tx = PrismaTransactionClient;
 
 /**
  * Clones all roles and their permissions from a parent org into a child org.

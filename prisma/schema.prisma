@@ -1364,7 +1364,6 @@ model OrgImage {
   createdAt   DateTime     @default(now())
 
   @@unique([orgId, storagePath])
-  @@index([orgId])
 }
 
 // ─────────────────────────────────────

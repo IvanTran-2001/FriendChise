@@ -2,18 +2,17 @@ import crypto from "crypto";
 import { PermissionAction } from "@prisma/client";
 import { isDemoEmail } from "@/lib/demo";
 import { requireOrgPermissionAction } from "@/lib/authz/action";
-import { prisma } from "@/lib/platform/prisma";
+import { prisma, type PrismaTransactionClient } from "@/lib/platform/prisma";
 import {
   createSignedReadUrl,
   createSignedReadUrls,
   createSignedUploadUrl,
   moveStorageFile,
   copyStorageFile,
-  deleteStorageFile,
 } from "@/lib/platform/supabase-storage";
 import type { StorageErrorCode } from "@/lib/http/storage-error";
 
-type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+type Tx = PrismaTransactionClient;
 
 type OrgImageRow = {
   id: string;
@@ -145,9 +144,36 @@ export async function withOrgImageStorageLock<T>(
   action: (tx: Tx) => Promise<T>,
 ) {
   return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`${orgId}:${storagePath}`}))`;
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(0x494d47, hashtext(${`${orgId}:${storagePath}`}))`;
     return action(tx);
   });
+}
+
+export type ImageRelocationDecision = {
+  action: "copy" | "move";
+  sourcePath: string;
+  destinationPath: string;
+  logPrefix: string;
+};
+
+export async function applyRelocationDecision(decision: ImageRelocationDecision) {
+  if (decision.action === "copy") {
+    const copyResult = await copyStorageFile(decision.sourcePath, decision.destinationPath);
+    if (!copyResult.ok) {
+      console.error(`${decision.logPrefix} Failed to copy storage file from ${decision.sourcePath} to ${decision.destinationPath}:`, copyResult.error);
+      return false;
+    }
+
+    return true;
+  }
+
+  const moveResult = await moveStorageFile(decision.sourcePath, decision.destinationPath);
+  if (!moveResult.ok) {
+    console.error(`${decision.logPrefix} Failed to move storage file from ${decision.sourcePath} to ${decision.destinationPath}:`, moveResult.error);
+    return false;
+  }
+
+  return true;
 }
 
 /**
@@ -309,7 +335,7 @@ async function relocateImage({
   excludeItemId?: string;
   logPrefix: string;
   db?: Tx | typeof prisma;
-}): Promise<boolean> {
+}): Promise<ImageRelocationDecision | null> {
   const [otherTasksCount, itemsCount, orgImagesCount] = await Promise.all([
     db.task.count({
       where: excludeTaskId ? { imageUrl: currentPath, NOT: { id: excludeTaskId } } : { imageUrl: currentPath },
@@ -323,25 +349,12 @@ async function relocateImage({
   ]);
 
   const isShared = otherTasksCount + itemsCount + orgImagesCount > 0;
-
-  if (isShared) {
-    const copyResult = await copyStorageFile(currentPath, expectedPath);
-    if (!copyResult.ok) {
-      console.error(`${logPrefix} Failed to copy storage file from ${currentPath} to ${expectedPath}:`, copyResult.error);
-      return false;
-    }
-  } else {
-    if (currentPath !== expectedPath) {
-      await deleteStorageFile(expectedPath);
-    }
-    const moveResult = await moveStorageFile(currentPath, expectedPath);
-    if (!moveResult.ok) {
-      console.error(`${logPrefix} Failed to move storage file from ${currentPath} to ${expectedPath}:`, moveResult.error);
-      return false;
-    }
-  }
-
-  return true;
+  return {
+    action: isShared ? "copy" : "move",
+    sourcePath: currentPath,
+    destinationPath: expectedPath,
+    logPrefix,
+  };
 }
 
 /**
@@ -352,6 +365,7 @@ export async function renameTaskImageIfNeeded(
   orgId: string,
   taskId: string,
   tx?: Tx,
+  onRelocation?: (decision: ImageRelocationDecision) => void,
 ): Promise<string | null> {
   const db = tx || prisma;
   const task = await db.task.findFirst({
@@ -373,10 +387,6 @@ export async function renameTaskImageIfNeeded(
   const sanitizedName = sanitizeFilename(task.name);
   const expectedPath = `orgs/${orgId}/tasks/${taskId}/${sanitizedName}-${uuid}.${ext}`;
 
-  if (currentPath === expectedPath) {
-    return currentPath;
-  }
-
   const relocated = await relocateImage({
     orgId,
     currentPath,
@@ -386,6 +396,13 @@ export async function renameTaskImageIfNeeded(
     db,
   });
   if (!relocated) return null;
+
+  if (onRelocation) {
+    onRelocation(relocated);
+  } else {
+    const applied = await applyRelocationDecision(relocated);
+    if (!applied) return null;
+  }
 
   await db.task.update({
     where: { id: taskId },
@@ -403,6 +420,7 @@ export async function renameToolItemImageIfNeeded(
   orgId: string,
   itemId: string,
   tx?: Tx,
+  onRelocation?: (decision: ImageRelocationDecision) => void,
 ): Promise<string | null> {
   const db = tx || prisma;
   const item = await db.toolItem.findFirst({
@@ -437,6 +455,13 @@ export async function renameToolItemImageIfNeeded(
     db,
   });
   if (!relocated) return null;
+
+  if (onRelocation) {
+    onRelocation(relocated);
+  } else {
+    const applied = await applyRelocationDecision(relocated);
+    if (!applied) return null;
+  }
 
   await db.toolItem.update({
     where: { id: itemId },
