@@ -163,23 +163,25 @@ export async function POST(
     if (!storageImageExists) {
       return NextResponse.json({ error: "Image not found" }, { status: 404 });
     }
-
-    parsed.data.imageStoragePath = normalizedImagePath;
   }
 
   let createdTaskId: string | null = null;
   try {
+    const taskInput = parsed.data.imageStoragePath
+      ? { ...parsed.data, imageStoragePath: normalizeImageStoragePath(orgId, parsed.data.imageStoragePath)! }
+      : parsed.data;
+
     const task = await createTask(
       orgId,
-      parsed.data,
+      taskInput,
       authz.userId,
       authz.userEmail,
       null,
     );
     createdTaskId = task.id;
 
-    if (parsed.data.imageStoragePath) {
-      const imageResult = await saveTaskImagePath(orgId, task.id, parsed.data.imageStoragePath);
+    if (taskInput.imageStoragePath) {
+      const imageResult = await saveTaskImagePath(orgId, task.id, taskInput.imageStoragePath);
       if (!imageResult.ok) {
         throw new Error(imageResult.error);
       }

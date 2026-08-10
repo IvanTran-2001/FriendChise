@@ -245,6 +245,7 @@ export async function getOrgImagesPageWithSignedUrls(
   }
 
   const signedUrls = await createSignedReadUrls(pageData.images.map((row) => row.storagePath));
+  const omittedRows = pageData.images.filter((row) => !signedUrls.get(row.storagePath));
   const images = pageData.images
     .map((row) => {
       const signedUrl = signedUrls.get(row.storagePath);
@@ -253,6 +254,20 @@ export async function getOrgImagesPageWithSignedUrls(
         : null;
     })
     .filter((row): row is NonNullable<typeof row> => row !== null);
+
+  if (images.length === 0) {
+    return { ok: false, error: "Failed to generate signed URLs for org images." };
+  }
+
+  if (omittedRows.length > 0) {
+    console.warn("[getOrgImagesPageWithSignedUrls] Omitted org image rows without signed URLs", {
+      orgId,
+      page: pageData.page,
+      pageSize: pageData.pageSize,
+      omittedCount: omittedRows.length,
+      omittedStoragePaths: omittedRows.map((row) => row.storagePath),
+    });
+  }
 
   return {
     ok: true,
