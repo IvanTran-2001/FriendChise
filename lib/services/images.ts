@@ -183,37 +183,6 @@ export async function saveOrgImageToLibrary(
   return { ok: true, image: { ...img, signedUrl } };
 }
 
-/**
- * Returns at most `MAX_PAGE_SIZE` org library images with fresh signed URLs.
- * This is a bounded slice, not a complete list.
- */
-export async function getOrgImagesWithSignedUrls(
-  orgId: string,
-): Promise<
-  | { ok: true; images: { id: string; storagePath: string; name: string | null; signedUrl: string }[] }
-  | { ok: false; error: string }
-> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
-  if (!authz.ok) return { ok: false, error: "Unauthorized" };
-  const rows = await getOrgImages(orgId);
-  if (rows.length === 0) return { ok: true, images: [] };
-
-  const signedUrls = await createSignedReadUrls(rows.map((row) => row.storagePath));
-  const images = rows
-    .map((row) => {
-      const signedUrl = signedUrls.get(row.storagePath);
-      return signedUrl
-        ? { id: row.id, storagePath: row.storagePath, name: row.name, signedUrl }
-        : null;
-    })
-    .filter((row): row is NonNullable<typeof row> => row !== null);
-
-  return {
-    ok: true,
-    images,
-  };
-}
-
 /** Returns a paginated slice of org library images with fresh signed URLs. */
 export async function getOrgImagesPageWithSignedUrls(
   orgId: string,

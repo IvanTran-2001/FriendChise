@@ -6,8 +6,8 @@ function asString(value: unknown) {
   return typeof value === "string" ? value : undefined;
 }
 
-function extractStoragePath(body: Record<string, unknown>) {
-  return asString(body.storagePath);
+function extractStoragePath(body: Record<string, unknown> | FormData) {
+  return asString(body instanceof FormData ? body.get("storagePath") : body.storagePath);
 }
 
 export async function POST(

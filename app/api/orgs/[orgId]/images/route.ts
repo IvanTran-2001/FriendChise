@@ -1,16 +1,20 @@
 import { NextResponse } from "next/server";
-import { getOrgImagesPageWithSignedUrls, saveOrgImageToLibrary } from "@/app/actions/storage";
 import { MAX_PAGE_SIZE } from "@/lib/services/images";
+import { getOrgImagesPageWithSignedUrls, saveOrgImageToLibrary } from "@/lib/services/images";
 import { parseRequestBody } from "@/lib/http/request-body";
 
 function asString(value: unknown) {
   return typeof value === "string" ? value : undefined;
 }
 
-function extractPayload(body: Record<string, unknown>) {
+function getBodyValue(body: Record<string, unknown> | FormData, key: string) {
+  return body instanceof FormData ? body.get(key) : body[key];
+}
+
+function extractPayload(body: Record<string, unknown> | FormData) {
   return {
-    storagePath: asString(body.storagePath),
-    name: asString(body.name),
+    storagePath: asString(getBodyValue(body, "storagePath")),
+    name: asString(getBodyValue(body, "name")),
   };
 }
 
@@ -36,7 +40,11 @@ export async function GET(
 
   const result = await getOrgImagesPageWithSignedUrls(orgId, options);
   if (!result.ok) {
-    const status = result.error === "Unauthorized" ? 403 : 400;
+    const status = result.error === "Unauthorized"
+      ? 403
+      : result.error === "Failed to generate signed URLs for org images."
+        ? 500
+        : 400;
     return NextResponse.json({ error: result.error }, { status });
   }
 

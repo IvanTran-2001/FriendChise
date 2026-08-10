@@ -341,13 +341,6 @@ export async function getOrgImagesWithSignedUrls(
 > {
   return getOrgImagesPageWithSignedUrls(orgId, { page: 1, pageSize: MAX_PAGE_SIZE });
 }
-export {
-  ALLOWED_MIME_TYPES,
-  EXT,
-  getSignedOrgImageUploadUrl,
-  saveOrgImageToLibrary,
-  getOrgImagesPageWithSignedUrls,
-} from "@/lib/services/images";
 
 /** Deletes a library image. Only removes from storage if nothing else references it. */
 export async function deleteOrgImageAction(

@@ -20,7 +20,7 @@ import imageCompression from "browser-image-compression";
 import {
   getSignedOrgImageUploadUrl,
   saveOrgImageToLibrary,
-} from "@/app/actions/storage";
+} from "@/lib/services/images";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_RAW_MB = 5;

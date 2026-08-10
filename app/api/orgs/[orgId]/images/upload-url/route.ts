@@ -6,8 +6,8 @@ function asString(value: unknown) {
   return typeof value === "string" ? value : undefined;
 }
 
-function extractMimeType(body: Record<string, unknown>) {
-  return asString(body.mimeType);
+function extractMimeType(body: Record<string, unknown> | FormData) {
+  return asString(body instanceof FormData ? body.get("mimeType") : body.mimeType);
 }
 
 export async function POST(

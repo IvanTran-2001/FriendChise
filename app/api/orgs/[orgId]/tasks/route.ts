@@ -7,6 +7,7 @@ import { createTaskSchema } from "@/lib/validators/task";
 import { saveTaskImagePath } from "@/app/actions/storage";
 import { prisma } from "@/lib/platform/prisma";
 import { createSignedReadUrl } from "@/lib/platform/supabase-storage";
+import { parseRequestBody } from "@/lib/http/request-body";
 
 function asString(value: FormDataEntryValue | null | undefined) {
   return typeof value === "string" ? value : undefined;
@@ -62,32 +63,6 @@ function extractPayload(body: FormData | Record<string, unknown>) {
       ? body.roleIds.filter((value): value is string => typeof value === "string")
       : [],
   };
-}
-
-async function parseRequestBody(req: Request) {
-  const contentType = req.headers.get("content-type") ?? "";
-  const isJson = contentType.includes("application/json");
-  const isForm =
-    contentType.includes("multipart/form-data") ||
-    contentType.includes("application/x-www-form-urlencoded");
-
-  if (!isJson && !isForm) {
-    return NextResponse.json({ error: "Unsupported media type." }, { status: 415 });
-  }
-
-  if (isJson) {
-    try {
-      return ((await req.json()) as Record<string, unknown> | null) ?? {};
-    } catch {
-      return NextResponse.json({ error: "Malformed JSON body." }, { status: 400 });
-    }
-  }
-
-  try {
-    return await req.formData();
-  } catch {
-    return NextResponse.json({ error: "Malformed form body." }, { status: 400 });
-  }
 }
 
 function normalizeImageStoragePath(orgId: string, imageStoragePath: string) {
@@ -167,8 +142,11 @@ export async function POST(
 
   let createdTaskId: string | null = null;
   try {
-    const taskInput = parsed.data.imageStoragePath
-      ? { ...parsed.data, imageStoragePath: normalizeImageStoragePath(orgId, parsed.data.imageStoragePath)! }
+    const normalizedImagePath = parsed.data.imageStoragePath
+      ? normalizeImageStoragePath(orgId, parsed.data.imageStoragePath)
+      : undefined;
+    const taskInput = normalizedImagePath
+      ? { ...parsed.data, imageStoragePath: normalizedImagePath }
       : parsed.data;
 
     const task = await createTask(

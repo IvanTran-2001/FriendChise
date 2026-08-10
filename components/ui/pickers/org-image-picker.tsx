@@ -40,11 +40,13 @@ import {
   type ImageCropConfig,
 } from "@/components/ui/dialogs/image-crop-dialog";
 import {
+  deleteOrgImageAction,
+} from "@/app/actions/storage";
+import {
   getSignedOrgImageUploadUrl,
   saveOrgImageToLibrary,
   getOrgImagesPageWithSignedUrls,
-  deleteOrgImageAction,
-} from "@/app/actions/storage";
+} from "@/lib/services/images";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

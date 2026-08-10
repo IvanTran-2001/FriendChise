@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 
-export async function parseRequestBody(req: Request) {
+type ParseRequestBodyOptions = {
+  multipart?: boolean;
+};
+
+export async function parseRequestBody(req: Request, options: ParseRequestBodyOptions = {}) {
   const contentType = req.headers.get("content-type") ?? "";
   const isJson = contentType.includes("application/json");
   const isForm = contentType.includes("application/x-www-form-urlencoded");
+  const isMultipart = options.multipart && contentType.includes("multipart/form-data");
 
-  if (!isJson && !isForm) {
+  if (!isJson && !isForm && !isMultipart) {
     return NextResponse.json({ error: "Unsupported media type." }, { status: 415 });
   }
 
@@ -14,6 +19,14 @@ export async function parseRequestBody(req: Request) {
       return ((await req.json()) as Record<string, unknown> | null) ?? {};
     } catch {
       return NextResponse.json({ error: "Malformed JSON body." }, { status: 400 });
+    }
+  }
+
+  if (isMultipart) {
+    try {
+      return await req.formData();
+    } catch {
+      return NextResponse.json({ error: "Malformed form body." }, { status: 400 });
     }
   }
 
