@@ -24,7 +24,6 @@ import {
   createSignedUploadUrl,
   createSignedUploadUrlPublic,
   createSignedReadUrl,
-  createSignedReadUrls,
   deleteStorageFile,
   deletePublicFile,
 } from "@/lib/platform/supabase-storage";
@@ -33,24 +32,16 @@ import { updateToolItemImageUrl } from "@/lib/services/tools";
 import { updateOrgImage } from "@/lib/services/orgs";
 import {
   MAX_PAGE_SIZE,
-  getOrgImagesPage,
-  addOrgImage,
   deleteOrgImage,
   renameTaskImageIfNeeded,
   renameToolItemImageIfNeeded,
+  ALLOWED_MIME_TYPES,
+  EXT,
+  getOrgImagesPageWithSignedUrls,
 } from "@/lib/services/images";
 import { prisma } from "@/lib/platform/prisma";
 import { isDemoEmail } from "@/lib/demo";
-
-const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 type AllowedMime = (typeof ALLOWED_MIME_TYPES)[number];
-const ORG_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
-
-const EXT: Record<AllowedMime, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-};
 
 /**
  * Returns a signed upload URL for a task image.
@@ -329,47 +320,6 @@ export async function reuseToolItemImageAction(
   return { ok: true, imgUrl: normalized, imageSignedUrl: signedResult ?? "" };
 }
 
-// ─── Org Image Library Actions ───────────────────────────────────────────────
-
-/** Signed upload URL for a library image. Path: orgs/{orgId}/images/{uuid}.{ext} */
-export async function getSignedOrgImageUploadUrl(
-  orgId: string,
-  mimeType: string,
-  maxSizeBytes: number = ORG_IMAGE_MAX_BYTES,
-): Promise<
-  { ok: true; signedUrl: string; path: string } | { ok: false; error: string }
-> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
-  if (!authz.ok) return { ok: false, error: "Unauthorized" };
-  if (isDemoEmail(authz.userEmail))
-    return { ok: false, error: "Image uploads are not available in demo mode." };
-  if (!ALLOWED_MIME_TYPES.includes(mimeType as AllowedMime))
-    return { ok: false, error: "Unsupported file type. Use JPEG, PNG, or WebP." };
-  const ext = EXT[mimeType as AllowedMime];
-  const uuid = crypto.randomUUID();
-  return createSignedUploadUrl(`orgs/${orgId}/images/${uuid}.${ext}`, maxSizeBytes);
-}
-
-/** Saves an uploaded image to the org library after a successful upload. */
-export async function saveOrgImageToLibrary(
-  orgId: string,
-  storagePath: string,
-  name?: string,
-): Promise<
-  | { ok: true; image: { id: string; storagePath: string; name: string | null; signedUrl: string } }
-  | { ok: false; error: string }
-> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
-  if (!authz.ok) return { ok: false, error: "Unauthorized" };
-  const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
-  if (!normalized.startsWith(`orgs/${orgId}/images/`))
-    return { ok: false, error: "Invalid storage path" };
-  const signedUrl = (await createSignedReadUrl(normalized)) ?? null;
-  if (!signedUrl) return { ok: false, error: "Failed to generate image URL" };
-  const img = await addOrgImage(orgId, normalized, name);
-  return { ok: true, image: { ...img, signedUrl } };
-}
-
 /**
  * Returns the first page of org library images with fresh signed URLs.
  *
@@ -391,56 +341,13 @@ export async function getOrgImagesWithSignedUrls(
 > {
   return getOrgImagesPageWithSignedUrls(orgId, { page: 1, pageSize: MAX_PAGE_SIZE });
 }
-
-/** Returns a paginated slice of org library images with fresh signed URLs. */
-export async function getOrgImagesPageWithSignedUrls(
-  orgId: string,
-  options: { page?: number; pageSize?: number; search?: string } = {},
-): Promise<
-  | {
-      ok: true;
-      images: { id: string; storagePath: string; name: string | null; signedUrl: string }[];
-      totalCount: number;
-      totalPages: number;
-      page: number;
-      pageSize: number;
-    }
-  | { ok: false; error: string }
-> {
-  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
-  if (!authz.ok) return { ok: false, error: "Unauthorized" };
-
-  const pageData = await getOrgImagesPage(orgId, options);
-  if (pageData.images.length === 0) {
-    return {
-      ok: true,
-      images: [],
-      totalCount: pageData.totalCount,
-      totalPages: pageData.totalPages,
-      page: pageData.page,
-      pageSize: pageData.pageSize,
-    };
-  }
-
-  const signedMap = await createSignedReadUrls(pageData.images.map((r) => r.storagePath));
-  const images = pageData.images
-    .map((r) => ({
-      id: r.id,
-      storagePath: r.storagePath,
-      name: r.name,
-      signedUrl: signedMap.get(r.storagePath) ?? null,
-    }))
-    .filter((r): r is typeof r & { signedUrl: string } => !!r.signedUrl);
-
-  return {
-    ok: true,
-    images,
-    totalCount: pageData.totalCount,
-    totalPages: pageData.totalPages,
-    page: pageData.page,
-    pageSize: pageData.pageSize,
-  };
-}
+export {
+  ALLOWED_MIME_TYPES,
+  EXT,
+  getSignedOrgImageUploadUrl,
+  saveOrgImageToLibrary,
+  getOrgImagesPageWithSignedUrls,
+} from "@/lib/services/images";
 
 /** Deletes a library image. Only removes from storage if nothing else references it. */
 export async function deleteOrgImageAction(

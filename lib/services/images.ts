@@ -24,8 +24,8 @@ type OrgImageRow = {
 export const MAX_PAGE_SIZE = 100;
 
 type AllowedMime = "image/jpeg" | "image/png" | "image/webp";
-const ALLOWED_MIME_TYPES: AllowedMime[] = ["image/jpeg", "image/png", "image/webp"];
-const EXT: Record<AllowedMime, string> = {
+export const ALLOWED_MIME_TYPES: AllowedMime[] = ["image/jpeg", "image/png", "image/webp"];
+export const EXT: Record<AllowedMime, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
