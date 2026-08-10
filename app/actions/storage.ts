@@ -56,9 +56,11 @@ type ImageDrainResult =
   | { ok: true }
   | { ok: false; error: string; revertTo: string };
 
+type ImageSaveResultOk = Extract<ImageSaveResult, { ok: true }>;
+
 async function drainImageSaveResult(
   orgId: string,
-  result: Extract<ImageSaveResult, { ok: true }>,
+  result: ImageSaveResultOk,
   restore: (revertTo: string) => Promise<void>,
 ): Promise<ImageDrainResult> {
   for (const relocation of result.relocations) {
@@ -194,8 +196,8 @@ export async function saveTaskImagePath(
     await updateTaskImageUrl(orgId, taskId, revertTo, prisma);
   };
 
-  const result = isLibraryPath
-    ? await withOrgImageStorageLock(orgId, normalized, async (tx) => {
+  if (isLibraryPath) {
+    const result = await withOrgImageStorageLock(orgId, normalized, async (tx) => {
         const runResult = await run(tx);
         if (!runResult.ok) return runResult;
 
@@ -207,11 +209,14 @@ export async function saveTaskImagePath(
         }
 
         return { ok: true as const };
-      })
-    : await run();
+    });
+    return result;
+  }
+
+  const result = await run();
   if (!result.ok) return result;
 
-  if (!isLibraryPath) {
+  {
     const drained = await drainImageSaveResult(orgId, result, restoreTaskImage);
     if (!drained.ok) {
       return { ok: false, error: drained.error };
@@ -345,8 +350,8 @@ export async function saveToolItemImagePath(
     await updateToolItemImageUrl(orgId, itemId, revertTo, prisma);
   };
 
-  const result = isLibraryPath
-    ? await withOrgImageStorageLock(orgId, normalized, async (tx) => {
+  if (isLibraryPath) {
+    const result = await withOrgImageStorageLock(orgId, normalized, async (tx) => {
         const runResult = await run(tx);
         if (!runResult.ok) return runResult;
 
@@ -358,11 +363,14 @@ export async function saveToolItemImagePath(
         }
 
         return { ok: true as const };
-      })
-    : await run();
+    });
+    return result;
+  }
+
+  const result = await run();
   if (!result.ok) return result;
 
-  if (!isLibraryPath) {
+  {
     const drained = await drainImageSaveResult(orgId, result, restoreToolItemImage);
     if (!drained.ok) {
       return { ok: false, error: drained.error };
