@@ -41,7 +41,6 @@ export type OrgImagePage = {
 
 /**
  * @deprecated For super-admin global views use `getGlobalOrgImagesPage()` instead.
-  if (!relocated) return null;
  * This helper returns at most `MAX_PAGE_SIZE` rows and is not exhaustive.
  * Callers that need completeness should use `getOrgImagesPage()`.
  */
@@ -112,6 +111,7 @@ export async function getOrgImagesPage(
   const images = await prisma.orgImage.findMany({
     where,
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    skip: (page - 1) * pageSize,
     take: pageSize,
     select: { id: true, storagePath: true, name: true, createdAt: true },
   });

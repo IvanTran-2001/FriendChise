@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import { z } from "zod";
 import { requireOrgPermission } from "@/lib/authz";
 import { createTask, deleteTask, findTaskByName, setTaskEligibilities } from "@/lib/services/tasks";
 import { PermissionAction } from "@prisma/client";
@@ -96,7 +97,7 @@ export async function POST(
     return NextResponse.json(
       {
         error: "Invalid task data",
-        errors: parsed.error.flatten().fieldErrors,
+        errors: z.flattenError(parsed.error).fieldErrors,
       },
       { status: 400 },
     );

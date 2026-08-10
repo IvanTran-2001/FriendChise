@@ -52,17 +52,31 @@ type ImageSaveResult =
   | { ok: true; oldImagePathsToDelete: string[]; relocations: ImageRelocationDecision[] }
   | { ok: false; error: string };
 
-async function drainImageSaveResult(result: ImageSaveResult): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (!result.ok) return result;
+type ImageDrainResult =
+  | { ok: true }
+  | { ok: false; error: string; revertTo: string };
 
+async function drainImageSaveResult(
+  orgId: string,
+  result: Extract<ImageSaveResult, { ok: true }>,
+  restore: (revertTo: string) => Promise<void>,
+): Promise<ImageDrainResult> {
   for (const relocation of result.relocations) {
     const applied = await applyRelocationDecision(relocation);
     if (!applied) {
-      return { ok: false, error: `Failed to relocate image.` };
+      await restore(relocation.sourcePath);
+      return { ok: false, error: `Failed to relocate image.`, revertTo: relocation.sourcePath };
     }
   }
 
   for (const oldImagePath of result.oldImagePathsToDelete) {
+    if (oldImagePath.startsWith(`orgs/${orgId}/images/`)) {
+      await withOrgImageStorageLock(orgId, oldImagePath, async () => {
+        await deleteStorageFile(oldImagePath);
+      });
+      continue;
+    }
+
     await deleteStorageFile(oldImagePath);
   }
 
@@ -176,14 +190,32 @@ export async function saveTaskImagePath(
     return { ok: true, oldImagePathsToDelete, relocations };
   };
 
+  const restoreTaskImage = async (revertTo: string) => {
+    await updateTaskImageUrl(orgId, taskId, revertTo, prisma);
+  };
+
   const result = isLibraryPath
-    ? await withOrgImageStorageLock(orgId, normalized, async (tx) => run(tx))
+    ? await withOrgImageStorageLock(orgId, normalized, async (tx) => {
+        const runResult = await run(tx);
+        if (!runResult.ok) return runResult;
+
+        const drained = await drainImageSaveResult(orgId, runResult, async (revertTo) => {
+          await updateTaskImageUrl(orgId, taskId, revertTo, tx);
+        });
+        if (!drained.ok) {
+          return { ok: false as const, error: drained.error };
+        }
+
+        return { ok: true as const };
+      })
     : await run();
   if (!result.ok) return result;
 
-  const drained = await drainImageSaveResult(result);
-  if (!drained.ok) {
-    return drained;
+  if (!isLibraryPath) {
+    const drained = await drainImageSaveResult(orgId, result, restoreTaskImage);
+    if (!drained.ok) {
+      return { ok: false, error: drained.error };
+    }
   }
 
   return { ok: true };
@@ -268,17 +300,19 @@ export async function saveToolItemImagePath(
   if (!isItemPath && !isLibraryPath)
     return { ok: false, error: "Invalid storage path" };
 
+  const existing = await prisma.toolItem.findFirst({
+    where: { id: itemId, orgId },
+    select: { imgUrl: true },
+  });
+  if (!existing) return { ok: false, error: "Item not found" };
+
   const run = async (
     db: Tx | typeof prisma = prisma,
   ): Promise<ImageSaveResult> => {
     const oldImagePathsToDelete: string[] = [];
     const relocations: ImageRelocationDecision[] = [];
-    const existing = await db.toolItem.findFirst({
-      where: { id: itemId, orgId },
-      select: { imgUrl: true },
-    });
-
-    await updateToolItemImageUrl(orgId, itemId, normalized, db);
+    const updatedCount = await updateToolItemImageUrl(orgId, itemId, normalized, db);
+    if (updatedCount === 0) return { ok: false, error: "Item not found" };
 
     try {
       await renameToolItemImageIfNeeded(
@@ -305,14 +339,34 @@ export async function saveToolItemImagePath(
     return { ok: true, oldImagePathsToDelete, relocations };
   };
 
+  if (!existing) return { ok: false, error: "Item not found" };
+
+  const restoreToolItemImage = async (revertTo: string) => {
+    await updateToolItemImageUrl(orgId, itemId, revertTo, prisma);
+  };
+
   const result = isLibraryPath
-    ? await withOrgImageStorageLock(orgId, normalized, async (tx) => run(tx))
+    ? await withOrgImageStorageLock(orgId, normalized, async (tx) => {
+        const runResult = await run(tx);
+        if (!runResult.ok) return runResult;
+
+        const drained = await drainImageSaveResult(orgId, runResult, async (revertTo) => {
+          await updateToolItemImageUrl(orgId, itemId, revertTo, tx);
+        });
+        if (!drained.ok) {
+          return { ok: false as const, error: drained.error };
+        }
+
+        return { ok: true as const };
+      })
     : await run();
   if (!result.ok) return result;
 
-  const drained = await drainImageSaveResult(result);
-  if (!drained.ok) {
-    return drained;
+  if (!isLibraryPath) {
+    const drained = await drainImageSaveResult(orgId, result, restoreToolItemImage);
+    if (!drained.ok) {
+      return { ok: false, error: drained.error };
+    }
   }
 
   return { ok: true };
@@ -428,21 +482,21 @@ export async function deleteOrgImageAction(
   });
   if (!image) return { ok: false, error: "Image not found", code: "invalid_input" };
 
-  const storagePathToDelete = await withOrgImageStorageLock(orgId, image.storagePath, async (tx) => {
+  await withOrgImageStorageLock(orgId, image.storagePath, async (tx) => {
     const { count } = await tx.orgImage.deleteMany({ where: { id: imageId, orgId } });
-    if (count === 0) return null;
+    if (count === 0) return;
 
     const [taskRef, itemRef, imageRef] = await Promise.all([
       tx.task.count({ where: { orgId, imageUrl: image.storagePath } }),
       tx.toolItem.count({ where: { orgId, imgUrl: image.storagePath } }),
       tx.orgImage.count({ where: { orgId, storagePath: image.storagePath } }),
     ]);
-    return taskRef === 0 && itemRef === 0 && imageRef === 0 ? image.storagePath : null;
+
+    if (taskRef === 0 && itemRef === 0 && imageRef === 0) {
+      await deleteStorageFile(image.storagePath);
+    }
   });
 
-  if (storagePathToDelete) {
-    await deleteStorageFile(storagePathToDelete);
-  }
   return { ok: true };
 }
 

@@ -125,7 +125,8 @@ export async function updateToolItemImageUrl(
   imgUrl: string | null,
   db: PrismaTransactionClient | typeof prisma = prisma,
 ) {
-  await db.toolItem.updateMany({ where: { id, orgId }, data: { imgUrl } });
+  const result = await db.toolItem.updateMany({ where: { id, orgId }, data: { imgUrl } });
+  return result.count;
 }
 
 /** Creates a new org-scoped tool item. `unit` is a free-text label (e.g. "dozen", "kg"). */
