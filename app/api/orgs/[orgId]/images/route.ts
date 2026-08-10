@@ -1,20 +1,11 @@
 import { NextResponse } from "next/server";
-import { MAX_PAGE_SIZE } from "@/lib/services/images";
-import { getOrgImagesPageWithSignedUrls, saveOrgImageToLibrary } from "@/lib/services/images";
-import { parseRequestBody } from "@/lib/http/request-body";
-
-function asString(value: unknown) {
-  return typeof value === "string" ? value : undefined;
-}
-
-function getBodyValue(body: Record<string, unknown> | FormData, key: string) {
-  return body instanceof FormData ? body.get(key) : body[key];
-}
+import { MAX_PAGE_SIZE, getOrgImagesPageWithSignedUrls, saveOrgImageToLibrary } from "@/lib/services/images";
+import { getStringField, parseRequestBody } from "@/lib/http/request-body";
 
 function extractPayload(body: Record<string, unknown> | FormData) {
   return {
-    storagePath: asString(getBodyValue(body, "storagePath")),
-    name: asString(getBodyValue(body, "name")),
+    storagePath: getStringField(body, "storagePath"),
+    name: getStringField(body, "name"),
   };
 }
 

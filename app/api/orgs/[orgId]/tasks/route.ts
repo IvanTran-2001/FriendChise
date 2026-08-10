@@ -118,8 +118,11 @@ export async function POST(
     }
   }
 
+  const normalizedImagePath = parsed.data.imageStoragePath
+    ? normalizeImageStoragePath(orgId, parsed.data.imageStoragePath)
+    : undefined;
+
   if (parsed.data.imageStoragePath) {
-    const normalizedImagePath = normalizeImageStoragePath(orgId, parsed.data.imageStoragePath);
     if (!normalizedImagePath) {
       return NextResponse.json({ error: "Invalid storage path" }, { status: 400 });
     }
@@ -142,9 +145,6 @@ export async function POST(
 
   let createdTaskId: string | null = null;
   try {
-    const normalizedImagePath = parsed.data.imageStoragePath
-      ? normalizeImageStoragePath(orgId, parsed.data.imageStoragePath)
-      : undefined;
     const taskInput = normalizedImagePath
       ? { ...parsed.data, imageStoragePath: normalizedImagePath }
       : parsed.data;

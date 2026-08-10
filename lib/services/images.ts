@@ -169,6 +169,7 @@ export async function saveOrgImageToLibrary(
 > {
   const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  if (isDemoEmail(authz.userEmail)) return { ok: false, error: "Image uploads are not available in demo mode." };
 
   const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
   if (!normalized.startsWith(`orgs/${orgId}/images/`)) {
@@ -341,10 +342,6 @@ export async function renameTaskImageIfNeeded(
       );
       return null;
     }
-    await db.orgImage.updateMany({
-      where: { orgId, storagePath: currentPath },
-      data: { storagePath: expectedPath, name: task.name },
-    });
   }
 
   await db.task.update({
@@ -423,10 +420,6 @@ export async function renameToolItemImageIfNeeded(
       );
       return null;
     }
-    await db.orgImage.updateMany({
-      where: { orgId, storagePath: currentPath },
-      data: { storagePath: expectedPath, name: item.name },
-    });
   }
 
   await db.toolItem.update({

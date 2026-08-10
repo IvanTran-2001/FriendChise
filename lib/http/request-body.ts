@@ -32,8 +32,25 @@ export async function parseRequestBody(req: Request, options: ParseRequestBodyOp
 
   try {
     const text = await req.text();
-    return Object.fromEntries(new URLSearchParams(text).entries()) as Record<string, unknown>;
+    const parsed: Record<string, unknown> = {};
+    for (const [key, value] of new URLSearchParams(text).entries()) {
+      const existing = parsed[key];
+      if (existing === undefined) {
+        parsed[key] = value;
+      } else if (Array.isArray(existing)) {
+        parsed[key] = [...existing, value];
+      } else {
+        parsed[key] = [existing, value];
+      }
+    }
+
+    return parsed;
   } catch {
     return NextResponse.json({ error: "Malformed form body." }, { status: 400 });
   }
+}
+
+export function getStringField(body: Record<string, unknown> | FormData, key: string) {
+  const value = body instanceof FormData ? body.get(key) : body[key];
+  return typeof value === "string" ? value : undefined;
 }

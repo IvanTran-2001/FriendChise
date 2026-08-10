@@ -32,6 +32,8 @@ import { updateToolItemImageUrl } from "@/lib/services/tools";
 import { updateOrgImage } from "@/lib/services/orgs";
 import {
   MAX_PAGE_SIZE,
+  ALLOWED_MIME_TYPES,
+  EXT,
   deleteOrgImage,
   renameTaskImageIfNeeded,
   renameToolItemImageIfNeeded,
@@ -41,13 +43,7 @@ import {
 } from "@/lib/services/images";
 import { prisma } from "@/lib/platform/prisma";
 import { isDemoEmail } from "@/lib/demo";
-type AllowedMime = "image/jpeg" | "image/png" | "image/webp";
-const ALLOWED_MIME_TYPES: AllowedMime[] = ["image/jpeg", "image/png", "image/webp"];
-const EXT: Record<AllowedMime, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-};
+type AllowedMime = (typeof ALLOWED_MIME_TYPES)[number];
 
 /**
  * Returns a signed upload URL for a task image.

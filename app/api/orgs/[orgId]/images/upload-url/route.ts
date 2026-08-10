@@ -1,14 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSignedOrgImageUploadUrl } from "@/lib/services/images";
-import { parseRequestBody } from "@/lib/http/request-body";
-
-function asString(value: unknown) {
-  return typeof value === "string" ? value : undefined;
-}
-
-function extractMimeType(body: Record<string, unknown> | FormData) {
-  return asString(body instanceof FormData ? body.get("mimeType") : body.mimeType);
-}
+import { getStringField, parseRequestBody } from "@/lib/http/request-body";
 
 export async function POST(
   req: Request,
@@ -18,7 +10,7 @@ export async function POST(
   const body = await parseRequestBody(req);
   if (body instanceof NextResponse) return body;
 
-  const mimeType = extractMimeType(body);
+  const mimeType = getStringField(body, "mimeType");
   if (!mimeType) {
     return NextResponse.json({ error: "mimeType is required." }, { status: 400 });
   }
