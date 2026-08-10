@@ -38,7 +38,8 @@ WHERE id IN (
   WHERE rn > 1
 );
 
-CREATE UNIQUE INDEX CONCURRENTLY "OrgImage_orgId_storagePath_idx"
+
+CREATE UNIQUE INDEX "OrgImage_orgId_storagePath_idx"
   ON "OrgImage" ("orgId", "storagePath");
 
 ALTER TABLE "OrgImage"
