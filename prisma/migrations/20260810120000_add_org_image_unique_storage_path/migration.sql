@@ -39,10 +39,10 @@ WHERE id IN (
 );
 
 
-CREATE UNIQUE INDEX CONCURRENTLY "OrgImage_orgId_storagePath_idx"
+CREATE UNIQUE INDEX "OrgImage_orgId_storagePath_idx"
   ON "OrgImage" ("orgId", "storagePath");
 
 ALTER TABLE "OrgImage"
   ADD CONSTRAINT "OrgImage_orgId_storagePath_key" UNIQUE USING INDEX "OrgImage_orgId_storagePath_idx";
 
-DROP INDEX CONCURRENTLY IF EXISTS "OrgImage_orgId_idx";
+DROP INDEX IF EXISTS "OrgImage_orgId_idx";
