@@ -37,7 +37,7 @@ export async function parseRequestBody(req: Request, options: ParseRequestBodyOp
 
   try {
     const text = await req.text();
-    const parsed: Record<string, unknown> = {};
+    const parsed = Object.create(null) as Record<string, unknown>;
     for (const [key, value] of new URLSearchParams(text).entries()) {
       const existing = parsed[key];
       if (existing === undefined) {

@@ -62,6 +62,7 @@ async function drainImageSaveResult(
   orgId: string,
   result: ImageSaveResultOk,
   restore: (revertTo: string) => Promise<void>,
+  tx?: Tx,
 ): Promise<ImageDrainResult> {
   for (const relocation of result.relocations) {
     const applied = await applyRelocationDecision(relocation);
@@ -73,9 +74,13 @@ async function drainImageSaveResult(
 
   for (const oldImagePath of result.oldImagePathsToDelete) {
     if (oldImagePath.startsWith(`orgs/${orgId}/images/`)) {
-      await withOrgImageStorageLock(orgId, oldImagePath, async () => {
+      if (tx) {
         await deleteStorageFile(oldImagePath);
-      });
+      } else {
+        await withOrgImageStorageLock(orgId, oldImagePath, async () => {
+          await deleteStorageFile(oldImagePath);
+        });
+      }
       continue;
     }
 
@@ -178,11 +183,7 @@ export async function saveTaskImagePath(
       console.error(`Failed to rename task image after saving:`, err);
     }
 
-    if (
-      existing?.imageUrl &&
-      existing.imageUrl !== normalized &&
-      !existing.imageUrl.startsWith(`orgs/${orgId}/images/`)
-    ) {
+    if (existing.imageUrl && existing.imageUrl !== normalized && !existing.imageUrl.startsWith(`orgs/${orgId}/images/`)) {
       const refCount = await db.task.count({
         where: { imageUrl: existing.imageUrl, NOT: { id: taskId } },
       });
@@ -203,7 +204,7 @@ export async function saveTaskImagePath(
 
         const drained = await drainImageSaveResult(orgId, runResult, async (revertTo) => {
           await updateTaskImageUrl(orgId, taskId, revertTo, tx);
-        });
+        }, tx);
         if (!drained.ok) {
           return { ok: false as const, error: drained.error };
         }
@@ -330,11 +331,7 @@ export async function saveToolItemImagePath(
       console.error(`Failed to rename tool item image after saving:`, err);
     }
 
-    if (
-      existing?.imgUrl &&
-      existing.imgUrl !== normalized &&
-      !existing.imgUrl.startsWith(`orgs/${orgId}/images/`)
-    ) {
+    if (existing.imgUrl && existing.imgUrl !== normalized && !existing.imgUrl.startsWith(`orgs/${orgId}/images/`)) {
       const refCount = await db.toolItem.count({
         where: { imgUrl: existing.imgUrl },
       });
@@ -343,8 +340,6 @@ export async function saveToolItemImagePath(
 
     return { ok: true, oldImagePathsToDelete, relocations };
   };
-
-  if (!existing) return { ok: false, error: "Item not found" };
 
   const restoreToolItemImage = async (revertTo: string) => {
     await updateToolItemImageUrl(orgId, itemId, revertTo, prisma);
@@ -357,7 +352,7 @@ export async function saveToolItemImagePath(
 
         const drained = await drainImageSaveResult(orgId, runResult, async (revertTo) => {
           await updateToolItemImageUrl(orgId, itemId, revertTo, tx);
-        });
+        }, tx);
         if (!drained.ok) {
           return { ok: false as const, error: drained.error };
         }
@@ -480,7 +475,7 @@ export async function getOrgImagesPageWithSignedUrls(
 export async function deleteOrgImageAction(
   orgId: string,
   imageId: string,
-): Promise<{ ok: true } | { ok: false; error: string; code: "unauthorized" | "invalid_input" }> {
+): Promise<{ ok: true } | { ok: false; error: string; code: "unauthorized" | "invalid_input" | "not_found" }> {
   const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!authz.ok) return { ok: false, error: "Unauthorized", code: "unauthorized" };
 
@@ -488,7 +483,7 @@ export async function deleteOrgImageAction(
     where: { id: imageId, orgId },
     select: { storagePath: true },
   });
-  if (!image) return { ok: false, error: "Image not found", code: "invalid_input" };
+  if (!image) return { ok: false, error: "Image not found", code: "not_found" };
 
   await withOrgImageStorageLock(orgId, image.storagePath, async (tx) => {
     const { count } = await tx.orgImage.deleteMany({ where: { id: imageId, orgId } });

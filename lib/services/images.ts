@@ -13,7 +13,6 @@ import {
 import type { StorageErrorCode } from "@/lib/http/storage-error";
 
 type Tx = PrismaTransactionClient;
-
 type OrgImageRow = {
   id: string;
   storagePath: string;
@@ -22,7 +21,6 @@ type OrgImageRow = {
 };
 
 export const MAX_PAGE_SIZE = 100;
-
 type AllowedMime = "image/jpeg" | "image/png" | "image/webp";
 export const ALLOWED_MIME_TYPES: AllowedMime[] = ["image/jpeg", "image/png", "image/webp"];
 export const EXT: Record<AllowedMime, string> = {
@@ -30,6 +28,16 @@ export const EXT: Record<AllowedMime, string> = {
   "image/png": "png",
   "image/webp": "webp",
 };
+
+function normalizePageNumber(value: number | undefined, fallback: number) {
+  if (!Number.isFinite(value ?? NaN)) return fallback;
+  return Math.max(1, Math.floor(value ?? fallback));
+}
+
+function normalizePageSize(value: number | undefined, fallback: number) {
+  if (!Number.isFinite(value ?? NaN)) return fallback;
+  return Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(value ?? fallback)));
+}
 
 export type OrgImagePage = {
   images: OrgImageRow[];
@@ -68,10 +76,10 @@ export type GlobalOrgImagesPage = {
 export async function getGlobalOrgImagesPage(
   options: { page?: number; pageSize?: number } = {},
 ): Promise<GlobalOrgImagesPage> {
-  const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(options.pageSize ?? 12)));
+  const pageSize = normalizePageSize(options.pageSize, 12);
   const totalCount = await prisma.orgImage.count();
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const page = Math.min(Math.max(1, Math.floor(options.page ?? 1)), totalPages);
+  const page = Math.min(normalizePageNumber(options.page, 1), totalPages);
 
   const images = await prisma.orgImage.findMany({
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -93,7 +101,7 @@ export async function getOrgImagesPage(
   orgId: string,
   options: { page?: number; pageSize?: number; search?: string } = {},
 ): Promise<OrgImagePage> {
-  const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(options.pageSize ?? 24)));
+  const pageSize = normalizePageSize(options.pageSize, 24);
   const search = options.search?.trim() ?? "";
   const where = search
     ? {
@@ -142,10 +150,22 @@ export async function withOrgImageStorageLock<T>(
   storagePath: string,
   action: (tx: Tx) => Promise<T>,
 ) {
-  return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(0x494d47, hashtext(${`${orgId}:${storagePath}`}))`;
-    return action(tx);
-  });
+  const startedAt = performance.now();
+  try {
+    return await prisma.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(0x494d47, hashtext(${`${orgId}:${storagePath}`}))`;
+        return action(tx);
+      },
+      { maxWait: 10_000, timeout: 30_000 },
+    );
+  } finally {
+    console.info("[withOrgImageStorageLock] lock hold duration", {
+      orgId,
+      storagePath,
+      durationMs: Math.round(performance.now() - startedAt),
+    });
+  }
 }
 
 export type ImageRelocationDecision = {
@@ -402,8 +422,21 @@ export async function renameTaskImageIfNeeded(
   if (onRelocation) {
     onRelocation(relocated);
   } else {
+    await db.task.update({
+      where: { id: taskId },
+      data: { imageUrl: expectedPath },
+    });
+
     const applied = await applyRelocationDecision(relocated);
-    if (!applied) return null;
+    if (!applied) {
+      await db.task.update({
+        where: { id: taskId },
+        data: { imageUrl: currentPath },
+      });
+      return null;
+    }
+
+    return expectedPath;
   }
 
   await db.task.update({
@@ -460,8 +493,21 @@ export async function renameToolItemImageIfNeeded(
   if (onRelocation) {
     onRelocation(relocated);
   } else {
+    await db.toolItem.update({
+      where: { id: itemId },
+      data: { imgUrl: expectedPath },
+    });
+
     const applied = await applyRelocationDecision(relocated);
-    if (!applied) return null;
+    if (!applied) {
+      await db.toolItem.update({
+        where: { id: itemId },
+        data: { imgUrl: currentPath },
+      });
+      return null;
+    }
+
+    return expectedPath;
   }
 
   await db.toolItem.update({

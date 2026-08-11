@@ -227,9 +227,17 @@ export function OrgImagePicker({
   async function handleDelete(e: React.MouseEvent, img: LibraryImage) {
     e.stopPropagation();
     setDeletingId(img.id);
-    await deleteOrgImageAction(orgId, img.id);
-    setImages((prev) => prev.filter((i) => i.id !== img.id));
-    setDeletingId(null);
+    try {
+      const result = await deleteOrgImageAction(orgId, img.id);
+      if (!result.ok) {
+        setLibraryError(result.error);
+        return;
+      }
+
+      setImages((prev) => prev.filter((i) => i.id !== img.id));
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (

@@ -10,7 +10,7 @@ export async function DELETE(
 
   const result = await deleteOrgImageAction(orgId, imageId);
   if (!result.ok) {
-    const status = result.error === "Unauthorized" ? 403 : storageErrorStatus(result.code);
+    const status = storageErrorStatus(result.code);
     return NextResponse.json({ error: result.error }, { status });
   }
 

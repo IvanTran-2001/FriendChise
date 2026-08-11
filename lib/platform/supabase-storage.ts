@@ -43,9 +43,10 @@ async function requestSignedUploadUrl(
 	maxSizeBytes?: number,
 ) {
 	const { url, key } = getConfig();
+	const encodedStoragePath = storagePath.split("/").map(encodeURIComponent).join("/");
 	try {
 		const res = await fetch(
-			`${url}/storage/v1/object/upload/sign/${bucket}/${storagePath}`,
+			`${url}/storage/v1/object/upload/sign/${bucket}/${encodedStoragePath}`,
 			{
 				method: "POST",
 				headers: {
@@ -58,12 +59,14 @@ async function requestSignedUploadUrl(
 		);
 		if (!res.ok) {
 			const body = await res.text().catch(() => res.statusText);
-			return { ok: false as const, error: `Storage error: ${body}`, code: "storage_failure" as const };
+			console.error("[requestSignedUploadUrl] Supabase upload signing failed", { bucket, storagePath, body });
+			return { ok: false as const, error: "Storage error", code: "storage_failure" as const };
 		}
 		const data = (await res.json()) as Record<string, unknown>;
 		const rawUrl = (data.signedURL ?? data.signedUrl ?? data.url) as string | undefined;
 		if (!rawUrl) {
-			return { ok: false as const, error: "Storage error: unexpected response shape", code: "storage_failure" as const };
+			console.error("[requestSignedUploadUrl] Unexpected Supabase upload signing response", { bucket, storagePath, data });
+			return { ok: false as const, error: "Storage error", code: "storage_failure" as const };
 		}
 		return {
 			ok: true as const,
@@ -80,8 +83,9 @@ async function requestSignedUploadUrl(
 }
 
 /**
+		console.error("[requestSignedUploadUrl] Supabase upload signing threw", { bucket, storagePath, error });
  * Creates a signed URL that the browser can PUT a file to directly,
- * bypassing Vercel's 4.5 MB body limit.
+			error: "Storage error",
  */
 export async function createSignedUploadUrl(
 	storagePath: string,
@@ -103,35 +107,40 @@ export async function createSignedReadUrls(
 	const result = new Map<string, string | null>(storagePaths.map((p) => [p, null]));
 	if (storagePaths.length === 0) return result;
 	const { url, key } = getConfig();
-	const res = await fetch(`${url}/storage/v1/object/sign/${BUCKET}`, {
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${key}`,
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({ expiresIn, paths: storagePaths }),
-	});
-	if (!res.ok) return result;
-	const data = (await res.json()) as Array<{
-		path?: string;
-		originalPath?: string;
-		signedURL: string | null;
-		error: string | null;
-	}>;
-	for (const entry of data) {
-		const entryPath = entry?.path ?? entry?.originalPath;
-		if (!entryPath || !entry.signedURL) continue;
-		const key = entryPath.startsWith(`${BUCKET}/`)
-			? entryPath.slice(BUCKET.length + 1)
-			: entryPath;
-		result.set(
-			key,
-			entry.signedURL.startsWith("http")
-				? entry.signedURL
-				: `${url}/storage/v1${entry.signedURL}`,
-		);
+	try {
+		const res = await fetch(`${url}/storage/v1/object/sign/${BUCKET}`, {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${key}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ expiresIn, paths: storagePaths }),
+			signal: AbortSignal.timeout(15_000),
+		});
+		if (!res.ok) return result;
+		const data = (await res.json()) as Array<{
+			path?: string;
+			originalPath?: string;
+			signedURL: string | null;
+			error: string | null;
+		}>;
+		for (const entry of data) {
+			const entryPath = entry?.path ?? entry?.originalPath;
+			if (!entryPath || !entry.signedURL) continue;
+			const key = entryPath.startsWith(`${BUCKET}/`)
+				? entryPath.slice(BUCKET.length + 1)
+				: entryPath;
+			result.set(
+				key,
+				entry.signedURL.startsWith("http")
+					? entry.signedURL
+					: `${url}/storage/v1${entry.signedURL}`,
+			);
+		}
+		return result;
+	} catch {
+		return result;
 	}
-	return result;
 }
 
 /**
