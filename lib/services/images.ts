@@ -114,7 +114,7 @@ export async function getOrgImagesPage(
     : { orgId };
   const totalCount = await prisma.orgImage.count({ where });
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const page = Math.min(Math.max(1, Math.floor(options.page ?? 1)), totalPages);
+  const page = Math.min(normalizePageNumber(options.page, 1), totalPages);
 
   const images = await prisma.orgImage.findMany({
     where,

@@ -6,9 +6,10 @@ type ParseRequestBodyOptions = {
 
 export async function parseRequestBody(req: Request, options: ParseRequestBodyOptions = {}) {
   const contentType = req.headers.get("content-type") ?? "";
-  const isJson = contentType.includes("application/json");
-  const isForm = contentType.includes("application/x-www-form-urlencoded");
-  const isMultipart = options.multipart && contentType.includes("multipart/form-data");
+  const mediaType = contentType.split(";")[0]?.trim().toLowerCase() ?? "";
+  const isJson = mediaType === "application/json";
+  const isForm = mediaType === "application/x-www-form-urlencoded";
+  const isMultipart = options.multipart && mediaType === "multipart/form-data";
 
   if (!isJson && !isForm && !isMultipart) {
     return NextResponse.json({ error: "Unsupported media type." }, { status: 415 });

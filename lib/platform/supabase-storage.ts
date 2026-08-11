@@ -45,18 +45,15 @@ async function requestSignedUploadUrl(
 	const { url, key } = getConfig();
 	const encodedStoragePath = storagePath.split("/").map(encodeURIComponent).join("/");
 	try {
-		const res = await fetch(
-			`${url}/storage/v1/object/upload/sign/${bucket}/${encodedStoragePath}`,
-			{
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${key}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(maxSizeBytes !== undefined ? { sizeInBytes: maxSizeBytes } : {}),
-				signal: AbortSignal.timeout(15_000),
+		const res = await fetch(`${url}/storage/v1/object/upload/sign/${bucket}/${encodedStoragePath}`, {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${key}`,
+				"Content-Type": "application/json",
 			},
-		);
+			body: JSON.stringify(maxSizeBytes !== undefined ? { sizeInBytes: maxSizeBytes } : {}),
+			signal: AbortSignal.timeout(15_000),
+		});
 		if (!res.ok) {
 			const body = await res.text().catch(() => res.statusText);
 			console.error("[requestSignedUploadUrl] Supabase upload signing failed", { bucket, storagePath, body });
@@ -74,18 +71,18 @@ async function requestSignedUploadUrl(
 			path: (data.path as string | undefined) ?? storagePath,
 		};
 	} catch (error) {
+		console.error("[requestSignedUploadUrl] Supabase upload signing threw", { bucket, storagePath, error });
 		return {
 			ok: false as const,
-			error: `Storage error: ${error instanceof Error ? error.message : String(error)}`,
+			error: "Storage error",
 			code: "storage_failure" as const,
 		};
 	}
 }
 
 /**
-		console.error("[requestSignedUploadUrl] Supabase upload signing threw", { bucket, storagePath, error });
  * Creates a signed URL that the browser can PUT a file to directly,
-			error: "Storage error",
+ * bypassing Vercel's 4.5 MB body limit.
  */
 export async function createSignedUploadUrl(
 	storagePath: string,

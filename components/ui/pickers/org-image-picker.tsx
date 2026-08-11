@@ -93,6 +93,7 @@ export function OrgImagePicker({
   const [images, setImages] = useState<LibraryImage[]>([]);
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [libraryError, setLibraryError] = useState<string | null>(null);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [libraryPage, setLibraryPage] = useState(0);
   const [libraryTotalPages, setLibraryTotalPages] = useState(1);
@@ -108,6 +109,7 @@ export function OrgImagePicker({
       const requestSeq = ++requestSeqRef.current;
       setLibraryLoading(true);
       setLibraryError(null);
+      setDeleteError(null);
 
       const result = await getOrgImagesPageWithSignedUrls(orgId, {
         page,
@@ -149,6 +151,7 @@ export function OrgImagePicker({
       setPendingFile(null);
       setUploadError(null);
       setSearch("");
+      setDeleteError(null);
     }
   }, [open]);
 
@@ -226,11 +229,12 @@ export function OrgImagePicker({
   // ── Library: delete ───────────────────────────────────────────────────────
   async function handleDelete(e: React.MouseEvent, img: LibraryImage) {
     e.stopPropagation();
+    setDeleteError(null);
     setDeletingId(img.id);
     try {
       const result = await deleteOrgImageAction(orgId, img.id);
       if (!result.ok) {
-        setLibraryError(result.error);
+        setDeleteError(result.error);
         return;
       }
 
@@ -438,6 +442,7 @@ export function OrgImagePicker({
                   ) : null}
                 </div>
               )}
+              {deleteError ? <p className="text-sm text-destructive text-center">{deleteError}</p> : null}
             </div>
           )}
 

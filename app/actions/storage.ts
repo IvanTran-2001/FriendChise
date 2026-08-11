@@ -53,7 +53,7 @@ type ImageSaveResult =
   | { ok: false; error: string };
 
 type ImageDrainResult =
-  | { ok: true }
+  | { ok: true; oldImagePathsToDelete: string[] }
   | { ok: false; error: string; revertTo: string };
 
 type ImageSaveResultOk = Extract<ImageSaveResult, { ok: true }>;
@@ -103,15 +103,12 @@ export async function getSignedUploadUrl(
 ): Promise<
   { ok: true; signedUrl: string; path: string } | { ok: false; error: string }
 > {
-  const authz = await requireOrgPermissionAction(
-    orgId,
-    PermissionAction.MANAGE_TASKS,
-  );
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
-  if (isDemoEmail(authz.userEmail))
+  if (isDemoEmail(authz.userEmail)) {
     return { ok: false, error: "Image uploads are not available in demo mode." };
+  }
 
-  // Verify task belongs to this org
   const task = await prisma.task.findUnique({
     where: { id: taskId },
     select: { orgId: true },
@@ -121,10 +118,7 @@ export async function getSignedUploadUrl(
   }
 
   if (!ALLOWED_MIME_TYPES.includes(mimeType as AllowedMime)) {
-    return {
-      ok: false,
-      error: "Unsupported file type. Use JPEG, PNG, or WebP.",
-    };
+    return { ok: false, error: "Unsupported file type. Use JPEG, PNG, or WebP." };
   }
 
   const ext = EXT[mimeType as AllowedMime];
@@ -132,6 +126,18 @@ export async function getSignedUploadUrl(
   const storagePath = `orgs/${orgId}/tasks/${taskId}/${uuid}.${ext}`;
 
   return createSignedUploadUrl(storagePath);
+}
+
+/**
+ * Returns the first page of org library images with fresh signed URLs.
+ *
+ * This legacy action preserves pagination metadata so callers do not treat the
+ * bounded slice as a complete image list.
+ */
+export async function getOrgImagesWithSignedUrls(
+  orgId: string,
+): Promise<Awaited<ReturnType<typeof getOrgImagesPageWithSignedUrlsService>>> {
+  return getOrgImagesPageWithSignedUrlsService(orgId, { page: 1, pageSize: MAX_PAGE_SIZE });
 }
 
 /**
@@ -151,7 +157,6 @@ export async function saveTaskImagePath(
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
-  // Normalize and validate storagePath
   const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
   const isTaskPath = normalized.startsWith(`orgs/${orgId}/tasks/${taskId}/`);
   const isLibraryPath = normalized.startsWith(`orgs/${orgId}/images/`);
@@ -183,6 +188,8 @@ export async function saveTaskImagePath(
       console.error(`Failed to rename task image after saving:`, err);
     }
 
+    if (!existing) return { ok: false, error: "Task not found" };
+
     if (existing.imageUrl && existing.imageUrl !== normalized && !existing.imageUrl.startsWith(`orgs/${orgId}/images/`)) {
       const refCount = await db.task.count({
         where: { imageUrl: existing.imageUrl, NOT: { id: taskId } },
@@ -199,19 +206,23 @@ export async function saveTaskImagePath(
 
   if (isLibraryPath) {
     const result = await withOrgImageStorageLock(orgId, normalized, async (tx) => {
-        const runResult = await run(tx);
-        if (!runResult.ok) return runResult;
+      const runResult = await run(tx);
+      if (!runResult.ok) return runResult;
 
-        const drained = await drainImageSaveResult(orgId, runResult, async (revertTo) => {
-          await updateTaskImageUrl(orgId, taskId, revertTo, tx);
-        }, tx);
-        if (!drained.ok) {
-          return { ok: false as const, error: drained.error };
-        }
+      const drained = await drainImageSaveResult(orgId, runResult, async (revertTo) => {
+        await updateTaskImageUrl(orgId, taskId, revertTo, tx);
+      }, tx);
+      if (!drained.ok) {
+        return { ok: false as const, error: drained.error };
+      }
 
-        return { ok: true as const };
+      return { ok: true as const, oldImagePathsToDelete: drained.oldImagePathsToDelete };
     });
-    return result;
+    if (!result.ok) return result;
+    for (const oldImagePath of result.oldImagePathsToDelete) {
+      await deleteStorageFile(oldImagePath);
+    }
+    return { ok: true };
   }
 
   const result = await run();
@@ -221,6 +232,9 @@ export async function saveTaskImagePath(
     const drained = await drainImageSaveResult(orgId, result, restoreTaskImage);
     if (!drained.ok) {
       return { ok: false, error: drained.error };
+    }
+    for (const oldImagePath of drained.oldImagePathsToDelete) {
+      await deleteStorageFile(oldImagePath);
     }
   }
 
@@ -357,8 +371,12 @@ export async function saveToolItemImagePath(
           return { ok: false as const, error: drained.error };
         }
 
-        return { ok: true as const };
+        return { ok: true as const, oldImagePathsToDelete: drained.oldImagePathsToDelete };
     });
+    if (!result.ok) return result;
+    for (const oldImagePath of result.oldImagePathsToDelete) {
+      await deleteStorageFile(oldImagePath);
+    }
     return result;
   }
 
@@ -369,6 +387,9 @@ export async function saveToolItemImagePath(
     const drained = await drainImageSaveResult(orgId, result, restoreToolItemImage);
     if (!drained.ok) {
       return { ok: false, error: drained.error };
+    }
+    for (const oldImagePath of drained.oldImagePathsToDelete) {
+      await deleteStorageFile(oldImagePath);
     }
   }
 
@@ -418,16 +439,16 @@ export async function reuseToolItemImageAction(
     PermissionAction.MANAGE_TASKS,
   );
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
+  if (isDemoEmail(authz.userEmail))
+    return { ok: false, error: "Image uploads are not available in demo mode." };
 
   const normalized = srcPath.replace(/^\/+/, "").replace(/\.\./g, "");
-  // Validate the path belongs to a ToolItem in this org (must be a different item)
   const srcItem = await prisma.toolItem.findFirst({
     where: { orgId, imgUrl: normalized, NOT: { id: itemId } },
     select: { id: true },
   });
   if (!srcItem) return { ok: false, error: "Image not found" };
 
-  // Possibly free the old path if nothing else references it
   const current = await prisma.toolItem.findFirst({
     where: { id: itemId, orgId },
     select: { imgUrl: true },
