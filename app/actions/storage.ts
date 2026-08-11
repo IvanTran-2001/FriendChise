@@ -74,13 +74,11 @@ async function drainImageSaveResult(
 
   for (const oldImagePath of result.oldImagePathsToDelete) {
     if (oldImagePath.startsWith(`orgs/${orgId}/images/`)) {
-      if (tx) {
+      if (tx) continue;
+
+      await withOrgImageStorageLock(orgId, oldImagePath, async () => {
         await deleteStorageFile(oldImagePath);
-      } else {
-        await withOrgImageStorageLock(orgId, oldImagePath, async () => {
-          await deleteStorageFile(oldImagePath);
-        });
-      }
+      });
       continue;
     }
 
@@ -173,6 +171,14 @@ export async function saveTaskImagePath(
       where: { id: taskId, orgId },
       select: { imageUrl: true },
     });
+
+    if (db !== prisma && isLibraryPath) {
+      const libraryImage = await db.orgImage.findFirst({
+        where: { orgId, storagePath: normalized },
+        select: { id: true },
+      });
+      if (!libraryImage) return { ok: false, error: "Image not found" };
+    }
 
     const result = await updateTaskImageUrl(orgId, taskId, normalized, db);
     if (!result.ok) return { ok: false, error: result.error };
@@ -377,7 +383,7 @@ export async function saveToolItemImagePath(
     for (const oldImagePath of result.oldImagePathsToDelete) {
       await deleteStorageFile(oldImagePath);
     }
-    return result;
+    return { ok: true };
   }
 
   const result = await run();

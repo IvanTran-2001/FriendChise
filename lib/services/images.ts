@@ -160,11 +160,14 @@ export async function withOrgImageStorageLock<T>(
       { maxWait: 10_000, timeout: 30_000 },
     );
   } finally {
-    console.info("[withOrgImageStorageLock] lock hold duration", {
-      orgId,
-      storagePath,
-      durationMs: Math.round(performance.now() - startedAt),
-    });
+    const durationMs = Math.round(performance.now() - startedAt);
+    if (durationMs >= 250) {
+      console.info("[withOrgImageStorageLock] lock hold duration", {
+        orgId,
+        storagePath,
+        durationMs,
+      });
+    }
   }
 }
 
@@ -421,21 +424,10 @@ export async function renameTaskImageIfNeeded(
 
   if (onRelocation) {
     onRelocation(relocated);
-  } else {
     await db.task.update({
       where: { id: taskId },
       data: { imageUrl: expectedPath },
     });
-
-    const applied = await applyRelocationDecision(relocated);
-    if (!applied) {
-      await db.task.update({
-        where: { id: taskId },
-        data: { imageUrl: currentPath },
-      });
-      return null;
-    }
-
     return expectedPath;
   }
 
@@ -443,6 +435,15 @@ export async function renameTaskImageIfNeeded(
     where: { id: taskId },
     data: { imageUrl: expectedPath },
   });
+
+  const applied = await applyRelocationDecision(relocated);
+  if (!applied) {
+    await db.task.update({
+      where: { id: taskId },
+      data: { imageUrl: currentPath },
+    });
+    return null;
+  }
 
   return expectedPath;
 }
@@ -492,21 +493,10 @@ export async function renameToolItemImageIfNeeded(
 
   if (onRelocation) {
     onRelocation(relocated);
-  } else {
     await db.toolItem.update({
       where: { id: itemId },
       data: { imgUrl: expectedPath },
     });
-
-    const applied = await applyRelocationDecision(relocated);
-    if (!applied) {
-      await db.toolItem.update({
-        where: { id: itemId },
-        data: { imgUrl: currentPath },
-      });
-      return null;
-    }
-
     return expectedPath;
   }
 
@@ -514,6 +504,15 @@ export async function renameToolItemImageIfNeeded(
     where: { id: itemId },
     data: { imgUrl: expectedPath },
   });
+
+  const applied = await applyRelocationDecision(relocated);
+  if (!applied) {
+    await db.toolItem.update({
+      where: { id: itemId },
+      data: { imgUrl: currentPath },
+    });
+    return null;
+  }
 
   return expectedPath;
 }

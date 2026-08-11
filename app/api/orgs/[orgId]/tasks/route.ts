@@ -7,7 +7,6 @@ import { PermissionAction } from "@prisma/client";
 import { createTaskSchema } from "@/lib/validators/task";
 import { removeTaskImage, saveTaskImagePath } from "@/app/actions/storage";
 import { prisma } from "@/lib/platform/prisma";
-import { createSignedReadUrl } from "@/lib/platform/supabase-storage";
 import { parseRequestBody } from "@/lib/http/request-body";
 
 function asString(value: unknown) {
@@ -130,25 +129,8 @@ export async function POST(
     ? normalizeImageStoragePath(orgId, parsed.data.imageStoragePath)
     : undefined;
 
-  if (parsed.data.imageStoragePath) {
-    if (!normalizedImagePath) {
-      return NextResponse.json({ error: "Invalid storage path" }, { status: 400 });
-    }
-
-    const libraryImage = await prisma.orgImage.findFirst({
-      where: { orgId, storagePath: normalizedImagePath },
-      select: { id: true },
-    });
-
-    const storageImageExists = libraryImage
-      ? true
-      : await createSignedReadUrl(normalizedImagePath)
-          .then((signedUrl) => Boolean(signedUrl))
-          .catch(() => false);
-
-    if (!storageImageExists) {
-      return NextResponse.json({ error: "Image not found" }, { status: 404 });
-    }
+  if (parsed.data.imageStoragePath && !normalizedImagePath) {
+    return NextResponse.json({ error: "Invalid storage path" }, { status: 400 });
   }
 
   let createdTaskId: string | null = null;
