@@ -25,8 +25,8 @@ function extractQueryParams(url: URL) {
   const search = url.searchParams.get("search") ?? undefined;
 
   return {
-    page: Number.isFinite(page) && page > 0 ? page : 1,
-    pageSize: Number.isFinite(pageSize) && pageSize > 0 ? Math.min(MAX_PAGE_SIZE, pageSize) : 24,
+    page: Number.isInteger(page) && page > 0 ? page : 1,
+    pageSize: Number.isInteger(pageSize) && pageSize > 0 ? Math.min(MAX_PAGE_SIZE, pageSize) : 24,
     search: search?.trim() || undefined,
   };
 }

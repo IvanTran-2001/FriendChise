@@ -41,14 +41,14 @@ function normalizePayload(body: FormData | Record<string, unknown>) {
 
 function getStringArray(value: unknown) {
   if (Array.isArray(value)) {
-    return value.filter((entry): entry is string => typeof entry === "string");
+    return value.every((entry) => typeof entry === "string") ? value : null;
   }
 
   if (typeof value === "string") {
     return [value];
   }
 
-  return [];
+  return null;
 }
 
 function extractPayload(body: FormData | Record<string, unknown>) {
@@ -90,6 +90,10 @@ export async function POST(
 
   const payload = extractPayload(body);
   let taskImagePath: string | null = null;
+
+  if (payload.roleIds === null) {
+    return NextResponse.json({ error: "One or more role IDs are invalid for this organization." }, { status: 400 });
+  }
 
   const parsed = createTaskSchema.safeParse(payload);
   if (!parsed.success) {
@@ -152,7 +156,7 @@ export async function POST(
     if (taskInput.imageStoragePath) {
       const imageResult = await saveTaskImagePath(orgId, task.id, taskInput.imageStoragePath);
       if (!imageResult.ok) {
-        throw new Error(imageResult.error);
+        throw Object.assign(new Error(imageResult.error), { code: imageResult.code });
       }
     }
 
@@ -183,6 +187,16 @@ export async function POST(
         { error: `A task named "${parsed.data.title}" already exists.` },
         { status: 409 },
       );
+    }
+
+    if (error && typeof error === "object" && "code" in error) {
+      const code = (error as { code?: unknown }).code;
+      if (code === "not_found") {
+        return NextResponse.json({ error: (error as { message?: string }).message ?? "Image not found" }, { status: 404 });
+      }
+      if (code === "invalid_input") {
+        return NextResponse.json({ error: (error as { message?: string }).message ?? "Invalid storage path" }, { status: 400 });
+      }
     }
 
     console.error("Failed to create task", error);

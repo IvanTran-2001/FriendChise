@@ -239,6 +239,8 @@ export function OrgImagePicker({
       }
 
       setImages((prev) => prev.filter((i) => i.id !== img.id));
+    } catch {
+      setDeleteError("Failed to delete image. Please try again.");
     } finally {
       setDeletingId(null);
     }

@@ -381,7 +381,7 @@ async function relocateImage({
 
 /**
  * Safely renames/copies the task image to match the sanitized task name.
- * DB write is updated with the new path.
+ * DB write is updated with the new path; returns null if relocation fails.
  */
 export async function renameTaskImageIfNeeded(
   orgId: string,
@@ -450,7 +450,7 @@ export async function renameTaskImageIfNeeded(
 
 /**
  * Safely renames/copies the tool item image to match the sanitized item name.
- * DB write is updated with the new path.
+ * DB write is updated with the new path; returns null if relocation fails.
  */
 export async function renameToolItemImageIfNeeded(
   orgId: string,
