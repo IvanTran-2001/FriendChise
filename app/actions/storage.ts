@@ -87,7 +87,7 @@ async function drainImageSaveResult(
     await deleteStorageFile(oldImagePath);
   }
 
-  return { ok: true };
+  return { ok: true, oldImagePathsToDelete: result.oldImagePathsToDelete };
 }
 
 /**
@@ -463,18 +463,6 @@ export async function reuseToolItemImageAction(
 
   const signedResult = await createSignedReadUrl(normalized);
   return { ok: true, imgUrl: normalized, imageSignedUrl: signedResult ?? "" };
-}
-
-/**
- * Returns the first page of org library images with fresh signed URLs.
- *
- * This legacy action preserves pagination metadata so callers do not treat the
- * bounded slice as a complete image list.
- */
-export async function getOrgImagesWithSignedUrls(
-  orgId: string,
-): Promise<Awaited<ReturnType<typeof getOrgImagesPageWithSignedUrlsService>>> {
-  return getOrgImagesPageWithSignedUrlsService(orgId, { page: 1, pageSize: MAX_PAGE_SIZE });
 }
 
 export async function getSignedOrgImageUploadUrl(orgId: string, mimeType: string) {
