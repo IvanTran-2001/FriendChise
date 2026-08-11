@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { PermissionAction } from "@prisma/client";
-import { requireOrgPermission } from "@/lib/authz";
+import { deleteOrgImageAction } from "@/app/actions/storage";
 import { MAX_PAGE_SIZE, getOrgImagesPageWithSignedUrls, saveOrgImageToLibrary } from "@/lib/services/images";
 import { getStringField, parseRequestBody } from "@/lib/http/request-body";
 import { storageErrorStatus } from "@/lib/http/storage-error";
-import { deleteStorageFile } from "@/lib/platform/supabase-storage";
 import { prisma } from "@/lib/platform/prisma";
 
 function extractPayload(body: Record<string, unknown> | FormData) {
@@ -76,9 +74,6 @@ export async function DELETE(
 ) {
   const { orgId } = await params;
 
-  const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TASKS);
-  if (!authz.ok) return authz.response;
-
   const body = await parseRequestBody(req);
   if (body instanceof NextResponse) return body;
 
@@ -98,10 +93,12 @@ export async function DELETE(
   });
 
   if (image) {
-    await prisma.orgImage.delete({ where: { id: image.id } });
+    const result = await deleteOrgImageAction(orgId, image.id);
+    if (!result.ok && result.code !== "not_found") {
+      const status = storageErrorStatus(result.code);
+      return NextResponse.json({ error: result.error }, { status });
+    }
   }
-
-  await deleteStorageFile(normalizedStoragePath);
 
   return NextResponse.json({ ok: true }, { status: 200 });
 }

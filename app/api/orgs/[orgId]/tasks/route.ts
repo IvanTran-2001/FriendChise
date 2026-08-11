@@ -40,6 +40,10 @@ function normalizePayload(body: FormData | Record<string, unknown>) {
 }
 
 function getStringArray(value: unknown) {
+  if (value === undefined) {
+    return [];
+  }
+
   if (Array.isArray(value)) {
     return value.every((entry) => typeof entry === "string") ? value : null;
   }

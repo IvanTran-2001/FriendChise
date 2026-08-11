@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { Prisma } from "@prisma/client";
 import { PermissionAction } from "@prisma/client";
 import { isDemoEmail } from "@/lib/demo";
 import { requireOrgPermissionAction } from "@/lib/authz/action";
@@ -133,16 +134,35 @@ export async function addOrgImage(
   name?: string,
   db: Tx | typeof prisma = prisma,
 ) {
-  const existing = await db.orgImage.findFirst({
-    where: { orgId, storagePath },
-    select: { id: true, storagePath: true, name: true, createdAt: true },
-  });
-  if (existing) return existing;
+  try {
+    return await db.orgImage.upsert({
+      where: {
+        orgId_storagePath: {
+          orgId,
+          storagePath,
+        },
+      },
+      create: { orgId, storagePath, name },
+      update: { storagePath },
+      select: { id: true, storagePath: true, name: true, createdAt: true },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      const existing = await db.orgImage.findUnique({
+        where: {
+          orgId_storagePath: {
+            orgId,
+            storagePath,
+          },
+        },
+        select: { id: true, storagePath: true, name: true, createdAt: true },
+      });
 
-  return db.orgImage.create({
-    data: { orgId, storagePath, name },
-    select: { id: true, storagePath: true, name: true, createdAt: true },
-  });
+      if (existing) return existing;
+    }
+
+    throw error;
+  }
 }
 
 export async function withOrgImageStorageLock<T>(
@@ -259,6 +279,7 @@ export async function getOrgImagesPageWithSignedUrls(
   | {
       ok: true;
       images: { id: string; storagePath: string; name: string | null; signedUrl: string }[];
+      omittedCount: number;
       totalCount: number;
       totalPages: number;
       page: number;
@@ -274,6 +295,7 @@ export async function getOrgImagesPageWithSignedUrls(
     return {
       ok: true,
       images: [],
+      omittedCount: 0,
       totalCount: pageData.totalCount,
       totalPages: pageData.totalPages,
       page: pageData.page,
@@ -309,6 +331,7 @@ export async function getOrgImagesPageWithSignedUrls(
   return {
     ok: true,
     images,
+    omittedCount: omittedRows.length,
     totalCount: pageData.totalCount,
     totalPages: pageData.totalPages,
     page: pageData.page,
@@ -381,7 +404,9 @@ async function relocateImage({
 
 /**
  * Safely renames/copies the task image to match the sanitized task name.
- * DB write is updated with the new path; returns null if relocation fails.
+ * When onRelocation is provided, relocation is deferred to the caller, the
+ * expected path is returned, and the caller owns rollback if the move fails.
+ * When relocation is executed immediately, null signals failure.
  */
 export async function renameTaskImageIfNeeded(
   orgId: string,
@@ -450,7 +475,9 @@ export async function renameTaskImageIfNeeded(
 
 /**
  * Safely renames/copies the tool item image to match the sanitized item name.
- * DB write is updated with the new path; returns null if relocation fails.
+ * When onRelocation is provided, relocation is deferred to the caller, the
+ * expected path is returned, and the caller owns rollback if the move fails.
+ * When relocation is executed immediately, null signals failure.
  */
 export async function renameToolItemImageIfNeeded(
   orgId: string,

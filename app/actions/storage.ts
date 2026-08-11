@@ -52,21 +52,6 @@ type ImageSaveResult =
   | { ok: true; oldImagePathsToDelete: string[]; relocations: ImageRelocationDecision[] }
   | { ok: false; error: string; code: "invalid_input" | "not_found" };
 
-type ImageDrainResult =
-  | { ok: true; oldImagePathsToDelete: string[]; relocations: ImageRelocationDecision[] }
-  | { ok: false; error: string; revertTo: string };
-
-type ImageSaveResultOk = Extract<ImageSaveResult, { ok: true }>;
-
-async function drainImageSaveResult(
-  orgId: string,
-  result: ImageSaveResultOk,
-  _restore: (revertTo: string) => Promise<void>,
-  _tx?: Tx,
-): Promise<ImageDrainResult> {
-  return { ok: true, oldImagePathsToDelete: result.oldImagePathsToDelete, relocations: result.relocations };
-}
-
 /**
  * Returns a signed upload URL for a task image.
  * The browser PUTs the compressed file directly to this URL.
@@ -204,6 +189,7 @@ export async function saveTaskImagePath(
     for (const relocation of result.relocations) {
       const applied = await applyRelocationDecision(relocation);
       if (!applied) {
+        await restoreTaskImage(relocation.sourcePath);
         return { ok: false as const, error: `Failed to relocate image.`, code: "not_found" as const };
       }
     }
@@ -216,12 +202,7 @@ export async function saveTaskImagePath(
   const result = await run();
   if (!result.ok) return result;
 
-  const drained = await drainImageSaveResult(orgId, result, restoreTaskImage);
-  if (!drained.ok) {
-    return { ok: false as const, error: drained.error, code: "not_found" as const };
-  }
-
-  for (const relocation of drained.relocations) {
+  for (const relocation of result.relocations) {
     const applied = await applyRelocationDecision(relocation);
     if (!applied) {
       await restoreTaskImage(relocation.sourcePath);
@@ -229,7 +210,7 @@ export async function saveTaskImagePath(
     }
   }
 
-  for (const oldImagePath of drained.oldImagePathsToDelete) {
+  for (const oldImagePath of result.oldImagePathsToDelete) {
     await deleteStorageFile(oldImagePath);
   }
 
@@ -315,17 +296,17 @@ export async function saveToolItemImagePath(
   if (!isItemPath && !isLibraryPath)
     return { ok: false as const, error: "Invalid storage path", code: "invalid_input" as const };
 
-  const existing = await prisma.toolItem.findFirst({
-    where: { id: itemId, orgId },
-    select: { imgUrl: true },
-  });
-  if (!existing) return { ok: false as const, error: "Item not found", code: "not_found" as const };
-
   const run = async (
     db: Tx | typeof prisma = prisma,
   ): Promise<ImageSaveResult> => {
     const oldImagePathsToDelete: string[] = [];
     const relocations: ImageRelocationDecision[] = [];
+    const existing = await db.toolItem.findFirst({
+      where: { id: itemId, orgId },
+      select: { imgUrl: true },
+    });
+    if (!existing) return { ok: false as const, error: "Item not found", code: "not_found" as const };
+
     const updatedCount = await updateToolItemImageUrl(orgId, itemId, normalized, db);
     if (updatedCount === 0) return { ok: false as const, error: "Item not found", code: "not_found" as const };
 
@@ -368,6 +349,7 @@ export async function saveToolItemImagePath(
     for (const relocation of result.relocations) {
       const applied = await applyRelocationDecision(relocation);
       if (!applied) {
+        await restoreToolItemImage(relocation.sourcePath);
         return { ok: false as const, error: `Failed to relocate image.`, code: "not_found" as const };
       }
     }
@@ -380,12 +362,7 @@ export async function saveToolItemImagePath(
   const result = await run();
   if (!result.ok) return result;
 
-  const drained = await drainImageSaveResult(orgId, result, restoreToolItemImage);
-  if (!drained.ok) {
-    return { ok: false as const, error: drained.error, code: "not_found" as const };
-  }
-
-  for (const relocation of drained.relocations) {
+  for (const relocation of result.relocations) {
     const applied = await applyRelocationDecision(relocation);
     if (!applied) {
       await restoreToolItemImage(relocation.sourcePath);
@@ -393,7 +370,7 @@ export async function saveToolItemImagePath(
     }
   }
 
-  for (const oldImagePath of drained.oldImagePathsToDelete) {
+  for (const oldImagePath of result.oldImagePathsToDelete) {
     await deleteStorageFile(oldImagePath);
   }
 

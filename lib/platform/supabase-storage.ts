@@ -124,11 +124,11 @@ export async function createSignedReadUrls(
 		for (const entry of data) {
 			const entryPath = entry?.path ?? entry?.originalPath;
 			if (!entryPath || !entry.signedURL) continue;
-			const key = entryPath.startsWith(`${BUCKET}/`)
+			const normalizedPath = entryPath.startsWith(`${BUCKET}/`)
 				? entryPath.slice(BUCKET.length + 1)
 				: entryPath;
 			result.set(
-				key,
+				normalizedPath,
 				entry.signedURL.startsWith("http")
 					? entry.signedURL
 					: `${url}/storage/v1${entry.signedURL}`,
