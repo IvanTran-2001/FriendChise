@@ -8,6 +8,7 @@ import {
   createSignedReadUrl,
   createSignedReadUrls,
   createSignedUploadUrl,
+  readStorageFile,
   moveStorageFile,
   copyStorageFile,
 } from "@/lib/platform/supabase-storage";
@@ -29,6 +30,11 @@ export const EXT: Record<AllowedMime, string> = {
   "image/png": "png",
   "image/webp": "webp",
 };
+
+export function normalizeOrgStoragePath(storagePath: string, expectedPrefix: string) {
+  const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
+  return normalized.startsWith(expectedPrefix) ? normalized : null;
+}
 
 function normalizePageNumber(value: number | undefined, fallback: number) {
   if (!Number.isFinite(value ?? NaN)) return fallback;
@@ -259,15 +265,19 @@ export async function saveOrgImageToLibrary(
   if (!authz.ok) return { ok: false, error: "Unauthorized", code: "unauthorized" };
   if (isDemoEmail(authz.userEmail)) return { ok: false, error: "Image uploads are not available in demo mode.", code: "invalid_input" };
 
-  const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
-  if (!normalized.startsWith(`orgs/${orgId}/images/`)) {
+  const normalized = normalizeOrgStoragePath(storagePath, `orgs/${orgId}/images/`);
+  if (!normalized) {
     return { ok: false, error: "Invalid storage path", code: "invalid_input" };
   }
 
-  const signedUrl = (await createSignedReadUrl(normalized)) ?? null;
-  if (!signedUrl) return { ok: false, error: "Failed to generate image URL", code: "storage_failure" };
+  const exists = await readStorageFile(normalized);
+  if (!exists.ok) {
+    return { ok: false, error: "Failed to validate image in storage.", code: "storage_failure" };
+  }
 
   const img = await withOrgImageStorageLock(orgId, normalized, async (tx) => addOrgImage(orgId, normalized, name, tx));
+  const signedUrl = await createSignedReadUrl(normalized);
+  if (!signedUrl) return { ok: false, error: "Failed to generate image URL", code: "storage_failure" };
 
   return { ok: true, image: { ...img, signedUrl } };
 }

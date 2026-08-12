@@ -114,7 +114,11 @@ export async function createSignedReadUrls(
 			body: JSON.stringify({ expiresIn, paths: storagePaths }),
 			signal: AbortSignal.timeout(15_000),
 		});
-		if (!res.ok) return result;
+			if (!res.ok) {
+				const body = await res.text().catch(() => res.statusText);
+				console.error("[createSignedReadUrls] Supabase read signing failed", { bucket: BUCKET, storagePaths, body });
+				return result;
+			}
 		const data = (await res.json()) as Array<{
 			path?: string;
 			originalPath?: string;
@@ -165,11 +169,15 @@ export async function createSignedReadUrl(
 			error: string | null;
 		}>;
 		const entry = data[0];
-		if (!entry?.signedURL) return null;
+			if (!entry?.signedURL) {
+				console.error("[createSignedReadUrl] Missing signed URL in Supabase response", { bucket: BUCKET, storagePath, entry });
+				return null;
+			}
 		return entry.signedURL.startsWith("http")
 			? entry.signedURL
 			: `${url}/storage/v1${entry.signedURL}`;
 	} catch {
+			console.error("[createSignedReadUrl] Supabase read signing threw", { bucket: BUCKET, storagePath });
 		return null;
 	}
 }

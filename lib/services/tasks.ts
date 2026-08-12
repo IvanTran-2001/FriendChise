@@ -27,11 +27,22 @@ import {
   DEFAULT_SECTIONS,
 } from "@/lib/services/task-sections";
 import type { ServiceResult } from "./types";
-import type { CreateTaskInput, UpdateTaskInput } from "@/lib/validators/task";
+import type { CreateTaskInput } from "@/lib/validators/task";
 
 export type TaskToolLinkInput = {
   toolPath: string;
   toolLabel?: string | null;
+};
+
+export type UpdateTaskPatchInput = {
+  title?: string;
+  color?: string;
+  description?: string | null;
+  durationMin?: number;
+  preferredStartTimeMin?: number | null;
+  peopleRequired?: number | null;
+  minWaitDays?: number | null;
+  maxWaitDays?: number | null;
 };
 
 export type TaskDuplicateCheckInput = {
@@ -943,54 +954,86 @@ export async function getAccessibleTaskById(orgId: string, taskId: string) {
 export async function updateTask(
   orgId: string,
   taskId: string,
-  data: UpdateTaskInput,
+  data: UpdateTaskPatchInput,
   actorId?: string | null,
   actorEmail?: string | null,
 ): Promise<ServiceResult<null>> {
   const existing = await prisma.task.findFirst({
     where: { id: taskId, orgId },
-    select: { name: true, color: true, description: true, durationMin: true },
-  });
-  const updateData: Prisma.TaskUpdateManyMutationInput = {
-    name: data.title,
-    color: data.color,
-    description: data.description ?? null,
-    durationMin: data.durationMin,
-    minPeople: data.peopleRequired ?? 1,
-  };
-
-  if (data.preferredStartTimeMin !== undefined) {
-    updateData.preferredStartTimeMin = data.preferredStartTimeMin;
-  }
-  if (data.minWaitDays !== undefined) {
-    updateData.minWaitDays = data.minWaitDays;
-  }
-  if (data.maxWaitDays !== undefined) {
-    updateData.maxWaitDays = data.maxWaitDays;
-  }
-
-  const { count } = await prisma.task.updateMany({
-    where: { id: taskId, orgId },
-    data: updateData,
-  });
-  if (count === 0)
-    return { ok: false, error: "Task not found", code: "NOT_FOUND" };
-  log.info("Task updated", { orgId, taskId });
-  recordAudit({
-    orgId,
-    actorId: actorId ?? null,
-    actorEmail: actorEmail ?? null,
-    action: "task.update",
-    targetType: "Task",
-    targetId: taskId,
-    before: existing as import("@prisma/client").Prisma.InputJsonObject | null,
-    after: {
-      name: data.title,
-      color: data.color,
-      description: data.description ?? null,
-      durationMin: data.durationMin,
+    select: {
+      name: true,
+      color: true,
+      description: true,
+      durationMin: true,
+      minPeople: true,
+      preferredStartTimeMin: true,
+      minWaitDays: true,
+      maxWaitDays: true,
     },
   });
+
+  if (!existing) {
+    return { ok: false, error: "Task not found", code: "NOT_FOUND" };
+  }
+
+  const updateData: Prisma.TaskUpdateManyMutationInput = {};
+
+  if (Object.prototype.hasOwnProperty.call(data, "title") && data.title !== undefined) {
+    updateData.name = data.title;
+  }
+  if (Object.prototype.hasOwnProperty.call(data, "color") && data.color !== undefined) {
+    updateData.color = data.color;
+  }
+  if (Object.prototype.hasOwnProperty.call(data, "description")) {
+    updateData.description = data.description ?? null;
+  }
+  if (Object.prototype.hasOwnProperty.call(data, "durationMin") && data.durationMin !== undefined) {
+    updateData.durationMin = data.durationMin;
+  }
+  if (Object.prototype.hasOwnProperty.call(data, "peopleRequired") && data.peopleRequired !== undefined && data.peopleRequired !== null) {
+    updateData.minPeople = data.peopleRequired;
+  }
+  if (Object.prototype.hasOwnProperty.call(data, "preferredStartTimeMin")) {
+    updateData.preferredStartTimeMin = data.preferredStartTimeMin ?? null;
+  }
+  if (Object.prototype.hasOwnProperty.call(data, "minWaitDays")) {
+    updateData.minWaitDays = data.minWaitDays ?? null;
+  }
+  if (Object.prototype.hasOwnProperty.call(data, "maxWaitDays")) {
+    updateData.maxWaitDays = data.maxWaitDays ?? null;
+  }
+
+  if (Object.keys(updateData).length > 0) {
+    const { count } = await prisma.task.updateMany({
+      where: { id: taskId, orgId },
+      data: updateData,
+    });
+    if (count === 0) {
+      return { ok: false, error: "Task not found", code: "NOT_FOUND" };
+    }
+
+    log.info("Task updated", { orgId, taskId });
+    recordAudit({
+      orgId,
+      actorId: actorId ?? null,
+      actorEmail: actorEmail ?? null,
+      action: "task.update",
+      targetType: "Task",
+      targetId: taskId,
+      before: existing as import("@prisma/client").Prisma.InputJsonObject | null,
+      after: {
+        name: data.title ?? existing.name,
+        color: data.color ?? existing.color,
+        description: Object.prototype.hasOwnProperty.call(data, "description") ? data.description ?? null : existing.description,
+        durationMin: data.durationMin ?? existing.durationMin,
+        minPeople: Object.prototype.hasOwnProperty.call(data, "peopleRequired") && data.peopleRequired !== undefined ? data.peopleRequired : existing.minPeople,
+        preferredStartTimeMin: Object.prototype.hasOwnProperty.call(data, "preferredStartTimeMin") ? data.preferredStartTimeMin ?? null : existing.preferredStartTimeMin,
+        minWaitDays: Object.prototype.hasOwnProperty.call(data, "minWaitDays") ? data.minWaitDays ?? null : existing.minWaitDays,
+        maxWaitDays: Object.prototype.hasOwnProperty.call(data, "maxWaitDays") ? data.maxWaitDays ?? null : existing.maxWaitDays,
+      },
+    });
+  }
+
   return { ok: true, data: null };
 }
 

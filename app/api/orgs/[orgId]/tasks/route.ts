@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { requireOrgPermission } from "@/lib/authz";
+import { checkDemoLimit } from "@/lib/demo";
 import { createTask, deleteTask, findTaskByName, setTaskEligibilities } from "@/lib/services/tasks";
 import { PermissionAction } from "@prisma/client";
 import { createTaskSchema } from "@/lib/validators/task";
 import { removeTaskImage, saveTaskImagePath } from "@/app/actions/storage";
 import { prisma } from "@/lib/platform/prisma";
 import { parseRequestBody } from "@/lib/http/request-body";
+import { normalizeOrgStoragePath } from "@/lib/services/images";
 
 function asString(value: unknown) {
   return typeof value === "string" ? value : undefined;
@@ -57,9 +59,6 @@ function getStringArray(value: unknown) {
 
 function extractPayload(body: FormData | Record<string, unknown>) {
   const normalized = normalizePayload(body);
-  const minWaitDays = asNumber(normalized.minWaitDays);
-  const maxWaitDays = asNumber(normalized.maxWaitDays);
-  const bothEmpty = minWaitDays === undefined && maxWaitDays === undefined;
 
   return {
     color: asString(normalized.color) ?? "#6366f1",
@@ -69,15 +68,10 @@ function extractPayload(body: FormData | Record<string, unknown>) {
     durationMin: asNumber(normalized.durationMin),
     preferredStartTimeMin: asNumber(normalized.preferredStartTimeMin),
     peopleRequired: asNumber(normalized.peopleRequired) ?? 1,
-    minWaitDays: bothEmpty ? 0 : minWaitDays,
-    maxWaitDays: bothEmpty ? 0 : maxWaitDays,
+    minWaitDays: asNumber(normalized.minWaitDays),
+    maxWaitDays: asNumber(normalized.maxWaitDays),
     roleIds: getStringArray(normalized.roleIds),
   };
-}
-
-function normalizeImageStoragePath(orgId: string, imageStoragePath: string) {
-  const normalized = imageStoragePath.replace(/^\/+/, "").replace(/\.\./g, "");
-  return normalized.startsWith(`orgs/${orgId}/images/`) ? normalized : null;
 }
 
 export async function POST(
@@ -88,6 +82,11 @@ export async function POST(
 
   const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TASKS);
   if (!authz.ok) return authz.response;
+
+  const demoCheck = await checkDemoLimit(authz.userEmail, "task", orgId);
+  if (!demoCheck.ok) {
+    return NextResponse.json({ error: demoCheck.error }, { status: 429 });
+  }
 
   const body = await parseRequestBody(req, { multipart: true });
   if (body instanceof NextResponse) return body;
@@ -134,7 +133,7 @@ export async function POST(
   }
 
   const normalizedImagePath = parsed.data.imageStoragePath
-    ? normalizeImageStoragePath(orgId, parsed.data.imageStoragePath)
+    ? normalizeOrgStoragePath(parsed.data.imageStoragePath, `orgs/${orgId}/tasks/`)
     : undefined;
 
   if (parsed.data.imageStoragePath && !normalizedImagePath) {

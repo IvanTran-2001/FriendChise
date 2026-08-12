@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { PermissionAction } from "@prisma/client";
 import { deleteOrgImageAction } from "@/app/actions/storage";
-import { MAX_PAGE_SIZE, getOrgImagesPageWithSignedUrls, saveOrgImageToLibrary } from "@/lib/services/images";
+import { MAX_PAGE_SIZE, getOrgImagesPageWithSignedUrls, normalizeOrgStoragePath, saveOrgImageToLibrary } from "@/lib/services/images";
 import { getStringField, parseRequestBody } from "@/lib/http/request-body";
 import { storageErrorStatus } from "@/lib/http/storage-error";
 import { prisma } from "@/lib/platform/prisma";
@@ -14,10 +14,7 @@ function extractPayload(body: Record<string, unknown> | FormData) {
   };
 }
 
-function normalizeStoragePath(orgId: string, storagePath: string) {
-  const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
-  return normalized.startsWith(`orgs/${orgId}/images/`) ? normalized : null;
-}
+const MAX_PAGE_NUMBER = 1000;
 
 function extractQueryParams(url: URL) {
   const page = Number(url.searchParams.get("page") ?? "1");
@@ -25,7 +22,7 @@ function extractQueryParams(url: URL) {
   const search = url.searchParams.get("search") ?? undefined;
 
   return {
-    page: Number.isInteger(page) && page > 0 ? page : 1,
+    page: Number.isInteger(page) && page > 0 ? Math.min(page, MAX_PAGE_NUMBER) : 1,
     pageSize: Number.isInteger(pageSize) && pageSize > 0 ? Math.min(MAX_PAGE_SIZE, pageSize) : 24,
     search: search?.trim() || undefined,
   };
@@ -89,7 +86,7 @@ export async function DELETE(
     return NextResponse.json({ error: "storagePath is required." }, { status: 400 });
   }
 
-  const normalizedStoragePath = normalizeStoragePath(orgId, payload.storagePath);
+  const normalizedStoragePath = normalizeOrgStoragePath(payload.storagePath, `orgs/${orgId}/images/`);
   if (!normalizedStoragePath) {
     return NextResponse.json({ error: "Invalid storage path" }, { status: 400 });
   }
