@@ -73,7 +73,7 @@ describe("listTimetableEntries", () => {
     const created = await createTimetableEntry(
       org.id,
       task.id,
-      "2026-08-02",
+      "2099-08-02",
       480,
     );
     expect(created.ok).toBe(true);
@@ -112,6 +112,74 @@ describe("listTimetableEntries", () => {
       status: EntryStatus.DONE,
     });
     expect(dones.some((e) => e.id === created.data.id)).toBe(true);
+  });
+
+  it("normalizes and caps limit values against real rows", async () => {
+    const { org, task } = await createTempOrgWithTask();
+    try {
+      await prisma.timetableEntry.createMany({
+        data: Array.from({ length: 120 }, (_, index) => {
+          const date = new Date("2026-08-01T00:00:00Z");
+          date.setUTCDate(date.getUTCDate() + index);
+
+          return {
+            orgId: org.id,
+            taskId: task.id,
+            taskName: task.name,
+            taskColor: task.color,
+            taskDescription: task.description,
+            durationMin: task.durationMin,
+            date,
+            startTimeMin: 360,
+            endTimeMin: 390,
+          };
+        }),
+      });
+
+      expect(await listTimetableEntries(org.id)).toHaveLength(100);
+      expect(await listTimetableEntries(org.id, { limit: 0 })).toHaveLength(1);
+      expect(await listTimetableEntries(org.id, { limit: 12.8 })).toHaveLength(12);
+      expect(await listTimetableEntries(org.id, { limit: 101 })).toHaveLength(100);
+      expect(await listTimetableEntries(org.id, { limit: Number.NaN as any })).toHaveLength(100);
+      expect(await listTimetableEntries(org.id, { limit: null as any })).toHaveLength(100);
+    } finally {
+      await cleanupTempOrg(org.id);
+    }
+  });
+
+  it("returns tied cutoff entries consistently with a deterministic order", async () => {
+    const { org, task } = await createTempOrgWithTask();
+    try {
+      const date = new Date("2026-08-11T00:00:00Z");
+      const createdIds: string[] = [];
+
+      for (let index = 0; index < 3; index += 1) {
+        const created = await prisma.timetableEntry.create({
+          data: {
+            orgId: org.id,
+            taskId: task.id,
+            taskName: task.name,
+            taskColor: task.color,
+            taskDescription: task.description,
+            durationMin: task.durationMin,
+            date,
+            startTimeMin: 480,
+            endTimeMin: 510,
+          },
+          select: { id: true },
+        });
+        createdIds.push(created.id);
+      }
+
+      const firstPage = await listTimetableEntries(org.id, { limit: 2 });
+      const secondPage = await listTimetableEntries(org.id, { limit: 2 });
+      const expectedIds = [...createdIds].sort();
+
+      expect(firstPage.map((entry) => entry.id)).toEqual(expectedIds.slice(0, 2));
+      expect(secondPage.map((entry) => entry.id)).toEqual(expectedIds.slice(0, 2));
+    } finally {
+      await cleanupTempOrg(org.id);
+    }
   });
 });
 

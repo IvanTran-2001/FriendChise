@@ -23,6 +23,8 @@
  * Never import this file from a "use client" component.
  */
 
+import type { StorageErrorCode } from "@/lib/http/storage-error";
+
 const BUCKET = "friendchise-private";
 const PUBLIC_BUCKET = "friendchise-public";
 
@@ -35,6 +37,49 @@ function getConfig() {
 	return { url, key };
 }
 
+async function requestSignedUploadUrl(
+	bucket: string,
+	storagePath: string,
+	maxSizeBytes?: number,
+) {
+	const { url, key } = getConfig();
+	const encodedStoragePath = storagePath.split("/").map(encodeURIComponent).join("/");
+	try {
+		const res = await fetch(`${url}/storage/v1/object/upload/sign/${bucket}/${encodedStoragePath}`, {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${key}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(maxSizeBytes !== undefined ? { sizeInBytes: maxSizeBytes } : {}),
+			signal: AbortSignal.timeout(15_000),
+		});
+		if (!res.ok) {
+			const body = await res.text().catch(() => res.statusText);
+			console.error("[requestSignedUploadUrl] Supabase upload signing failed", { bucket, storagePath, body });
+			return { ok: false as const, error: "Storage error", code: "storage_failure" as const };
+		}
+		const data = (await res.json()) as Record<string, unknown>;
+		const rawUrl = (data.signedURL ?? data.signedUrl ?? data.url) as string | undefined;
+		if (!rawUrl) {
+			console.error("[requestSignedUploadUrl] Unexpected Supabase upload signing response", { bucket, storagePath, data });
+			return { ok: false as const, error: "Storage error", code: "storage_failure" as const };
+		}
+		return {
+			ok: true as const,
+			signedUrl: rawUrl.startsWith("http") ? rawUrl : `${url}/storage/v1${rawUrl}`,
+			path: (data.path as string | undefined) ?? storagePath,
+		};
+	} catch (error) {
+		console.error("[requestSignedUploadUrl] Supabase upload signing threw", { bucket, storagePath, error });
+		return {
+			ok: false as const,
+			error: "Storage error",
+			code: "storage_failure" as const,
+		};
+	}
+}
+
 /**
  * Creates a signed URL that the browser can PUT a file to directly,
  * bypassing Vercel's 4.5 MB body limit.
@@ -43,40 +88,9 @@ export async function createSignedUploadUrl(
 	storagePath: string,
 	maxSizeBytes?: number,
 ): Promise<
-	{ ok: true; signedUrl: string; path: string } | { ok: false; error: string }
+	{ ok: true; signedUrl: string; path: string } | { ok: false; error: string; code: StorageErrorCode }
 > {
-	const { url, key } = getConfig();
-	const res = await fetch(
-		`${url}/storage/v1/object/upload/sign/${BUCKET}/${storagePath}`,
-		{
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${key}`,
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify(
-				maxSizeBytes !== undefined ? { sizeInBytes: maxSizeBytes } : {},
-			),
-		},
-	);
-	if (!res.ok) {
-		const body = await res.text().catch(() => res.statusText);
-		return { ok: false, error: `Storage error: ${body}` };
-	}
-	const data = (await res.json()) as Record<string, unknown>;
-	const rawUrl = (data.signedURL ?? data.signedUrl ?? data.url) as
-		| string
-		| undefined;
-	if (!rawUrl) {
-		return { ok: false, error: `Storage error: unexpected response shape` };
-	}
-	return {
-		ok: true,
-		signedUrl: rawUrl.startsWith("http")
-			? rawUrl
-			: `${url}/storage/v1${rawUrl}`,
-		path: (data.path as string | undefined) ?? storagePath,
-	};
+	return requestSignedUploadUrl(BUCKET, storagePath, maxSizeBytes);
 }
 
 /**
@@ -90,35 +104,40 @@ export async function createSignedReadUrls(
 	const result = new Map<string, string | null>(storagePaths.map((p) => [p, null]));
 	if (storagePaths.length === 0) return result;
 	const { url, key } = getConfig();
-	const res = await fetch(`${url}/storage/v1/object/sign/${BUCKET}`, {
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${key}`,
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({ expiresIn, paths: storagePaths }),
-	});
-	if (!res.ok) return result;
-	const data = (await res.json()) as Array<{
-		path?: string;
-		originalPath?: string;
-		signedURL: string | null;
-		error: string | null;
-	}>;
-	for (const entry of data) {
-		const entryPath = entry?.path ?? entry?.originalPath;
-		if (!entryPath || !entry.signedURL) continue;
-		const key = entryPath.startsWith(`${BUCKET}/`)
-			? entryPath.slice(BUCKET.length + 1)
-			: entryPath;
-		result.set(
-			key,
-			entry.signedURL.startsWith("http")
-				? entry.signedURL
-				: `${url}/storage/v1${entry.signedURL}`,
-		);
+	try {
+		const res = await fetch(`${url}/storage/v1/object/sign/${BUCKET}`, {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${key}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ expiresIn, paths: storagePaths }),
+			signal: AbortSignal.timeout(15_000),
+		});
+		if (!res.ok) return result;
+		const data = (await res.json()) as Array<{
+			path?: string;
+			originalPath?: string;
+			signedURL: string | null;
+			error: string | null;
+		}>;
+		for (const entry of data) {
+			const entryPath = entry?.path ?? entry?.originalPath;
+			if (!entryPath || !entry.signedURL) continue;
+			const normalizedPath = entryPath.startsWith(`${BUCKET}/`)
+				? entryPath.slice(BUCKET.length + 1)
+				: entryPath;
+			result.set(
+				normalizedPath,
+				entry.signedURL.startsWith("http")
+					? entry.signedURL
+					: `${url}/storage/v1${entry.signedURL}`,
+			);
+		}
+		return result;
+	} catch {
+		return result;
 	}
-	return result;
 }
 
 /**
@@ -130,24 +149,29 @@ export async function createSignedReadUrl(
 	expiresIn = 3600,
 ): Promise<string | null> {
 	const { url, key } = getConfig();
-	const res = await fetch(`${url}/storage/v1/object/sign/${BUCKET}`, {
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${key}`,
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({ expiresIn, paths: [storagePath] }),
-	});
-	if (!res.ok) return null;
-	const data = (await res.json()) as Array<{
-		signedURL: string | null;
-		error: string | null;
-	}>;
-	const entry = data[0];
-	if (!entry?.signedURL) return null;
-	return entry.signedURL.startsWith("http")
-		? entry.signedURL
-		: `${url}/storage/v1${entry.signedURL}`;
+	try {
+		const res = await fetch(`${url}/storage/v1/object/sign/${BUCKET}`, {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${key}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ expiresIn, paths: [storagePath] }),
+			signal: AbortSignal.timeout(15_000),
+		});
+		if (!res.ok) return null;
+		const data = (await res.json()) as Array<{
+			signedURL: string | null;
+			error: string | null;
+		}>;
+		const entry = data[0];
+		if (!entry?.signedURL) return null;
+		return entry.signedURL.startsWith("http")
+			? entry.signedURL
+			: `${url}/storage/v1${entry.signedURL}`;
+	} catch {
+		return null;
+	}
 }
 
 /**
@@ -276,40 +300,9 @@ export async function createSignedUploadUrlPublic(
 	storagePath: string,
 	maxSizeBytes?: number,
 ): Promise<
-	{ ok: true; signedUrl: string; path: string } | { ok: false; error: string }
+	{ ok: true; signedUrl: string; path: string } | { ok: false; error: string; code: StorageErrorCode }
 > {
-	const { url, key } = getConfig();
-	const res = await fetch(
-		`${url}/storage/v1/object/upload/sign/${PUBLIC_BUCKET}/${storagePath}`,
-		{
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${key}`,
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify(
-				maxSizeBytes !== undefined ? { sizeInBytes: maxSizeBytes } : {},
-			),
-		},
-	);
-	if (!res.ok) {
-		const body = await res.text().catch(() => res.statusText);
-		return { ok: false, error: `Storage error: ${body}` };
-	}
-	const data = (await res.json()) as Record<string, unknown>;
-	const rawUrl = (data.signedURL ?? data.signedUrl ?? data.url) as
-		| string
-		| undefined;
-	if (!rawUrl) {
-		return { ok: false, error: `Storage error: unexpected response shape` };
-	}
-	return {
-		ok: true,
-		signedUrl: rawUrl.startsWith("http")
-			? rawUrl
-			: `${url}/storage/v1${rawUrl}`,
-		path: (data.path as string | undefined) ?? storagePath,
-	};
+	return requestSignedUploadUrl(PUBLIC_BUCKET, storagePath, maxSizeBytes);
 }
 
 /**

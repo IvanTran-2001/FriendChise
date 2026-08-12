@@ -30,7 +30,10 @@ import {
 export type ListTimetableEntriesOptions = {
   status?: EntryStatus;
   completed?: boolean;
+  limit?: number;
 };
+
+const MAX_LIMIT = 100;
 
 /**
  * Lists timetable entries for an org with optional status filtering.
@@ -44,6 +47,11 @@ export async function listTimetableEntries(
   options: ListTimetableEntriesOptions = {},
 ) {
   const where: Prisma.TimetableEntryWhereInput = { orgId };
+  const normalizedLimit =
+    typeof options.limit === "number" && Number.isFinite(options.limit)
+      ? options.limit
+      : MAX_LIMIT;
+  const limit = Math.min(MAX_LIMIT, Math.max(1, Math.floor(normalizedLimit)));
 
   if (options.status != null) {
     where.status = options.status;
@@ -59,7 +67,8 @@ export async function listTimetableEntries(
 
   return prisma.timetableEntry.findMany({
     where,
-    orderBy: { date: "desc" },
+    orderBy: [{ date: "desc" }, { startTimeMin: "asc" }, { id: "asc" }],
+    take: limit,
   });
 }
 

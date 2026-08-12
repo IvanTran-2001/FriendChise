@@ -11,7 +11,7 @@
  *   ConversionSet  ──< ConversionTemplate ──< ConversionTemplateEntry
  *   ToolItem (org-scoped, shared across all sets)
  */
-import { prisma } from "@/lib/platform/prisma";
+import { prisma, type PrismaTransactionClient } from "@/lib/platform/prisma";
 
 // ─── ConversionSet ────────────────────────────────────────────────────────────
 
@@ -123,8 +123,10 @@ export async function updateToolItemImageUrl(
   orgId: string,
   id: string,
   imgUrl: string | null,
+  db: PrismaTransactionClient | typeof prisma = prisma,
 ) {
-  await prisma.toolItem.updateMany({ where: { id, orgId }, data: { imgUrl } });
+  const result = await db.toolItem.updateMany({ where: { id, orgId }, data: { imgUrl } });
+  return result.count;
 }
 
 /** Creates a new org-scoped tool item. `unit` is a free-text label (e.g. "dozen", "kg"). */

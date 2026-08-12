@@ -3,6 +3,7 @@
 import { PermissionAction, Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
+import { prisma, type PrismaTransactionClient } from "@/lib/platform/prisma";
 import { findTaskByName } from "@/lib/services/tasks";
 import {
   inferScanTaskDraftsFromStorage,
@@ -28,7 +29,6 @@ import {
   type ScanSourceInput,
   scanSourceSchema,
 } from "@/lib/validators/scan-to-task";
-import { prisma } from "@/lib/platform/prisma";
 import { log } from "@/lib/platform/observability";
 import { requireOrgPermissionAction, requireParentOrgOwnerAction } from "@/lib/authz";
 import { checkDemoLimit } from "@/lib/demo";
@@ -361,7 +361,7 @@ function pruneMergedSourceMetadata(
 async function pruneMergedSourceReferences(
   orgId: string,
   pruneInput: MergeSourcePruneInput,
-  db: Prisma.TransactionClient | typeof prisma = prisma,
+  db: PrismaTransactionClient | typeof prisma = prisma,
 ) {
   const resultIds = [...new Set(pruneInput.resultIds ?? [])];
   const taskIds = [...new Set(pruneInput.taskIds ?? [])];
