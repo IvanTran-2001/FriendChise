@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import { PermissionAction } from "@prisma/client";
 import { deleteOrgImageAction } from "@/app/actions/storage";
 import { MAX_PAGE_SIZE, getOrgImagesPageWithSignedUrls, saveOrgImageToLibrary } from "@/lib/services/images";
 import { getStringField, parseRequestBody } from "@/lib/http/request-body";
 import { storageErrorStatus } from "@/lib/http/storage-error";
 import { prisma } from "@/lib/platform/prisma";
+import { requireOrgPermissionAction } from "@/lib/authz";
 
 function extractPayload(body: Record<string, unknown> | FormData) {
   return {
@@ -73,6 +75,11 @@ export async function DELETE(
   { params }: { params: Promise<{ orgId: string }> },
 ) {
   const { orgId } = await params;
+
+  const authz = await requireOrgPermissionAction(orgId, PermissionAction.MANAGE_TASKS);
+  if (!authz.ok) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
 
   const body = await parseRequestBody(req);
   if (body instanceof NextResponse) return body;

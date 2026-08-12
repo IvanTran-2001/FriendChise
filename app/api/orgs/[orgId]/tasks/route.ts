@@ -195,6 +195,9 @@ export async function POST(
 
     if (error && typeof error === "object" && "code" in error) {
       const code = (error as { code?: unknown }).code;
+      if (code === "unauthorized") {
+        return NextResponse.json({ error: (error as { message?: string }).message ?? "Unauthorized" }, { status: 403 });
+      }
       if (code === "not_found") {
         return NextResponse.json({ error: (error as { message?: string }).message ?? "Image not found" }, { status: 404 });
       }

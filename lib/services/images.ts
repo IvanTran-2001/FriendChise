@@ -143,6 +143,7 @@ export async function addOrgImage(
         },
       },
       create: { orgId, storagePath, name },
+      // Insert the image row or return the existing one without mutating its metadata.
       update: { storagePath },
       select: { id: true, storagePath: true, name: true, createdAt: true },
     });
@@ -402,6 +403,79 @@ async function relocateImage({
   };
 }
 
+async function renameImageIfNeeded<Row>({
+  orgId,
+  id,
+  tx,
+  onRelocation,
+  pathSegment,
+  logPrefix,
+  loadRow,
+  getCurrentPath,
+  getName,
+  updateRow,
+  excludeKey,
+}: {
+  orgId: string;
+  id: string;
+  tx?: Tx;
+  onRelocation?: (decision: ImageRelocationDecision) => void;
+  pathSegment: "tasks" | "items";
+  logPrefix: string;
+  loadRow: (db: Tx | typeof prisma, orgId: string, id: string) => Promise<Row | null>;
+  getCurrentPath: (row: Row) => string | null;
+  getName: (row: Row) => string;
+  updateRow: (db: Tx | typeof prisma, id: string, nextPath: string) => Promise<void>;
+  excludeKey: "task" | "item";
+}): Promise<string | null> {
+  const db = tx || prisma;
+  const row = await loadRow(db, orgId, id);
+  const currentPath = row ? getCurrentPath(row) : null;
+
+  if (!row || !currentPath) return null;
+
+  const parts = currentPath.split(".");
+  const ext = parts.length > 1 ? parts.pop()?.toLowerCase() || "jpg" : "jpg";
+
+  const filenameWithExt = currentPath.split("/").pop() || "";
+  const filenameBase = filenameWithExt.split(".").slice(0, -1).join(".");
+  const uuidMatch = filenameBase.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  const uuid = uuidMatch ? uuidMatch[0] : crypto.randomUUID();
+
+  const sanitizedName = sanitizeFilename(getName(row));
+  const expectedPath = `orgs/${orgId}/${pathSegment}/${id}/${sanitizedName}-${uuid}.${ext}`;
+
+  if (currentPath === expectedPath) {
+    return currentPath;
+  }
+
+  const relocated = await relocateImage({
+    orgId,
+    currentPath,
+    expectedPath,
+    excludeTaskId: excludeKey === "task" ? id : undefined,
+    excludeItemId: excludeKey === "item" ? id : undefined,
+    logPrefix,
+    db,
+  });
+
+  if (onRelocation) {
+    onRelocation(relocated);
+    await updateRow(db, id, expectedPath);
+    return expectedPath;
+  }
+
+  await updateRow(db, id, expectedPath);
+
+  const applied = await applyRelocationDecision(relocated);
+  if (!applied) {
+    await updateRow(db, id, currentPath);
+    return null;
+  }
+
+  return expectedPath;
+}
+
 /**
  * Safely renames/copies the task image to match the sanitized task name.
  * When onRelocation is provided, relocation is deferred to the caller, the
@@ -414,63 +488,28 @@ export async function renameTaskImageIfNeeded(
   tx?: Tx,
   onRelocation?: (decision: ImageRelocationDecision) => void,
 ): Promise<string | null> {
-  const db = tx || prisma;
-  const task = await db.task.findFirst({
-    where: { id: taskId, orgId },
-    select: { name: true, imageUrl: true },
-  });
-
-  if (!task || !task.imageUrl) return null;
-
-  const currentPath = task.imageUrl;
-  const parts = currentPath.split(".");
-  const ext = parts.length > 1 ? parts.pop()?.toLowerCase() || "jpg" : "jpg";
-
-  const filenameWithExt = currentPath.split("/").pop() || "";
-  const filenameBase = filenameWithExt.split(".").slice(0, -1).join(".");
-  const uuidMatch = filenameBase.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-  const uuid = uuidMatch ? uuidMatch[0] : crypto.randomUUID();
-
-  const sanitizedName = sanitizeFilename(task.name);
-  const expectedPath = `orgs/${orgId}/tasks/${taskId}/${sanitizedName}-${uuid}.${ext}`;
-
-  if (currentPath === expectedPath) {
-    return currentPath;
-  }
-
-  const relocated = await relocateImage({
+  return renameImageIfNeeded({
     orgId,
-    currentPath,
-    expectedPath,
-    excludeTaskId: taskId,
+    id: taskId,
+    tx,
+    onRelocation,
+    pathSegment: "tasks",
     logPrefix: "[renameTaskImageIfNeeded]",
-    db,
+    loadRow: (db, currentOrgId, currentTaskId) =>
+      db.task.findFirst({
+        where: { id: currentTaskId, orgId: currentOrgId },
+        select: { name: true, imageUrl: true },
+      }),
+    getCurrentPath: (task) => task.imageUrl,
+    getName: (task) => task.name,
+    updateRow: async (db, currentTaskId, nextPath) => {
+      await db.task.update({
+        where: { id: currentTaskId },
+        data: { imageUrl: nextPath },
+      });
+    },
+    excludeKey: "task",
   });
-
-  if (onRelocation) {
-    onRelocation(relocated);
-    await db.task.update({
-      where: { id: taskId },
-      data: { imageUrl: expectedPath },
-    });
-    return expectedPath;
-  }
-
-  await db.task.update({
-    where: { id: taskId },
-    data: { imageUrl: expectedPath },
-  });
-
-  const applied = await applyRelocationDecision(relocated);
-  if (!applied) {
-    await db.task.update({
-      where: { id: taskId },
-      data: { imageUrl: currentPath },
-    });
-    return null;
-  }
-
-  return expectedPath;
 }
 
 /**
@@ -485,62 +524,27 @@ export async function renameToolItemImageIfNeeded(
   tx?: Tx,
   onRelocation?: (decision: ImageRelocationDecision) => void,
 ): Promise<string | null> {
-  const db = tx || prisma;
-  const item = await db.toolItem.findFirst({
-    where: { id: itemId, orgId },
-    select: { name: true, imgUrl: true },
-  });
-
-  if (!item || !item.imgUrl) return null;
-
-  const currentPath = item.imgUrl;
-  const parts = currentPath.split(".");
-  const ext = parts.length > 1 ? parts.pop()?.toLowerCase() || "jpg" : "jpg";
-
-  const filenameWithExt = currentPath.split("/").pop() || "";
-  const filenameBase = filenameWithExt.split(".").slice(0, -1).join(".");
-  const uuidMatch = filenameBase.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-  const uuid = uuidMatch ? uuidMatch[0] : crypto.randomUUID();
-
-  const sanitizedName = sanitizeFilename(item.name);
-  const expectedPath = `orgs/${orgId}/items/${itemId}/${sanitizedName}-${uuid}.${ext}`;
-
-  if (currentPath === expectedPath) {
-    return currentPath;
-  }
-
-  const relocated = await relocateImage({
+  return renameImageIfNeeded({
     orgId,
-    currentPath,
-    expectedPath,
-    excludeItemId: itemId,
+    id: itemId,
+    tx,
+    onRelocation,
+    pathSegment: "items",
     logPrefix: "[renameToolItemImageIfNeeded]",
-    db,
+    loadRow: (db, currentOrgId, currentItemId) =>
+      db.toolItem.findFirst({
+        where: { id: currentItemId, orgId: currentOrgId },
+        select: { name: true, imgUrl: true },
+      }),
+    getCurrentPath: (item) => item.imgUrl,
+    getName: (item) => item.name,
+    updateRow: async (db, currentItemId, nextPath) => {
+      await db.toolItem.update({
+        where: { id: currentItemId },
+        data: { imgUrl: nextPath },
+      });
+    },
+    excludeKey: "item",
   });
-
-  if (onRelocation) {
-    onRelocation(relocated);
-    await db.toolItem.update({
-      where: { id: itemId },
-      data: { imgUrl: expectedPath },
-    });
-    return expectedPath;
-  }
-
-  await db.toolItem.update({
-    where: { id: itemId },
-    data: { imgUrl: expectedPath },
-  });
-
-  const applied = await applyRelocationDecision(relocated);
-  if (!applied) {
-    await db.toolItem.update({
-      where: { id: itemId },
-      data: { imgUrl: currentPath },
-    });
-    return null;
-  }
-
-  return expectedPath;
 }
 

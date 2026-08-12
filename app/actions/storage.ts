@@ -112,12 +112,12 @@ export async function saveTaskImagePath(
   orgId: string,
   taskId: string,
   storagePath: string,
-): Promise<{ ok: true } | { ok: false; error: string; code: "invalid_input" | "not_found" }> {
+): Promise<{ ok: true } | { ok: false; error: string; code: "unauthorized" | "invalid_input" | "not_found" }> {
   const authz = await requireOrgPermissionAction(
     orgId,
     PermissionAction.MANAGE_TASKS,
   );
-  if (!authz.ok) return { ok: false as const, error: "Unauthorized", code: "not_found" as const };
+  if (!authz.ok) return { ok: false as const, error: "Unauthorized", code: "unauthorized" as const };
 
   const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
   const isTaskPath = normalized.startsWith(`orgs/${orgId}/tasks/${taskId}/`);
@@ -238,7 +238,7 @@ export async function removeTaskImage(
     const refCount = await prisma.task.count({
       where: { imageUrl: task.imageUrl, NOT: { id: taskId } },
     });
-    if (refCount === 0) await deleteStorageFile(task.imageUrl);
+    if (refCount === 0 && !task.imageUrl.startsWith(`orgs/${orgId}/images/`)) await deleteStorageFile(task.imageUrl);
   }
 
   const result = await updateTaskImageUrl(orgId, taskId, null);
@@ -306,6 +306,14 @@ export async function saveToolItemImagePath(
       select: { imgUrl: true },
     });
     if (!existing) return { ok: false as const, error: "Item not found", code: "not_found" as const };
+
+    if (db !== prisma && isLibraryPath) {
+      const libraryImage = await db.orgImage.findFirst({
+        where: { orgId, storagePath: normalized },
+        select: { id: true },
+      });
+      if (!libraryImage) return { ok: false as const, error: "Image not found", code: "not_found" as const };
+    }
 
     const updatedCount = await updateToolItemImageUrl(orgId, itemId, normalized, db);
     if (updatedCount === 0) return { ok: false as const, error: "Item not found", code: "not_found" as const };
