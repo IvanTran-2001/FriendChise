@@ -353,6 +353,9 @@ export async function updateTaskAction(
     userEmail: string | null;
   };
 
+  const demoCheck = await checkDemoLimit(authz.userEmail, "task", taskOrgId);
+  if (!demoCheck.ok) return { ok: false, errors: { _: [demoCheck.error] } };
+
   const raw = parseTaskFormData(formData);
   const parsed = updateTaskSchema.safeParse(raw);
   if (!parsed.success) {
