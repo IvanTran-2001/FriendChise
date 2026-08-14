@@ -192,21 +192,8 @@ export async function saveTaskImagePath(
       return { ok: true as const, oldImagePathsToDelete: runResult.oldImagePathsToDelete, relocations: runResult.relocations };
     });
     if (!result.ok) return result;
-    const appliedRelocations: ImageRelocationDecision[] = [];
-    for (const relocation of result.relocations) {
-      const applied = await applyRelocationDecision(relocation);
-      if (!applied) {
-        await restoreTaskImage(relocation.sourcePath);
-        for (const appliedRelocation of appliedRelocations.slice().reverse()) {
-          const reverted = await moveStorageFile(appliedRelocation.destinationPath, appliedRelocation.sourcePath);
-          if (reverted.ok) {
-            await restoreTaskImage(appliedRelocation.sourcePath);
-          }
-        }
-        return { ok: false as const, error: `Failed to relocate image.`, code: "not_found" as const };
-      }
-      appliedRelocations.push(relocation);
-    }
+    const applied = await applyRelocationsWithRollback(result.relocations, restoreTaskImage);
+    if (!applied) return { ok: false as const, error: `Failed to relocate image.`, code: "not_found" as const };
     for (const oldImagePath of result.oldImagePathsToDelete) {
       await deleteStorageFile(oldImagePath);
     }
@@ -216,27 +203,39 @@ export async function saveTaskImagePath(
   const result = await run();
   if (!result.ok) return result;
 
-  const appliedRelocations: ImageRelocationDecision[] = [];
-  for (const relocation of result.relocations) {
-    const applied = await applyRelocationDecision(relocation);
-    if (!applied) {
-      await restoreTaskImage(relocation.sourcePath);
-      for (const appliedRelocation of appliedRelocations.slice().reverse()) {
-        const reverted = await moveStorageFile(appliedRelocation.destinationPath, appliedRelocation.sourcePath);
-        if (reverted.ok) {
-          await restoreTaskImage(appliedRelocation.sourcePath);
-        }
-      }
-      return { ok: false as const, error: `Failed to relocate image.`, code: "not_found" as const };
-    }
-    appliedRelocations.push(relocation);
-  }
+  const applied = await applyRelocationsWithRollback(result.relocations, restoreTaskImage);
+  if (!applied) return { ok: false as const, error: `Failed to relocate image.`, code: "not_found" as const };
 
   for (const oldImagePath of result.oldImagePathsToDelete) {
     await deleteStorageFile(oldImagePath);
   }
 
   return { ok: true };
+}
+
+async function applyRelocationsWithRollback(
+  relocations: ImageRelocationDecision[],
+  restore: (revertTo: string) => Promise<void>,
+) {
+  const appliedRelocations: ImageRelocationDecision[] = [];
+
+  for (const relocation of relocations) {
+    const applied = await applyRelocationDecision(relocation);
+    if (!applied) {
+      await restore(relocation.sourcePath);
+      for (const appliedRelocation of appliedRelocations.slice().reverse()) {
+        const reverted = await moveStorageFile(appliedRelocation.destinationPath, appliedRelocation.sourcePath);
+        if (reverted.ok) {
+          await restore(appliedRelocation.sourcePath);
+        }
+      }
+      return false;
+    }
+
+    appliedRelocations.push(relocation);
+  }
+
+  return true;
 }
 
 /**
@@ -380,21 +379,8 @@ export async function saveToolItemImagePath(
         return { ok: true as const, oldImagePathsToDelete: runResult.oldImagePathsToDelete, relocations: runResult.relocations };
     });
     if (!result.ok) return result;
-    const appliedRelocations: ImageRelocationDecision[] = [];
-    for (const relocation of result.relocations) {
-      const applied = await applyRelocationDecision(relocation);
-      if (!applied) {
-        await restoreToolItemImage(relocation.sourcePath);
-        for (const appliedRelocation of appliedRelocations.slice().reverse()) {
-          const reverted = await moveStorageFile(appliedRelocation.destinationPath, appliedRelocation.sourcePath);
-          if (reverted.ok) {
-            await restoreToolItemImage(appliedRelocation.sourcePath);
-          }
-        }
-        return { ok: false as const, error: `Failed to relocate image.`, code: "not_found" as const };
-      }
-      appliedRelocations.push(relocation);
-    }
+    const applied = await applyRelocationsWithRollback(result.relocations, restoreToolItemImage);
+    if (!applied) return { ok: false as const, error: `Failed to relocate image.`, code: "not_found" as const };
     for (const oldImagePath of result.oldImagePathsToDelete) {
       await deleteStorageFile(oldImagePath);
     }
@@ -404,21 +390,8 @@ export async function saveToolItemImagePath(
   const result = await run();
   if (!result.ok) return result;
 
-  const appliedRelocations: ImageRelocationDecision[] = [];
-  for (const relocation of result.relocations) {
-    const applied = await applyRelocationDecision(relocation);
-    if (!applied) {
-      await restoreToolItemImage(relocation.sourcePath);
-      for (const appliedRelocation of appliedRelocations.slice().reverse()) {
-        const reverted = await moveStorageFile(appliedRelocation.destinationPath, appliedRelocation.sourcePath);
-        if (reverted.ok) {
-          await restoreToolItemImage(appliedRelocation.sourcePath);
-        }
-      }
-      return { ok: false as const, error: `Failed to relocate image.`, code: "not_found" as const };
-    }
-    appliedRelocations.push(relocation);
-  }
+  const applied = await applyRelocationsWithRollback(result.relocations, restoreToolItemImage);
+  if (!applied) return { ok: false as const, error: `Failed to relocate image.`, code: "not_found" as const };
 
   for (const oldImagePath of result.oldImagePathsToDelete) {
     await deleteStorageFile(oldImagePath);

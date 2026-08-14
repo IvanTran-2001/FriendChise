@@ -169,15 +169,15 @@ export async function createSignedReadUrl(
 			error: string | null;
 		}>;
 		const entry = data[0];
-			if (!entry?.signedURL) {
-				console.error("[createSignedReadUrl] Missing signed URL in Supabase response", { bucket: BUCKET, storagePath, entry });
-				return null;
-			}
+		if (!entry?.signedURL) {
+			console.error("[createSignedReadUrl] Missing signed URL in Supabase response", { bucket: BUCKET, storagePath, entry });
+			return null;
+		}
 		return entry.signedURL.startsWith("http")
 			? entry.signedURL
 			: `${url}/storage/v1${entry.signedURL}`;
-	} catch {
-			console.error("[createSignedReadUrl] Supabase read signing threw", { bucket: BUCKET, storagePath });
+	} catch (error) {
+		console.error("[createSignedReadUrl] Supabase read signing threw", { bucket: BUCKET, storagePath, error });
 		return null;
 	}
 }

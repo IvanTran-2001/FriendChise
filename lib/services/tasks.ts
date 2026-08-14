@@ -40,7 +40,7 @@ export type UpdateTaskPatchInput = {
   description?: string | null;
   durationMin?: number;
   preferredStartTimeMin?: number | null;
-  peopleRequired?: number | null;
+  peopleRequired?: number;
   minWaitDays?: number | null;
   maxWaitDays?: number | null;
 };
@@ -480,18 +480,34 @@ export async function setTaskToolLinks(
   orgId: string,
   taskId: string,
   tools: TaskToolLinkInput[],
+  db: PrismaTransactionClient | typeof prisma = prisma,
 ) {
-  await prisma.$transaction(async (tx) => {
-    await tx.taskToolLink.deleteMany({ where: { orgId, taskId } });
-    await tx.taskToolLink.createMany({
-      data: tools.map((tool) => ({
-        orgId,
-        taskId,
-        toolPath: tool.toolPath,
-        toolLabel: tool.toolLabel ?? null,
-      })),
-      skipDuplicates: true,
+  const client = db;
+  if (client === prisma) {
+    await prisma.$transaction(async (tx) => {
+      await tx.taskToolLink.deleteMany({ where: { orgId, taskId } });
+      await tx.taskToolLink.createMany({
+        data: tools.map((tool) => ({
+          orgId,
+          taskId,
+          toolPath: tool.toolPath,
+          toolLabel: tool.toolLabel ?? null,
+        })),
+        skipDuplicates: true,
+      });
     });
+    return;
+  }
+
+  await client.taskToolLink.deleteMany({ where: { orgId, taskId } });
+  await client.taskToolLink.createMany({
+    data: tools.map((tool) => ({
+      orgId,
+      taskId,
+      toolPath: tool.toolPath,
+      toolLabel: tool.toolLabel ?? null,
+    })),
+    skipDuplicates: true,
   });
 }
 
@@ -957,8 +973,9 @@ export async function updateTask(
   data: UpdateTaskPatchInput,
   actorId?: string | null,
   actorEmail?: string | null,
+  db: PrismaTransactionClient | typeof prisma = prisma,
 ): Promise<ServiceResult<null>> {
-  const existing = await prisma.task.findFirst({
+  const existing = await db.task.findFirst({
     where: { id: taskId, orgId },
     select: {
       name: true,
@@ -1004,7 +1021,7 @@ export async function updateTask(
   }
 
   if (Object.keys(updateData).length > 0) {
-    const { count } = await prisma.task.updateMany({
+    const { count } = await db.task.updateMany({
       where: { id: taskId, orgId },
       data: updateData,
     });
@@ -1013,25 +1030,29 @@ export async function updateTask(
     }
 
     log.info("Task updated", { orgId, taskId });
-    recordAudit({
-      orgId,
-      actorId: actorId ?? null,
-      actorEmail: actorEmail ?? null,
-      action: "task.update",
-      targetType: "Task",
-      targetId: taskId,
-      before: existing as import("@prisma/client").Prisma.InputJsonObject | null,
-      after: {
-        name: data.title ?? existing.name,
-        color: data.color ?? existing.color,
-        description: Object.prototype.hasOwnProperty.call(data, "description") ? data.description ?? null : existing.description,
-        durationMin: data.durationMin ?? existing.durationMin,
-        minPeople: Object.prototype.hasOwnProperty.call(data, "peopleRequired") && data.peopleRequired !== undefined ? data.peopleRequired : existing.minPeople,
-        preferredStartTimeMin: Object.prototype.hasOwnProperty.call(data, "preferredStartTimeMin") ? data.preferredStartTimeMin ?? null : existing.preferredStartTimeMin,
-        minWaitDays: Object.prototype.hasOwnProperty.call(data, "minWaitDays") ? data.minWaitDays ?? null : existing.minWaitDays,
-        maxWaitDays: Object.prototype.hasOwnProperty.call(data, "maxWaitDays") ? data.maxWaitDays ?? null : existing.maxWaitDays,
+    await recordAudit(
+      {
+        orgId,
+        actorId: actorId ?? null,
+        actorEmail: actorEmail ?? null,
+        action: "task.update",
+        targetType: "Task",
+        targetId: taskId,
+        before: existing as import("@prisma/client").Prisma.InputJsonObject | null,
+        after: {
+          ...updateData,
+          name: updateData.name ?? existing.name,
+          color: updateData.color ?? existing.color,
+          description: Object.prototype.hasOwnProperty.call(updateData, "description") ? updateData.description ?? null : existing.description,
+          durationMin: updateData.durationMin ?? existing.durationMin,
+          minPeople: Object.prototype.hasOwnProperty.call(data, "peopleRequired") ? data.peopleRequired ?? existing.minPeople : existing.minPeople,
+          preferredStartTimeMin: Object.prototype.hasOwnProperty.call(updateData, "preferredStartTimeMin") ? updateData.preferredStartTimeMin ?? null : existing.preferredStartTimeMin,
+          minWaitDays: Object.prototype.hasOwnProperty.call(updateData, "minWaitDays") ? updateData.minWaitDays ?? null : existing.minWaitDays,
+          maxWaitDays: Object.prototype.hasOwnProperty.call(updateData, "maxWaitDays") ? updateData.maxWaitDays ?? null : existing.maxWaitDays,
+        },
       },
-    });
+      db === prisma ? undefined : db,
+    );
   }
 
   return { ok: true, data: null };
@@ -1108,23 +1129,33 @@ export async function setTaskEligibilities(
   orgId: string,
   taskId: string,
   roleIds: string[],
+  db: PrismaTransactionClient | typeof prisma = prisma,
 ): Promise<void> {
   const validRoles =
     roleIds.length > 0
-      ? await prisma.role.findMany({
+      ? await db.role.findMany({
           where: { id: { in: roleIds }, orgId },
           select: { id: true },
         })
       : [];
   const validIds = validRoles.map((r) => r.id);
 
-  await prisma.$transaction([
-    prisma.taskEligibility.deleteMany({ where: { taskId } }),
-    prisma.taskEligibility.createMany({
-      data: validIds.map((roleId) => ({ taskId, roleId })),
-      skipDuplicates: true,
-    }),
-  ]);
+  if (db === prisma) {
+    await prisma.$transaction([
+      prisma.taskEligibility.deleteMany({ where: { taskId } }),
+      prisma.taskEligibility.createMany({
+        data: validIds.map((roleId) => ({ taskId, roleId })),
+        skipDuplicates: true,
+      }),
+    ]);
+    return;
+  }
+
+  await db.taskEligibility.deleteMany({ where: { taskId } });
+  await db.taskEligibility.createMany({
+    data: validIds.map((roleId) => ({ taskId, roleId })),
+    skipDuplicates: true,
+  });
 }
 
 /**

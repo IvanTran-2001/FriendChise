@@ -1,5 +1,6 @@
 import { log } from "@/lib/platform/observability";
 import { prisma } from "@/lib/platform/prisma";
+import type { PrismaTransactionClient } from "@/lib/platform/prisma";
 import { getRandomColor } from "@/lib/core/org-color";
 import { recordAudit } from "@/lib/services/audit-log";
 import type { ServiceResult } from "./types";
@@ -242,21 +243,31 @@ export async function setTaskTags(
   orgId: string,
   taskId: string,
   tagIds: string[],
+  db: PrismaTransactionClient | typeof prisma = prisma,
 ): Promise<void> {
   // Verify all tagIds belong to this org
-  const validTags = await prisma.tag.findMany({
+  const validTags = await db.tag.findMany({
     where: { id: { in: tagIds }, orgId },
     select: { id: true },
   });
-  const validIds = validTags.map((t) => t.id);
+  const validIds: string[] = validTags.map((tag) => tag.id);
 
-  await prisma.$transaction([
-    prisma.taskTag.deleteMany({ where: { taskId } }),
-    prisma.taskTag.createMany({
-      data: validIds.map((tagId) => ({ taskId, tagId })),
-      skipDuplicates: true,
-    }),
-  ]);
+  if (db === prisma) {
+    await prisma.$transaction([
+      prisma.taskTag.deleteMany({ where: { taskId } }),
+      prisma.taskTag.createMany({
+        data: validIds.map((tagId) => ({ taskId, tagId })),
+        skipDuplicates: true,
+      }),
+    ]);
+    return;
+  }
+
+  await db.taskTag.deleteMany({ where: { taskId } });
+  await db.taskTag.createMany({
+    data: validIds.map((tagId) => ({ taskId, tagId })),
+    skipDuplicates: true,
+  });
 }
 
 /**

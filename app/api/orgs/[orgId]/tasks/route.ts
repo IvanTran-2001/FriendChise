@@ -9,7 +9,7 @@ import { createTaskSchema } from "@/lib/validators/task";
 import { removeTaskImage, saveTaskImagePath } from "@/app/actions/storage";
 import { prisma } from "@/lib/platform/prisma";
 import { parseRequestBody } from "@/lib/http/request-body";
-import { normalizeOrgStoragePath } from "@/lib/services/images";
+import { normalizePayload } from "@/lib/http/task-form";
 
 function asString(value: unknown) {
   return typeof value === "string" ? value : undefined;
@@ -20,25 +20,6 @@ function asNumber(value: unknown) {
   if (typeof value !== "string" || value.trim() === "") return undefined;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function normalizePayload(body: FormData | Record<string, unknown>) {
-  if (body instanceof FormData) {
-    const normalized: Record<string, unknown> = {};
-    for (const [key, value] of body.entries()) {
-      const existing = normalized[key];
-      if (existing === undefined) {
-        normalized[key] = value;
-      } else if (Array.isArray(existing)) {
-        existing.push(value);
-      } else {
-        normalized[key] = [existing, value];
-      }
-    }
-    return normalized;
-  }
-
-  return body;
 }
 
 function getStringArray(value: unknown) {
@@ -132,19 +113,9 @@ export async function POST(
     }
   }
 
-  const normalizedImagePath = parsed.data.imageStoragePath
-    ? normalizeOrgStoragePath(parsed.data.imageStoragePath, `orgs/${orgId}/tasks/`)
-    : undefined;
-
-  if (parsed.data.imageStoragePath && !normalizedImagePath) {
-    return NextResponse.json({ error: "Invalid storage path" }, { status: 400 });
-  }
-
   let createdTaskId: string | null = null;
   try {
-    const taskInput = normalizedImagePath
-      ? { ...parsed.data, imageStoragePath: normalizedImagePath }
-      : parsed.data;
+    const taskInput = parsed.data;
     taskImagePath = taskInput.imageStoragePath ?? null;
 
     const task = await createTask(

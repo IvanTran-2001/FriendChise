@@ -8,7 +8,6 @@ import {
   createSignedReadUrl,
   createSignedReadUrls,
   createSignedUploadUrl,
-  readStorageFile,
   moveStorageFile,
   copyStorageFile,
 } from "@/lib/platform/supabase-storage";
@@ -270,8 +269,20 @@ export async function saveOrgImageToLibrary(
     return { ok: false, error: "Invalid storage path", code: "invalid_input" };
   }
 
-  const exists = await readStorageFile(normalized);
-  if (!exists.ok) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SECRET_KEY;
+  if (!url || !key) {
+    return { ok: false, error: "Failed to validate image in storage.", code: "storage_failure" };
+  }
+  const encodedPath = normalized.split("/").map(encodeURIComponent).join("/");
+  const existsRes = await fetch(`${url}/storage/v1/object/friendchise-private/${encodedPath}`, {
+    method: "HEAD",
+    headers: {
+      Authorization: `Bearer ${key}`,
+    },
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!existsRes.ok) {
     return { ok: false, error: "Failed to validate image in storage.", code: "storage_failure" };
   }
 

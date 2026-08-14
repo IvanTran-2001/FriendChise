@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireOrgMember, requireOrgPermissionAction, requireParentOrgOwnerAction } from "@/lib/authz";
 import { checkDemoLimit } from "@/lib/demo";
 import { parseRequestBody } from "@/lib/http/request-body";
+import { normalizePayload, normalizeToolLabel } from "@/lib/http/task-form";
 import { prisma } from "@/lib/platform/prisma";
 import { createSignedReadUrl } from "@/lib/platform/supabase-storage";
 import { isSameFranchise } from "@/lib/services/franchise-root";
@@ -26,6 +27,11 @@ type UpdateTaskBody = {
   toolLabels?: (string | null)[];
 };
 
+type FieldErrorResponse = {
+  error: string;
+  errors: Record<string, string[]>;
+};
+
 const updateTaskPatchSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Must be a valid hex color").optional(),
@@ -44,25 +50,6 @@ const updateTaskPatchSchema = z.object({
     });
   }
 });
-
-function normalizePayload(body: FormData | Record<string, unknown>) {
-  if (body instanceof FormData) {
-    const normalized: Record<string, unknown> = {};
-    for (const [key, value] of body.entries()) {
-      const existing = normalized[key];
-      if (existing === undefined) {
-        normalized[key] = value;
-      } else if (Array.isArray(existing)) {
-        existing.push(value);
-      } else {
-        normalized[key] = [existing, value];
-      }
-    }
-    return normalized;
-  }
-
-  return body;
-}
 
 function hasField(body: Record<string, unknown>, key: string) {
   return Object.prototype.hasOwnProperty.call(body, key);
@@ -89,10 +76,14 @@ function asStringArray(value: unknown) {
   return null;
 }
 
-function normalizeToolLabel(value: unknown) {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed === "" ? null : trimmed;
+function invalidFieldResponse(field: string, message: string): NextResponse<FieldErrorResponse> {
+  return NextResponse.json(
+    {
+      error: "Invalid task data",
+      errors: { [field]: [message] },
+    },
+    { status: 400 },
+  );
 }
 
 function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: true; data: UpdateTaskBody } | { ok: false; response: NextResponse } {
@@ -103,7 +94,7 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
   if (hasField(normalized, "title")) {
     const title = asString(normalized.title);
     if (title == null) {
-      return { ok: false, response: NextResponse.json({ error: "Invalid task data." }, { status: 400 }) };
+      return { ok: false, response: invalidFieldResponse("title", "Invalid task data.") };
     }
     data.title = title;
     hasUpdateFields = true;
@@ -112,7 +103,7 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
   if (hasField(normalized, "color")) {
     const color = asString(normalized.color);
     if (color == null) {
-      return { ok: false, response: NextResponse.json({ error: "Invalid task data." }, { status: 400 }) };
+      return { ok: false, response: invalidFieldResponse("color", "Invalid task data.") };
     }
     data.color = color;
     hasUpdateFields = true;
@@ -133,7 +124,7 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
   if (hasField(normalized, "durationMin")) {
     const durationMin = asNumber(normalized.durationMin);
     if (durationMin === null) {
-      return { ok: false, response: NextResponse.json({ error: "Invalid task data." }, { status: 400 }) };
+      return { ok: false, response: invalidFieldResponse("durationMin", "Invalid task data.") };
     }
     data.durationMin = durationMin;
     hasUpdateFields = true;
@@ -142,7 +133,7 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
   if (hasField(normalized, "preferredStartTimeMin")) {
     const preferredStartTimeMin = normalized.preferredStartTimeMin === null ? null : asNumber(normalized.preferredStartTimeMin);
     if (preferredStartTimeMin === null && normalized.preferredStartTimeMin !== null) {
-      return { ok: false, response: NextResponse.json({ error: "Invalid task data." }, { status: 400 }) };
+      return { ok: false, response: invalidFieldResponse("preferredStartTimeMin", "Invalid task data.") };
     }
     data.preferredStartTimeMin = preferredStartTimeMin;
     hasUpdateFields = true;
@@ -151,7 +142,7 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
   if (hasField(normalized, "peopleRequired")) {
     const peopleRequired = asNumber(normalized.peopleRequired);
     if (peopleRequired === null) {
-      return { ok: false, response: NextResponse.json({ error: "Invalid task data." }, { status: 400 }) };
+      return { ok: false, response: invalidFieldResponse("peopleRequired", "Invalid task data.") };
     }
     data.peopleRequired = peopleRequired;
     hasUpdateFields = true;
@@ -160,7 +151,7 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
   if (hasField(normalized, "minWaitDays")) {
     const minWaitDays = normalized.minWaitDays === null ? null : asNumber(normalized.minWaitDays);
     if (minWaitDays === null && normalized.minWaitDays !== null) {
-      return { ok: false, response: NextResponse.json({ error: "Invalid task data." }, { status: 400 }) };
+      return { ok: false, response: invalidFieldResponse("minWaitDays", "Invalid task data.") };
     }
     data.minWaitDays = minWaitDays;
     hasUpdateFields = true;
@@ -169,7 +160,7 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
   if (hasField(normalized, "maxWaitDays")) {
     const maxWaitDays = normalized.maxWaitDays === null ? null : asNumber(normalized.maxWaitDays);
     if (maxWaitDays === null && normalized.maxWaitDays !== null) {
-      return { ok: false, response: NextResponse.json({ error: "Invalid task data." }, { status: 400 }) };
+      return { ok: false, response: invalidFieldResponse("maxWaitDays", "Invalid task data.") };
     }
     data.maxWaitDays = maxWaitDays;
     hasUpdateFields = true;
@@ -178,7 +169,7 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
   if (hasField(normalized, "tagIds")) {
     const tagIds = asStringArray(normalized.tagIds);
     if (tagIds === null) {
-      return { ok: false, response: NextResponse.json({ error: "Invalid task data." }, { status: 400 }) };
+      return { ok: false, response: invalidFieldResponse("tagIds", "Invalid task data.") };
     }
     data.tagIds = tagIds;
     hasUpdateFields = true;
@@ -187,7 +178,7 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
   if (hasField(normalized, "roleIds")) {
     const roleIds = asStringArray(normalized.roleIds);
     if (roleIds === null) {
-      return { ok: false, response: NextResponse.json({ error: "Invalid task data." }, { status: 400 }) };
+      return { ok: false, response: invalidFieldResponse("roleIds", "Invalid task data.") };
     }
     data.roleIds = roleIds;
     hasUpdateFields = true;
@@ -196,7 +187,7 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
   if (hasField(normalized, "toolPaths")) {
     const toolPaths = asStringArray(normalized.toolPaths);
     if (toolPaths === null) {
-      return { ok: false, response: NextResponse.json({ error: "Invalid task data." }, { status: 400 }) };
+      return { ok: false, response: invalidFieldResponse("toolPaths", "Invalid task data.") };
     }
     data.toolPaths = toolPaths;
     hasUpdateFields = true;
@@ -205,31 +196,25 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
   if (hasField(normalized, "toolLabels")) {
     const toolLabels = asStringArray(normalized.toolLabels);
     if (toolLabels === null) {
-      return { ok: false, response: NextResponse.json({ error: "Invalid task data." }, { status: 400 }) };
+      return { ok: false, response: invalidFieldResponse("toolLabels", "Invalid task data.") };
     }
     data.toolLabels = toolLabels.map((label) => normalizeToolLabel(label));
     hasUpdateFields = true;
   }
 
   if (!hasUpdateFields) {
-    return { ok: false, response: NextResponse.json({ error: "Invalid task data." }, { status: 400 }) };
+    return { ok: false, response: invalidFieldResponse("_", "Invalid task data.") };
   }
 
   const validation = updateTaskPatchSchema.safeParse(data);
   if (!validation.success) {
     return {
       ok: false,
-      response: NextResponse.json(
-        {
-          error: "Invalid task data",
-          errors: z.flattenError(validation.error).fieldErrors,
-        },
-        { status: 400 },
-      ),
+      response: NextResponse.json({ error: "Invalid task data", errors: z.flattenError(validation.error).fieldErrors }, { status: 400 }),
     };
   }
 
-  return { ok: true, data };
+  return { ok: true, data: validation.data };
 }
 
 export async function GET(
@@ -238,8 +223,8 @@ export async function GET(
 ) {
   const { orgId, taskId } = await params;
 
-  const authz = await requireOrgMember(orgId);
-  if (!authz.ok) return authz.response;
+  const memberAuthz = await requireOrgMember(orgId);
+  if (!memberAuthz.ok) return memberAuthz.response;
 
   const accessible = await getAccessibleTaskById(orgId, taskId);
   if (!accessible) {
@@ -265,6 +250,9 @@ export async function PATCH(
 ) {
   const { orgId, taskId } = await params;
 
+  const memberAuthz = await requireOrgMember(orgId);
+  if (!memberAuthz.ok) return memberAuthz.response;
+
   const taskOrgId = await getTaskOwnerOrgId(taskId);
   if (!taskOrgId) {
     return NextResponse.json({ error: "Task not found." }, { status: 404 });
@@ -286,16 +274,16 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized." }, { status: 403 });
   }
 
-  const authz = franchiseAuthz.ok
+  const editAuthz = franchiseAuthz.ok
     ? franchiseAuthz
     : taskOrgAuthz.ok
       ? taskOrgAuthz
       : null;
-  if (!authz) {
+  if (!editAuthz) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 403 });
   }
 
-  const demoCheck = await checkDemoLimit(authz.userEmail, "task", taskOrgId);
+  const demoCheck = await checkDemoLimit(editAuthz.userEmail, "task", taskOrgId);
   if (!demoCheck.ok) {
     return NextResponse.json({ error: demoCheck.error }, { status: 429 });
   }
@@ -305,6 +293,23 @@ export async function PATCH(
 
   const parsed = parseUpdateTaskBody(body);
   if (!parsed.ok) return parsed.response;
+
+  const existingWaitDays = await prisma.task.findFirst({
+    where: { id: taskId, orgId: taskOrgId },
+    select: { minWaitDays: true, maxWaitDays: true },
+  });
+  if (!existingWaitDays) {
+    return NextResponse.json({ error: "Task not found." }, { status: 404 });
+  }
+
+  const mergedMinWaitDays = parsed.data.minWaitDays ?? existingWaitDays.minWaitDays;
+  const mergedMaxWaitDays = parsed.data.maxWaitDays ?? existingWaitDays.maxWaitDays;
+  if (mergedMinWaitDays != null && mergedMaxWaitDays != null && mergedMinWaitDays > mergedMaxWaitDays) {
+    return NextResponse.json(
+      { error: "Invalid task data", errors: { minWaitDays: ["minWaitDays cannot be greater than maxWaitDays"] } },
+      { status: 400 },
+    );
+  }
 
   const { tagIds, roleIds, toolPaths, toolLabels, ...taskPatch } = parsed.data;
 
@@ -329,13 +334,35 @@ export async function PATCH(
   }
 
   try {
-    const result = await updateTask(
-      taskOrgId,
-      taskId,
-      taskPatch,
-      authz.userId,
-      authz.userEmail,
-    );
+    const result = await prisma.$transaction(async (tx) => {
+      const taskUpdateResult = await updateTask(taskOrgId, taskId, taskPatch, editAuthz.userId, editAuthz.userEmail, tx);
+      if (!taskUpdateResult.ok) {
+        return taskUpdateResult;
+      }
+
+      if (tagIds !== undefined) {
+        await setTaskTags(taskOrgId, taskId, tagIds, tx);
+      }
+
+      if (roleIds !== undefined) {
+        await setTaskEligibilities(taskOrgId, taskId, roleIds, tx);
+      }
+
+      if (toolPaths !== undefined) {
+        const filteredToolLinks = toolPaths
+          .map((toolPath, index) => ({ toolPath, index }))
+          .filter(({ toolPath }) => !toolPath.startsWith("//"))
+          .map(({ toolPath, index }) => ({
+            toolPath,
+            toolLabel: toolLabels?.[index] ?? null,
+          }));
+
+        await setTaskToolLinks(taskOrgId, taskId, filteredToolLinks, tx);
+      }
+
+      return taskUpdateResult;
+    });
+
     if (!result.ok) {
       if (result.code === "NOT_FOUND") {
         return NextResponse.json({ error: result.error }, { status: 404 });
@@ -349,30 +376,6 @@ export async function PATCH(
     } catch (error) {
       console.error("Failed to rename task image after task update", error);
     }
-
-    if (tagIds !== undefined) {
-      await setTaskTags(taskOrgId, taskId, tagIds);
-    }
-
-    if (roleIds !== undefined) {
-      await setTaskEligibilities(taskOrgId, taskId, roleIds);
-    }
-
-    if (toolPaths !== undefined) {
-      const filteredToolLinks = toolPaths
-        .map((toolPath, index) => ({ toolPath, index }))
-        .filter(({ toolPath }) => !toolPath.startsWith("//"))
-        .map(({ toolPath, index }) => ({
-          toolPath,
-          toolLabel: toolLabels?.[index] ?? null,
-        }));
-
-      await setTaskToolLinks(
-        taskOrgId,
-        taskId,
-        filteredToolLinks,
-      );
-    }
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json({ error: "A task with that name already exists." }, { status: 409 });
@@ -382,7 +385,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Failed to update task." }, { status: 500 });
   }
 
-  const accessible = await getAccessibleTaskById(orgId, taskId);
+  const accessible = await getAccessibleTaskById(taskOrgId, taskId);
   if (!accessible) {
     return NextResponse.json({ error: "Task not found." }, { status: 404 });
   }
@@ -395,7 +398,7 @@ export async function PATCH(
     task: {
       ...accessible.task,
       imageSignedUrl,
-      isOwner: accessible.isOwner,
+      isOwner: taskOrgId === orgId,
     },
   });
 }

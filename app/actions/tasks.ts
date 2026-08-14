@@ -78,6 +78,7 @@ import {
 } from "@/lib/services/tags";
 import { saveTaskImagePath } from "@/app/actions/storage";
 import { renameTaskImageIfNeeded } from "@/lib/services/images";
+import { normalizeToolLabel } from "@/lib/http/task-form";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validators/task";
 import { checkDemoLimit } from "@/lib/demo";
 import { revalidatePath } from "next/cache";
@@ -114,12 +115,6 @@ function parseTaskFormData(formData: FormData) {
     minWaitDays: bothEmpty ? 0 : minWaitDaysRaw,
     maxWaitDays: bothEmpty ? 0 : maxWaitDaysRaw,
   };
-}
-
-function normalizeToolLabel(value: FormDataEntryValue | null): string | null {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed === "" ? null : trimmed;
 }
 
 export type CreateTaskFormState =
