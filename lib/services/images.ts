@@ -275,20 +275,26 @@ export async function saveOrgImageToLibrary(
     return { ok: false, error: "Failed to validate image in storage.", code: "storage_failure" };
   }
   const encodedPath = normalized.split("/").map(encodeURIComponent).join("/");
-  const existsRes = await fetch(`${url}/storage/v1/object/friendchise-private/${encodedPath}`, {
-    method: "HEAD",
-    headers: {
-      Authorization: `Bearer ${key}`,
-    },
-    signal: AbortSignal.timeout(15_000),
-  });
+  let existsRes: Response;
+  try {
+    existsRes = await fetch(`${url}/storage/v1/object/friendchise-private/${encodedPath}`, {
+      method: "HEAD",
+      headers: {
+        Authorization: `Bearer ${key}`,
+      },
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch {
+    return { ok: false, error: "Failed to validate image in storage.", code: "storage_failure" };
+  }
   if (!existsRes.ok) {
     return { ok: false, error: "Failed to validate image in storage.", code: "storage_failure" };
   }
 
-  const img = await withOrgImageStorageLock(orgId, normalized, async (tx) => addOrgImage(orgId, normalized, name, tx));
   const signedUrl = await createSignedReadUrl(normalized);
   if (!signedUrl) return { ok: false, error: "Failed to generate image URL", code: "storage_failure" };
+
+  const img = await withOrgImageStorageLock(orgId, normalized, async (tx) => addOrgImage(orgId, normalized, name, tx));
 
   return { ok: true, image: { ...img, signedUrl } };
 }

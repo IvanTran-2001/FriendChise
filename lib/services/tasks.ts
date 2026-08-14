@@ -482,33 +482,25 @@ export async function setTaskToolLinks(
   tools: TaskToolLinkInput[],
   db: PrismaTransactionClient | typeof prisma = prisma,
 ) {
-  const client = db;
-  if (client === prisma) {
-    await prisma.$transaction(async (tx) => {
-      await tx.taskToolLink.deleteMany({ where: { orgId, taskId } });
-      await tx.taskToolLink.createMany({
-        data: tools.map((tool) => ({
-          orgId,
-          taskId,
-          toolPath: tool.toolPath,
-          toolLabel: tool.toolLabel ?? null,
-        })),
-        skipDuplicates: true,
-      });
+  const writeLinks = async (client: PrismaTransactionClient | typeof prisma) => {
+    await client.taskToolLink.deleteMany({ where: { orgId, taskId } });
+    await client.taskToolLink.createMany({
+      data: tools.map((tool) => ({
+        orgId,
+        taskId,
+        toolPath: tool.toolPath,
+        toolLabel: tool.toolLabel ?? null,
+      })),
+      skipDuplicates: true,
     });
+  };
+
+  if (db === prisma) {
+    await prisma.$transaction(writeLinks);
     return;
   }
 
-  await client.taskToolLink.deleteMany({ where: { orgId, taskId } });
-  await client.taskToolLink.createMany({
-    data: tools.map((tool) => ({
-      orgId,
-      taskId,
-      toolPath: tool.toolPath,
-      toolLabel: tool.toolLabel ?? null,
-    })),
-    skipDuplicates: true,
-  });
+  await writeLinks(db);
 }
 
 /**
@@ -1007,7 +999,7 @@ export async function updateTask(
   if (Object.prototype.hasOwnProperty.call(data, "durationMin") && data.durationMin !== undefined) {
     updateData.durationMin = data.durationMin;
   }
-  if (Object.prototype.hasOwnProperty.call(data, "peopleRequired") && data.peopleRequired !== undefined && data.peopleRequired !== null) {
+  if (Object.prototype.hasOwnProperty.call(data, "peopleRequired") && data.peopleRequired !== undefined) {
     updateData.minPeople = data.peopleRequired;
   }
   if (Object.prototype.hasOwnProperty.call(data, "preferredStartTimeMin")) {
@@ -1039,17 +1031,7 @@ export async function updateTask(
         targetType: "Task",
         targetId: taskId,
         before: existing as import("@prisma/client").Prisma.InputJsonObject | null,
-        after: {
-          ...updateData,
-          name: updateData.name ?? existing.name,
-          color: updateData.color ?? existing.color,
-          description: Object.prototype.hasOwnProperty.call(updateData, "description") ? updateData.description ?? null : existing.description,
-          durationMin: updateData.durationMin ?? existing.durationMin,
-          minPeople: Object.prototype.hasOwnProperty.call(data, "peopleRequired") ? data.peopleRequired ?? existing.minPeople : existing.minPeople,
-          preferredStartTimeMin: Object.prototype.hasOwnProperty.call(updateData, "preferredStartTimeMin") ? updateData.preferredStartTimeMin ?? null : existing.preferredStartTimeMin,
-          minWaitDays: Object.prototype.hasOwnProperty.call(updateData, "minWaitDays") ? updateData.minWaitDays ?? null : existing.minWaitDays,
-          maxWaitDays: Object.prototype.hasOwnProperty.call(updateData, "maxWaitDays") ? updateData.maxWaitDays ?? null : existing.maxWaitDays,
-        },
+        after: { ...existing, ...updateData },
       },
       db === prisma ? undefined : db,
     );
@@ -1131,6 +1113,14 @@ export async function setTaskEligibilities(
   roleIds: string[],
   db: PrismaTransactionClient | typeof prisma = prisma,
 ): Promise<void> {
+  const writeEligibilities = async (client: PrismaTransactionClient | typeof prisma) => {
+    await client.taskEligibility.deleteMany({ where: { taskId } });
+    await client.taskEligibility.createMany({
+      data: validIds.map((roleId) => ({ taskId, roleId })),
+      skipDuplicates: true,
+    });
+  };
+
   const validRoles =
     roleIds.length > 0
       ? await db.role.findMany({
@@ -1141,21 +1131,11 @@ export async function setTaskEligibilities(
   const validIds = validRoles.map((r) => r.id);
 
   if (db === prisma) {
-    await prisma.$transaction([
-      prisma.taskEligibility.deleteMany({ where: { taskId } }),
-      prisma.taskEligibility.createMany({
-        data: validIds.map((roleId) => ({ taskId, roleId })),
-        skipDuplicates: true,
-      }),
-    ]);
+    await prisma.$transaction(writeEligibilities);
     return;
   }
 
-  await db.taskEligibility.deleteMany({ where: { taskId } });
-  await db.taskEligibility.createMany({
-    data: validIds.map((roleId) => ({ taskId, roleId })),
-    skipDuplicates: true,
-  });
+  await writeEligibilities(db);
 }
 
 /**

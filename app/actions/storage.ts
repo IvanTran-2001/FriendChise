@@ -220,19 +220,42 @@ async function applyRelocationsWithRollback(
   const appliedRelocations: ImageRelocationDecision[] = [];
 
   for (const relocation of relocations) {
-    const applied = await applyRelocationDecision(relocation);
-    if (!applied) {
-      await restore(relocation.sourcePath);
-      for (const appliedRelocation of appliedRelocations.slice().reverse()) {
-        const reverted = await moveStorageFile(appliedRelocation.destinationPath, appliedRelocation.sourcePath);
-        if (reverted.ok) {
+    try {
+      const applied = await applyRelocationDecision(relocation);
+      if (!applied) {
+        await deleteStorageFile(relocation.destinationPath);
+        await restore(relocation.sourcePath);
+        for (const appliedRelocation of appliedRelocations.slice().reverse()) {
+          try {
+            const reverted = await moveStorageFile(appliedRelocation.destinationPath, appliedRelocation.sourcePath);
+            if (!reverted.ok) {
+              await deleteStorageFile(appliedRelocation.destinationPath);
+            }
+          } catch {
+            await deleteStorageFile(appliedRelocation.destinationPath);
+          }
           await restore(appliedRelocation.sourcePath);
         }
+        return false;
+      }
+
+      appliedRelocations.push(relocation);
+    } catch {
+      await deleteStorageFile(relocation.destinationPath);
+      await restore(relocation.sourcePath);
+      for (const appliedRelocation of appliedRelocations.slice().reverse()) {
+        try {
+          const reverted = await moveStorageFile(appliedRelocation.destinationPath, appliedRelocation.sourcePath);
+          if (!reverted.ok) {
+            await deleteStorageFile(appliedRelocation.destinationPath);
+          }
+        } catch {
+          await deleteStorageFile(appliedRelocation.destinationPath);
+        }
+        await restore(appliedRelocation.sourcePath);
       }
       return false;
     }
-
-    appliedRelocations.push(relocation);
   }
 
   return true;

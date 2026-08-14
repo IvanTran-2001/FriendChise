@@ -9,37 +9,28 @@ import { createTaskSchema } from "@/lib/validators/task";
 import { removeTaskImage, saveTaskImagePath } from "@/app/actions/storage";
 import { prisma } from "@/lib/platform/prisma";
 import { parseRequestBody } from "@/lib/http/request-body";
-import { normalizePayload } from "@/lib/http/task-form";
+import { asNumber, asString, asStringArray, normalizePayload } from "@/lib/http/task-form";
 
-function asString(value: unknown) {
-  return typeof value === "string" ? value : undefined;
-}
-
-function asNumber(value: unknown) {
-  if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
-  if (typeof value !== "string" || value.trim() === "") return undefined;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function getStringArray(value: unknown) {
-  if (value === undefined) {
-    return [];
-  }
-
-  if (Array.isArray(value)) {
-    return value.every((entry) => typeof entry === "string") ? value : null;
-  }
-
-  if (typeof value === "string") {
-    return [value];
-  }
-
-  return null;
+function hasField(body: Record<string, unknown>, key: string) {
+  return Object.prototype.hasOwnProperty.call(body, key);
 }
 
 function extractPayload(body: FormData | Record<string, unknown>) {
   const normalized = normalizePayload(body);
+
+  const minWaitDays = hasField(normalized, "minWaitDays") ? asNumber(normalized.minWaitDays) : 0;
+  const maxWaitDays = hasField(normalized, "maxWaitDays") ? asNumber(normalized.maxWaitDays) : 0;
+  const roleIds = hasField(normalized, "roleIds") ? asStringArray(normalized.roleIds) : [];
+
+  if (hasField(normalized, "minWaitDays") && minWaitDays === undefined) {
+    return { error: "One or more values are invalid.", roleIds: null } as const;
+  }
+  if (hasField(normalized, "maxWaitDays") && maxWaitDays === undefined) {
+    return { error: "One or more values are invalid.", roleIds: null } as const;
+  }
+  if (hasField(normalized, "roleIds") && roleIds === undefined) {
+    return { error: "One or more role IDs are invalid for this organization.", roleIds: null } as const;
+  }
 
   return {
     color: asString(normalized.color) ?? "#6366f1",
@@ -49,9 +40,9 @@ function extractPayload(body: FormData | Record<string, unknown>) {
     durationMin: asNumber(normalized.durationMin),
     preferredStartTimeMin: asNumber(normalized.preferredStartTimeMin),
     peopleRequired: asNumber(normalized.peopleRequired) ?? 1,
-    minWaitDays: asNumber(normalized.minWaitDays),
-    maxWaitDays: asNumber(normalized.maxWaitDays),
-    roleIds: getStringArray(normalized.roleIds),
+    minWaitDays,
+    maxWaitDays,
+    roleIds: roleIds ?? [],
   };
 }
 
@@ -73,11 +64,10 @@ export async function POST(
   if (body instanceof NextResponse) return body;
 
   const payload = extractPayload(body);
-  let taskImagePath: string | null = null;
-
-  if (payload.roleIds === null) {
-    return NextResponse.json({ error: "One or more role IDs are invalid for this organization." }, { status: 400 });
+  if ("error" in payload) {
+    return NextResponse.json({ error: payload.error }, { status: 400 });
   }
+  let taskImagePath: string | null = null;
 
   const parsed = createTaskSchema.safeParse(payload);
   if (!parsed.success) {

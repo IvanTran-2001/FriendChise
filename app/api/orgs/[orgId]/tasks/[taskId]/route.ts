@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireOrgMember, requireOrgPermissionAction, requireParentOrgOwnerAction } from "@/lib/authz";
 import { checkDemoLimit } from "@/lib/demo";
 import { parseRequestBody } from "@/lib/http/request-body";
-import { normalizePayload, normalizeToolLabel } from "@/lib/http/task-form";
+import { asNullableNumber, asNumber, asString, asStringArray, normalizePayload, normalizeToolLabel } from "@/lib/http/task-form";
 import { prisma } from "@/lib/platform/prisma";
 import { createSignedReadUrl } from "@/lib/platform/supabase-storage";
 import { isSameFranchise } from "@/lib/services/franchise-root";
@@ -55,27 +55,6 @@ function hasField(body: Record<string, unknown>, key: string) {
   return Object.prototype.hasOwnProperty.call(body, key);
 }
 
-function asString(value: unknown) {
-  return typeof value === "string" ? value : null;
-}
-
-function asNumber(value: unknown) {
-  if (typeof value === "number") return Number.isFinite(value) ? value : null;
-  if (typeof value !== "string" || value.trim() === "") return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function asStringArray(value: unknown) {
-  if (Array.isArray(value)) {
-    return value.every((entry) => typeof entry === "string") ? value : null;
-  }
-  if (typeof value === "string") {
-    return [value];
-  }
-  return null;
-}
-
 function invalidFieldResponse(field: string, message: string): NextResponse<FieldErrorResponse> {
   return NextResponse.json(
     {
@@ -116,7 +95,7 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
     } else if (typeof description === "string") {
       data.description = description;
     } else {
-      return { ok: false, response: NextResponse.json({ error: "Invalid task data." }, { status: 400 }) };
+      return { ok: false, response: invalidFieldResponse("description", "Invalid task data.") };
     }
     hasUpdateFields = true;
   }
@@ -131,8 +110,8 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
   }
 
   if (hasField(normalized, "preferredStartTimeMin")) {
-    const preferredStartTimeMin = normalized.preferredStartTimeMin === null ? null : asNumber(normalized.preferredStartTimeMin);
-    if (preferredStartTimeMin === null && normalized.preferredStartTimeMin !== null) {
+    const preferredStartTimeMin = asNullableNumber(normalized.preferredStartTimeMin);
+    if (preferredStartTimeMin === undefined) {
       return { ok: false, response: invalidFieldResponse("preferredStartTimeMin", "Invalid task data.") };
     }
     data.preferredStartTimeMin = preferredStartTimeMin;
@@ -149,8 +128,8 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
   }
 
   if (hasField(normalized, "minWaitDays")) {
-    const minWaitDays = normalized.minWaitDays === null ? null : asNumber(normalized.minWaitDays);
-    if (minWaitDays === null && normalized.minWaitDays !== null) {
+    const minWaitDays = asNullableNumber(normalized.minWaitDays);
+    if (minWaitDays === undefined) {
       return { ok: false, response: invalidFieldResponse("minWaitDays", "Invalid task data.") };
     }
     data.minWaitDays = minWaitDays;
@@ -158,8 +137,8 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
   }
 
   if (hasField(normalized, "maxWaitDays")) {
-    const maxWaitDays = normalized.maxWaitDays === null ? null : asNumber(normalized.maxWaitDays);
-    if (maxWaitDays === null && normalized.maxWaitDays !== null) {
+    const maxWaitDays = asNullableNumber(normalized.maxWaitDays);
+    if (maxWaitDays === undefined) {
       return { ok: false, response: invalidFieldResponse("maxWaitDays", "Invalid task data.") };
     }
     data.maxWaitDays = maxWaitDays;
@@ -168,7 +147,7 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
 
   if (hasField(normalized, "tagIds")) {
     const tagIds = asStringArray(normalized.tagIds);
-    if (tagIds === null) {
+    if (tagIds === undefined) {
       return { ok: false, response: invalidFieldResponse("tagIds", "Invalid task data.") };
     }
     data.tagIds = tagIds;
@@ -177,7 +156,7 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
 
   if (hasField(normalized, "roleIds")) {
     const roleIds = asStringArray(normalized.roleIds);
-    if (roleIds === null) {
+    if (roleIds === undefined) {
       return { ok: false, response: invalidFieldResponse("roleIds", "Invalid task data.") };
     }
     data.roleIds = roleIds;
@@ -186,7 +165,7 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
 
   if (hasField(normalized, "toolPaths")) {
     const toolPaths = asStringArray(normalized.toolPaths);
-    if (toolPaths === null) {
+    if (toolPaths === undefined) {
       return { ok: false, response: invalidFieldResponse("toolPaths", "Invalid task data.") };
     }
     data.toolPaths = toolPaths;
@@ -195,7 +174,7 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
 
   if (hasField(normalized, "toolLabels")) {
     const toolLabels = asStringArray(normalized.toolLabels);
-    if (toolLabels === null) {
+    if (toolLabels === undefined) {
       return { ok: false, response: invalidFieldResponse("toolLabels", "Invalid task data.") };
     }
     data.toolLabels = toolLabels.map((label) => normalizeToolLabel(label));
@@ -302,8 +281,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Task not found." }, { status: 404 });
   }
 
-  const mergedMinWaitDays = parsed.data.minWaitDays ?? existingWaitDays.minWaitDays;
-  const mergedMaxWaitDays = parsed.data.maxWaitDays ?? existingWaitDays.maxWaitDays;
+  const hasMinWaitDays = Object.prototype.hasOwnProperty.call(parsed.data, "minWaitDays");
+  const hasMaxWaitDays = Object.prototype.hasOwnProperty.call(parsed.data, "maxWaitDays");
+  const mergedMinWaitDays = hasMinWaitDays ? parsed.data.minWaitDays : existingWaitDays.minWaitDays;
+  const mergedMaxWaitDays = hasMaxWaitDays ? parsed.data.maxWaitDays : existingWaitDays.maxWaitDays;
   if (mergedMinWaitDays != null && mergedMaxWaitDays != null && mergedMinWaitDays > mergedMaxWaitDays) {
     return NextResponse.json(
       { error: "Invalid task data", errors: { minWaitDays: ["minWaitDays cannot be greater than maxWaitDays"] } },

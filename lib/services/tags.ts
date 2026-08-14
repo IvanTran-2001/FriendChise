@@ -245,6 +245,14 @@ export async function setTaskTags(
   tagIds: string[],
   db: PrismaTransactionClient | typeof prisma = prisma,
 ): Promise<void> {
+  const writeTags = async (client: PrismaTransactionClient | typeof prisma) => {
+    await client.taskTag.deleteMany({ where: { taskId } });
+    await client.taskTag.createMany({
+      data: validIds.map((tagId) => ({ taskId, tagId })),
+      skipDuplicates: true,
+    });
+  };
+
   // Verify all tagIds belong to this org
   const validTags = await db.tag.findMany({
     where: { id: { in: tagIds }, orgId },
@@ -253,21 +261,11 @@ export async function setTaskTags(
   const validIds: string[] = validTags.map((tag) => tag.id);
 
   if (db === prisma) {
-    await prisma.$transaction([
-      prisma.taskTag.deleteMany({ where: { taskId } }),
-      prisma.taskTag.createMany({
-        data: validIds.map((tagId) => ({ taskId, tagId })),
-        skipDuplicates: true,
-      }),
-    ]);
+    await prisma.$transaction(writeTags);
     return;
   }
 
-  await db.taskTag.deleteMany({ where: { taskId } });
-  await db.taskTag.createMany({
-    data: validIds.map((tagId) => ({ taskId, tagId })),
-    skipDuplicates: true,
-  });
+  await writeTags(db);
 }
 
 /**
