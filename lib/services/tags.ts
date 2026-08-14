@@ -3,6 +3,7 @@ import { prisma } from "@/lib/platform/prisma";
 import type { PrismaTransactionClient } from "@/lib/platform/prisma";
 import { getRandomColor } from "@/lib/core/org-color";
 import { recordAudit } from "@/lib/services/audit-log";
+import { supportsTransactionClient } from "@/lib/services/transaction-client";
 import type { ServiceResult } from "./types";
 
 // ─── Tag CRUD ─────────────────────────────────────────────────────────────────
@@ -245,9 +246,6 @@ export async function setTaskTags(
   tagIds: string[],
   db: PrismaTransactionClient | typeof prisma = prisma,
 ): Promise<void> {
-  const supportsTransaction = (client: PrismaTransactionClient | typeof prisma) =>
-    typeof (client as { $transaction?: unknown }).$transaction === "function";
-
   // Verify all tagIds belong to this org
   const validTags = await db.tag.findMany({
     where: { id: { in: tagIds }, orgId },
@@ -263,7 +261,7 @@ export async function setTaskTags(
     });
   };
 
-  if (supportsTransaction(db)) {
+  if (supportsTransactionClient(db)) {
     await (db as typeof prisma).$transaction(writeTags);
     return;
   }

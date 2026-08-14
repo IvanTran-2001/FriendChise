@@ -503,9 +503,15 @@ async function renameImageIfNeeded<Row>({
 
   await updateRow(db, id, expectedPath);
 
-  const applied = await applyRelocationDecision(relocated);
-  if (!applied) {
+  try {
+    const applied = await applyRelocationDecision(relocated);
+    if (!applied) {
+      await updateRow(db, id, currentPath);
+      return null;
+    }
+  } catch (error) {
     await updateRow(db, id, currentPath);
+    console.error(`${logPrefix} Failed to relocate storage file from ${currentPath} to ${expectedPath}:`, error);
     return null;
   }
 

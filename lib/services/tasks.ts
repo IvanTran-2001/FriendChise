@@ -26,6 +26,7 @@ import {
   copySectionLayout,
   DEFAULT_SECTIONS,
 } from "@/lib/services/task-sections";
+import { supportsTransactionClient } from "@/lib/services/transaction-client";
 import type { ServiceResult } from "./types";
 import type { CreateTaskInput } from "@/lib/validators/task";
 
@@ -482,9 +483,6 @@ export async function setTaskToolLinks(
   tools: TaskToolLinkInput[],
   db: PrismaTransactionClient | typeof prisma = prisma,
 ) {
-  const supportsTransaction = (client: PrismaTransactionClient | typeof prisma) =>
-    typeof (client as { $transaction?: unknown }).$transaction === "function";
-
   const writeLinks = async (client: PrismaTransactionClient | typeof prisma) => {
     await client.taskToolLink.deleteMany({ where: { orgId, taskId } });
     await client.taskToolLink.createMany({
@@ -498,7 +496,7 @@ export async function setTaskToolLinks(
     });
   };
 
-  if (supportsTransaction(db)) {
+  if (supportsTransactionClient(db)) {
     await (db as typeof prisma).$transaction(writeLinks);
     return;
   }
@@ -1116,9 +1114,6 @@ export async function setTaskEligibilities(
   roleIds: string[],
   db: PrismaTransactionClient | typeof prisma = prisma,
 ): Promise<void> {
-  const supportsTransaction = (client: PrismaTransactionClient | typeof prisma) =>
-    typeof (client as { $transaction?: unknown }).$transaction === "function";
-
   const validRoles =
     roleIds.length > 0
       ? await db.role.findMany({
@@ -1136,7 +1131,7 @@ export async function setTaskEligibilities(
     });
   };
 
-  if (supportsTransaction(db)) {
+  if (supportsTransactionClient(db)) {
     await (db as typeof prisma).$transaction(writeEligibilities);
     return;
   }
