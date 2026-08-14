@@ -482,6 +482,9 @@ export async function setTaskToolLinks(
   tools: TaskToolLinkInput[],
   db: PrismaTransactionClient | typeof prisma = prisma,
 ) {
+  const supportsTransaction = (client: PrismaTransactionClient | typeof prisma) =>
+    typeof (client as { $transaction?: unknown }).$transaction === "function";
+
   const writeLinks = async (client: PrismaTransactionClient | typeof prisma) => {
     await client.taskToolLink.deleteMany({ where: { orgId, taskId } });
     await client.taskToolLink.createMany({
@@ -495,8 +498,8 @@ export async function setTaskToolLinks(
     });
   };
 
-  if (db === prisma) {
-    await prisma.$transaction(writeLinks);
+  if (supportsTransaction(db)) {
+    await (db as typeof prisma).$transaction(writeLinks);
     return;
   }
 
@@ -1113,13 +1116,8 @@ export async function setTaskEligibilities(
   roleIds: string[],
   db: PrismaTransactionClient | typeof prisma = prisma,
 ): Promise<void> {
-  const writeEligibilities = async (client: PrismaTransactionClient | typeof prisma) => {
-    await client.taskEligibility.deleteMany({ where: { taskId } });
-    await client.taskEligibility.createMany({
-      data: validIds.map((roleId) => ({ taskId, roleId })),
-      skipDuplicates: true,
-    });
-  };
+  const supportsTransaction = (client: PrismaTransactionClient | typeof prisma) =>
+    typeof (client as { $transaction?: unknown }).$transaction === "function";
 
   const validRoles =
     roleIds.length > 0
@@ -1130,8 +1128,16 @@ export async function setTaskEligibilities(
       : [];
   const validIds = validRoles.map((r) => r.id);
 
-  if (db === prisma) {
-    await prisma.$transaction(writeEligibilities);
+  const writeEligibilities = async (client: PrismaTransactionClient | typeof prisma) => {
+    await client.taskEligibility.deleteMany({ where: { taskId } });
+    await client.taskEligibility.createMany({
+      data: validIds.map((roleId) => ({ taskId, roleId })),
+      skipDuplicates: true,
+    });
+  };
+
+  if (supportsTransaction(db)) {
+    await (db as typeof prisma).$transaction(writeEligibilities);
     return;
   }
 

@@ -17,18 +17,24 @@ export function normalizePayload(body: FormData | Record<string, unknown>) {
   return body;
 }
 
-export function asString(value: unknown) {
+export function hasField(body: Record<string, unknown>, key: string) {
+  return Object.prototype.hasOwnProperty.call(body, key);
+}
+
+export function asString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-export function asNumber(value: unknown) {
+/** Returns a number when present and valid, or undefined for absent/malformed input. */
+export function asNumber(value: unknown): number | undefined {
   if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
   if (typeof value !== "string" || value.trim() === "") return undefined;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-export function asNullableNumber(value: unknown) {
+/** Returns a number, null for an intentional clear, or undefined for malformed input. */
+export function asNullableNumber(value: unknown): number | null | undefined {
   if (value === null) return null;
   if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
   if (typeof value !== "string") return undefined;
@@ -40,7 +46,7 @@ export function asNullableNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-export function asStringArray(value: unknown) {
+export function asStringArray(value: unknown): string[] | undefined {
   if (Array.isArray(value)) {
     return value.every((entry) => typeof entry === "string") ? value : undefined;
   }

@@ -31,8 +31,17 @@ export const EXT: Record<AllowedMime, string> = {
 };
 
 export function normalizeOrgStoragePath(storagePath: string, expectedPrefix: string) {
-  const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
-  return normalized.startsWith(expectedPrefix) ? normalized : null;
+  const normalized = storagePath.replace(/^\/+/, "");
+  if (!normalized.startsWith(expectedPrefix)) {
+    return null;
+  }
+
+  const pathSegments = normalized.split("/");
+  if (pathSegments.some((segment) => segment === "." || segment === "..")) {
+    return null;
+  }
+
+  return normalized;
 }
 
 function normalizePageNumber(value: number | undefined, fallback: number) {

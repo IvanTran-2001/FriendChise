@@ -9,11 +9,7 @@ import { createTaskSchema } from "@/lib/validators/task";
 import { removeTaskImage, saveTaskImagePath } from "@/app/actions/storage";
 import { prisma } from "@/lib/platform/prisma";
 import { parseRequestBody } from "@/lib/http/request-body";
-import { asNumber, asString, asStringArray, normalizePayload } from "@/lib/http/task-form";
-
-function hasField(body: Record<string, unknown>, key: string) {
-  return Object.prototype.hasOwnProperty.call(body, key);
-}
+import { asNumber, asString, asStringArray, hasField, normalizePayload } from "@/lib/http/task-form";
 
 function extractPayload(body: FormData | Record<string, unknown>) {
   const normalized = normalizePayload(body);

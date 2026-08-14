@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireOrgMember, requireOrgPermissionAction, requireParentOrgOwnerAction } from "@/lib/authz";
 import { checkDemoLimit } from "@/lib/demo";
 import { parseRequestBody } from "@/lib/http/request-body";
-import { asNullableNumber, asNumber, asString, asStringArray, normalizePayload, normalizeToolLabel } from "@/lib/http/task-form";
+import { asNullableNumber, asNumber, asString, asStringArray, hasField, normalizePayload, normalizeToolLabel } from "@/lib/http/task-form";
 import { prisma } from "@/lib/platform/prisma";
 import { createSignedReadUrl } from "@/lib/platform/supabase-storage";
 import { isSameFranchise } from "@/lib/services/franchise-root";
@@ -41,6 +41,10 @@ const updateTaskPatchSchema = z.object({
   peopleRequired: z.number().int().min(1).max(50).optional(),
   minWaitDays: z.number().int().min(0).max(3650).nullable().optional(),
   maxWaitDays: z.number().int().min(0).max(3650).nullable().optional(),
+  tagIds: z.array(z.string()).optional(),
+  roleIds: z.array(z.string()).optional(),
+  toolPaths: z.array(z.string()).optional(),
+  toolLabels: z.array(z.string().nullable()).optional(),
 }).superRefine((data, ctx) => {
   if (data.minWaitDays != null && data.maxWaitDays != null && data.minWaitDays > data.maxWaitDays) {
     ctx.addIssue({
@@ -50,10 +54,6 @@ const updateTaskPatchSchema = z.object({
     });
   }
 });
-
-function hasField(body: Record<string, unknown>, key: string) {
-  return Object.prototype.hasOwnProperty.call(body, key);
-}
 
 function invalidFieldResponse(field: string, message: string): NextResponse<FieldErrorResponse> {
   return NextResponse.json(
@@ -102,7 +102,7 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
 
   if (hasField(normalized, "durationMin")) {
     const durationMin = asNumber(normalized.durationMin);
-    if (durationMin === null) {
+    if (durationMin === undefined) {
       return { ok: false, response: invalidFieldResponse("durationMin", "Invalid task data.") };
     }
     data.durationMin = durationMin;
@@ -120,7 +120,7 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
 
   if (hasField(normalized, "peopleRequired")) {
     const peopleRequired = asNumber(normalized.peopleRequired);
-    if (peopleRequired === null) {
+    if (peopleRequired === undefined) {
       return { ok: false, response: invalidFieldResponse("peopleRequired", "Invalid task data.") };
     }
     data.peopleRequired = peopleRequired;
