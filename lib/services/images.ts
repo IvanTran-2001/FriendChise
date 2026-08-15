@@ -8,6 +8,7 @@ import {
   createSignedReadUrl,
   createSignedReadUrls,
   createSignedUploadUrl,
+  deleteStorageFile,
   moveStorageFile,
   copyStorageFile,
 } from "@/lib/platform/supabase-storage";
@@ -29,6 +30,20 @@ export const EXT: Record<AllowedMime, string> = {
   "image/png": "png",
   "image/webp": "webp",
 };
+
+export function normalizeOrgStoragePath(storagePath: string, expectedPrefix: string) {
+  const normalized = storagePath.replace(/^\/+/, "");
+  if (!normalized.startsWith(expectedPrefix)) {
+    return null;
+  }
+
+  const pathSegments = normalized.split("/");
+  if (pathSegments.some((segment) => segment === "." || segment === "..")) {
+    return null;
+  }
+
+  return normalized;
+}
 
 function normalizePageNumber(value: number | undefined, fallback: number) {
   if (!Number.isFinite(value ?? NaN)) return fallback;
@@ -259,12 +274,34 @@ export async function saveOrgImageToLibrary(
   if (!authz.ok) return { ok: false, error: "Unauthorized", code: "unauthorized" };
   if (isDemoEmail(authz.userEmail)) return { ok: false, error: "Image uploads are not available in demo mode.", code: "invalid_input" };
 
-  const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
-  if (!normalized.startsWith(`orgs/${orgId}/images/`)) {
+  const normalized = normalizeOrgStoragePath(storagePath, `orgs/${orgId}/images/`);
+  if (!normalized) {
     return { ok: false, error: "Invalid storage path", code: "invalid_input" };
   }
 
-  const signedUrl = (await createSignedReadUrl(normalized)) ?? null;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SECRET_KEY;
+  if (!url || !key) {
+    return { ok: false, error: "Failed to validate image in storage.", code: "storage_failure" };
+  }
+  const encodedPath = normalized.split("/").map(encodeURIComponent).join("/");
+  let existsRes: Response;
+  try {
+    existsRes = await fetch(`${url}/storage/v1/object/friendchise-private/${encodedPath}`, {
+      method: "HEAD",
+      headers: {
+        Authorization: `Bearer ${key}`,
+      },
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch {
+    return { ok: false, error: "Failed to validate image in storage.", code: "storage_failure" };
+  }
+  if (!existsRes.ok) {
+    return { ok: false, error: "Failed to validate image in storage.", code: "storage_failure" };
+  }
+
+  const signedUrl = await createSignedReadUrl(normalized);
   if (!signedUrl) return { ok: false, error: "Failed to generate image URL", code: "storage_failure" };
 
   const img = await withOrgImageStorageLock(orgId, normalized, async (tx) => addOrgImage(orgId, normalized, name, tx));
@@ -425,7 +462,7 @@ async function renameImageIfNeeded<Row>({
   loadRow: (db: Tx | typeof prisma, orgId: string, id: string) => Promise<Row | null>;
   getCurrentPath: (row: Row) => string | null;
   getName: (row: Row) => string;
-  updateRow: (db: Tx | typeof prisma, id: string, nextPath: string) => Promise<void>;
+  updateRow: (db: Tx | typeof prisma, id: string, nextPath: string, expectedPath?: string | null) => Promise<number>;
   excludeKey: "task" | "item";
 }): Promise<string | null> {
   const db = tx || prisma;
@@ -461,15 +498,26 @@ async function renameImageIfNeeded<Row>({
 
   if (onRelocation) {
     onRelocation(relocated);
-    await updateRow(db, id, expectedPath);
+    await updateRow(db, id, expectedPath, currentPath);
     return expectedPath;
   }
 
-  await updateRow(db, id, expectedPath);
+  const updatedCount = await updateRow(db, id, expectedPath, currentPath);
+  if (updatedCount === 0) {
+    return null;
+  }
 
-  const applied = await applyRelocationDecision(relocated);
-  if (!applied) {
-    await updateRow(db, id, currentPath);
+  try {
+    const applied = await applyRelocationDecision(relocated);
+    if (!applied) {
+      await updateRow(db, id, currentPath, expectedPath);
+      await deleteStorageFile(expectedPath);
+      return null;
+    }
+  } catch (error) {
+    await updateRow(db, id, currentPath, expectedPath);
+    await deleteStorageFile(expectedPath);
+    console.error(`${logPrefix} Failed to relocate storage file from ${currentPath} to ${expectedPath}:`, error);
     return null;
   }
 
@@ -502,11 +550,13 @@ export async function renameTaskImageIfNeeded(
       }),
     getCurrentPath: (task) => task.imageUrl,
     getName: (task) => task.name,
-    updateRow: async (db, currentTaskId, nextPath) => {
-      await db.task.update({
-        where: { id: currentTaskId },
+    updateRow: async (db, currentTaskId, nextPath, expectedPath) => {
+      const result = await db.task.updateMany({
+        where: { id: currentTaskId, ...(expectedPath ? { imageUrl: expectedPath } : {}) },
         data: { imageUrl: nextPath },
       });
+
+      return result.count;
     },
     excludeKey: "task",
   });
@@ -538,11 +588,13 @@ export async function renameToolItemImageIfNeeded(
       }),
     getCurrentPath: (item) => item.imgUrl,
     getName: (item) => item.name,
-    updateRow: async (db, currentItemId, nextPath) => {
-      await db.toolItem.update({
-        where: { id: currentItemId },
+    updateRow: async (db, currentItemId, nextPath, expectedPath) => {
+      const result = await db.toolItem.updateMany({
+        where: { id: currentItemId, ...(expectedPath ? { imgUrl: expectedPath } : {}) },
         data: { imgUrl: nextPath },
       });
+
+      return result.count;
     },
     excludeKey: "item",
   });

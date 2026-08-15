@@ -2,64 +2,31 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { requireOrgPermission } from "@/lib/authz";
+import { checkDemoLimit } from "@/lib/demo";
 import { createTask, deleteTask, findTaskByName, setTaskEligibilities } from "@/lib/services/tasks";
 import { PermissionAction } from "@prisma/client";
 import { createTaskSchema } from "@/lib/validators/task";
 import { removeTaskImage, saveTaskImagePath } from "@/app/actions/storage";
 import { prisma } from "@/lib/platform/prisma";
 import { parseRequestBody } from "@/lib/http/request-body";
-
-function asString(value: unknown) {
-  return typeof value === "string" ? value : undefined;
-}
-
-function asNumber(value: unknown) {
-  if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
-  if (typeof value !== "string" || value.trim() === "") return undefined;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function normalizePayload(body: FormData | Record<string, unknown>) {
-  if (body instanceof FormData) {
-    const normalized: Record<string, unknown> = {};
-    for (const [key, value] of body.entries()) {
-      const existing = normalized[key];
-      if (existing === undefined) {
-        normalized[key] = value;
-      } else if (Array.isArray(existing)) {
-        existing.push(value);
-      } else {
-        normalized[key] = [existing, value];
-      }
-    }
-    return normalized;
-  }
-
-  return body;
-}
-
-function getStringArray(value: unknown) {
-  if (value === undefined) {
-    return [];
-  }
-
-  if (Array.isArray(value)) {
-    return value.every((entry) => typeof entry === "string") ? value : null;
-  }
-
-  if (typeof value === "string") {
-    return [value];
-  }
-
-  return null;
-}
+import { asNumber, asString, asStringArray, hasField, normalizePayload } from "@/lib/http/task-form";
 
 function extractPayload(body: FormData | Record<string, unknown>) {
   const normalized = normalizePayload(body);
-  const minWaitDays = asNumber(normalized.minWaitDays);
-  const maxWaitDays = asNumber(normalized.maxWaitDays);
-  const bothEmpty = minWaitDays === undefined && maxWaitDays === undefined;
+
+  const minWaitDays = hasField(normalized, "minWaitDays") ? asNumber(normalized.minWaitDays) : 0;
+  const maxWaitDays = hasField(normalized, "maxWaitDays") ? asNumber(normalized.maxWaitDays) : 0;
+  const roleIds = hasField(normalized, "roleIds") ? asStringArray(normalized.roleIds) : [];
+
+  if (hasField(normalized, "minWaitDays") && minWaitDays === undefined) {
+    return { error: "One or more values are invalid.", roleIds: null } as const;
+  }
+  if (hasField(normalized, "maxWaitDays") && maxWaitDays === undefined) {
+    return { error: "One or more values are invalid.", roleIds: null } as const;
+  }
+  if (hasField(normalized, "roleIds") && roleIds === undefined) {
+    return { error: "One or more role IDs are invalid for this organization.", roleIds: null } as const;
+  }
 
   return {
     color: asString(normalized.color) ?? "#6366f1",
@@ -69,15 +36,10 @@ function extractPayload(body: FormData | Record<string, unknown>) {
     durationMin: asNumber(normalized.durationMin),
     preferredStartTimeMin: asNumber(normalized.preferredStartTimeMin),
     peopleRequired: asNumber(normalized.peopleRequired) ?? 1,
-    minWaitDays: bothEmpty ? 0 : minWaitDays,
-    maxWaitDays: bothEmpty ? 0 : maxWaitDays,
-    roleIds: getStringArray(normalized.roleIds),
+    minWaitDays,
+    maxWaitDays,
+    roleIds: roleIds ?? [],
   };
-}
-
-function normalizeImageStoragePath(orgId: string, imageStoragePath: string) {
-  const normalized = imageStoragePath.replace(/^\/+/, "").replace(/\.\./g, "");
-  return normalized.startsWith(`orgs/${orgId}/images/`) ? normalized : null;
 }
 
 export async function POST(
@@ -89,15 +51,19 @@ export async function POST(
   const authz = await requireOrgPermission(orgId, PermissionAction.MANAGE_TASKS);
   if (!authz.ok) return authz.response;
 
+  const demoCheck = await checkDemoLimit(authz.userEmail, "task", orgId);
+  if (!demoCheck.ok) {
+    return NextResponse.json({ error: demoCheck.error }, { status: 429 });
+  }
+
   const body = await parseRequestBody(req, { multipart: true });
   if (body instanceof NextResponse) return body;
 
   const payload = extractPayload(body);
-  let taskImagePath: string | null = null;
-
-  if (payload.roleIds === null) {
-    return NextResponse.json({ error: "One or more role IDs are invalid for this organization." }, { status: 400 });
+  if ("error" in payload) {
+    return NextResponse.json({ error: payload.error }, { status: 400 });
   }
+  let taskImagePath: string | null = null;
 
   const parsed = createTaskSchema.safeParse(payload);
   if (!parsed.success) {
@@ -133,19 +99,9 @@ export async function POST(
     }
   }
 
-  const normalizedImagePath = parsed.data.imageStoragePath
-    ? normalizeImageStoragePath(orgId, parsed.data.imageStoragePath)
-    : undefined;
-
-  if (parsed.data.imageStoragePath && !normalizedImagePath) {
-    return NextResponse.json({ error: "Invalid storage path" }, { status: 400 });
-  }
-
   let createdTaskId: string | null = null;
   try {
-    const taskInput = normalizedImagePath
-      ? { ...parsed.data, imageStoragePath: normalizedImagePath }
-      : parsed.data;
+    const taskInput = parsed.data;
     taskImagePath = taskInput.imageStoragePath ?? null;
 
     const task = await createTask(

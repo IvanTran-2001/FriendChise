@@ -78,8 +78,8 @@ import {
 } from "@/lib/services/tags";
 import { saveTaskImagePath } from "@/app/actions/storage";
 import { renameTaskImageIfNeeded } from "@/lib/services/images";
+import { normalizeToolLabel } from "@/lib/http/task-form";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validators/task";
-import { checkDemoLimit } from "@/lib/demo";
 import { revalidatePath } from "next/cache";
 
 function isTaskNameConflictTarget(target: unknown) {
@@ -116,12 +116,6 @@ function parseTaskFormData(formData: FormData) {
   };
 }
 
-function normalizeToolLabel(value: FormDataEntryValue | null): string | null {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed === "" ? null : trimmed;
-}
-
 export type CreateTaskFormState =
   | { ok: false; errors: Record<string, string[]> }
   | { ok: true; taskId: string }
@@ -146,9 +140,6 @@ export async function createTaskAction(
     PermissionAction.MANAGE_TASKS,
   );
   if (!authz.ok) return { ok: false, errors: { _: ["Unauthorized"] } };
-
-  const demoCheck = await checkDemoLimit(authz.userEmail, "task", orgId);
-  if (!demoCheck.ok) return { ok: false, errors: { _: [demoCheck.error] } };
 
   const raw = parseTaskFormData(formData);
   const parsed = createTaskSchema.safeParse(raw);
@@ -368,6 +359,8 @@ export async function updateTaskAction(
     parsed.data,
     authz.userId,
     authz.userEmail,
+    undefined,
+    formData.get("tagsSubmitted") === "1" || formData.get("rolesSubmitted") === "1" || formData.get("toolsSubmitted") === "1",
   );
   if (!result.ok) return { ok: false, errors: { _: [result.error] } };
 

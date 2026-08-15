@@ -26,6 +26,7 @@ import {
   createSignedReadUrl,
   deleteStorageFile,
   deletePublicFile,
+  moveStorageFile,
 } from "@/lib/platform/supabase-storage";
 import { updateTaskImageUrl } from "@/lib/services/tasks";
 import { updateToolItemImageUrl } from "@/lib/services/tools";
@@ -34,6 +35,7 @@ import {
   MAX_PAGE_SIZE,
   ALLOWED_MIME_TYPES,
   EXT,
+  normalizeOrgStoragePath,
   withOrgImageStorageLock,
   applyRelocationDecision,
   renameTaskImageIfNeeded,
@@ -49,7 +51,7 @@ type AllowedMime = (typeof ALLOWED_MIME_TYPES)[number];
 type Tx = PrismaTransactionClient;
 
 type ImageSaveResult =
-  | { ok: true; oldImagePathsToDelete: string[]; relocations: ImageRelocationDecision[] }
+  | { ok: true; oldImagePathsToDelete: string[]; relocations: ImageRelocationDecision[]; previousImageUrl: string | null }
   | { ok: false; error: string; code: "invalid_input" | "not_found" };
 
 /**
@@ -75,9 +77,9 @@ export async function getSignedUploadUrl(
     where: { id: taskId },
     select: { orgId: true },
   });
-    if (!task || task.orgId !== orgId) {
-      return { ok: false as const, error: "Task not found" };
-    }
+  if (!task || task.orgId !== orgId) {
+    return { ok: false as const, error: "Task not found" };
+  }
 
   if (!ALLOWED_MIME_TYPES.includes(mimeType as AllowedMime)) {
     return { ok: false, error: "Unsupported file type. Use JPEG, PNG, or WebP." };
@@ -118,11 +120,15 @@ export async function saveTaskImagePath(
     PermissionAction.MANAGE_TASKS,
   );
   if (!authz.ok) return { ok: false as const, error: "Unauthorized", code: "unauthorized" as const };
+  if (isDemoEmail(authz.userEmail)) {
+    return { ok: false as const, error: "Image uploads are not available in demo mode.", code: "invalid_input" as const };
+  }
 
-  const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
-  const isTaskPath = normalized.startsWith(`orgs/${orgId}/tasks/${taskId}/`);
-  const isLibraryPath = normalized.startsWith(`orgs/${orgId}/images/`);
-  if (!isTaskPath && !isLibraryPath) {
+  const taskPath = normalizeOrgStoragePath(storagePath, `orgs/${orgId}/tasks/${taskId}/`);
+  const libraryPath = normalizeOrgStoragePath(storagePath, `orgs/${orgId}/images/`);
+  const normalized = taskPath ?? libraryPath;
+  const isLibraryPath = normalized === libraryPath;
+  if (!normalized) {
     return { ok: false as const, error: "Invalid storage path", code: "invalid_input" as const };
   }
 
@@ -138,7 +144,7 @@ export async function saveTaskImagePath(
 
     if (!existing) return { ok: false as const, error: "Task not found", code: "not_found" as const };
 
-    if (db !== prisma && isLibraryPath) {
+    if (isLibraryPath) {
       const libraryImage = await db.orgImage.findFirst({
         where: { orgId, storagePath: normalized },
         select: { id: true },
@@ -171,10 +177,18 @@ export async function saveTaskImagePath(
       if (refCount === 0) oldImagePathsToDelete.push(existing.imageUrl);
     }
 
-    return { ok: true, oldImagePathsToDelete, relocations };
+    return { ok: true, oldImagePathsToDelete, relocations, previousImageUrl: existing.imageUrl };
   };
 
-  const restoreTaskImage = async (revertTo: string) => {
+  const restoreTaskImage = async (expectedPath: string, revertTo: string | null) => {
+    const current = await prisma.task.findFirst({
+      where: { id: taskId, orgId },
+      select: { imageUrl: true },
+    });
+    if (!current?.imageUrl || current.imageUrl !== expectedPath) {
+      return;
+    }
+
     await updateTaskImageUrl(orgId, taskId, revertTo, prisma);
   };
 
@@ -183,16 +197,16 @@ export async function saveTaskImagePath(
       const runResult = await run(tx);
       if (!runResult.ok) return runResult;
 
-      return { ok: true as const, oldImagePathsToDelete: runResult.oldImagePathsToDelete, relocations: runResult.relocations };
+      return {
+        ok: true as const,
+        oldImagePathsToDelete: runResult.oldImagePathsToDelete,
+        relocations: runResult.relocations,
+        previousImageUrl: runResult.previousImageUrl,
+      };
     });
     if (!result.ok) return result;
-    for (const relocation of result.relocations) {
-      const applied = await applyRelocationDecision(relocation);
-      if (!applied) {
-        await restoreTaskImage(relocation.sourcePath);
-        return { ok: false as const, error: `Failed to relocate image.`, code: "not_found" as const };
-      }
-    }
+    const applied = await applyRelocationsWithRollback(result.relocations, result.previousImageUrl, restoreTaskImage);
+    if (!applied) return { ok: false as const, error: `Failed to relocate image.`, code: "not_found" as const };
     for (const oldImagePath of result.oldImagePathsToDelete) {
       await deleteStorageFile(oldImagePath);
     }
@@ -202,19 +216,65 @@ export async function saveTaskImagePath(
   const result = await run();
   if (!result.ok) return result;
 
-  for (const relocation of result.relocations) {
-    const applied = await applyRelocationDecision(relocation);
-    if (!applied) {
-      await restoreTaskImage(relocation.sourcePath);
-      return { ok: false as const, error: `Failed to relocate image.`, code: "not_found" as const };
-    }
-  }
+  const applied = await applyRelocationsWithRollback(result.relocations, result.previousImageUrl, restoreTaskImage);
+  if (!applied) return { ok: false as const, error: `Failed to relocate image.`, code: "not_found" as const };
 
   for (const oldImagePath of result.oldImagePathsToDelete) {
     await deleteStorageFile(oldImagePath);
   }
 
   return { ok: true };
+}
+
+async function applyRelocationsWithRollback(
+  relocations: ImageRelocationDecision[],
+  revertTo: string | null,
+  restore: (expectedPath: string, revertTo: string | null) => Promise<void>,
+) {
+  const appliedRelocations: ImageRelocationDecision[] = [];
+
+  const rollbackAppliedRelocation = async (relocation: ImageRelocationDecision) => {
+    if (relocation.action === "copy") {
+      await deleteStorageFile(relocation.destinationPath);
+      return;
+    }
+
+    try {
+      const reverted = await moveStorageFile(relocation.destinationPath, relocation.sourcePath);
+      if (!reverted.ok) {
+        await deleteStorageFile(relocation.destinationPath);
+      }
+    } catch {
+      await deleteStorageFile(relocation.destinationPath);
+    }
+  };
+
+  for (const relocation of relocations) {
+    try {
+      const applied = await applyRelocationDecision(relocation);
+      if (!applied) {
+        await deleteStorageFile(relocation.destinationPath);
+        await restore(relocation.destinationPath, revertTo);
+        for (const appliedRelocation of appliedRelocations.slice().reverse()) {
+          await rollbackAppliedRelocation(appliedRelocation);
+          await restore(appliedRelocation.destinationPath, revertTo);
+        }
+        return false;
+      }
+
+      appliedRelocations.push(relocation);
+    } catch {
+      await deleteStorageFile(relocation.destinationPath);
+      await restore(relocation.destinationPath, revertTo);
+      for (const appliedRelocation of appliedRelocations.slice().reverse()) {
+        await rollbackAppliedRelocation(appliedRelocation);
+        await restore(appliedRelocation.destinationPath, revertTo);
+      }
+      return false;
+    }
+  }
+
+  return true;
 }
 
 /**
@@ -289,11 +349,15 @@ export async function saveToolItemImagePath(
     PermissionAction.MANAGE_TASKS,
   );
   if (!authz.ok) return { ok: false as const, error: "Unauthorized", code: "unauthorized" as const };
+  if (isDemoEmail(authz.userEmail)) {
+    return { ok: false as const, error: "Image uploads are not available in demo mode.", code: "invalid_input" as const };
+  }
 
-  const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
-  const isItemPath = normalized.startsWith(`orgs/${orgId}/items/${itemId}/`);
-  const isLibraryPath = normalized.startsWith(`orgs/${orgId}/images/`);
-  if (!isItemPath && !isLibraryPath)
+  const itemPath = normalizeOrgStoragePath(storagePath, `orgs/${orgId}/items/${itemId}/`);
+  const libraryPath = normalizeOrgStoragePath(storagePath, `orgs/${orgId}/images/`);
+  const normalized = itemPath ?? libraryPath;
+  const isLibraryPath = normalized === libraryPath;
+  if (!normalized)
     return { ok: false as const, error: "Invalid storage path", code: "invalid_input" as const };
 
   const run = async (
@@ -307,7 +371,7 @@ export async function saveToolItemImagePath(
     });
     if (!existing) return { ok: false as const, error: "Item not found", code: "not_found" as const };
 
-    if (db !== prisma && isLibraryPath) {
+    if (isLibraryPath) {
       const libraryImage = await db.orgImage.findFirst({
         where: { orgId, storagePath: normalized },
         select: { id: true },
@@ -340,10 +404,18 @@ export async function saveToolItemImagePath(
       if (refCount === 0) oldImagePathsToDelete.push(existing.imgUrl);
     }
 
-    return { ok: true, oldImagePathsToDelete, relocations };
+    return { ok: true, oldImagePathsToDelete, relocations, previousImageUrl: existing.imgUrl };
   };
 
-  const restoreToolItemImage = async (revertTo: string) => {
+  const restoreToolItemImage = async (expectedPath: string, revertTo: string | null) => {
+    const current = await prisma.toolItem.findFirst({
+      where: { id: itemId, orgId },
+      select: { imgUrl: true },
+    });
+    if (!current?.imgUrl || current.imgUrl !== expectedPath) {
+      return;
+    }
+
     await updateToolItemImageUrl(orgId, itemId, revertTo, prisma);
   };
 
@@ -351,16 +423,16 @@ export async function saveToolItemImagePath(
     const result = await withOrgImageStorageLock(orgId, normalized, async (tx) => {
         const runResult = await run(tx);
         if (!runResult.ok) return runResult;
-        return { ok: true as const, oldImagePathsToDelete: runResult.oldImagePathsToDelete, relocations: runResult.relocations };
+        return {
+          ok: true as const,
+          oldImagePathsToDelete: runResult.oldImagePathsToDelete,
+          relocations: runResult.relocations,
+          previousImageUrl: runResult.previousImageUrl,
+        };
     });
     if (!result.ok) return result;
-    for (const relocation of result.relocations) {
-      const applied = await applyRelocationDecision(relocation);
-      if (!applied) {
-        await restoreToolItemImage(relocation.sourcePath);
-        return { ok: false as const, error: `Failed to relocate image.`, code: "not_found" as const };
-      }
-    }
+    const applied = await applyRelocationsWithRollback(result.relocations, result.previousImageUrl, restoreToolItemImage);
+    if (!applied) return { ok: false as const, error: `Failed to relocate image.`, code: "not_found" as const };
     for (const oldImagePath of result.oldImagePathsToDelete) {
       await deleteStorageFile(oldImagePath);
     }
@@ -370,13 +442,8 @@ export async function saveToolItemImagePath(
   const result = await run();
   if (!result.ok) return result;
 
-  for (const relocation of result.relocations) {
-    const applied = await applyRelocationDecision(relocation);
-    if (!applied) {
-      await restoreToolItemImage(relocation.sourcePath);
-      return { ok: false as const, error: `Failed to relocate image.`, code: "not_found" as const };
-    }
-  }
+  const applied = await applyRelocationsWithRollback(result.relocations, result.previousImageUrl, restoreToolItemImage);
+  if (!applied) return { ok: false as const, error: `Failed to relocate image.`, code: "not_found" as const };
 
   for (const oldImagePath of result.oldImagePathsToDelete) {
     await deleteStorageFile(oldImagePath);
@@ -551,9 +618,8 @@ export async function saveOrgLogoPath(
   if (!authz.ok) return { ok: false, error: "Unauthorized" };
 
   // Normalize and validate storagePath
-  const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
-  const expectedPrefix = `orgs/${orgId}/`;
-  if (!normalized.startsWith(expectedPrefix)) {
+  const normalized = normalizeOrgStoragePath(storagePath, `orgs/${orgId}/`);
+  if (!normalized) {
     return { ok: false, error: "Invalid storage path" };
   }
 
@@ -668,8 +734,8 @@ export async function getOrgStorageReadUrl(
   const authz = await requireOrgMemberAction(orgId);
   if (!authz.ok) return { ok: false, error: "Unauthorized", code: "unauthorized" };
 
-  const normalized = storagePath.replace(/^\/+/, "").replace(/\.\./g, "");
-  if (!normalized.startsWith(`orgs/${orgId}/`)) {
+  const normalized = normalizeOrgStoragePath(storagePath, `orgs/${orgId}/`);
+  if (!normalized) {
     return { ok: false, error: "Invalid path", code: "invalid_input" };
   }
 

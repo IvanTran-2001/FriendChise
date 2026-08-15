@@ -26,12 +26,24 @@ import {
   copySectionLayout,
   DEFAULT_SECTIONS,
 } from "@/lib/services/task-sections";
+import { runInTransaction } from "@/lib/services/transaction-client";
 import type { ServiceResult } from "./types";
-import type { CreateTaskInput, UpdateTaskInput } from "@/lib/validators/task";
+import type { CreateTaskInput } from "@/lib/validators/task";
 
 export type TaskToolLinkInput = {
   toolPath: string;
   toolLabel?: string | null;
+};
+
+export type UpdateTaskPatchInput = {
+  title?: string;
+  color?: string;
+  description?: string | null;
+  durationMin?: number;
+  preferredStartTimeMin?: number | null;
+  peopleRequired?: number;
+  minWaitDays?: number | null;
+  maxWaitDays?: number | null;
 };
 
 export type TaskDuplicateCheckInput = {
@@ -469,10 +481,11 @@ export async function setTaskToolLinks(
   orgId: string,
   taskId: string,
   tools: TaskToolLinkInput[],
+  db: PrismaTransactionClient | typeof prisma = prisma,
 ) {
-  await prisma.$transaction(async (tx) => {
-    await tx.taskToolLink.deleteMany({ where: { orgId, taskId } });
-    await tx.taskToolLink.createMany({
+  const writeLinks = async (client: PrismaTransactionClient | typeof prisma) => {
+    await client.taskToolLink.deleteMany({ where: { orgId, taskId } });
+    await client.taskToolLink.createMany({
       data: tools.map((tool) => ({
         orgId,
         taskId,
@@ -481,7 +494,9 @@ export async function setTaskToolLinks(
       })),
       skipDuplicates: true,
     });
-  });
+  };
+
+  await runInTransaction(db, writeLinks);
 }
 
 /**
@@ -943,54 +958,84 @@ export async function getAccessibleTaskById(orgId: string, taskId: string) {
 export async function updateTask(
   orgId: string,
   taskId: string,
-  data: UpdateTaskInput,
+  data: UpdateTaskPatchInput,
   actorId?: string | null,
   actorEmail?: string | null,
+  db: PrismaTransactionClient | typeof prisma = prisma,
+  touchUpdatedAt = false,
 ): Promise<ServiceResult<null>> {
-  const existing = await prisma.task.findFirst({
+  const existing = await db.task.findFirst({
     where: { id: taskId, orgId },
-    select: { name: true, color: true, description: true, durationMin: true },
-  });
-  const updateData: Prisma.TaskUpdateManyMutationInput = {
-    name: data.title,
-    color: data.color,
-    description: data.description ?? null,
-    durationMin: data.durationMin,
-    minPeople: data.peopleRequired ?? 1,
-  };
-
-  if (data.preferredStartTimeMin !== undefined) {
-    updateData.preferredStartTimeMin = data.preferredStartTimeMin;
-  }
-  if (data.minWaitDays !== undefined) {
-    updateData.minWaitDays = data.minWaitDays;
-  }
-  if (data.maxWaitDays !== undefined) {
-    updateData.maxWaitDays = data.maxWaitDays;
-  }
-
-  const { count } = await prisma.task.updateMany({
-    where: { id: taskId, orgId },
-    data: updateData,
-  });
-  if (count === 0)
-    return { ok: false, error: "Task not found", code: "NOT_FOUND" };
-  log.info("Task updated", { orgId, taskId });
-  recordAudit({
-    orgId,
-    actorId: actorId ?? null,
-    actorEmail: actorEmail ?? null,
-    action: "task.update",
-    targetType: "Task",
-    targetId: taskId,
-    before: existing as import("@prisma/client").Prisma.InputJsonObject | null,
-    after: {
-      name: data.title,
-      color: data.color,
-      description: data.description ?? null,
-      durationMin: data.durationMin,
+    select: {
+      name: true,
+      color: true,
+      description: true,
+      durationMin: true,
+      minPeople: true,
+      preferredStartTimeMin: true,
+      minWaitDays: true,
+      maxWaitDays: true,
     },
   });
+
+  if (!existing) {
+    return { ok: false, error: "Task not found", code: "NOT_FOUND" };
+  }
+
+  const updateData: Prisma.TaskUpdateManyMutationInput = {};
+
+  if (Object.prototype.hasOwnProperty.call(data, "title") && data.title !== undefined) {
+    updateData.name = data.title;
+  }
+  if (Object.prototype.hasOwnProperty.call(data, "color") && data.color !== undefined) {
+    updateData.color = data.color;
+  }
+  if (Object.prototype.hasOwnProperty.call(data, "description")) {
+    updateData.description = data.description ?? null;
+  }
+  if (Object.prototype.hasOwnProperty.call(data, "durationMin") && data.durationMin !== undefined) {
+    updateData.durationMin = data.durationMin;
+  }
+  if (Object.prototype.hasOwnProperty.call(data, "peopleRequired") && data.peopleRequired !== undefined) {
+    updateData.minPeople = data.peopleRequired;
+  }
+  if (Object.prototype.hasOwnProperty.call(data, "preferredStartTimeMin")) {
+    updateData.preferredStartTimeMin = data.preferredStartTimeMin ?? null;
+  }
+  if (Object.prototype.hasOwnProperty.call(data, "minWaitDays")) {
+    updateData.minWaitDays = data.minWaitDays ?? null;
+  }
+  if (Object.prototype.hasOwnProperty.call(data, "maxWaitDays")) {
+    updateData.maxWaitDays = data.maxWaitDays ?? null;
+  }
+
+  if (Object.keys(updateData).length > 0 || touchUpdatedAt) {
+    updateData.updatedAt = new Date();
+
+    const { count } = await db.task.updateMany({
+      where: { id: taskId, orgId },
+      data: updateData,
+    });
+    if (count === 0) {
+      return { ok: false, error: "Task not found", code: "NOT_FOUND" };
+    }
+
+    log.info("Task updated", { orgId, taskId });
+    await recordAudit(
+      {
+        orgId,
+        actorId: actorId ?? null,
+        actorEmail: actorEmail ?? null,
+        action: "task.update",
+        targetType: "Task",
+        targetId: taskId,
+        before: existing as import("@prisma/client").Prisma.InputJsonObject | null,
+        after: { ...existing, ...updateData },
+      },
+      db === prisma ? undefined : db,
+    );
+  }
+
   return { ok: true, data: null };
 }
 
@@ -1065,23 +1110,26 @@ export async function setTaskEligibilities(
   orgId: string,
   taskId: string,
   roleIds: string[],
+  db: PrismaTransactionClient | typeof prisma = prisma,
 ): Promise<void> {
   const validRoles =
     roleIds.length > 0
-      ? await prisma.role.findMany({
+      ? await db.role.findMany({
           where: { id: { in: roleIds }, orgId },
           select: { id: true },
         })
       : [];
   const validIds = validRoles.map((r) => r.id);
 
-  await prisma.$transaction([
-    prisma.taskEligibility.deleteMany({ where: { taskId } }),
-    prisma.taskEligibility.createMany({
+  const writeEligibilities = async (client: PrismaTransactionClient | typeof prisma) => {
+    await client.taskEligibility.deleteMany({ where: { taskId } });
+    await client.taskEligibility.createMany({
       data: validIds.map((roleId) => ({ taskId, roleId })),
       skipDuplicates: true,
-    }),
-  ]);
+    });
+  };
+
+  await runInTransaction(db, writeEligibilities);
 }
 
 /**
