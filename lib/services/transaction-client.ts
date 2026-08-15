@@ -1,6 +1,11 @@
+import { Prisma } from "@prisma/client";
 import { prisma, type PrismaTransactionClient } from "@/lib/platform/prisma";
 
-type TransactionOptions = Parameters<typeof prisma.$transaction>[1];
+type TransactionOptions = {
+  maxWait?: number;
+  timeout?: number;
+  isolationLevel?: Prisma.TransactionIsolationLevel;
+};
 
 export function supportsTransactionClient(client: PrismaTransactionClient | typeof prisma): client is typeof prisma {
   return typeof (client as { $transaction?: unknown }).$transaction === "function";

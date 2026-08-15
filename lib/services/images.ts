@@ -462,7 +462,7 @@ async function renameImageIfNeeded<Row>({
   loadRow: (db: Tx | typeof prisma, orgId: string, id: string) => Promise<Row | null>;
   getCurrentPath: (row: Row) => string | null;
   getName: (row: Row) => string;
-  updateRow: (db: Tx | typeof prisma, id: string, nextPath: string) => Promise<void>;
+  updateRow: (db: Tx | typeof prisma, id: string, nextPath: string, expectedPath?: string | null) => Promise<number>;
   excludeKey: "task" | "item";
 }): Promise<string | null> {
   const db = tx || prisma;
@@ -498,21 +498,24 @@ async function renameImageIfNeeded<Row>({
 
   if (onRelocation) {
     onRelocation(relocated);
-    await updateRow(db, id, expectedPath);
+    await updateRow(db, id, expectedPath, currentPath);
     return expectedPath;
   }
 
-  await updateRow(db, id, expectedPath);
+  const updatedCount = await updateRow(db, id, expectedPath, currentPath);
+  if (updatedCount === 0) {
+    return null;
+  }
 
   try {
     const applied = await applyRelocationDecision(relocated);
     if (!applied) {
-      await updateRow(db, id, currentPath);
+      await updateRow(db, id, currentPath, expectedPath);
       await deleteStorageFile(expectedPath);
       return null;
     }
   } catch (error) {
-    await updateRow(db, id, currentPath);
+    await updateRow(db, id, currentPath, expectedPath);
     await deleteStorageFile(expectedPath);
     console.error(`${logPrefix} Failed to relocate storage file from ${currentPath} to ${expectedPath}:`, error);
     return null;
@@ -547,11 +550,13 @@ export async function renameTaskImageIfNeeded(
       }),
     getCurrentPath: (task) => task.imageUrl,
     getName: (task) => task.name,
-    updateRow: async (db, currentTaskId, nextPath) => {
-      await db.task.update({
-        where: { id: currentTaskId },
+    updateRow: async (db, currentTaskId, nextPath, expectedPath) => {
+      const result = await db.task.updateMany({
+        where: { id: currentTaskId, ...(expectedPath ? { imageUrl: expectedPath } : {}) },
         data: { imageUrl: nextPath },
       });
+
+      return result.count;
     },
     excludeKey: "task",
   });
@@ -583,11 +588,13 @@ export async function renameToolItemImageIfNeeded(
       }),
     getCurrentPath: (item) => item.imgUrl,
     getName: (item) => item.name,
-    updateRow: async (db, currentItemId, nextPath) => {
-      await db.toolItem.update({
-        where: { id: currentItemId },
+    updateRow: async (db, currentItemId, nextPath, expectedPath) => {
+      const result = await db.toolItem.updateMany({
+        where: { id: currentItemId, ...(expectedPath ? { imgUrl: expectedPath } : {}) },
         data: { imgUrl: nextPath },
       });
+
+      return result.count;
     },
     excludeKey: "item",
   });

@@ -80,7 +80,6 @@ import { saveTaskImagePath } from "@/app/actions/storage";
 import { renameTaskImageIfNeeded } from "@/lib/services/images";
 import { normalizeToolLabel } from "@/lib/http/task-form";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validators/task";
-import { checkDemoLimit } from "@/lib/demo";
 import { revalidatePath } from "next/cache";
 
 function isTaskNameConflictTarget(target: unknown) {
@@ -141,9 +140,6 @@ export async function createTaskAction(
     PermissionAction.MANAGE_TASKS,
   );
   if (!authz.ok) return { ok: false, errors: { _: ["Unauthorized"] } };
-
-  const demoCheck = await checkDemoLimit(authz.userEmail, "task", orgId);
-  if (!demoCheck.ok) return { ok: false, errors: { _: [demoCheck.error] } };
 
   const raw = parseTaskFormData(formData);
   const parsed = createTaskSchema.safeParse(raw);
@@ -347,9 +343,6 @@ export async function updateTaskAction(
     userId: string;
     userEmail: string | null;
   };
-
-  const demoCheck = await checkDemoLimit(authz.userEmail, "task", taskOrgId);
-  if (!demoCheck.ok) return { ok: false, errors: { _: [demoCheck.error] } };
 
   const raw = parseTaskFormData(formData);
   const parsed = updateTaskSchema.safeParse(raw);

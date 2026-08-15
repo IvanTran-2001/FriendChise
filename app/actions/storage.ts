@@ -180,7 +180,15 @@ export async function saveTaskImagePath(
     return { ok: true, oldImagePathsToDelete, relocations, previousImageUrl: existing.imageUrl };
   };
 
-  const restoreTaskImage = async (revertTo: string | null) => {
+  const restoreTaskImage = async (expectedPath: string, revertTo: string | null) => {
+    const current = await prisma.task.findFirst({
+      where: { id: taskId, orgId },
+      select: { imageUrl: true },
+    });
+    if (!current?.imageUrl || current.imageUrl !== expectedPath) {
+      return;
+    }
+
     await updateTaskImageUrl(orgId, taskId, revertTo, prisma);
   };
 
@@ -221,7 +229,7 @@ export async function saveTaskImagePath(
 async function applyRelocationsWithRollback(
   relocations: ImageRelocationDecision[],
   revertTo: string | null,
-  restore: (revertTo: string | null) => Promise<void>,
+  restore: (expectedPath: string, revertTo: string | null) => Promise<void>,
 ) {
   const appliedRelocations: ImageRelocationDecision[] = [];
 
@@ -246,10 +254,10 @@ async function applyRelocationsWithRollback(
       const applied = await applyRelocationDecision(relocation);
       if (!applied) {
         await deleteStorageFile(relocation.destinationPath);
-        await restore(revertTo);
+        await restore(relocation.destinationPath, revertTo);
         for (const appliedRelocation of appliedRelocations.slice().reverse()) {
           await rollbackAppliedRelocation(appliedRelocation);
-          await restore(revertTo);
+          await restore(appliedRelocation.destinationPath, revertTo);
         }
         return false;
       }
@@ -257,10 +265,10 @@ async function applyRelocationsWithRollback(
       appliedRelocations.push(relocation);
     } catch {
       await deleteStorageFile(relocation.destinationPath);
-      await restore(revertTo);
+      await restore(relocation.destinationPath, revertTo);
       for (const appliedRelocation of appliedRelocations.slice().reverse()) {
         await rollbackAppliedRelocation(appliedRelocation);
-        await restore(revertTo);
+        await restore(appliedRelocation.destinationPath, revertTo);
       }
       return false;
     }
@@ -399,7 +407,15 @@ export async function saveToolItemImagePath(
     return { ok: true, oldImagePathsToDelete, relocations, previousImageUrl: existing.imgUrl };
   };
 
-  const restoreToolItemImage = async (revertTo: string | null) => {
+  const restoreToolItemImage = async (expectedPath: string, revertTo: string | null) => {
+    const current = await prisma.toolItem.findFirst({
+      where: { id: itemId, orgId },
+      select: { imgUrl: true },
+    });
+    if (!current?.imgUrl || current.imgUrl !== expectedPath) {
+      return;
+    }
+
     await updateToolItemImageUrl(orgId, itemId, revertTo, prisma);
   };
 

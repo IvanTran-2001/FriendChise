@@ -3,7 +3,6 @@ import { revalidatePath } from "next/cache";
 import { PermissionAction, Prisma } from "@prisma/client";
 import { z } from "zod";
 import { requireOrgMember, requireOrgPermissionAction, requireParentOrgOwnerAction } from "@/lib/authz";
-import { checkDemoLimit } from "@/lib/demo";
 import { parseRequestBody } from "@/lib/http/request-body";
 import { asNullableNumber, asNumber, asString, asStringArray, asNullableStringArray, hasField, normalizePayload, normalizeToolLabel } from "@/lib/http/task-form";
 import { prisma } from "@/lib/platform/prisma";
@@ -198,6 +197,10 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
     hasUpdateFields = true;
   }
 
+  if (hasField(normalized, "toolLabels") && !hasField(normalized, "toolPaths")) {
+    return { ok: false, response: invalidFieldResponse("toolLabels", "Invalid task data.") };
+  }
+
   if (!hasUpdateFields) {
     return { ok: false, response: invalidFieldResponse("_", "Invalid task data.") };
   }
@@ -280,11 +283,6 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized." }, { status: 403 });
   }
 
-  const demoCheck = await checkDemoLimit(editAuthz.userEmail, "task", taskOrgId);
-  if (!demoCheck.ok) {
-    return NextResponse.json({ error: demoCheck.error }, { status: 429 });
-  }
-
   const body = await parseRequestBody(req, { multipart: true });
   if (body instanceof NextResponse) return body;
 
@@ -293,7 +291,7 @@ export async function PATCH(
 
   const existingWaitDays = await prisma.task.findFirst({
     where: { id: taskId, orgId: taskOrgId },
-    select: { minWaitDays: true, maxWaitDays: true },
+    select: { minWaitDays: true, maxWaitDays: true, imageUrl: true },
   });
   if (!existingWaitDays) {
     return NextResponse.json({ error: "Task not found." }, { status: 404 });
@@ -322,19 +320,6 @@ export async function PATCH(
     return invalidFieldResponse("imageStoragePath", "Invalid task data.");
   }
 
-  if (imageStoragePath) {
-    const imageResult = await saveTaskImagePath(taskOrgId, taskId, imageStoragePath);
-    if (!imageResult.ok) {
-      if (imageResult.code === "unauthorized") {
-        return NextResponse.json({ error: imageResult.error }, { status: 403 });
-      }
-      if (imageResult.code === "not_found") {
-        return NextResponse.json({ error: imageResult.error }, { status: 404 });
-      }
-      return NextResponse.json({ error: imageResult.error }, { status: 400 });
-    }
-  }
-
   if (tagIds !== undefined) {
     const validTags = await prisma.tag.findMany({
       where: { orgId: taskOrgId, id: { in: tagIds } },
@@ -354,6 +339,30 @@ export async function PATCH(
       return NextResponse.json({ error: "One or more role IDs are invalid for this organization." }, { status: 400 });
     }
   }
+
+  const previousImageUrl = existingWaitDays.imageUrl ?? null;
+
+  if (imageStoragePath) {
+    const imageResult = await saveTaskImagePath(taskOrgId, taskId, imageStoragePath);
+    if (!imageResult.ok) {
+      if (imageResult.code === "unauthorized") {
+        return NextResponse.json({ error: imageResult.error }, { status: 403 });
+      }
+      if (imageResult.code === "not_found") {
+        return NextResponse.json({ error: imageResult.error }, { status: 404 });
+      }
+      return NextResponse.json({ error: imageResult.error }, { status: 400 });
+    }
+  }
+
+  const restoreTaskImagePath = async () => {
+    if (!imageStoragePath) return;
+
+    await prisma.task.updateMany({
+      where: { id: taskId, orgId: taskOrgId, imageUrl: imageStoragePath },
+      data: { imageUrl: previousImageUrl },
+    });
+  };
 
   try {
     const result = await runInTransaction(prisma, async (tx) => {
@@ -394,6 +403,7 @@ export async function PATCH(
     }, { timeout: 30_000 });
 
     if (!result.ok) {
+      await restoreTaskImagePath();
       if (result.code === "NOT_FOUND") {
         return NextResponse.json({ error: result.error }, { status: 404 });
       }
@@ -410,6 +420,7 @@ export async function PATCH(
     revalidatePath(`/orgs/${orgId}/tasks`);
     revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);
   } catch (error) {
+    await restoreTaskImagePath();
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json({ error: "A task with that name already exists." }, { status: 409 });
     }
