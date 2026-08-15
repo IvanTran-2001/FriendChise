@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { AlertTriangle, Mail } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { deleteUserAccountAction } from "@/app/actions/users";
 
 interface Props {
   user: {
@@ -27,10 +27,24 @@ export function AccountSettingsClient({ user }: Props) {
     if (!confirmed) return;
     setError(null);
     startTransition(async () => {
-      const result = await deleteUserAccountAction(confirmText);
-      if (!result.ok) {
-        setError(result.error);
+      const response = await fetch("/api/account/delete", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ confirmText }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string }
+        | null;
+
+      if (!response.ok) {
+        setError(payload?.error ?? "Failed to delete account");
+        return;
       }
+
+      await signOut({ redirectTo: "/signin" });
     });
   }
 
