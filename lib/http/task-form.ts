@@ -59,6 +59,10 @@ export function asStringArray(value: unknown): string[] | undefined {
 }
 
 export function asNullableStringArray(value: unknown): (string | null)[] | undefined {
+  if (typeof value === "string") {
+    return [value];
+  }
+
   if (!Array.isArray(value)) {
     return undefined;
   }

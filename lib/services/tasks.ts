@@ -26,7 +26,7 @@ import {
   copySectionLayout,
   DEFAULT_SECTIONS,
 } from "@/lib/services/task-sections";
-import { supportsTransactionClient } from "@/lib/services/transaction-client";
+import { runInTransaction } from "@/lib/services/transaction-client";
 import type { ServiceResult } from "./types";
 import type { CreateTaskInput } from "@/lib/validators/task";
 
@@ -496,12 +496,7 @@ export async function setTaskToolLinks(
     });
   };
 
-  if (supportsTransactionClient(db)) {
-    await (db as typeof prisma).$transaction(writeLinks);
-    return;
-  }
-
-  await writeLinks(db);
+  await runInTransaction(db, writeLinks);
 }
 
 /**
@@ -1131,12 +1126,7 @@ export async function setTaskEligibilities(
     });
   };
 
-  if (supportsTransactionClient(db)) {
-    await (db as typeof prisma).$transaction(writeEligibilities);
-    return;
-  }
-
-  await writeEligibilities(db);
+  await runInTransaction(db, writeEligibilities);
 }
 
 /**

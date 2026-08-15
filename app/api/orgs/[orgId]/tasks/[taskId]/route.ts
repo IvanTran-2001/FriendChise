@@ -10,6 +10,7 @@ import { createSignedReadUrl } from "@/lib/platform/supabase-storage";
 import { isSameFranchise } from "@/lib/services/franchise-root";
 import { getAccessibleTaskById, getTaskOwnerOrgId, setTaskEligibilities, setTaskToolLinks, updateTask } from "@/lib/services/tasks";
 import { renameTaskImageIfNeeded } from "@/lib/services/images";
+import { saveTaskImagePath } from "@/app/actions/storage";
 import { setTaskTags } from "@/lib/services/tags";
 
 type UpdateTaskBody = {
@@ -21,6 +22,7 @@ type UpdateTaskBody = {
   peopleRequired?: number;
   minWaitDays?: number | null;
   maxWaitDays?: number | null;
+  imageStoragePath?: string;
   tagIds?: string[];
   roleIds?: string[];
   toolPaths?: string[];
@@ -65,7 +67,7 @@ function invalidFieldResponse(field: string, message: string): NextResponse<Fiel
   );
 }
 
-function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: true; data: UpdateTaskBody } | { ok: false; response: NextResponse } {
+function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: true; data: UpdateTaskBody; imageStoragePath?: string } | { ok: false; response: NextResponse } {
   const normalized = normalizePayload(body);
   const data: UpdateTaskBody = {};
   let hasUpdateFields = false;
@@ -145,6 +147,19 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
     hasUpdateFields = true;
   }
 
+  if (hasField(normalized, "imageStoragePath")) {
+    const imageStoragePath = asString(normalized.imageStoragePath);
+    if (imageStoragePath === undefined) {
+      return { ok: false, response: invalidFieldResponse("imageStoragePath", "Invalid task data.") };
+    }
+    const trimmedImageStoragePath = imageStoragePath.trim();
+    if (!trimmedImageStoragePath) {
+      return { ok: false, response: invalidFieldResponse("imageStoragePath", "Invalid task data.") };
+    }
+    data.imageStoragePath = trimmedImageStoragePath;
+    hasUpdateFields = true;
+  }
+
   if (hasField(normalized, "tagIds")) {
     const tagIds = asStringArray(normalized.tagIds);
     if (tagIds === undefined) {
@@ -185,7 +200,8 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
     return { ok: false, response: invalidFieldResponse("_", "Invalid task data.") };
   }
 
-  const validation = updateTaskPatchSchema.safeParse(data);
+  const { imageStoragePath, ...validationData } = data;
+  const validation = updateTaskPatchSchema.safeParse(validationData);
   if (!validation.success) {
     return {
       ok: false,
@@ -193,7 +209,7 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
     };
   }
 
-  return { ok: true, data: validation.data };
+  return { ok: true, data: validation.data, imageStoragePath };
 }
 
 export async function GET(
@@ -292,7 +308,17 @@ export async function PATCH(
     );
   }
 
-  const { tagIds, roleIds, toolPaths, toolLabels, ...taskPatch } = parsed.data;
+  const { tagIds, roleIds, toolPaths, toolLabels, imageStoragePath, ...taskPatch } = parsed.data;
+  const hasTaskMutationFields =
+    Object.keys(taskPatch).length > 0 ||
+    tagIds !== undefined ||
+    roleIds !== undefined ||
+    toolPaths !== undefined ||
+    toolLabels !== undefined;
+
+  if (imageStoragePath && !hasTaskMutationFields) {
+    return invalidFieldResponse("imageStoragePath", "Invalid task data.");
+  }
 
   if (tagIds !== undefined) {
     const validTags = await prisma.tag.findMany({
@@ -350,6 +376,19 @@ export async function PATCH(
       }
 
       return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+
+    if (imageStoragePath) {
+      const imageResult = await saveTaskImagePath(taskOrgId, taskId, imageStoragePath);
+      if (!imageResult.ok) {
+        if (imageResult.code === "unauthorized") {
+          return NextResponse.json({ error: imageResult.error }, { status: 403 });
+        }
+        if (imageResult.code === "not_found") {
+          return NextResponse.json({ error: imageResult.error }, { status: 404 });
+        }
+        return NextResponse.json({ error: imageResult.error }, { status: 400 });
+      }
     }
 
     try {

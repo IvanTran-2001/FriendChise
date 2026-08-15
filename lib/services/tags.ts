@@ -3,7 +3,7 @@ import { prisma } from "@/lib/platform/prisma";
 import type { PrismaTransactionClient } from "@/lib/platform/prisma";
 import { getRandomColor } from "@/lib/core/org-color";
 import { recordAudit } from "@/lib/services/audit-log";
-import { supportsTransactionClient } from "@/lib/services/transaction-client";
+import { runInTransaction } from "@/lib/services/transaction-client";
 import type { ServiceResult } from "./types";
 
 // ─── Tag CRUD ─────────────────────────────────────────────────────────────────
@@ -261,12 +261,7 @@ export async function setTaskTags(
     });
   };
 
-  if (supportsTransactionClient(db)) {
-    await (db as typeof prisma).$transaction(writeTags);
-    return;
-  }
-
-  await writeTags(db);
+  await runInTransaction(db, writeTags);
 }
 
 /**

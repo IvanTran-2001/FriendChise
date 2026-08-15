@@ -225,6 +225,22 @@ async function applyRelocationsWithRollback(
 ) {
   const appliedRelocations: ImageRelocationDecision[] = [];
 
+  const rollbackAppliedRelocation = async (relocation: ImageRelocationDecision) => {
+    if (relocation.action === "copy") {
+      await deleteStorageFile(relocation.destinationPath);
+      return;
+    }
+
+    try {
+      const reverted = await moveStorageFile(relocation.destinationPath, relocation.sourcePath);
+      if (!reverted.ok) {
+        await deleteStorageFile(relocation.destinationPath);
+      }
+    } catch {
+      await deleteStorageFile(relocation.destinationPath);
+    }
+  };
+
   for (const relocation of relocations) {
     try {
       const applied = await applyRelocationDecision(relocation);
@@ -232,14 +248,7 @@ async function applyRelocationsWithRollback(
         await deleteStorageFile(relocation.destinationPath);
         await restore(revertTo);
         for (const appliedRelocation of appliedRelocations.slice().reverse()) {
-          try {
-            const reverted = await moveStorageFile(appliedRelocation.destinationPath, appliedRelocation.sourcePath);
-            if (!reverted.ok) {
-              await deleteStorageFile(appliedRelocation.destinationPath);
-            }
-          } catch {
-            await deleteStorageFile(appliedRelocation.destinationPath);
-          }
+          await rollbackAppliedRelocation(appliedRelocation);
           await restore(revertTo);
         }
         return false;
@@ -250,14 +259,7 @@ async function applyRelocationsWithRollback(
       await deleteStorageFile(relocation.destinationPath);
       await restore(revertTo);
       for (const appliedRelocation of appliedRelocations.slice().reverse()) {
-        try {
-          const reverted = await moveStorageFile(appliedRelocation.destinationPath, appliedRelocation.sourcePath);
-          if (!reverted.ok) {
-            await deleteStorageFile(appliedRelocation.destinationPath);
-          }
-        } catch {
-          await deleteStorageFile(appliedRelocation.destinationPath);
-        }
+        await rollbackAppliedRelocation(appliedRelocation);
         await restore(revertTo);
       }
       return false;
