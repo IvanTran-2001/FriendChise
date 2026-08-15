@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { PermissionAction, Prisma } from "@prisma/client";
 import { z } from "zod";
 import { requireOrgMember, requireOrgPermissionAction, requireParentOrgOwnerAction } from "@/lib/authz";
@@ -12,6 +13,7 @@ import { getAccessibleTaskById, getTaskOwnerOrgId, setTaskEligibilities, setTask
 import { renameTaskImageIfNeeded } from "@/lib/services/images";
 import { saveTaskImagePath } from "@/app/actions/storage";
 import { setTaskTags } from "@/lib/services/tags";
+import { runInTransaction } from "@/lib/services/transaction-client";
 
 type UpdateTaskBody = {
   title?: string;
@@ -320,6 +322,19 @@ export async function PATCH(
     return invalidFieldResponse("imageStoragePath", "Invalid task data.");
   }
 
+  if (imageStoragePath) {
+    const imageResult = await saveTaskImagePath(taskOrgId, taskId, imageStoragePath);
+    if (!imageResult.ok) {
+      if (imageResult.code === "unauthorized") {
+        return NextResponse.json({ error: imageResult.error }, { status: 403 });
+      }
+      if (imageResult.code === "not_found") {
+        return NextResponse.json({ error: imageResult.error }, { status: 404 });
+      }
+      return NextResponse.json({ error: imageResult.error }, { status: 400 });
+    }
+  }
+
   if (tagIds !== undefined) {
     const validTags = await prisma.tag.findMany({
       where: { orgId: taskOrgId, id: { in: tagIds } },
@@ -341,8 +356,16 @@ export async function PATCH(
   }
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      const taskUpdateResult = await updateTask(taskOrgId, taskId, taskPatch, editAuthz.userId, editAuthz.userEmail, tx);
+    const result = await runInTransaction(prisma, async (tx) => {
+      const taskUpdateResult = await updateTask(
+        taskOrgId,
+        taskId,
+        taskPatch,
+        editAuthz.userId,
+        editAuthz.userEmail,
+        tx,
+        tagIds !== undefined || roleIds !== undefined || toolPaths !== undefined || toolLabels !== undefined,
+      );
       if (!taskUpdateResult.ok) {
         return taskUpdateResult;
       }
@@ -368,7 +391,7 @@ export async function PATCH(
       }
 
       return taskUpdateResult;
-    });
+    }, { timeout: 30_000 });
 
     if (!result.ok) {
       if (result.code === "NOT_FOUND") {
@@ -378,24 +401,14 @@ export async function PATCH(
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    if (imageStoragePath) {
-      const imageResult = await saveTaskImagePath(taskOrgId, taskId, imageStoragePath);
-      if (!imageResult.ok) {
-        if (imageResult.code === "unauthorized") {
-          return NextResponse.json({ error: imageResult.error }, { status: 403 });
-        }
-        if (imageResult.code === "not_found") {
-          return NextResponse.json({ error: imageResult.error }, { status: 404 });
-        }
-        return NextResponse.json({ error: imageResult.error }, { status: 400 });
-      }
-    }
-
     try {
       await renameTaskImageIfNeeded(taskOrgId, taskId);
     } catch (error) {
       console.error("Failed to rename task image after task update", error);
     }
+
+    revalidatePath(`/orgs/${orgId}/tasks`);
+    revalidatePath(`/orgs/${orgId}/tasks/${taskId}`);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json({ error: "A task with that name already exists." }, { status: 409 });

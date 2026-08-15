@@ -8,6 +8,7 @@ import {
   createSignedReadUrl,
   createSignedReadUrls,
   createSignedUploadUrl,
+  deleteStorageFile,
   moveStorageFile,
   copyStorageFile,
 } from "@/lib/platform/supabase-storage";
@@ -507,10 +508,12 @@ async function renameImageIfNeeded<Row>({
     const applied = await applyRelocationDecision(relocated);
     if (!applied) {
       await updateRow(db, id, currentPath);
+      await deleteStorageFile(expectedPath);
       return null;
     }
   } catch (error) {
     await updateRow(db, id, currentPath);
+    await deleteStorageFile(expectedPath);
     console.error(`${logPrefix} Failed to relocate storage file from ${currentPath} to ${expectedPath}:`, error);
     return null;
   }

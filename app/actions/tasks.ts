@@ -366,6 +366,8 @@ export async function updateTaskAction(
     parsed.data,
     authz.userId,
     authz.userEmail,
+    undefined,
+    formData.get("tagsSubmitted") === "1" || formData.get("rolesSubmitted") === "1" || formData.get("toolsSubmitted") === "1",
   );
   if (!result.ok) return { ok: false, errors: { _: [result.error] } };
 

@@ -77,9 +77,9 @@ export async function getSignedUploadUrl(
     where: { id: taskId },
     select: { orgId: true },
   });
-    if (!task || task.orgId !== orgId) {
-      return { ok: false as const, error: "Task not found" };
-    }
+  if (!task || task.orgId !== orgId) {
+    return { ok: false as const, error: "Task not found" };
+  }
 
   if (!ALLOWED_MIME_TYPES.includes(mimeType as AllowedMime)) {
     return { ok: false, error: "Unsupported file type. Use JPEG, PNG, or WebP." };

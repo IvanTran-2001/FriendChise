@@ -962,6 +962,7 @@ export async function updateTask(
   actorId?: string | null,
   actorEmail?: string | null,
   db: PrismaTransactionClient | typeof prisma = prisma,
+  touchUpdatedAt = false,
 ): Promise<ServiceResult<null>> {
   const existing = await db.task.findFirst({
     where: { id: taskId, orgId },
@@ -1008,7 +1009,9 @@ export async function updateTask(
     updateData.maxWaitDays = data.maxWaitDays ?? null;
   }
 
-  if (Object.keys(updateData).length > 0) {
+  if (Object.keys(updateData).length > 0 || touchUpdatedAt) {
+    updateData.updatedAt = new Date();
+
     const { count } = await db.task.updateMany({
       where: { id: taskId, orgId },
       data: updateData,
