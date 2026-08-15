@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireOrgMember, requireOrgPermissionAction, requireParentOrgOwnerAction } from "@/lib/authz";
 import { checkDemoLimit } from "@/lib/demo";
 import { parseRequestBody } from "@/lib/http/request-body";
-import { asNullableNumber, asNumber, asString, asStringArray, hasField, normalizePayload, normalizeToolLabel } from "@/lib/http/task-form";
+import { asNullableNumber, asNumber, asString, asStringArray, asNullableStringArray, hasField, normalizePayload, normalizeToolLabel } from "@/lib/http/task-form";
 import { prisma } from "@/lib/platform/prisma";
 import { createSignedReadUrl } from "@/lib/platform/supabase-storage";
 import { isSameFranchise } from "@/lib/services/franchise-root";
@@ -173,11 +173,11 @@ function parseUpdateTaskBody(body: FormData | Record<string, unknown>): { ok: tr
   }
 
   if (hasField(normalized, "toolLabels")) {
-    const toolLabels = asStringArray(normalized.toolLabels);
+    const toolLabels = asNullableStringArray(normalized.toolLabels);
     if (toolLabels === undefined) {
       return { ok: false, response: invalidFieldResponse("toolLabels", "Invalid task data.") };
     }
-    data.toolLabels = toolLabels.map((label) => normalizeToolLabel(label));
+    data.toolLabels = toolLabels.map((label) => (label === null ? null : normalizeToolLabel(label)));
     hasUpdateFields = true;
   }
 

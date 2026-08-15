@@ -58,6 +58,14 @@ export function asStringArray(value: unknown): string[] | undefined {
   return undefined;
 }
 
+export function asNullableStringArray(value: unknown): (string | null)[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value.every((entry) => typeof entry === "string" || entry === null) ? value : undefined;
+}
+
 export function normalizeToolLabel(value: unknown) {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
