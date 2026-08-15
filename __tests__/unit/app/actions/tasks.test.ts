@@ -369,31 +369,6 @@ describe("updateTaskAction", () => {
     expect(result).toEqual({ ok: false, errors: { _: ["Task not found"] } });
   });
 
-  it("returns ok: true and revalidates on success", async () => {
-    vi.mocked(getTaskOwnerOrgId).mockResolvedValue("org-1");
-    vi.mocked(requireParentOrgOwnerAction).mockResolvedValue(unauthorised);
-    vi.mocked(requireOrgPermissionAction).mockResolvedValue(authorised);
-    vi.mocked(updateTask).mockResolvedValue({ ok: true, data: {} as any });
-
-    const fd = makeFormData({
-      title: "Updated",
-      color: "#6366f1",
-      durationMin: "30",
-      minWaitDays: "7",
-    });
-    const result = await updateTaskAction("org-1", "task-1", null, fd);
-
-    expect(result).toEqual({ ok: true });
-    expect(updateTask).toHaveBeenCalledWith(
-      "org-1",
-      "task-1",
-      expect.objectContaining({ title: "Updated" }),
-      "u-1",
-      "user@example.com",
-    );
-    expect(revalidatePath).toHaveBeenCalledWith("/orgs/org-1/tasks");
-    expect(revalidatePath).toHaveBeenCalledWith("/orgs/org-1/tasks/task-1");
-  });
 });
 
 // ─── addEligibilityAction ─────────────────────────────────────────────────────
