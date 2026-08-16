@@ -7,6 +7,16 @@ type DeleteAccountBody = {
 };
 
 export async function DELETE(request: Request) {
+  const authorization = request.headers.get("authorization");
+  const isBearerRequest = authorization?.startsWith("Bearer ") ?? false;
+
+  if (!isBearerRequest) {
+    const origin = request.headers.get("origin");
+    if (!origin || origin !== new URL(request.url).origin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   const authz = await requireUser();
   if (!authz.ok) return authz.response;
 

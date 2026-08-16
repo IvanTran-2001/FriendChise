@@ -119,7 +119,7 @@ Requires org membership.
 
 ### Example request
 
-```
+```http
 GET /api/orgs/org_01abc/roster-entries?weeks=2026-08-10,2026-08-17
 ```
 

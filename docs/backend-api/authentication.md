@@ -24,11 +24,13 @@ The mobile app cannot use cookies for API calls across different network context
 
 The token is obtained through the [mobile auth flow](/doc/backend-api/endpoints-mobile-auth) and must be sent on every request in the `Authorization` header:
 
-```
+```http
 Authorization: Bearer <token>
 ```
 
-Mobile API routes (all under `/api/mobile/*` and `/api/account/*`) validate the token using `getAuthUserId()` from `lib/authz/_shared`. This decodes the JWT using the same `AUTH_SECRET` used to issue it.
+Mobile API routes under `/api/mobile/*` validate bearer tokens using `getAuthUserId()` from `lib/authz/_shared`. That helper decodes the JWT using the shared `AUTH_SECRET`.
+
+Routes under `/api/account/*` use `requireUser()` instead. They accept either a web session cookie or the same bearer token used by the mobile app.
 
 ### Token details
 

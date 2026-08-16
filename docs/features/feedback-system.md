@@ -7,7 +7,7 @@ order: 18.5
 ---
 Users can submit feedback (bug reports or feature ideas) from anywhere in the app via the **Feedback button** in the navbar. Submissions are stored in the `Feedback` table and reviewed by admins at `/admin/feedback`.
 
-### How it works
+## How it works
 
 1. User clicks the **Feedback** button (top-right of the navbar).
 2. An `ActionSidebar` panel opens with a two-step form:

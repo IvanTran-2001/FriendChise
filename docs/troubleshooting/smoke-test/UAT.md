@@ -30,10 +30,12 @@ order: 8.1
 
 > _"Your store is set up. Now manage your team and tasks."_
 
-5. Create a task called "Restock shelves" for tomorrow
+> **Facilitator preconditions:** set a fixed test date and the organization timezone before starting this round. Use the same timezone for both the task and timetable steps so date-specific prompts stay consistent.
+
+5. Create a task called "Restock shelves" for the fixed test date
 6. Edit that task and change the due date
 7. Mark that task as complete
-8. Schedule a team member to work Monday 9am–5pm on the timetable
+8. Schedule a team member to work from 9:00 AM to 5:00 PM on the fixed timetable date
 9. View a team member's profile and edit their info
 
 **⏱ Expected time: ~15 minutes**
@@ -49,7 +51,9 @@ order: 8.1
 12. Change your friend's role to Manager
 13. Create a timetable template for a typical week
 14. Apply that template to next week
-15. Transfer ownership of the franchise to your friend
+15. Transfer ownership of the franchise to your friend in a disposable test organization only. Do not run this step on a production organization.
+
+> If the transfer step goes wrong, note the rollback or recovery path before you begin (for example, which account can reclaim ownership, whether you need a fresh disposable org, and how to restore the original owner).
 
 **⏱ Expected time: ~15 minutes**
 
@@ -66,10 +70,10 @@ order: 8.1
 
 ### Round 2 — Day-to-Day
 
-5. Create a task called "Restock shelves" for tomorrow
+5. Create a task called "Restock shelves" for the fixed test date
 6. Edit that task and change the due date
 7. Mark that task as complete
-8. Schedule a team member to work Monday 9am–5pm
+8. Schedule a team member to work from 9:00 AM to 5:00 PM on the fixed timetable date
 9. View a team member's profile and edit their info
 
 ### Round 3 — Admin
@@ -79,7 +83,7 @@ order: 8.1
 12. Change your friend's role to Manager
 13. Create a timetable template for a typical week
 14. Apply that template to next week
-15. Transfer ownership of the franchise to your friend
+15. Transfer ownership of the franchise to your friend in a disposable test organization only. Do not run this step on a production organization.
 
 ---
 

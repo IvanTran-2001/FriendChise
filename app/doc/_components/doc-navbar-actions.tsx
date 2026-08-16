@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,9 +20,11 @@ type DocNavbarActionsProps = {
 };
 
 export function DocNavbarActions({ navTree }: DocNavbarActionsProps) {
+  const [open, setOpen] = useState(false);
+
   return (
     <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
-      <Sheet>
+      <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <Button
             variant="ghost"
@@ -36,7 +39,7 @@ export function DocNavbarActions({ navTree }: DocNavbarActionsProps) {
           <SheetHeader className="p-0">
             <SheetTitle>Documentation</SheetTitle>
           </SheetHeader>
-          <DocSidebarTree tree={navTree} />
+          <DocSidebarTree tree={navTree} onNavigate={() => setOpen(false)} />
         </SheetContent>
       </Sheet>
 

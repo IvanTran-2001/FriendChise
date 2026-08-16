@@ -16,4 +16,3 @@ This section gets a new contributor from a fresh clone to a running app, then or
 - [Migrations and Seeding](/doc/getting-started/migrations) — Prisma workflow
 
 Once the app is running, see [Features](/doc/features) for the Demo Tour and other product capabilities, and [Troubleshooting](/doc/troubleshooting) if something isn't working.
-- Practical docs that help you change the code safely.

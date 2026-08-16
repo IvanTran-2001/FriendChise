@@ -16,7 +16,7 @@ Most local problems trace back to `.env.local`, the local database, or a stale P
 
 - **Port `5432` already in use**: stop the other Postgres service, or map the Docker container to a different host port and update `DATABASE_URL` to match.
 - **Schema drift / migration errors**: re-run `pnpm prisma migrate dev`. See [Migrations and Seeding](/doc/getting-started/migrations).
-- **Seed looks stale or wrong**: `pnpm seed` is safe to re-run; it clears your current `SEED_NAMESPACE` before reseeding. Use `pnpm seed:clean` to remove only your own namespaced data.
+- **Seed looks stale or wrong**: `pnpm seed` is destructive for the current `SEED_NAMESPACE` because it clears that namespace before reseeding. Use a disposable namespace for routine reseeds, and use `pnpm seed:clean` when you only want to remove your own namespaced data.
 
 ## Auth / sign-in
 

@@ -9,8 +9,8 @@ FriendChise ships a companion mobile app (`friendchise-mobile-app/`) built with 
 ## How it fits together
 
 - The mobile app calls the FriendChise web backend directly — there is no separate mobile API. All product logic (tasks, timetable, orgs, RBAC) lives in the web app's `app/api/*` and server actions.
-- `EXPO_PUBLIC_API_URL` is the only thing that points the app at a backend (`http://localhost:3000` locally, `https://friendchise.app` in production — see `eas.json`).
-- Auth uses the same `AUTH_SECRET` as the web app so tokens issued by one side are verifiable by the other. See [Authentication](/doc/mobile-app/authentication).
+- `EXPO_PUBLIC_API_URL` is the only thing that points the app at a backend. Use `http://localhost:3000` only for the iOS Simulator or Android Emulator; on Android Emulator you can also use `http://10.0.2.2:3000` or `adb reverse` to reach a host machine backend. Production builds use `https://friendchise.app` through the EAS profile in `eas.json`.
+- Auth uses bearer tokens issued and verified by the backend. The shared `AUTH_SECRET` stays server-side. See [Authentication](/doc/mobile-app/authentication).
 
 ## Tech
 

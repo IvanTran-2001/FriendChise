@@ -120,6 +120,8 @@ Requires org membership.
 
 `imageSignedUrl` is a short-lived signed URL for the task image, or `null` if no image is set. `isOwner` is `true` if the task belongs directly to this org (vs. inherited from a parent franchise org).
 
+`imageUrl` is the stored path for the image, not a browser-accessible URL. `imageSignedUrl` is the derived short-lived URL used by clients to display that stored image.
+
 ### Errors
 
 | Status | Reason |
@@ -202,7 +204,7 @@ Requires org membership.
 | `mode` | `list` \| `available` \| `shared` | `list` | Task view mode |
 | `cursor` | string | — | ID of the last item from the previous page |
 | `limit` | integer | 25 | Items per page |
-| `sort` | string | — | Sort option (see task list UI for accepted values) |
+| `sort` | string | `name-asc` | Accepted values: `name-asc`, `name-desc`, `duration-asc`, `duration-desc`, `people-asc`, `people-desc`. Invalid values fall back to `name-asc`. |
 | `roleId` | string | — | Filter to tasks eligible for a specific role |
 | `tagId` | string | — | Filter to tasks with a specific tag |
 | `search` | string | — | Text search across task names |

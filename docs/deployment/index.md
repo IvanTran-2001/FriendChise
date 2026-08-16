@@ -19,8 +19,9 @@ order: 8
 
 ## Environment separation
 
-- `.env.local` is for local development and is never used in production.
-- `.env` holds production values and is only read by `pnpm migrate:prod` and the deployed build.
+- Next.js commands such as `next dev` and `pnpm build` load both `.env` and `.env.local`, with `.env.local` taking precedence in local checkouts.
+- `pnpm migrate:prod` skips `.env.local` (`SKIP_DOTENV_LOCAL=1`) and reads `.env` only.
+- Keep production credentials in `.env` or your deployment platform's secret store, not in a shared local override file.
 - See [Environment Variables](/doc/environment-variables) for the full variable reference.
 
 ## Mobile app (Expo / EAS)

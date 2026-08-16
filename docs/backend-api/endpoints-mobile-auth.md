@@ -8,7 +8,7 @@ The mobile app cannot use browser session cookies, so it goes through a two-step
 
 ## How it works
 
-```
+```text
 Mobile app
   |
   |-- 1. Open system browser
@@ -44,7 +44,7 @@ Initiates the OAuth flow by calling Auth.js internally. The mobile app opens thi
 
 ### Example
 
-```
+```http
 GET /api/mobile-auth/oauth-start/google?callbackUrl=friendchise://auth/callback
 ```
 
@@ -97,7 +97,7 @@ The token is signed with `AUTH_SECRET` using the salt `friendchise.mobile-sessio
 
 Include the token in the `Authorization` header on every authenticated request:
 
-```
+```http
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 ```
 

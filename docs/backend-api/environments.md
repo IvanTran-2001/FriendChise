@@ -8,13 +8,13 @@ order: 1
 
 The production API is served from the same origin as the web app.
 
-```
+```text
 https://friendchise.app
 ```
 
 All `/api/*` routes are relative to this base. For example:
 
-```
+```http
 GET https://friendchise.app/api/mobile/me
 ```
 
@@ -31,6 +31,8 @@ This is already set in the `production` EAS build profile in `friendchise-mobile
 ### Why `localhost` doesn't work on a physical device
 
 When the mobile app runs on a physical phone, `localhost` refers to the phone itself, not your computer. You must use your computer's local network IP address instead.
+
+Plain HTTP is only appropriate for trusted local development networks. Outside local development, use HTTPS or a secure tunnel.
 
 Find the network address in the terminal output when you start the backend:
 

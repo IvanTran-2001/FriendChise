@@ -11,7 +11,7 @@ Complete list of every HTTP route in `app/api`. For full request/response docume
 | Method | Route | Auth | Description |
 | --- | --- | --- | --- |
 | `GET` | `/api/mobile-auth/oauth-start/[provider]` | None | Start OAuth flow for mobile. `provider`: `google` or `linkedin`. Requires `callbackUrl` query param. |
-| `GET` | `/api/mobile-auth/complete` | Session cookie | Complete OAuth; encode session into JWT and redirect with `?token=<jwt>`. |
+| `GET` | `/api/mobile-auth/complete` | Session cookie | Complete OAuth; requires `callbackUrl`, encodes the session into JWT, and redirects with `?token=<jwt>`. |
 | `GET` | `/api/mobile-auth/demo` | None | Dev only (404 in production). Provision a demo session. |
 | `GET` | `/api/mobile-auth/dev` | None | Dev only (404 in production). Sign in as a seeded dev user. |
 | `GET` | `/api/mobile-auth/dev-users` | None | Dev only (404 in production). List available dev users. |

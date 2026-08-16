@@ -8,7 +8,7 @@ order: 3
 
 - Node.js 20+
 - pnpm
-- A local Postgres database (Docker Desktop, a native install, or a Supabase Postgres project)
+- A local Postgres database (Docker Desktop or a native install)
 
 ## 1. Clone the repo
 

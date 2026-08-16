@@ -94,4 +94,4 @@ Each key in `errors` is a field name; each value is an array of one or more erro
 - `404` — The resource does not exist. Do not retry without first confirming the resource exists.
 - `409` — Choose a different name and retry, or surface the conflict to the user.
 - `429` — Surface the limit to the user. Demo limits are not per-time-window and cannot be retried.
-- `500` — Safe to retry once with a short delay; if it persists, it is a server-side bug.
+- `500` — Retry only idempotent reads by default. For writes, use idempotency keys when the route supports them, or reconcile the resource state before retrying a non-idempotent `POST`, `PATCH`, or `DELETE`.

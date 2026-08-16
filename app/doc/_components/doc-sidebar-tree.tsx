@@ -21,6 +21,7 @@ import {
 
 type DocSidebarTreeProps = {
   tree: DocNavTreeNode[];
+  onNavigate?: () => void;
 };
 
 function docHref(slug: string | null): string | null {
@@ -36,9 +37,11 @@ function activeSlugFromPathname(pathname: string): string {
 export function DocSearchResultCard({
   result,
   activeSlug,
+  onNavigate,
 }: {
   result: DocSearchResult;
   activeSlug: string;
+  onNavigate?: () => void;
 }) {
   const href = docHref(result.slug);
   if (!href) return null;
@@ -47,6 +50,7 @@ export function DocSearchResultCard({
   return (
     <Link
       href={href}
+      onClick={onNavigate}
       className={`block rounded-lg border px-3 py-2.5 text-left transition ${
         isActive
           ? "border-primary/30 bg-primary/10 text-primary"
@@ -109,11 +113,13 @@ function NavNode({
   activeSlug,
   openPaths,
   setOpenPaths,
+  onNavigate,
 }: {
   node: DocNavTreeNode;
   activeSlug: string;
   openPaths: Set<string>;
   setOpenPaths: Dispatch<SetStateAction<Set<string>>>;
+  onNavigate?: () => void;
 }) {
   const href = node.clickable ? docHref(node.index?.slug ?? node.slug) : null;
   const isActive = node.index?.slug === activeSlug || node.slug === activeSlug;
@@ -138,6 +144,7 @@ function NavNode({
     return href ? (
       <Link
         href={href}
+        onClick={onNavigate}
         data-doc-sidebar-active={isActive ? "true" : undefined}
         className={`block rounded-md px-2.5 py-2 text-[13px] transition sm:text-sm ${
           isActive
@@ -163,6 +170,7 @@ function NavNode({
         {href ? (
           <Link
             href={href}
+            onClick={onNavigate}
             data-doc-sidebar-active={isActive ? "true" : undefined}
             className={`min-w-0 flex-1 px-2.5 py-2 text-left text-[13px] transition sm:text-sm ${
               isActive
@@ -202,6 +210,7 @@ function NavNode({
             <Link
               key={page.slug}
               href={`/doc/${page.slug}`}
+              onClick={onNavigate}
               className={`block rounded-md px-2.5 py-2 text-sm transition ${
                 page.slug === activeSlug
                   ? "bg-primary/10 font-medium text-primary"
@@ -219,6 +228,7 @@ function NavNode({
               activeSlug={activeSlug}
               openPaths={openPaths}
               setOpenPaths={setOpenPaths}
+              onNavigate={onNavigate}
             />
           ))}
         </div>
@@ -305,6 +315,7 @@ export function DocSidebarTree({ tree }: DocSidebarTreeProps) {
                   key={result.slug}
                   result={result}
                   activeSlug={activeSlug}
+                  onNavigate={onNavigate}
                 />
               ))}
             </nav>
@@ -323,6 +334,7 @@ export function DocSidebarTree({ tree }: DocSidebarTreeProps) {
               activeSlug={activeSlug}
               openPaths={openPaths}
               setOpenPaths={setOpenPaths}
+              onNavigate={onNavigate}
             />
           ))}
         </nav>

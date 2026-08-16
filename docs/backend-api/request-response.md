@@ -30,7 +30,7 @@ imageStoragePath=orgs/abc/tasks/xyz/photo.jpg
 
 ## Response format
 
-All responses are JSON. Successful responses return the resource or a result envelope directly at the top level — there is no shared wrapper.
+Most API data responses are JSON. Successful responses return the resource or a result envelope directly at the top level — there is no shared wrapper. Redirect-based auth routes, including the mobile OAuth endpoints, return HTTP redirects instead of JSON.
 
 Examples:
 
@@ -77,6 +77,8 @@ Response fields:
 ### Cursor-based pagination
 
 Used by: paginated tasks (`/tasks/paginated`), scan-to-task history.
+
+The list field is endpoint-specific: `/tasks/paginated` returns `tasks`, while scan-to-task history returns `results`. `nextCursor` is the shared field.
 
 Query params:
 

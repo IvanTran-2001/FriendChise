@@ -94,7 +94,7 @@ export function DocSearchDialog({ tree }: DocSearchDialogProps) {
             <Link
               key={result.slug}
               href={`/doc/${result.slug}`}
-              onClick={() => setOpen(false)}
+              onClick={() => handleOpenChange(false)}
               className="block rounded-lg border border-border/60 bg-background/40 px-3 py-2.5 text-left transition hover:border-primary/20 hover:bg-muted/70"
             >
               <p className="truncate text-sm font-medium text-foreground/90">

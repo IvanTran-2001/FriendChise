@@ -9,7 +9,7 @@ The mobile app does not run its own auth system. It authenticates against the Fr
 ## Flow
 
 1. The user signs in through the standard OAuth flow (or, in development, the seeded dev-user picker) against the web backend.
-2. The backend issues a signed JWT (the same token shape used for the web session), using `AUTH_SECRET`.
+2. The backend issues a signed JWT (the same token shape used for the web session) using `AUTH_SECRET`. The mobile app never contains that secret.
 3. The mobile app stores the token in **Expo SecureStore**.
 4. Subsequent API requests attach the token as a bearer `Authorization` header via a shared `apiFetch` helper.
 
@@ -26,7 +26,7 @@ The web app exposes `GET /api/mobile-auth/demo`, a development-only endpoint tha
 ## Common failure
 
 - The most common local-dev auth failure is a missing or incorrect `EXPO_PUBLIC_API_URL` in the mobile app's environment — it must point at a reachable instance of the web backend (see [Environment Variables](/doc/environment-variables)).
-- The backend and mobile app must share the same `AUTH_SECRET`; a mismatch causes token verification to fail silently (requests come back unauthorized).
+- The backend issuer and verifier must share the same `AUTH_SECRET`; a mismatch causes token verification to fail silently (requests come back unauthorized).
 
 ## TODO
 

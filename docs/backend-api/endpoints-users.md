@@ -147,7 +147,7 @@ If no session is present, returns an empty result (`totalCount: 0`) rather than 
 
 `DELETE /api/account/delete`
 
-Permanently deletes the authenticated user's account and all associated data.
+Permanently deletes the authenticated user's account after confirmation.
 
 ### Authentication
 
@@ -161,7 +161,7 @@ Bearer token or session cookie.
 }
 ```
 
-`confirmText` must exactly match the user's email address (case-sensitive). This is required to prevent accidental deletion.
+`confirmText` must exactly match the user's display name if one exists, otherwise their email address. The comparison is case-sensitive and is only used as the deletion confirmation check.
 
 ### Response
 
@@ -174,7 +174,8 @@ Bearer token or session cookie.
 | Status | Reason |
 | --- | --- |
 | `400` | `confirmText` is missing from the request body |
-| `400` | `confirmText` does not match the user's email |
+| `400` | `confirmText` does not match the user's name or email |
+| `403` | Session-cookie request did not come from the same origin |
 | `401` | Not authenticated |
 | `404` | User record not found |
 | `500` | Unexpected error during deletion |
@@ -182,5 +183,6 @@ Bearer token or session cookie.
 ### Important notes
 
 - Deletion is **permanent and irreversible**.
-- All org memberships, tasks owned by the user, session data, and linked OAuth accounts are removed.
-- If the user is the owner of an organization, you must transfer or delete the org before deleting the account. TODO: confirm exact behavior from `deleteUserAccount` service.
+- Any organizations the user owns remain in place, but their `ownerId` is cleared before the account row is deleted.
+- The user's memberships are converted to bot accounts before deletion.
+- Session-cookie requests must come from the same origin; bearer-token requests are allowed without the browser-origin check.

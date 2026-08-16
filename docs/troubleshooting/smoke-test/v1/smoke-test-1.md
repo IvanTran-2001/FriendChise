@@ -22,11 +22,11 @@ order: 8.2
 | Result     | Count  |
 | ---------- | ------ |
 | ✅ PASS    | 21     |
-| ⚠️ PARTIAL | 12     |
-| ❌ FAIL    | 22     |
+| ⚠️ PARTIAL | 13     |
+| ❌ FAIL    | 21     |
 | **Total**  | **55** |
 
-**Overall: ❌ FAIL — 22 items need attention**
+**Overall: ❌ FAIL — 21 items need attention**
 
 ---
 

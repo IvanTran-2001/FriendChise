@@ -14,7 +14,7 @@ Returns a short-lived presigned URL that the client uses to upload an image dire
 
 ### Authentication
 
-Requires org membership. TODO: confirm exact permission required.
+Requires `PermissionAction.MANAGE_TASKS` in the org.
 
 ### Request body
 

@@ -9,7 +9,7 @@ FriendChise uses org-scoped roles plus a small set of fixed system roles. Owner 
 ## Role model
 
 - **Owner** — fixed system role with all permissions automatically applied. Cannot be edited or deleted.
-- **Default Member** — fixed system role for every invited member. Starts with no permissions, but its permission set is editable. Cannot be deleted.
+- **Default Member** — fixed system role for every invited member. New standalone orgs start with no permissions on this role; child orgs clone role permissions from the parent. Cannot be deleted.
 - **Custom role** — any role created by the org owner. It is a named combination of permission flags.
 
 ## Permission flags
@@ -21,7 +21,7 @@ FriendChise uses org-scoped roles plus a small set of fixed system roles. Owner 
 | `MANAGE_TIMETABLE` | Create/edit timetable templates, apply templates, drag entries, reassign, and reschedule |
 | `MANAGE_TASKS` | Create, edit, and delete task definitions and task templates |
 | `MANAGE_SETTINGS` | Edit org settings such as name and open/close hours |
-| `VIEW_TIMETABLE` | View the full week calendar; without it, members only see their own daily tasks |
+| `VIEW_TIMETABLE` | View the full week calendar; without it, members see only unassigned tasks and tasks eligible for one of their roles |
 
 ## Parent-org-only access
 

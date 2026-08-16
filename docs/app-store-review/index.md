@@ -29,9 +29,9 @@ No other sensitive device permissions (location, contacts, microphone, etc.) are
 
 - The app does not use non-exempt encryption beyond standard HTTPS/TLS (`ITSAppUsesNonExemptEncryption: false` in `app.json`).
 
-## TODO
+## Submission checklist
 
-- [ ] Provide a standing reviewer/demo account (or a documented process for provisioning one) since dev/demo sign-in is disabled in production builds.
-- [ ] Link the published privacy policy URL once available.
-- [ ] Fill in App Store / Play Console listing copy (description, screenshots, category) once finalized.
-- [ ] Document any age rating / content rating answers once submitted.
+- [ ] Reviewer access: provide a reviewer/demo account or document the exact provisioning steps for production review. Production builds use the live OAuth flow and do not expose dev/demo sign-in.
+- [x] Privacy policy URL: https://friendchise.app/privacy
+- [ ] App Store / Play Console listing copy: finalize the description, screenshots, category, and review notes before release.
+- [ ] Age / content rating: record the final App Store and Play Console questionnaire answers before release.

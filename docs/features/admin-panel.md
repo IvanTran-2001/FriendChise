@@ -13,7 +13,9 @@ The admin area is split into an overview page plus dedicated growth, feedback, a
 - The growth page shows a chart of new users over time, with demo launches tracked separately from real signups.
 - The feedback page shows all feedback with type badges, user email, org name, timestamp, message, and screenshot thumbnail.
 
-Access is controlled by the `AdminUser` table. To grant admin access, insert a row:
+Outside development, access is controlled by the `AdminUser` table. In `NODE_ENV=development`, any signed-in user can reach the admin area without an `AdminUser` row.
+
+To grant admin access in non-development environments, insert a row:
 
 ```sql
 INSERT INTO "AdminUser" (id, email, "createdAt")
