@@ -105,7 +105,7 @@ A missing or expired token returns `401 Unauthorized`.
 
 ## Token expiry
 
-Tokens expire after 30 days. There is no automatic refresh. The mobile app should re-run the OAuth flow when a `401` is received.
+Tokens expire after 30 days. Demo tokens (see below) are the exception and expire much sooner. There is no automatic refresh. The mobile app should re-run the OAuth flow when a `401` is received.
 
 ## Development-only flows
 
@@ -121,7 +121,7 @@ Signs in as a seeded development user without OAuth. Only available when `NODE_E
 
 `GET /api/mobile-auth/demo?callbackUrl=<url>`
 
-Provisions and signs in as a demo user. Only available when `NODE_ENV=development`.
+Provisions and signs in as a demo user. Only available when `NODE_ENV=development`. Unlike the normal 30-day token, this JWT expires after `DEMO_JWT_TTL_MS` (1 hour, matching the web demo session) — clients should read the token's `email` claim (ends with `@demo.friendchise.app`) to detect demo mode and its `exp` claim to show a countdown.
 
 ### List dev users
 

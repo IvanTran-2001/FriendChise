@@ -15,12 +15,14 @@ The mobile app does not run its own auth system. It authenticates against the Fr
 
 ## Demo sessions
 
-The web app exposes `GET /api/mobile-auth/demo`, a development-only endpoint that provisions an isolated demo org and redirects back to the app with a token via `callbackUrl`. See [Task System](/doc/task-system) and the web [Authentication](/doc/authentication) page for how demo/dev credential flows are gated to non-production environments.
+The web app exposes `GET /api/mobile-auth/demo`, a development-only endpoint that provisions an isolated demo org and redirects back to the app with a token via `callbackUrl`. The issued JWT expires after 1 hour (`DEMO_JWT_TTL_MS`), the same lifetime as the web demo session, rather than the normal 30-day token. See [Task System](/doc/task-system) and the web [Authentication](/doc/authentication) page for how demo/dev credential flows are gated to non-production environments.
+
+The mobile app detects demo sessions client-side by checking the token's `email` claim against the `@demo.friendchise.app` suffix (`src/features/auth/demo.ts`, mirroring the web's `isDemoEmail`) rather than a dedicated flag, since no new claim was added to the JWT. When a demo session is active, `DemoSessionBanner` (`src/features/auth/demo-session-banner.tsx`) renders a persistent status strip in the app shell with a live countdown to expiry and an "End demo" action, mirroring the web app's demo banner.
 
 ## Session expiry
 
-- `src/features/auth/jwt-utils.ts` exposes `getJwtExpiryMs()` / `isJwtExpired()` to read the token's `exp` claim client-side.
-- `src/features/auth/session-watcher.tsx` renders a `SessionWatcher` that sets a timer for the token's expiry and signs the user out automatically when it lapses — no separate mobile-specific expiry logic is needed since it works off the standard JWT claim.
+- `src/features/auth/jwt-utils.ts` exposes `getJwtExpiryMs()` / `isJwtExpired()` / `getJwtEmail()` to read the token's `exp` and `email` claims client-side.
+- `src/features/auth/session-watcher.tsx` renders a `SessionWatcher` that sets a timer for the token's expiry and signs the user out automatically when it lapses, and also derives demo-session state (`isDemo`, `demoExpiresAt`) from the token into `auth-store.ts` \u2014 no separate mobile-specific expiry logic is needed since it all works off the standard JWT claims.
 - `src/features/auth/token-store.ts` wraps SecureStore reads/writes for the token.
 
 ## Common failure

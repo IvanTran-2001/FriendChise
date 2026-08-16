@@ -1,7 +1,7 @@
 import { encode } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/platform/prisma";
-import { DemoProvisionError, prepareDemoSession } from "@/lib/demo";
+import { DEMO_JWT_TTL_MS, DemoProvisionError, prepareDemoSession } from "@/lib/demo";
 
 const MOBILE_TOKEN_COOKIE_NAME = "friendchise.mobile-session-token";
 
@@ -76,7 +76,9 @@ export async function GET(request: Request) {
     },
     secret,
     salt: MOBILE_TOKEN_COOKIE_NAME,
-    maxAge: 60 * 60 * 24,
+    // Matches the web demo session lifetime so the mobile app's countdown
+    // reflects the real expiry instead of the 30-day normal-session TTL.
+    maxAge: DEMO_JWT_TTL_MS / 1000,
   });
 
   const redirectUrl = new URL(callbackUrl, request.url);
