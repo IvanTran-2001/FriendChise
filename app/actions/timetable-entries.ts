@@ -28,7 +28,8 @@ import type { WeekTimetableInstance } from "@/lib/services/timetable-entries";
 /**
  * Creates a new live timetable entry from a task.
  * Snapshots name/color/description from the task at creation time.
- * `endTimeMin` is automatically set to `startTimeMin + task.durationMin`, capped at 1440 (midnight).
+ * `endTimeMin` is stored as the absolute UTC minute offset from the entry's
+ * UTC day start, so it can exceed 1440 when the entry crosses UTC midnight.
  */
 export async function createTimetableEntryAction(
   orgId: string,

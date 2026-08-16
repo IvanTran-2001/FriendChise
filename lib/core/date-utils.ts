@@ -6,6 +6,8 @@
  * All times are stored in **UTC** (world clock), not local wall-clock:
  *   - `date`         — UTC midnight of the UTC day containing the event.
  *   - `startTimeMin` — UTC minutes from that UTC midnight (0–1439).
+ *   - `endTimeMin`   — absolute UTC minute offset from that same midnight;
+ *                      may exceed 1440 when an entry crosses UTC midnight.
  *
  * This means that if an org changes their timezone setting, zero data
  * migration is needed — entries are just re-displayed with the new offset.

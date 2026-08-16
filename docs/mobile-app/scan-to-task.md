@@ -39,7 +39,7 @@ Picked photos are re-encoded to JPEG on-device (via `expo-image-manipulator`) be
 
 - One file per scan (web supports up to 12 files in a single batch).
 - Only images (camera/library) and PDFs are supported as scan sources on mobile; the web scanner also accepts `.docx`, `.txt`, `.md`, `.csv`, and `.json` files.
-- No merge/duplicate-adjudication UI — if a scanned draft looks like an existing task, the web app can suggest merging into it; mobile shows the conflict and asks you to rename the task or retry. The underlying AI duplicate-detection pass is also skipped for mobile scans to keep the request fast.
+- No merge/duplicate-adjudication UI — if a scanned draft looks like an existing task, the web app can suggest merging into it; on mobile, saving a task with an existing name can return an HTTP 409 conflict, and you must rename the task or retry after resolving it. The underlying AI duplicate-detection pass is also skipped for mobile scans to keep the request fast.
 - No history/browsing screen — mobile only shows the results of the scan just run, not a persistent list of past scans (the web app's paginated history endpoint already exists and is a natural next step to add here).
 
 ## TODO

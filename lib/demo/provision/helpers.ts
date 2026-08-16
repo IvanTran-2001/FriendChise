@@ -86,7 +86,7 @@ export function makeDateUtils(tz: string) {
     return {
       date: utcDate,
       startTimeMin: utcStartTimeMin,
-      endTimeMin: Math.min(utcStartTimeMin + durationMin, 1440),
+      endTimeMin: utcStartTimeMin + durationMin,
     };
   }
 

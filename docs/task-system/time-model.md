@@ -14,7 +14,8 @@ That means the app has three different layers:
 
 ## Storage
 
-- Live `TimetableEntry` rows store `date` as UTC midnight and `startTimeMin` / `endTimeMin` as UTC minutes from that midnight.
+- Live `TimetableEntry` rows store `date` as UTC midnight, `startTimeMin` as UTC minutes from that midnight, and `endTimeMin` as the absolute UTC minute offset from the same midnight.
+- `endTimeMin` can exceed `1440` when an entry crosses UTC midnight, so the stored end instant still matches the real duration.
 - This keeps the database stable even if the org changes timezone later.
 - Template entries are different: they stay in local wall-clock minutes until they are applied.
 
@@ -27,7 +28,8 @@ That means the app has three different layers:
 ## Input
 
 - When a user creates or edits a live timetable entry, the UI treats the time as org-local.
-- The server converts that local date and time to UTC with `localToUTC` before saving.
+- The server converts that local date and time to UTC with `localToUTC` before saving, then derives `endTimeMin` from the converted UTC start instant plus the task duration.
+- That means live entries crossing UTC midnight remain intact instead of being capped at `24:00`.
 - When an existing entry is shown again, the server converts it back with `utcToLocal`.
 
 ## Helpers

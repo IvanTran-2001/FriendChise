@@ -5,8 +5,9 @@
  * UTC storage model:
  * - `date` is stored as the UTC midnight of the UTC calendar day that
  *   contains the event's absolute UTC timestamp.
- * - `startTimeMin` / `endTimeMin` are UTC minutes from that UTC midnight
- *   (0–1440), NOT wall-clock local minutes. 1440 = midnight end-of-day.
+ * - `startTimeMin` is UTC minutes from that UTC midnight (0–1439);
+ *   `endTimeMin` is the absolute UTC minute offset from the same midnight
+ *   and may extend past 1440 when an entry crosses UTC midnight.
  * - All conversions between local and UTC use `localToUTC` / `utcToLocal`
  *   from `lib/date-utils`; never apply `getHours()` / `getMinutes()` directly.
  * - Template entries remain wall-clock (timezone-agnostic) and are NOT
@@ -272,7 +273,7 @@ export async function createTimetableEntry(
     startTimeMin,
     org.timezone ?? "UTC",
   );
-  const endTimeMin = Math.min(utcStartTimeMin + task.durationMin, 1440);
+  const endTimeMin = utcStartTimeMin + task.durationMin;
 
   const entry = await prisma.timetableEntry.create({
     data: {
@@ -351,7 +352,7 @@ export async function updateTimetableEntry(
     );
     data.date = utcDate;
     data.startTimeMin = utcStartTimeMin;
-    data.endTimeMin = Math.min(utcStartTimeMin + entry.durationMin, 1440);
+    data.endTimeMin = utcStartTimeMin + entry.durationMin;
   }
 
   const updated = await prisma.timetableEntry.update({
@@ -401,7 +402,7 @@ export async function updateTimetableEntriesBatch(
         data: {
           date: utcDate,
           startTimeMin: clampedStartTimeMin,
-          endTimeMin: Math.min(clampedStartTimeMin + entry.durationMin, 1440),
+          endTimeMin: clampedStartTimeMin + entry.durationMin,
         },
       });
     }),
