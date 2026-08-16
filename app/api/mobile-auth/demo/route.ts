@@ -84,6 +84,10 @@ export async function GET(request: Request) {
   const redirectUrl = new URL(callbackUrl, request.url);
   redirectUrl.searchParams.set("token", token);
   redirectUrl.searchParams.set("orgId", session.orgId);
+  // The mobile token is an encrypted next-auth JWE, so the client can't read
+  // its exp/email claims itself — pass demo state explicitly instead.
+  redirectUrl.searchParams.set("isDemo", "1");
+  redirectUrl.searchParams.set("expiresAt", String(Date.now() + DEMO_JWT_TTL_MS));
 
   return NextResponse.redirect(redirectUrl);
 }
