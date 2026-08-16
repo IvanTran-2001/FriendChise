@@ -237,7 +237,7 @@ function NavNode({
   );
 }
 
-export function DocSidebarTree({ tree }: DocSidebarTreeProps) {
+export function DocSidebarTree({ tree, onNavigate }: DocSidebarTreeProps) {
   const pathname = usePathname();
   const activeSlug = activeSlugFromPathname(pathname);
   const [searchQuery, setSearchQuery] = useState("");
