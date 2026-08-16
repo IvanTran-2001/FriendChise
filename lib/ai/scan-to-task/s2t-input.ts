@@ -46,12 +46,27 @@ export async function normalizeImageBytesForVision(
     return { bytes, mimeType: resolvedMimeType || "image/png" };
   }
 
-  const converted = await sharp(Buffer.from(bytes)).png().toBuffer();
+  let converted: Buffer;
+  try {
+    converted = await sharp(Buffer.from(bytes)).png().toBuffer();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    // libheif rejects HEIC/HEIF files with unusually many embedded item
+    // references (common on Portrait mode, Live Photos, or burst shots) as a
+    // decompression-bomb safeguard, surfacing a cryptic "iref box" error.
+    if (message.includes("security limit exceeded")) {
+      throw new Error(
+        "This photo couldn't be processed because of how your phone saved it. Photos taken with Portrait mode, Live Photos, or burst mode pack in extra hidden data (like depth maps and preview frames) that our image processor refuses to open as a safety precaution. Please try again with a plain, single photo (not Portrait/Live), or switch your iPhone's camera format to \"Most Compatible\" (JPEG) in Settings > Camera > Formats so future photos avoid this issue entirely.",
+      );
+    }
+    throw error;
+  }
+
   return {
     bytes: converted.buffer.slice(
       converted.byteOffset,
       converted.byteOffset + converted.byteLength,
-    ),
+    ) as ArrayBuffer,
     mimeType: "image/png",
   };
 }

@@ -18,7 +18,7 @@ order: 12
 
 ## InviteStatus
 
-`PENDING`, `ACCEPTED`, `DECLINED`
+`PENDING`, `ACCEPTED`, `DECLINED`, `EXPIRED`
 
 ## InviteType
 
@@ -27,6 +27,10 @@ order: 12
 ## ViewType
 
 `DAILY`, `WEEKLY`
+
+## AnnouncementScope
+
+`ORG`, `GLOBAL`
 
 ## FeedbackType
 
@@ -42,8 +46,12 @@ order: 12
 
 ## SectionScope
 
-`ORG` and `GLOBAL`
+`ORG` (org-local section) and `GLOBAL` (shared across orgs)
 
 ## ListDisplayType
 
 `TABLE`, `GRID`, `CHECKLIST`, `GALLERY`
+
+## MenuTabDisplayMode
+
+`CARDS`, `LIST`

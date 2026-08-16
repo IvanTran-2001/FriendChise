@@ -26,7 +26,7 @@ order: 8.3
 | ❌ FAIL    | 0      |
 | **Total**  | **55** |
 
-**Overall: ✅ PASS — All 55 Round 1 issues resolved**
+**Overall: ✅ PASS — All 55 original smoke tests pass**
 
 > Follow-up checks outside the original 55-test suite later surfaced issues `#97`–`#100`; those belong to the later smoke-test rounds, not this summary.
 

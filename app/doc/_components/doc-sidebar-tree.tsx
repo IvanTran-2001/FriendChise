@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import {
-  useEffect,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   type Dispatch,
   type SetStateAction,
@@ -246,23 +246,23 @@ export function DocSidebarTree({ tree, onNavigate }: DocSidebarTreeProps) {
     () => new Set(collectOpenPaths(tree, activeSlug)),
     [tree, activeSlug],
   );
-  const [openPaths, setOpenPaths] = useState<Set<string>>(
-    () => initialOpenPaths,
+  const [openPaths, setOpenPaths] = useState<Set<string>>(() => initialOpenPaths);
+  const effectiveOpenPaths = useMemo(
+    () => new Set([...openPaths, ...initialOpenPaths]),
+    [openPaths, initialOpenPaths],
   );
-
-  useEffect(() => {
-    setOpenPaths(initialOpenPaths);
-  }, [initialOpenPaths]);
+  const hasScrolledActiveRef = useRef(false);
 
   useLayoutEffect(() => {
     if (normalizedQuery) return;
+    if (hasScrolledActiveRef.current) return;
 
     const activeElement = document.querySelector(
       '[data-doc-sidebar-active="true"]',
     ) as HTMLElement | null;
     activeElement?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [activeSlug, normalizedQuery]);
-
+    hasScrolledActiveRef.current = true;
+  }, [normalizedQuery]);
 
   const searchResults = useMemo(
     () => searchDocs(tree, searchQuery),
@@ -332,7 +332,7 @@ export function DocSidebarTree({ tree, onNavigate }: DocSidebarTreeProps) {
               key={node.path}
               node={node}
               activeSlug={activeSlug}
-              openPaths={openPaths}
+              openPaths={effectiveOpenPaths}
               setOpenPaths={setOpenPaths}
               onNavigate={onNavigate}
             />

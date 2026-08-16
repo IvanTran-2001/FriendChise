@@ -85,7 +85,7 @@ export async function POST(
 
       await tx.scanTaskResult.update({
         where: { id: parsed.data.resultId },
-        data: { taskId: createdTask.id, confirmedAt, clearedAt: confirmedAt },
+        data: { taskId: createdTask.id },
       });
 
       return createdTask;

@@ -12,6 +12,11 @@ FriendChise ships a companion mobile app (`friendchise-mobile-app/`) built with 
 - `EXPO_PUBLIC_API_URL` is the only thing that points the app at a backend. Use `http://localhost:3000` only for the iOS Simulator or Android Emulator; on Android Emulator you can also use `http://10.0.2.2:3000` or `adb reverse` to reach a host machine backend. Production builds use `https://friendchise.app` through the EAS profile in `eas.json`.
 - Auth uses bearer tokens issued and verified by the backend. The shared `AUTH_SECRET` stays server-side. See [Authentication](/doc/mobile-app/authentication).
 
+## Pages
+
+- [Authentication](/doc/mobile-app/authentication)
+- [Scan to Task](/doc/mobile-app/scan-to-task)
+
 ## Tech
 
 - Expo + Expo Router (file-based routing under `app/(app)` and `app/(auth)`)

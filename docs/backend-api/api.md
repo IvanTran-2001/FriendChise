@@ -88,6 +88,10 @@ Full docs: [Images and File Uploads](/doc/backend-api/endpoints-images)
 | `GET` | `/api/orgs/[orgId]/task-tools?kind=` | Member | List tools of a given kind: `conversion`, `item-list`, or `roster`. |
 | `GET` | `/api/orgs/[orgId]/tools/item-list` | Member | Paginated item-list tool items with signed image URLs. |
 | `GET` | `/api/orgs/[orgId]/tools/scan-to-task/history` | `MANAGE_TASKS` | Cursor-paged scan-to-task results with AI-extracted drafts and duplicate candidates. |
+| `POST` | `/api/orgs/[orgId]/tools/scan-to-task/upload-url` | `MANAGE_TASKS` | Create a short-lived upload URL for a scan source. |
+| `POST` | `/api/orgs/[orgId]/tools/scan-to-task` | `MANAGE_TASKS` | Scan uploaded files into draft task suggestions. |
+| `POST` | `/api/orgs/[orgId]/tools/scan-to-task/confirm` | `MANAGE_TASKS` | Confirm a reviewed scan result and create a task. |
+| `POST` | `/api/orgs/[orgId]/tools/scan-to-task/clear` | `MANAGE_TASKS` | Clear a scan result from the active queue. |
 | `GET` | `/api/orgs/[orgId]/tools/menu/[menuId]` | Member | Get a menu by ID. |
 | `GET` | `/api/orgs/[orgId]/tools/menu/[menuId]/items` | Member | Items on a menu. |
 

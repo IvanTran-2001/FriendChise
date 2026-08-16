@@ -157,7 +157,7 @@ Bearer token or session cookie.
 
 ```json
 {
-  "confirmText": "alex@example.com"
+  "confirmText": "Alex Chen"
 }
 ```
 

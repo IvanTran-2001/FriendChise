@@ -28,9 +28,13 @@ When a franchisee joins, the franchise service copies the operational baseline f
 
 - Roles
 - Tasks
+- Tags
+- Conversion data
+- Item-list data
+- Timetable templates
 - Timetable settings
 
-The cloning logic lives in `lib/services/franchise.ts`, which keeps the business rules isolated from the UI and server-action boundary.
+The cloning logic lives in `lib/services/orgs.ts`, which keeps the business rules isolated from the UI and server-action boundary.
 
 ## Ownership and control
 

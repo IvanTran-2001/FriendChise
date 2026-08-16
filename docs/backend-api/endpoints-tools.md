@@ -198,8 +198,13 @@ Paginated list of menu items with signed image URLs.
 
 ---
 
-## AI Scan to Task — Planned
+## AI Scan to Task
 
-The scan-to-task feature currently uses an AI model to extract task drafts from uploaded documents and photos. The full workflow — including the upload endpoint that triggers a scan — is accessible through the web app UI. A dedicated REST endpoint for mobile-initiated scans is planned.
+The scan-to-task workflow is now available through mobile-facing REST endpoints:
+
+- `POST /api/orgs/[orgId]/tools/scan-to-task/upload-url` — `MANAGE_TASKS`, accepts `{ fileName, mimeType }`, returns `{ signedUrl, path }`, and reports `400`, `403`, or `500` when signing fails.
+- `POST /api/orgs/[orgId]/tools/scan-to-task` — `MANAGE_TASKS`, accepts `{ sources, instruction? }`, returns `{ results }`, and reports `400`, `403`, or `500` on scan failure.
+- `POST /api/orgs/[orgId]/tools/scan-to-task/confirm` — `MANAGE_TASKS`, accepts a reviewed draft payload and returns `{ taskId, resultId }`.
+- `POST /api/orgs/[orgId]/tools/scan-to-task/clear` — `MANAGE_TASKS`, accepts `{ resultId }` and returns `{ ok: true }` when the result is cleared.
 
 See [scan-to-task history](#get-scan-to-task-history) for the results endpoint that is already available.

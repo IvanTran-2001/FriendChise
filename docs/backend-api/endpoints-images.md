@@ -31,7 +31,7 @@ Requires `PermissionAction.MANAGE_TASKS` in the org.
 ```json
 {
   "uploadUrl": "https://supabase.co/storage/v1/object/sign/...",
-  "storagePath": "orgs/org_01abc/tasks/tmp/photo_xyz.jpg"
+  "storagePath": "orgs/org_01abc/images/3d2d2f5a-7b7f-4c0f-92a1-1b4f1f9f3f58.jpg"
 }
 ```
 
@@ -94,7 +94,7 @@ Returns a paginated list of images saved to the organization's image library, wi
 
 ### Authentication
 
-Requires org permission for image management.
+Requires `PermissionAction.MANAGE_TASKS` in the org.
 
 ### Query parameters
 
@@ -119,7 +119,8 @@ Requires org permission for image management.
   "totalCount": 4,
   "totalPages": 1,
   "page": 1,
-  "pageSize": 24
+  "pageSize": 24,
+  "omittedCount": 0
 }
 ```
 

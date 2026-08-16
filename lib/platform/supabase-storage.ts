@@ -211,21 +211,29 @@ export async function readStorageFile(
 }
 
 /**
- * Deletes a file from storage. Silently ignores errors so callers
- * don't need to guard against stale paths.
+ * Deletes a file from storage.
  */
-export async function deleteStorageFile(storagePath: string): Promise<void> {
+export async function deleteStorageFile(
+	storagePath: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
 	const { url, key } = getConfig();
-	await fetch(`${url}/storage/v1/object/${BUCKET}`, {
-		method: "DELETE",
-		headers: {
-			Authorization: `Bearer ${key}`,
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({ prefixes: [storagePath] }),
-	}).catch(() => {
-		/* silently ignore */
-	});
+	try {
+		const res = await fetch(`${url}/storage/v1/object/${BUCKET}`, {
+			method: "DELETE",
+			headers: {
+				Authorization: `Bearer ${key}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ prefixes: [storagePath] }),
+		});
+		if (!res.ok) {
+			const body = await res.text().catch(() => res.statusText);
+			return { ok: false, error: `Storage delete error: ${body}` };
+		}
+		return { ok: true };
+	} catch (error) {
+		return { ok: false, error: error instanceof Error ? error.message : "Storage delete error" };
+	}
 }
 
 /**

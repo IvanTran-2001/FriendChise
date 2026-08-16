@@ -53,28 +53,26 @@ async function processMobileScanSource(
 
     const draftRows = drafts.map((draft) => ({ resultId: randomUUID(), draft }));
 
-    await prisma.$transaction(async (tx) => {
-      for (const row of draftRows) {
-        await tx.scanTaskResult.create({
-          data: {
-            id: row.resultId,
-            orgId,
-            createdById,
-            batchId,
-            fileName: source.fileName,
-            fileKind,
-            fileSize: source.fileSize,
-            instruction,
-            draft: row.draft,
-            error: null,
-            metadata: Prisma.JsonNull,
-            taskId: null,
-            confirmedAt: null,
-            clearedAt: null,
-          },
-        });
-      }
-    });
+    if (draftRows.length > 0) {
+      await prisma.scanTaskResult.createMany({
+        data: draftRows.map((row) => ({
+          id: row.resultId,
+          orgId,
+          createdById,
+          batchId,
+          fileName: source.fileName,
+          fileKind,
+          fileSize: source.fileSize,
+          instruction,
+          draft: row.draft,
+          error: null,
+          metadata: Prisma.JsonNull,
+          taskId: null,
+          confirmedAt: null,
+          clearedAt: null,
+        })),
+      });
+    }
 
     return draftRows.map((row) => ({
       ok: true,
@@ -87,6 +85,11 @@ async function processMobileScanSource(
   } catch (error) {
     const resultId = randomUUID();
     const message = error instanceof Error ? error.message : "Failed to scan file.";
+    log.error("Failed to scan source into drafts", {
+      orgId,
+      storagePath: source.storagePath,
+      error,
+    });
     await prisma.scanTaskResult.create({
       data: {
         id: resultId,
@@ -107,13 +110,12 @@ async function processMobileScanSource(
     });
     return [{ ok: false, resultId, fileName: source.fileName, fileKind, fileSize: source.fileSize, error: message }];
   } finally {
-    try {
-      await deleteStorageFile(source.storagePath);
-    } catch (error) {
+    const deleted = await deleteStorageFile(source.storagePath);
+    if (!deleted.ok) {
       log.error("Failed to delete uploaded scan file after processing", {
         orgId,
         storagePath: source.storagePath,
-        error,
+        error: deleted.error,
       });
     }
   }

@@ -21,23 +21,18 @@ export async function POST(
   const body = await parseRequestBody(req);
   if (body instanceof NextResponse) return body;
 
-  const resultId = getStringField(body, "resultId");
-  if (!resultId?.trim()) {
+  const resultId = getStringField(body, "resultId")?.trim();
+  if (!resultId) {
     return NextResponse.json({ error: "Missing scan result." }, { status: 400 });
   }
 
-  const result = await prisma.scanTaskResult.findFirst({
+  const result = await prisma.scanTaskResult.updateMany({
     where: { id: resultId, orgId },
-    select: { id: true },
-  });
-  if (!result) {
-    return NextResponse.json({ error: "Scan result not found." }, { status: 404 });
-  }
-
-  await prisma.scanTaskResult.update({
-    where: { id: result.id },
     data: { clearedAt: new Date() },
   });
+  if (result.count === 0) {
+    return NextResponse.json({ error: "Scan result not found." }, { status: 404 });
+  }
 
   return NextResponse.json({ ok: true }, { status: 200 });
 }

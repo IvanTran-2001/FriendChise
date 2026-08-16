@@ -24,7 +24,7 @@ The mobile app reads the base URL from the `EXPO_PUBLIC_API_URL` environment var
 EXPO_PUBLIC_API_URL=https://friendchise.app
 ```
 
-This is already set in the `production` EAS build profile in `friendchise-mobile-app/eas.json`.
+This should be set in the production mobile build configuration so production builds talk to the live web backend.
 
 ## Local development
 

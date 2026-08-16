@@ -42,4 +42,4 @@ Following the project's [Services and Actions](/doc/backend-api/services-and-act
 ## TODO
 
 - [ ] Document the roster's relationship to task assignment in more depth (today, see [Roster](/doc/features/built-in-tools/roster) for the staffing side).
-- [ ] Document the planned V3 "fair rotation" and "smart recommendation" scheduling features once implemented — see [Roadmap](/doc/roadmap/v3).
+- [ ] Document the planned V3 "fair rotation" and "smart recommendation" scheduling features once implemented — see [Roadmap](/doc/roadmap).

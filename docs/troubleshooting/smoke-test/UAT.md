@@ -30,12 +30,12 @@ order: 8.1
 
 > _"Your store is set up. Now manage your team and tasks."_
 
-> **Facilitator preconditions:** set a fixed test date and the organization timezone before starting this round. Use the same timezone for both the task and timetable steps so date-specific prompts stay consistent.
+> **Facilitator preconditions:** set [TEST_DATE] and [TIMETABLE_DATE] plus the organization timezone before starting this round. Replace those placeholders with the actual dates before distributing this list.
 
-5. Create a task called "Restock shelves" for the fixed test date
+5. Create a task called "Restock shelves" for [TEST_DATE]
 6. Edit that task and change the due date
 7. Mark that task as complete
-8. Schedule a team member to work from 9:00 AM to 5:00 PM on the fixed timetable date
+8. Schedule a team member to work from 9:00 AM to 5:00 PM on [TIMETABLE_DATE]
 9. View a team member's profile and edit their info
 
 **⏱ Expected time: ~15 minutes**

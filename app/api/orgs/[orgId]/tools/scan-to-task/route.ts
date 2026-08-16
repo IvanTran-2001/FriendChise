@@ -3,6 +3,7 @@ import { PermissionAction } from "@prisma/client";
 import { requireOrgPermission } from "@/lib/authz";
 import { checkDemoLimit } from "@/lib/demo";
 import { parseRequestBody } from "@/lib/http/request-body";
+import { log } from "@/lib/platform/observability";
 import { MAX_FILES, SCAN_UPLOAD_PREFIX, normalizeInstruction } from "@/lib/services/scan-to-task";
 import { runMobileScanToTask } from "@/lib/services/scan-to-task-mobile";
 import { scanSourceSchema, type ScanSourceInput } from "@/lib/validators/scan-to-task";
@@ -36,19 +37,19 @@ export async function POST(
 
   const record = body as Record<string, unknown>;
   const rawSources = Array.isArray(record.sources) ? record.sources : [];
-  const sources = rawSources
-    .map((value) => {
-      const parsed = scanSourceSchema.safeParse(value);
-      return parsed.success ? parsed.data : null;
-    })
-    .filter((value): value is ScanSourceInput => value !== null);
-
-  if (sources.length === 0) {
+  if (rawSources.length === 0) {
     return NextResponse.json({ error: "Upload at least one file." }, { status: 400 });
   }
-  if (sources.length > MAX_FILES) {
+  if (rawSources.length > MAX_FILES) {
     return NextResponse.json({ error: `Upload at most ${MAX_FILES} files at a time.` }, { status: 400 });
   }
+
+  const parsedSources = rawSources.map((value) => scanSourceSchema.safeParse(value));
+  if (parsedSources.some((source) => !source.success)) {
+    return NextResponse.json({ error: "Upload valid files before scanning." }, { status: 400 });
+  }
+
+  const sources = parsedSources.map((source) => source.data as ScanSourceInput);
   if (sources.some((source) => !isOwnedStoragePath(orgId, source.storagePath))) {
     return NextResponse.json({ error: "Storage path does not belong to this organization." }, { status: 400 });
   }
@@ -64,9 +65,7 @@ export async function POST(
     const results = await runMobileScanToTask(orgId, authz.userId, sources, instruction);
     return NextResponse.json({ results }, { status: 200 });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to scan files." },
-      { status: 500 },
-    );
+    log.error("Unexpected error scanning files for mobile scan-to-task", { orgId, error });
+    return NextResponse.json({ error: "Failed to scan files." }, { status: 500 });
   }
 }
