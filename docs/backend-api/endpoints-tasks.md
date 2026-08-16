@@ -30,7 +30,7 @@ Accepts JSON or FormData.
 
 | Field | Type | Required | Constraints | Description |
 | --- | --- | --- | --- | --- |
-| `title` | string | Yes | 1–200 characters | Task name. Must be unique within the org. |
+| `title` | string | Yes | 1–200 characters | Task name. Must be unique within the org after trimming leading/trailing whitespace and lowercasing (`lower(btrim(name))`). |
 | `color` | string | No | Hex color `#rrggbb` | Display color. Defaults to `#6366f1`. |
 | `description` | string | No | Max 5000 characters | Recipe notes, steps, or procedure details. |
 | `durationMin` | integer | Yes | 1–1440 (24 hours) | Estimated time to complete, in minutes. |
@@ -74,7 +74,7 @@ HTTP status: `201 Created`
 | `400` | Invalid role IDs — one or more `roleIds` do not belong to the org |
 | `401` | Not authenticated |
 | `403` | User lacks `MANAGE_TASKS` permission |
-| `409` | A task with this title already exists in the org |
+| `409` | A task with this title already exists in the org after trimming leading/trailing whitespace and lowercasing |
 | `429` | Demo account task limit reached |
 | `500` | Unexpected server error |
 
@@ -155,7 +155,7 @@ All fields are optional. At least one field must be included.
 
 | Field | Type | Constraints | Description |
 | --- | --- | --- | --- |
-| `title` | string | 1–200 characters | New task name |
+| `title` | string | 1–200 characters | New task name. Must remain unique within the org after trimming leading/trailing whitespace and lowercasing (`lower(btrim(name))`). |
 | `color` | string | Hex color `#rrggbb` | New display color |
 | `description` | string \| null | Max 5000 characters, or `null` to clear | Updated notes or procedure |
 | `durationMin` | integer | 1–1440 | New duration in minutes |
@@ -184,6 +184,7 @@ All fields are optional. At least one field must be included.
 | `401` | Not authenticated |
 | `403` | Not a member, or task is outside this franchise scope |
 | `404` | Task not found |
+| `409` | The updated title collides with another task in the org after trimming leading/trailing whitespace and lowercasing |
 
 ---
 

@@ -11,6 +11,12 @@ export type MobileScanResultItem =
   | {
       ok: true;
       resultId: string;
+      source: {
+        storagePath: string;
+        fileName: string;
+        fileKind: string;
+        fileSize: number;
+      };
       fileName: string;
       fileKind: string;
       fileSize: number;
@@ -19,6 +25,12 @@ export type MobileScanResultItem =
   | {
       ok: false;
       resultId: string;
+      source: {
+        storagePath: string;
+        fileName: string;
+        fileKind: string;
+        fileSize: number;
+      };
       fileName: string;
       fileKind: string;
       fileSize: number;
@@ -42,6 +54,12 @@ async function processMobileScanSource(
   instruction: string,
 ): Promise<MobileScanResultItem[]> {
   const fileKind = getScanSourceKind(source.fileName, source.mimeType);
+  const sourceMetadata = {
+    storagePath: source.storagePath,
+    fileName: source.fileName,
+    fileKind,
+    fileSize: source.fileSize,
+  };
 
   try {
     const drafts = await inferScanTaskDraftsFromStorage(
@@ -52,6 +70,41 @@ async function processMobileScanSource(
     );
 
     const draftRows = drafts.map((draft) => ({ resultId: randomUUID(), draft }));
+
+    if (draftRows.length === 0) {
+      const resultId = randomUUID();
+      const message = "No tasks were found in the uploaded file.";
+      await prisma.scanTaskResult.create({
+        data: {
+          id: resultId,
+          orgId,
+          createdById,
+          batchId,
+          fileName: source.fileName,
+          fileKind,
+          fileSize: source.fileSize,
+          instruction,
+          draft: Prisma.JsonNull,
+          error: message,
+          metadata: sourceMetadata,
+          taskId: null,
+          confirmedAt: null,
+          clearedAt: null,
+        },
+      });
+
+      return [
+        {
+          ok: false,
+          resultId,
+          source: sourceMetadata,
+          fileName: source.fileName,
+          fileKind,
+          fileSize: source.fileSize,
+          error: message,
+        },
+      ];
+    }
 
     if (draftRows.length > 0) {
       await prisma.scanTaskResult.createMany({
@@ -66,7 +119,7 @@ async function processMobileScanSource(
           instruction,
           draft: row.draft,
           error: null,
-          metadata: Prisma.JsonNull,
+          metadata: sourceMetadata,
           taskId: null,
           confirmedAt: null,
           clearedAt: null,
@@ -77,6 +130,7 @@ async function processMobileScanSource(
     return draftRows.map((row) => ({
       ok: true,
       resultId: row.resultId,
+      source: sourceMetadata,
       fileName: source.fileName,
       fileKind,
       fileSize: source.fileSize,
@@ -102,13 +156,13 @@ async function processMobileScanSource(
         instruction,
         draft: Prisma.JsonNull,
         error: message,
-        metadata: Prisma.JsonNull,
+        metadata: sourceMetadata,
         taskId: null,
         confirmedAt: null,
         clearedAt: null,
       },
     });
-    return [{ ok: false, resultId, fileName: source.fileName, fileKind, fileSize: source.fileSize, error: message }];
+    return [{ ok: false, resultId, source: sourceMetadata, fileName: source.fileName, fileKind, fileSize: source.fileSize, error: message }];
   } finally {
     const deleted = await deleteStorageFile(source.storagePath);
     if (!deleted.ok) {

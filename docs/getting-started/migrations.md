@@ -29,7 +29,7 @@ pnpm seed:clean
 - Never run `pnpm prisma migrate deploy` directly because it can pick up `.env.local`.
 - Always use `pnpm migrate:prod` for production migration deployment.
 - `pnpm seed:clean` uses the same `SEED_NAMESPACE` resolution as `pnpm seed`.
-- Before using `prisma migrate resolve --applied`, verify every missing migration change is already present in production, including columns, indexes, constraints, and data backfills. Then run `pnpm migrate:prod` so any later pending migrations still apply.
+- Before using `pnpm prisma migrate resolve --applied 20260816000000_add_task_name_ci_unique`, verify every missing migration change is already present in production, including columns, indexes, constraints, and data backfills. Then run `pnpm migrate:prod` so any later pending migrations still apply.
 
 ## Adding a new model
 

@@ -114,11 +114,4 @@ Full docs: [Tools — Menu items (public)](/doc/backend-api/endpoints-tools)
 
 ## Admin routes (internal)
 
-These routes are for internal admin tooling only and are not part of the public or mobile API surface.
-
-| Route | Description |
-| --- | --- |
-| `/api/admin/feedback` | Admin feedback view |
-| `/api/admin/photos/feedback-images` | Admin feedback image list |
-| `/api/admin/photos/logos` | Admin logo list |
-| `/api/admin/photos/org-images` | Admin org image list |
+These routes are for internal admin tooling only and are intentionally excluded from the public API inventory above.

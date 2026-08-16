@@ -143,7 +143,7 @@ Accepts JSON or FormData.
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `storagePath` | string | Yes | Storage path from the upload-url step |
-| `name` | string | Yes | Display name for the image |
+| `name` | string | No | Display name for the image |
 
 ### Response
 

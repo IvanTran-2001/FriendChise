@@ -34,7 +34,7 @@ Initiates the OAuth flow by calling Auth.js internally. The mobile app opens thi
 
 | Param | Values | Description |
 | --- | --- | --- |
-| `provider` | `google`, `linkedin` | OAuth provider to use |
+| `provider` | `google`, `LinkedIn` | OAuth provider to use |
 
 ### Query parameters
 
@@ -52,7 +52,7 @@ GET /api/mobile-auth/oauth-start/google?callbackUrl=friendchise://auth/callback
 
 | Status | Reason |
 | --- | --- |
-| `400` | `provider` is not `google` or `linkedin` |
+| `400` | `provider` is not `google` or `LinkedIn` |
 | `400` | `callbackUrl` is missing or not a valid deep-link or same-origin URL |
 
 ---

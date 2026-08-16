@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { PermissionAction } from "@prisma/client";
+import { auth } from "@/auth";
+import { headers } from "next/headers";
+import { decode } from "next-auth/jwt";
 import { log } from "@/lib/platform/observability";
 import {
   getAuthUser,
@@ -7,6 +10,8 @@ import {
   isOrgOwner,
   memberHasPermission,
 } from "./_shared";
+
+const MOBILE_TOKEN_COOKIE_NAME = "friendchise.mobile-session-token";
 
 /**
  * Auth guard helpers for API route handlers.
@@ -29,9 +34,39 @@ const permissionDenied = () =>
 
 /** Requires the caller to be signed in (any authenticated user). */
 export async function requireUser() {
-  const user = await getAuthUser();
-  if (!user) return { ok: false as const, response: unauthorized() };
-  return { ok: true as const, userId: user.id, userEmail: user.email };
+  const session = await auth();
+  const sessionUserId = session?.user?.id as string | undefined;
+  const sessionUserEmail = (session?.user?.email as string | undefined) ?? null;
+  if (sessionUserId) {
+    return {
+      ok: true as const,
+      userId: sessionUserId,
+      userEmail: sessionUserEmail,
+      authMethod: "session" as const,
+    };
+  }
+
+  const authorization = (await headers()).get("authorization");
+  if (!authorization?.startsWith("Bearer ")) return { ok: false as const, response: unauthorized() };
+
+  const rawToken = authorization.slice(7);
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) return { ok: false as const, response: unauthorized() };
+
+  const decoded = await decode({
+    token: rawToken,
+    secret,
+    salt: MOBILE_TOKEN_COOKIE_NAME,
+  });
+
+  if (!decoded?.sub) return { ok: false as const, response: unauthorized() };
+
+  return {
+    ok: true as const,
+    userId: decoded.sub,
+    userEmail: (decoded.email as string | undefined) ?? null,
+    authMethod: "bearer" as const,
+  };
 }
 
 /** Requires the caller to be the owner of the given org. */

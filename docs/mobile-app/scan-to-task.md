@@ -15,7 +15,7 @@ Pick a photo (camera or library) or a PDF → optionally add an instruction ("tu
 The mobile app calls REST endpoints added to the FriendChise web app under `app/api/orgs/[orgId]/tools/scan-to-task/`:
 
 - `upload-url` (POST) — signed upload URL
-- `` (POST) — runs the scan
+- `scan-to-task` (POST) — runs the scan
 - `confirm` (POST) — creates the task
 - `clear` (POST) — discards a result
 

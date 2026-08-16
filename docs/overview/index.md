@@ -36,7 +36,7 @@ Franchise teams often lose consistency as locations scale. FriendChise provides 
 
 ## Who it's for
 
-FriendChise is built for niche, hands-on franchise businesses — restaurants, doughnut shops, bakeries, and similar operations — where consistency depends on recipes, prep procedures, and staff experience that normally only lives in one manager's head. The current release focuses on shared task lists, scheduling, and tools that make that knowledge repeatable across locations. See the [Roadmap](/doc/roadmap) for where AI-assisted document/photo scanning and baking conversion utilities fit in future releases.
+FriendChise is built for niche, hands-on franchise businesses — restaurants, doughnut shops, bakeries, and similar operations — where consistency depends on recipes, prep procedures, and staff experience that normally only lives in one manager's head. The current release ships the mobile [Scan to Task](/doc/mobile-app/scan-to-task) flow for photos and PDFs, plus shared task lists, scheduling, and tools that make that knowledge repeatable across locations. Broader AI-assisted document/photo scanning and baking conversion utilities still sit on the [Roadmap](/doc/roadmap).
 
 ## Starting
 

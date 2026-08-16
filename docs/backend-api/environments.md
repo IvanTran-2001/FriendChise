@@ -50,10 +50,14 @@ Your IP may be different on each machine and can change when you switch networks
 
 ### Simulators
 
-iOS Simulator and Android Emulator both resolve `localhost` to the host machine, so you can use:
+iOS Simulator uses `localhost`. Android Emulator uses `10.0.2.2`, which resolves to the host machine from inside the emulator.
 
 ```bash
 EXPO_PUBLIC_API_URL=http://localhost:3000
+```
+
+```bash
+EXPO_PUBLIC_API_URL=http://10.0.2.2:3000
 ```
 
 ## Environments summary
@@ -62,4 +66,5 @@ EXPO_PUBLIC_API_URL=http://localhost:3000
 | --- | --- | --- |
 | Production | `https://friendchise.app` | Live data, real OAuth |
 | Local (device) | `http://<your-machine-ip>:3000` | Must match backend network address |
-| Local (simulator) | `http://localhost:3000` | iOS Simulator / Android Emulator only |
+| Local (iOS simulator) | `http://localhost:3000` | iOS Simulator only |
+| Local (Android emulator) | `http://10.0.2.2:3000` | Android Emulator only |

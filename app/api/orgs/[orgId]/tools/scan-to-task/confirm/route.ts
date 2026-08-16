@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { PermissionAction } from "@prisma/client";
+import { PermissionAction, Prisma } from "@prisma/client";
 import { requireOrgPermission } from "@/lib/authz";
 import { checkDemoLimit } from "@/lib/demo";
 import { parseRequestBody } from "@/lib/http/request-body";
@@ -11,6 +11,16 @@ import { createTaskOnClient, findTaskByName } from "@/lib/services/tasks";
 import { confirmScanToTaskSchema } from "@/lib/validators/scan-to-task";
 
 const CONFIRMATION_UNAVAILABLE_ERROR = "Scan result is no longer available.";
+
+function isTaskNameUniqueConstraint(error: Prisma.PrismaClientKnownRequestError) {
+  const target = error.meta?.target;
+  return (
+    error.code === "P2002" &&
+    (target === "Task_orgId_name_key" ||
+      target === "Task_orgId_name_ci_key" ||
+      (Array.isArray(target) && target.includes("orgId") && target.includes("name")))
+  );
+}
 
 /**
  * Mobile-facing Scan to Task confirm endpoint.
@@ -91,27 +101,31 @@ export async function POST(
       return createdTask;
     });
 
-    await recordAudit({
-      orgId,
-      actorId: authz.userId,
-      actorEmail: authz.userEmail ?? null,
-      action: "task.create",
-      targetType: "Task",
-      targetId: task.id,
-      after: {
-        name: task.name,
-        color: task.color,
-        description: task.description,
-        durationMin: task.durationMin,
-      },
-    });
+    try {
+      await recordAudit({
+        orgId,
+        actorId: authz.userId,
+        actorEmail: authz.userEmail ?? null,
+        action: "task.create",
+        targetType: "Task",
+        targetId: task.id,
+        after: {
+          name: task.name,
+          color: task.color,
+          description: task.description,
+          durationMin: task.durationMin,
+        },
+      });
+    } catch (error) {
+      log.error("Failed to record scan-to-task audit log", { orgId, taskId: task.id, error });
+    }
 
     return NextResponse.json({ taskId: task.id, resultId: parsed.data.resultId }, { status: 200 });
   } catch (error) {
     if (error instanceof Error && error.message === CONFIRMATION_UNAVAILABLE_ERROR) {
       return NextResponse.json({ error: CONFIRMATION_UNAVAILABLE_ERROR }, { status: 409 });
     }
-    if ((error as { code?: string } | null | undefined)?.code === "P2002") {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && isTaskNameUniqueConstraint(error)) {
       return NextResponse.json({ error: `A task named "${parsed.data.title}" already exists.` }, { status: 409 });
     }
 
