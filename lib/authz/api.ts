@@ -53,11 +53,16 @@ export async function requireUser() {
   const secret = process.env.AUTH_SECRET;
   if (!secret) return { ok: false as const, response: unauthorized() };
 
-  const decoded = await decode({
-    token: rawToken,
-    secret,
-    salt: MOBILE_TOKEN_COOKIE_NAME,
-  });
+  let decoded;
+  try {
+    decoded = await decode({
+      token: rawToken,
+      secret,
+      salt: MOBILE_TOKEN_COOKIE_NAME,
+    });
+  } catch {
+    return { ok: false as const, response: unauthorized() };
+  }
 
   if (!decoded?.sub) return { ok: false as const, response: unauthorized() };
 

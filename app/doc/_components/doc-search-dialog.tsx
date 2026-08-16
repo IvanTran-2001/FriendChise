@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -30,11 +30,20 @@ export function DocSearchDialog({ tree }: DocSearchDialogProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
+  const handleOpenChange = useCallback((nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) setQuery("");
+  }, []);
+
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        setOpen((previous) => !previous);
+        if (open) {
+          handleOpenChange(false);
+        } else {
+          setOpen(true);
+        }
         return;
       }
 
@@ -46,12 +55,7 @@ export function DocSearchDialog({ tree }: DocSearchDialogProps) {
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  function handleOpenChange(nextOpen: boolean) {
-    setOpen(nextOpen);
-    if (!nextOpen) setQuery("");
-  }
+  }, [open, handleOpenChange]);
 
   const results = useMemo(() => searchDocs(tree, query).slice(0, 12), [tree, query]);
 
@@ -66,7 +70,7 @@ export function DocSearchDialog({ tree }: DocSearchDialogProps) {
         <Search className="h-3.5 w-3.5" aria-hidden="true" />
         <span className="hidden sm:inline">Search docs</span>
         <kbd className="hidden rounded border border-border/70 bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline">
-          ⌘K
+          Meta+K / Ctrl+K
         </kbd>
       </button>
 

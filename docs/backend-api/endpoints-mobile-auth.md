@@ -14,7 +14,7 @@ Mobile app
   |-- 1. Open system browser
   |      GET /api/mobile-auth/oauth-start/[provider]?callbackUrl=friendchise://auth
   |
-  |   Auth.js redirects user to Google / LinkedIn for login
+  |   Auth.js redirects user to Google / linkedin for login
   |
   |-- 2. OAuth callback lands at /api/mobile-auth/complete?callbackUrl=friendchise://auth
   |      Server encodes session into a JWT, redirects to callbackUrl?token=<jwt>
@@ -34,7 +34,7 @@ Initiates the OAuth flow by calling Auth.js internally. The mobile app opens thi
 
 | Param | Values | Description |
 | --- | --- | --- |
-| `provider` | `google`, `LinkedIn` | OAuth provider to use |
+| `provider` | `google`, `linkedin` | OAuth provider to use |
 
 ### Query parameters
 
@@ -52,7 +52,7 @@ GET /api/mobile-auth/oauth-start/google?callbackUrl=friendchise://auth/callback
 
 | Status | Reason |
 | --- | --- |
-| `400` | `provider` is not `google` or `LinkedIn` |
+| `400` | `provider` is not `google` or `linkedin` |
 | `400` | `callbackUrl` is missing or not a valid deep-link or same-origin URL |
 
 ---

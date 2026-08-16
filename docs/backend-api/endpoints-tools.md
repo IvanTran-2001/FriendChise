@@ -203,7 +203,7 @@ Paginated list of menu items with signed image URLs.
 The scan-to-task workflow is now available through mobile-facing REST endpoints:
 
 - `POST /api/orgs/[orgId]/tools/scan-to-task/upload-url` — `MANAGE_TASKS`, accepts `{ fileName, mimeType }`, returns `{ signedUrl, path }`, and reports `400`, `403`, or `500` when signing fails.
-- `POST /api/orgs/[orgId]/tools/scan-to-task` — `MANAGE_TASKS`, accepts `{ sources, instruction? }`, returns `{ results }`, and reports `400`, `403`, or `500` on scan failure.
+- `POST /api/orgs/[orgId]/tools/scan-to-task` — `MANAGE_TASKS`, accepts `{ sources, instruction? }`, returns `{ results }`, and reports `400`, `429`, or `500` on scan failure. Demo-limit responses return `{ "error": "Sign up to continue using this feature." }`.
 - `POST /api/orgs/[orgId]/tools/scan-to-task/confirm` — `MANAGE_TASKS`, accepts a reviewed draft payload and returns `{ taskId, resultId }`.
 - `POST /api/orgs/[orgId]/tools/scan-to-task/clear` — `MANAGE_TASKS`, accepts `{ resultId }` and returns `{ ok: true }` when the result is cleared.
 

@@ -26,7 +26,7 @@ order: 8.2
 | ❌ FAIL    | 21     |
 | **Total**  | **55** |
 
-**Overall: ❌ FAIL — 21 items need attention**
+**Overall: ❌ FAIL — 34 items need attention**
 
 ---
 

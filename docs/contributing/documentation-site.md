@@ -30,7 +30,7 @@ The docs section (`/doc/*`) is its own small system: a markdown content tree, a 
 ## Search
 
 - `lib/docs/search.ts` holds the ranked, partial-match search logic (`searchDocs`, `scoreResult`, `flattenSearchResults`) shared by both the sidebar's inline search and the `DocSearchDialog` command palette — this is intentional so scoring behavior can't drift between the two entry points.
-- Matching is substring-based across title, description, breadcrumbs, and full page body text, ranked so exact/prefix title matches outrank body-text matches.
+- Matching is substring-based across title, description, breadcrumbs, and full page body text, ranked so exact title matches outrank title-prefix matches, which outrank body-text matches.
 
 ## Navigation and responsiveness
 

@@ -1,6 +1,6 @@
 ---
 title: Item List
-description: Build reusable item lists as grids, checklists, or cards
+description: Build reusable item lists as grids or checklists
 order: 1
 ---
 

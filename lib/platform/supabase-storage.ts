@@ -230,6 +230,17 @@ export async function deleteStorageFile(
 			const body = await res.text().catch(() => res.statusText);
 			return { ok: false, error: `Storage delete error: ${body}` };
 		}
+
+		const deletedObjects: unknown = await res.json().catch(() => null);
+		if (!Array.isArray(deletedObjects) || deletedObjects.length === 0) {
+			return { ok: false, error: "Storage delete error: missing deleted object record." };
+		}
+
+		const firstRecord = deletedObjects[0] as { storagePath?: unknown } | null;
+		if (!firstRecord || typeof firstRecord.storagePath !== "string" || !firstRecord.storagePath.trim()) {
+			return { ok: false, error: "Storage delete error: missing deleted object storage path." };
+		}
+
 		return { ok: true };
 	} catch (error) {
 		return { ok: false, error: error instanceof Error ? error.message : "Storage delete error" };

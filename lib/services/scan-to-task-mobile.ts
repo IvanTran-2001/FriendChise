@@ -186,9 +186,14 @@ export async function runMobileScanToTask(
 ): Promise<MobileScanResultItem[]> {
   const batchId = randomUUID();
   const results: MobileScanResultItem[] = [];
+  const concurrencyLimit = 3;
 
-  for (const source of sources) {
-    results.push(...(await processMobileScanSource(orgId, createdById, batchId, source, instruction)));
+  for (let index = 0; index < sources.length; index += concurrencyLimit) {
+    const batch = sources.slice(index, index + concurrencyLimit);
+    const batchResults = await Promise.all(
+      batch.map((source) => processMobileScanSource(orgId, createdById, batchId, source, instruction)),
+    );
+    results.push(...batchResults.flat());
   }
 
   return results;

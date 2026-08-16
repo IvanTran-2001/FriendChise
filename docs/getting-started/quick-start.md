@@ -6,7 +6,7 @@ order: 3
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 20.9 or newer
 - pnpm
 - A local Postgres database (Docker Desktop or a native install)
 

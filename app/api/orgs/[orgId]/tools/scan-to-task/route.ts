@@ -56,7 +56,7 @@ export async function POST(
 
   const demoCheck = await checkDemoLimit(authz.userEmail, "scan", orgId, authz.userId);
   if (!demoCheck.ok) {
-    return NextResponse.json({ error: demoCheck.error }, { status: 403 });
+    return NextResponse.json({ error: demoCheck.error }, { status: 429 });
   }
 
   const instruction = normalizeInstruction(typeof record.instruction === "string" ? record.instruction : null);

@@ -34,7 +34,7 @@ export function flattenSearchResults(
   for (const node of nodes) {
     const nextBreadcrumbs = node.title ? [...breadcrumbs, node.title] : breadcrumbs;
 
-    if (node.index?.slug) {
+    if (node.index?.slug && node.index.isRenderable) {
       results.push(itemToSearchResult(node.index, breadcrumbs));
     }
 

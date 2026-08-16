@@ -53,7 +53,7 @@ Successful responses do not include an `error` field.
 | `"Task not found"` | 404 | `taskId` does not exist or is not accessible |
 | `"A task named "..." already exists."` | 409 | Title collision within the org |
 | `"Confirmation text is required"` | 400 | Account delete request missing `confirmText` |
-| `"Confirmation text does not match"` | 400 | `confirmText` does not equal the user's email |
+| `"Confirmation text does not match"` | 400 | `confirmText` does not match the user's display name when available, otherwise their email |
 | `"Invalid kind"` | 400 | `kind` query param not one of `conversion`, `item-list`, `roster` |
 | `"mimeType is required."` | 400 | Image upload-url request missing `mimeType` body field |
 | `"storagePath is required."` | 400 | Storage read-url request missing `storagePath` body field |
