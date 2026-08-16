@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { PermissionAction } from "@prisma/client";
 import { requireOrgPermission } from "@/lib/authz";
 import { getStringField, parseRequestBody } from "@/lib/http/request-body";
+import { log } from "@/lib/platform/observability";
 import { MAX_FILE_BYTES, buildTempUploadPath } from "@/lib/services/scan-to-task";
 import { createSignedUploadUrl } from "@/lib/platform/supabase-storage";
 import { getUploadUrlSchema } from "@/lib/validators/scan-to-task";
@@ -34,7 +35,12 @@ export async function POST(
   const storagePath = buildTempUploadPath(orgId, parsed.data.fileName, parsed.data.mimeType);
   const signed = await createSignedUploadUrl(storagePath, MAX_FILE_BYTES);
   if (!signed.ok) {
-    return NextResponse.json({ error: signed.error }, { status: 500 });
+    log.error("Failed to create scan-to-task upload URL", {
+      orgId,
+      storagePath,
+      error: signed.error,
+    });
+    return NextResponse.json({ error: "Failed to prepare upload." }, { status: 500 });
   }
 
   return NextResponse.json({ signedUrl: signed.signedUrl, path: signed.path }, { status: 200 });

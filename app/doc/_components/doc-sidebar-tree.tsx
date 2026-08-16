@@ -242,6 +242,7 @@ export function DocSidebarTree({ tree, onNavigate }: DocSidebarTreeProps) {
   const activeSlug = activeSlugFromPathname(pathname);
   const [searchQuery, setSearchQuery] = useState("");
   const normalizedQuery = normalizeSearchText(searchQuery);
+  const sidebarRootRef = useRef<HTMLDivElement>(null);
   const initialOpenPaths = useMemo(
     () => new Set(collectOpenPaths(tree, activeSlug)),
     [tree, activeSlug],
@@ -257,7 +258,7 @@ export function DocSidebarTree({ tree, onNavigate }: DocSidebarTreeProps) {
     if (normalizedQuery) return;
     if (hasScrolledActiveRef.current) return;
 
-    const activeElement = document.querySelector(
+    const activeElement = sidebarRootRef.current?.querySelector(
       '[data-doc-sidebar-active="true"]',
     ) as HTMLElement | null;
     activeElement?.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -270,7 +271,7 @@ export function DocSidebarTree({ tree, onNavigate }: DocSidebarTreeProps) {
   );
 
   return (
-    <div className="space-y-4">
+    <div ref={sidebarRootRef} className="space-y-4">
       <div className="space-y-2">
         <div className="relative">
           <SearchInput

@@ -1,3 +1,4 @@
+- No merge/duplicate-adjudication UI — if a scanned draft looks like an existing task, the web app can suggest merging into it; mobile shows the conflict and asks you to rename the task or retry. The underlying AI duplicate-detection pass is also skipped for mobile scans to keep the request fast.
 ---
 title: Mobile Scan to Task
 description: How the Expo app's Scan to Task screen mirrors the web scanner

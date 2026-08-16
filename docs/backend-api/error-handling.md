@@ -1,3 +1,4 @@
+| `429` — Surface the limit to the user. Demo account quota limits are not retryable. Demo-session concurrency caps can be retried after an existing session expires.
 ---
 title: Error Handling
 description: HTTP status codes, error response shape, and common errors across all API routes

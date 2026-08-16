@@ -13,7 +13,7 @@ WITH ranked AS (
 ),
 renamed AS (
 	UPDATE "Task" task
-	SET name = concat(btrim(task.name), ' [dup-', substr(ranked.id, 1, 8), ']')
+	SET name = concat(btrim(task.name), ' [dup-', ranked.id, '-', ranked.rn, ']')
 	FROM ranked
 	WHERE task.id = ranked.id
 		AND ranked.rn > 1

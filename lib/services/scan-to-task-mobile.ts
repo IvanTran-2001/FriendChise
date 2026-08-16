@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { ScanToTaskUserFacingError } from "@/lib/ai/scan-to-task/s2t-input";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/platform/prisma";
 import { log } from "@/lib/platform/observability";
@@ -138,7 +139,7 @@ async function processMobileScanSource(
     }));
   } catch (error) {
     const resultId = randomUUID();
-    const message = error instanceof Error ? error.message : "Failed to scan file.";
+    const message = error instanceof ScanToTaskUserFacingError ? error.message : "Failed to scan file.";
     log.error("Failed to scan source into drafts", {
       orgId,
       storagePath: source.storagePath,

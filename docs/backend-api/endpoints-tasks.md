@@ -139,8 +139,11 @@ Requires org membership.
 Partially updates a task. Only the fields you include are changed.
 
 ### Authentication
+### Authentication
 
-Requires org membership. A member can only update tasks that belong to their franchise (same parent org).
+Requires org membership and authorization in the task-owning organization. The caller must either be the parent organization owner or have `MANAGE_TASKS` in the task-owning org; a plain membership is not sufficient.
+| `mode` | `list` \| `available` \| `shared` | `shared` | Task view mode |
+| `limit` | integer | 30 | Items per page |
 
 ### Path parameters
 

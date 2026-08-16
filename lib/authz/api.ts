@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { headers } from "next/headers";
 import { decode } from "next-auth/jwt";
 import { log } from "@/lib/platform/observability";
+import { prisma } from "@/lib/platform/prisma";
 import {
   getAuthUser,
   getOrgMembership,
@@ -66,9 +67,15 @@ export async function requireUser() {
 
   if (!decoded?.sub) return { ok: false as const, response: unauthorized() };
 
+  const user = await prisma.user.findUnique({
+    where: { id: decoded.sub },
+    select: { id: true },
+  });
+  if (!user) return { ok: false as const, response: unauthorized() };
+
   return {
     ok: true as const,
-    userId: decoded.sub,
+    userId: user.id,
     userEmail: (decoded.email as string | undefined) ?? null,
     authMethod: "bearer" as const,
   };

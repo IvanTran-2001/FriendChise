@@ -46,7 +46,7 @@ export async function POST(
 
   const demoCheck = await checkDemoLimit(authz.userEmail, "task", orgId);
   if (!demoCheck.ok) {
-    return NextResponse.json({ error: demoCheck.error }, { status: 403 });
+    return NextResponse.json({ error: demoCheck.error }, { status: 429 });
   }
 
   const duplicateTask = await findTaskByName(orgId, parsed.data.title);

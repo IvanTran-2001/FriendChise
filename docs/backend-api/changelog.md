@@ -25,9 +25,11 @@ Changes that affect request/response shapes, authentication requirements, or rou
 ## Architecture note
 
 Earlier versions of FriendChise exposed a broader CRUD REST API for tasks, orgs, memberships, and timetable entries. Those routes have been removed. State mutations now happen through **Next.js server actions** (`app/actions/*`) rather than HTTP endpoints. The current API surface is intentionally narrow:
+Earlier versions of FriendChise exposed a broader CRUD REST API for tasks, orgs, memberships, and timetable entries. Most write paths now happen through **Next.js server actions** (`app/actions/*`), but a small set of org-scoped HTTP routes still support task and mobile workflows. The current API surface is intentionally narrow:
 
 - Mobile-specific identity and auth routes (`/api/mobile/*`, `/api/mobile-auth/*`)
-- Lazy-loading helpers the web client cannot express as server actions (paginated tasks, roster entries, memberships)
+- Org-scoped task routes that still serve the web client and mobile tooling (`POST /api/orgs/[orgId]/tasks`, `PATCH /api/orgs/[orgId]/tasks/[taskId]`, `GET /api/orgs/[orgId]/tasks/paginated`, `GET /api/orgs/[orgId]/tasks/simple`)
+- Mobile scan-to-task routes (`/api/orgs/[orgId]/tools/scan-to-task/*`)
 - Image and storage URL helpers
 - Account management (`/api/account/*`)
 - Framework handlers (Auth.js, Playwright test login)

@@ -215,7 +215,7 @@ export async function readStorageFile(
  */
 export async function deleteStorageFile(
 	storagePath: string,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; deletedObjects: Array<{ name?: string }> } | { ok: false; error: string }> {
 	const { url, key } = getConfig();
 	try {
 		const res = await fetch(`${url}/storage/v1/object/${BUCKET}`, {
@@ -232,16 +232,20 @@ export async function deleteStorageFile(
 		}
 
 		const deletedObjects: unknown = await res.json().catch(() => null);
-		if (!Array.isArray(deletedObjects) || deletedObjects.length === 0) {
+		if (!Array.isArray(deletedObjects)) {
 			return { ok: false, error: "Storage delete error: missing deleted object record." };
 		}
 
-		const firstRecord = deletedObjects[0] as { storagePath?: unknown } | null;
-		if (!firstRecord || typeof firstRecord.storagePath !== "string" || !firstRecord.storagePath.trim()) {
-			return { ok: false, error: "Storage delete error: missing deleted object storage path." };
+		if (deletedObjects.length === 0) {
+			return { ok: true, deletedObjects: [] };
 		}
 
-		return { ok: true };
+		const firstRecord = deletedObjects[0] as { name?: unknown } | null;
+		if (!firstRecord || typeof firstRecord.name !== "string" || !firstRecord.name.trim()) {
+			return { ok: false, error: "Storage delete error: missing deleted object name." };
+		}
+
+		return { ok: true, deletedObjects: deletedObjects as Array<{ name?: string }> };
 	} catch (error) {
 		return { ok: false, error: error instanceof Error ? error.message : "Storage delete error" };
 	}
@@ -260,6 +264,14 @@ export async function moveStorageFile(
 	const deleteResult = await deleteStorageFile(sourcePath);
 	if (!deleteResult.ok) {
 		return { ok: false, error: `Storage move error: ${deleteResult.error}` };
+	}
+	if (deleteResult.deletedObjects.length === 0) {
+		return { ok: true };
+	}
+
+	const firstDeletedName = deleteResult.deletedObjects[0]?.name;
+	if (typeof firstDeletedName !== "string" || !firstDeletedName.trim() || firstDeletedName !== sourcePath) {
+		return { ok: false, error: "Storage move error: unexpected deleted object name." };
 	}
 
 	return { ok: true };
