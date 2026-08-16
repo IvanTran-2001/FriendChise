@@ -1,0 +1,63 @@
+---
+title: Base URL and Environments
+description: Production and local development API base URLs, and how to configure them for the mobile app
+order: 1
+---
+
+## Production
+
+The production API is served from the same origin as the web app.
+
+```
+https://friendchise.app
+```
+
+All `/api/*` routes are relative to this base. For example:
+
+```
+GET https://friendchise.app/api/mobile/me
+```
+
+The mobile app reads the base URL from the `EXPO_PUBLIC_API_URL` environment variable:
+
+```bash
+EXPO_PUBLIC_API_URL=https://friendchise.app
+```
+
+This is already set in the `production` EAS build profile in `friendchise-mobile-app/eas.json`.
+
+## Local development
+
+### Why `localhost` doesn't work on a physical device
+
+When the mobile app runs on a physical phone, `localhost` refers to the phone itself, not your computer. You must use your computer's local network IP address instead.
+
+Find the network address in the terminal output when you start the backend:
+
+```bash
+Network: http://192.168.1.97:3000
+```
+
+Set `EXPO_PUBLIC_API_URL` to that address in your local `.env`:
+
+```bash
+EXPO_PUBLIC_API_URL=http://192.168.1.97:3000
+```
+
+Your IP may be different on each machine and can change when you switch networks. Re-check it whenever you switch networks or restart your router.
+
+### Simulators
+
+iOS Simulator and Android Emulator both resolve `localhost` to the host machine, so you can use:
+
+```bash
+EXPO_PUBLIC_API_URL=http://localhost:3000
+```
+
+## Environments summary
+
+| Environment | Base URL | Notes |
+| --- | --- | --- |
+| Production | `https://friendchise.app` | Live data, real OAuth |
+| Local (device) | `http://<your-machine-ip>:3000` | Must match backend network address |
+| Local (simulator) | `http://localhost:3000` | iOS Simulator / Android Emulator only |

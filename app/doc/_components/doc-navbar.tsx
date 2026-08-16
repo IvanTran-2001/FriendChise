@@ -1,11 +1,17 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/layout/global/logo";
+import type { DocNavTreeNode } from "@/lib/docs";
+import { DocNavbarActions } from "./doc-navbar-actions";
 
-export function DocNavbar() {
+type DocNavbarProps = {
+  navTree: DocNavTreeNode[];
+};
+
+export function DocNavbar({ navTree }: DocNavbarProps) {
   return (
     <header className="z-30 border-b border-border/60 bg-card/90 backdrop-blur-xl supports-backdrop-filter:bg-card/80">
-      <div className="mx-auto flex h-14 w-full max-w-[1320px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-14 w-full max-w-330 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <Button
             variant="ghost"
@@ -34,7 +40,7 @@ export function DocNavbar() {
 
           <div className="hidden h-6 w-px bg-border/70 sm:block" />
 
-          <div className="min-w-0">
+          <div className="hidden min-w-0 sm:block">
             <Link
               href="/doc/overview"
               className="inline-flex items-center rounded-full border border-border/70 bg-background/80 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-foreground/80 transition hover:border-primary/20 hover:bg-background hover:text-foreground"
@@ -44,27 +50,9 @@ export function DocNavbar() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
-          <Link
-            href="/doc/contributing/getting-started"
-            className="rounded-full px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-          >
-            Getting Started
-          </Link>
-          <Link
-            href="/doc/contributing"
-            className="rounded-full px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-          >
-            Contributing
-          </Link>
-          <Link
-            href="/doc/contributing/support"
-            className="rounded-full px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-          >
-            Support
-          </Link>
-        </div>
+        <DocNavbarActions navTree={navTree} />
       </div>
     </header>
   );
 }
+

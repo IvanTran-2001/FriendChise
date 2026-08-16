@@ -16,7 +16,7 @@ function scrollToHeading(id: string) {
 
 export function DocRightToc({ headings }: DocRightTocProps) {
   if (headings.length === 0) {
-    return <p className="text-sm text-muted-foreground">No sections</p>;
+    return <p className="text-[13px] text-muted-foreground sm:text-sm">No sections</p>;
   }
 
   return (
@@ -26,7 +26,7 @@ export function DocRightToc({ headings }: DocRightTocProps) {
           key={`${heading.level}-${heading.id}-${index}`}
           type="button"
           onClick={() => scrollToHeading(heading.id)}
-          className={`block w-full rounded px-2 py-1.5 text-left text-sm wrap-break-word leading-snug text-foreground/80 hover:bg-muted hover:text-foreground ${
+          className={`block w-full rounded px-2 py-1.5 text-left text-[13px] wrap-break-word leading-snug text-foreground/80 hover:bg-muted hover:text-foreground sm:text-sm ${
             heading.level === 3 ? "ml-3" : ""
           }`}
         >

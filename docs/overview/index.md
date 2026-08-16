@@ -34,9 +34,13 @@ Read the [personas](/doc/overview/personas) page for the main audiences FriendCh
 
 Franchise teams often lose consistency as locations scale. FriendChise provides a single operational system so teams can align on standards, execution, and visibility.
 
+## Who it's for
+
+FriendChise is built for niche, hands-on franchise businesses — restaurants, doughnut shops, bakeries, and similar operations — where consistency depends on recipes, prep procedures, and staff experience that normally only lives in one manager's head. The current release focuses on shared task lists, scheduling, and tools that make that knowledge repeatable across locations. See the [Roadmap](/doc/roadmap) for where AI-assisted document/photo scanning and baking conversion utilities fit in future releases.
+
 ## Starting
 
-To start, visit [quick-start](/doc/development/quick-start).
+To start, visit [Getting Started](/doc/getting-started).
 
 ## Documentation
 

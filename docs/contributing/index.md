@@ -1,7 +1,7 @@
 ---
 title: Contributing
 description: Issue-first workflow and contribution standards
-order: 1.1
+order: 12
 ---
 ## Contribution flow
 
@@ -29,5 +29,8 @@ This keeps work aligned and avoids duplicate effort.
 ## References
 
 - Full guide: [CONTRIBUTING.md](https://github.com/IvanTran-2001/FriendChise/blob/master/CONTRIBUTING.md)
-- Ideas list: [Ideas for Contributing](/doc/ideas-for-contribution)
+- Ideas list: [Ideas for Contributing](/doc/contributing/ideas-for-contribution)
+- Getting set up: [Getting Started](/doc/getting-started)
+- Frontend architecture notes: [Frontend Architecture](/doc/contributing/frontend-architecture)
+- How the docs site itself works: [Documentation Site](/doc/contributing/documentation-site)
 - Code of conduct: [CODE_OF_CONDUCT.md](https://github.com/IvanTran-2001/FriendChise/blob/master/.github/CODE_OF_CONDUCT.md)

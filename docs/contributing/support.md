@@ -1,7 +1,7 @@
 ---
 title: Support and Community
 description: How to star, share, and help FriendChise grow
-order: 2
+order: 4
 ---
 ## How you can help
 
@@ -19,5 +19,5 @@ order: 2
 ## Links
 
 - [Contributing](/doc/contributing)
-- [Getting Started](/doc/contributing/getting-started)
+- [Getting Started](/doc/getting-started)
 - [Overview](/doc/overview)
