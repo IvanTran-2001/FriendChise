@@ -12,7 +12,15 @@ export async function DELETE(request: Request) {
 
   let body: DeleteAccountBody = {};
   try {
-    body = (await request.json()) as DeleteAccountBody;
+    const parsed: unknown = await request.json();
+    if (typeof parsed !== "object" || parsed === null) {
+      return NextResponse.json(
+        { error: "Confirmation text is required" },
+        { status: 400 },
+      );
+    }
+
+    body = parsed as DeleteAccountBody;
   } catch {
     return NextResponse.json(
       { error: "Confirmation text is required" },
@@ -37,7 +45,9 @@ export async function DELETE(request: Request) {
           ? 400
           : 500;
 
-    return NextResponse.json({ error: result.error }, { status });
+    const error = status === 500 ? "Failed to delete account" : result.error;
+
+    return NextResponse.json({ error }, { status });
   }
 
   return NextResponse.json({ ok: true });
