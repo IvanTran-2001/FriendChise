@@ -144,32 +144,48 @@ async function processMobileScanSource(
       storagePath: source.storagePath,
       error,
     });
-    await prisma.scanTaskResult.create({
-      data: {
-        id: resultId,
+    try {
+      await prisma.scanTaskResult.create({
+        data: {
+          id: resultId,
+          orgId,
+          createdById,
+          batchId,
+          fileName: source.fileName,
+          fileKind,
+          fileSize: source.fileSize,
+          instruction,
+          draft: Prisma.JsonNull,
+          error: message,
+          metadata: sourceMetadata,
+          taskId: null,
+          confirmedAt: null,
+          clearedAt: null,
+        },
+      });
+    } catch (persistError) {
+      log.error("Failed to persist failed scan result", {
         orgId,
-        createdById,
-        batchId,
-        fileName: source.fileName,
-        fileKind,
-        fileSize: source.fileSize,
-        instruction,
-        draft: Prisma.JsonNull,
-        error: message,
-        metadata: sourceMetadata,
-        taskId: null,
-        confirmedAt: null,
-        clearedAt: null,
-      },
-    });
+        storagePath: source.storagePath,
+        error: persistError,
+      });
+    }
     return [{ ok: false, resultId, source: sourceMetadata, fileName: source.fileName, fileKind, fileSize: source.fileSize, error: message }];
   } finally {
-    const deleted = await deleteStorageFile(source.storagePath);
-    if (!deleted.ok) {
+    try {
+      const deleted = await deleteStorageFile(source.storagePath);
+      if (!deleted.ok) {
+        log.error("Failed to delete uploaded scan file after processing", {
+          orgId,
+          storagePath: source.storagePath,
+          error: deleted.error,
+        });
+      }
+    } catch (cleanupError) {
       log.error("Failed to delete uploaded scan file after processing", {
         orgId,
         storagePath: source.storagePath,
-        error: deleted.error,
+        error: cleanupError,
       });
     }
   }
