@@ -38,7 +38,7 @@ See [RBAC](/doc/authentication/rbac) for the complete permission matrix.
 
 ## Where the write logic lives
 
-Following the project's [Services and Actions](/doc/backend-api/services-and-actions) split: task/timetable mutations are validated and authorized in `app/actions/*`, with the actual database work in `lib/services/*`.
+Following the project's [Services and Actions](/doc/backend-api/services-and-actions) split: task/timetable mutations are usually validated and authorized in `app/actions/*`, though API route handlers such as `app/api/orgs/[orgId]/tasks/*` and the mobile tool routes also perform request validation and authorization. The actual database work stays in `lib/services/*`.
 
 ## TODO
 

@@ -31,6 +31,5 @@ pnpm seed:clean
 
 1. Add the model to `prisma/schema.prisma`.
 2. Create the migration with `pnpm prisma migrate dev --name my_migration_name`.
-3. Deploy to CI automatically.
-3. CI validates the migration history and schema against a disposable database; it does not deploy to production.
+3. CI validates the migration history and schema against a disposable database, and it does not deploy to production.
 4. If production already has the table, verify the missing schema and data changes first, resolve the migration as applied, and then run `pnpm migrate:prod` to deploy the production migration.

@@ -139,7 +139,6 @@ Requires org membership.
 Partially updates a task. Only the fields you include are changed.
 
 ### Authentication
-### Authentication
 
 Requires org membership and authorization in the task-owning organization. The caller must either be the parent organization owner or have `MANAGE_TASKS` in the task-owning org; a plain membership is not sufficient.
 | `mode` | `list` \| `available` \| `shared` | `shared` | Task view mode |
@@ -205,9 +204,9 @@ Requires org membership.
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
-| `mode` | `list` \| `available` \| `shared` | `list` | Task view mode |
+| `mode` | `list` \| `available` \| `shared` | `shared` | Task view mode |
 | `cursor` | string | — | ID of the last item from the previous page |
-| `limit` | integer | 25 | Items per page |
+| `limit` | integer | 30 | Items per page |
 | `sort` | string | `name-asc` | Accepted values: `name-asc`, `name-desc`, `duration-asc`, `duration-desc`, `people-asc`, `people-desc`. Invalid values fall back to `name-asc`. |
 | `roleId` | string | — | Filter to tasks eligible for a specific role |
 | `tagId` | string | — | Filter to tasks with a specific tag |

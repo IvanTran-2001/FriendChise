@@ -27,6 +27,7 @@ Follow these steps one by one after you finish setup:
 ## If something fails
 
 - Re-check `.env.local`
+- **Before re-running `pnpm seed`**: it clears the current `SEED_NAMESPACE`, so use a disposable namespace for smoke tests. If you need to clean up afterward, run [`pnpm seed:clean`](/doc/getting-started/migrations).
 - Re-run `pnpm seed`
 - Re-run `pnpm prisma migrate deploy`
 - Confirm your seed namespace matches the contributor setup

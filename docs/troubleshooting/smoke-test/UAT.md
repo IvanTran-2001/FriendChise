@@ -70,7 +70,6 @@ order: 8.1
 
 ### Round 2 — Day-to-Day
 
-5. Create a task called "Restock shelves" for the fixed test date
 5. Create a task called "Restock shelves" for [TEST_DATE]
 6. Edit that task and change the due date for [TEST_DATE]
 7. Mark that task as complete
