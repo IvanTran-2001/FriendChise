@@ -4,6 +4,8 @@ description: Exact setup path for contributors
 order: 3
 ---
 
+If you are working on the mobile app, use the [mobile quick start](/doc/getting-started/quick-start-mobile-app) instead.
+
 ## Prerequisites
 
 - Node.js 20.9 or newer

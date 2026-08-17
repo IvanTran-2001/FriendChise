@@ -9,6 +9,7 @@ This section gets a new contributor from a fresh clone to a running app, then or
 ## Pages
 
 - [Quick Start](/doc/getting-started/quick-start) — clone, database, env, install, run
+- [Mobile Quick Start](/doc/getting-started/quick-start-mobile-app) — Expo Go setup for the mobile app
 - [Tech Stack](/doc/getting-started/tech-stack) — the packages and tools the app is built on
 - [Project Structure](/doc/getting-started/project-structure) — map of the main app areas
 - [Environment Variables](/doc/environment-variables) — full reference for every env var
