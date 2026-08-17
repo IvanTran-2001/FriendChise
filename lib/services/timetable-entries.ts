@@ -396,13 +396,12 @@ export async function updateTimetableEntriesBatch(
     updates.map((u) => {
       const entry = entries.find((e) => e.id === u.entryId)!;
       const { utcDate, utcStartTimeMin } = localToUTC(u.dateStr, u.startTimeMin, tz);
-      const clampedStartTimeMin = Math.max(0, Math.min(utcStartTimeMin, 1440));
       return prisma.timetableEntry.update({
         where: { id: u.entryId },
         data: {
           date: utcDate,
-          startTimeMin: clampedStartTimeMin,
-          endTimeMin: clampedStartTimeMin + entry.durationMin,
+          startTimeMin: utcStartTimeMin,
+          endTimeMin: utcStartTimeMin + entry.durationMin,
         },
       });
     }),

@@ -76,8 +76,8 @@ export async function GET(request: Request) {
     },
     secret,
     salt: MOBILE_TOKEN_COOKIE_NAME,
-    // Matches the web demo session lifetime so the mobile app's countdown
-    // reflects the real expiry instead of the 30-day normal-session TTL.
+    // Replaces the normal session's 24-hour TTL so the mobile app tracks the
+    // shorter demo session expiry instead.
     maxAge: DEMO_JWT_TTL_MS / 1000,
   });
 

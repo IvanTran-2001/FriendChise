@@ -24,7 +24,7 @@ dotenv.config({ path: ".env.local", override: true, quiet: true });
 import { PrismaClient, PermissionAction, EntryStatus } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { ROLE_KEYS } from "@/lib/auth/rbac";
-import { localToUTC } from "@/lib/core/date-utils";
+import { makeDateUtils, timeToMin } from "@/lib/demo/provision/helpers";
 
 const dbUrl = process.env.DATABASE_URL!;
 if (!dbUrl) {
@@ -36,40 +36,6 @@ const adapter = new PrismaPg({ connectionString: dbUrl });
 const prisma = new PrismaClient({ adapter });
 
 const ALL_OWNER_PERMISSIONS = Object.values(PermissionAction);
-
-function timeToMin(hhmm: string): number {
-  const [h, m] = hhmm.split(":").map(Number);
-  return h * 60 + m;
-}
-
-function makeDateUtils(tz: string) {
-  const todayLocal = new Date().toLocaleDateString("en-CA", { timeZone: tz });
-  const [ty, tm, td] = todayLocal.split("-").map(Number);
-
-  function localDateForOffset(offsetDays: number): string {
-    const d = new Date(Date.UTC(ty, tm - 1, td + offsetDays));
-    return d.toISOString().slice(0, 10);
-  }
-
-  function utcEntry(
-    offsetDays: number,
-    localHHMM: string,
-    durationMin: number,
-  ) {
-    const { utcDate, utcStartTimeMin } = localToUTC(
-      localDateForOffset(offsetDays),
-      timeToMin(localHHMM),
-      tz,
-    );
-    return {
-      date: utcDate,
-      startTimeMin: utcStartTimeMin,
-      endTimeMin: utcStartTimeMin + durationMin,
-    };
-  }
-
-  return { utcEntry };
-}
 
 // ─── Tasks ───────────────────────────────────────────────────────────────────
 // [name, color, durationMin, description, role_key, preferredStart, minWait, maxWait]

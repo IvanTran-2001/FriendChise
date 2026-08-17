@@ -1,37 +1,9 @@
 import { PermissionAction } from "@prisma/client";
-import { localToUTC } from "@/lib/core/date-utils";
-
-export function timeToMin(hhmm: string): number {
-  const [h, m] = hhmm.split(":").map(Number);
-  return h * 60 + m;
-}
+import { makeDateUtils, timeToMin } from "@/lib/demo/provision/helpers";
 
 export const ALL_OWNER_PERMISSIONS = Object.values(PermissionAction);
 
-export function makeDateUtils(tz: string) {
-  const todayLocal = new Date().toLocaleDateString("en-CA", { timeZone: tz });
-  const [ty, tm, td] = todayLocal.split("-").map(Number);
-
-  function localDateForOffset(offsetDays: number): string {
-    const d = new Date(Date.UTC(ty, tm - 1, td + offsetDays));
-    return d.toISOString().slice(0, 10);
-  }
-
-  function utcEntry(offsetDays: number, localHHMM: string, durationMin: number) {
-    const { utcDate, utcStartTimeMin } = localToUTC(
-      localDateForOffset(offsetDays),
-      timeToMin(localHHMM),
-      tz,
-    );
-    return {
-      date: utcDate,
-      startTimeMin: utcStartTimeMin,
-      endTimeMin: utcStartTimeMin + durationMin,
-    };
-  }
-
-  return { utcEntry };
-}
+export { makeDateUtils, timeToMin };
 
 export function getMondayUTC(offsetWeeks = 0): Date {
   const now = new Date();

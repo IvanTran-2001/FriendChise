@@ -36,7 +36,7 @@ Most state changes do **not** go through `app/api`. Instead:
 3. The service performs the actual database work (often in a transaction), writes an audit log entry where relevant, and returns a typed result.
 4. The action calls `revalidatePath`/redirects as needed for the UI.
 
-`app/api` is reserved for cases a server action cannot cover: mobile authentication, bearer-token-scoped identity endpoints, lazy-loading helpers (pagination, roster weeks, memberships), image and storage URL helpers, and account management.
+`app/api` is reserved for cases a server action cannot cover: mobile authentication, bearer-token-scoped identity endpoints, org-scoped task routes (`/api/orgs/[orgId]/tasks/*`), mobile tool routes (`/api/orgs/[orgId]/tools/scan-to-task/*`), lazy-loading helpers (pagination, roster weeks, memberships), image and storage URL helpers, and account management.
 
 ## Authorization
 
