@@ -3,6 +3,7 @@ name: 🟢 Mobile Good Issue
 about: Contributor-friendly mobile task with setup notes, requirements, and submission checklist
 title: "🟢 [Mobile Good Issue]"
 labels: good first issue, enhancement, help wanted, Beginner Friendly, UI, mobile
+---
 
 # 🟢 Mobile Good Issue
 **Difficulty:** Beginner
