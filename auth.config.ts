@@ -49,7 +49,14 @@ export const authConfig: NextAuthConfig = {
       }
       return true;
     },
-    async signIn({ user }) {
+    async signIn({ user, account, profile }) {
+      // TEMP diagnostic logging — remove once the account-mixup bug is found.
+      console.log("[auth] signIn callback", {
+        provider: account?.provider,
+        providerAccountId: account?.providerAccountId,
+        userEmail: user.email,
+        profileEmail: (profile as { email?: string } | undefined)?.email,
+      });
       // Normalize email (trim + lowercase) before PrismaAdapter persists it
       // This ensures case-insensitive lookups work reliably
       if (user.email) {
