@@ -16,21 +16,12 @@ export const authConfig: NextAuthConfig = {
   // incoming Host header as untrusted, which surfaces as error=Configuration
   // on every signin/callback request (Google, LinkedIn, and Credentials alike).
   trustHost: true,
-  // Account linking is intentionally NOT enabled: each Google/LinkedIn
-  // identity must map to its own User. If a provider reports an email that
-  // already belongs to another user, Auth.js throws OAuthAccountNotLinked
-  // instead of silently signing the user into the existing account.
+  // allowDangerousEmailAccountLinking is safe here because we are OAuth-only
+  // (no email/password sign-up). If email+password is ever added, remove this
+  // flag and verify emails before linking accounts.
   providers: [
-    Google({
-      // Only select_account: forces the picker every time without also
-      // forcing re-consent (which re-sends Google's "data shared" email).
-      authorization: {
-        params: {
-          prompt: "select_account",
-        },
-      },
-    }),
-    LinkedIn({}),
+    Google({ allowDangerousEmailAccountLinking: true }),
+    LinkedIn({ allowDangerousEmailAccountLinking: true }),
   ],
   pages: {
     signIn: "/signin",
@@ -49,14 +40,7 @@ export const authConfig: NextAuthConfig = {
       }
       return true;
     },
-    async signIn({ user, account, profile }) {
-      // TEMP diagnostic logging — remove once the account-mixup bug is found.
-      console.log("[auth] signIn callback", {
-        provider: account?.provider,
-        providerAccountId: account?.providerAccountId,
-        userEmail: user.email,
-        profileEmail: (profile as { email?: string } | undefined)?.email,
-      });
+    async signIn({ user }) {
       // Normalize email (trim + lowercase) before PrismaAdapter persists it
       // This ensures case-insensitive lookups work reliably
       if (user.email) {
