@@ -47,6 +47,11 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/signin?hint=account_required", request.url));
   }
 
+  const expiresAt = Date.parse(session.expires);
+  if (!Number.isFinite(expiresAt)) {
+    return NextResponse.json({ error: "Invalid session expiry" }, { status: 500 });
+  }
+
   const secret = process.env.AUTH_SECRET;
   if (!secret) {
     return NextResponse.json({ error: "AUTH_SECRET not set" }, { status: 500 });
@@ -66,6 +71,7 @@ export async function GET(request: Request) {
 
   const redirectUrl = new URL(callbackUrl, request.url);
   redirectUrl.searchParams.set("token", token);
+  redirectUrl.searchParams.set("expiresAt", String(expiresAt));
 
   return NextResponse.redirect(redirectUrl);
 }
