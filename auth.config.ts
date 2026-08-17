@@ -22,9 +22,11 @@ export const authConfig: NextAuthConfig = {
   // instead of silently signing the user into the existing account.
   providers: [
     Google({
+      // Only select_account: forces the picker every time without also
+      // forcing re-consent (which re-sends Google's "data shared" email).
       authorization: {
         params: {
-          prompt: "select_account consent",
+          prompt: "select_account",
         },
       },
     }),
