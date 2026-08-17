@@ -1,4 +1,3 @@
-- **Before re-running `pnpm seed`**: it clears the current `SEED_NAMESPACE`, so use a disposable namespace for smoke tests. If you need to clean up afterward, run [`pnpm seed:clean`](/doc/getting-started/migrations).
 ---
 title: Smoke Test
 description: A quick manual verification checklist after setup

@@ -1,4 +1,6 @@
 -- Normalize duplicate task names deterministically before enforcing the unique key.
+LOCK TABLE "Task" IN EXCLUSIVE MODE;
+
 DO $$
 DECLARE
 	task_row RECORD;

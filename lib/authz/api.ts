@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { PermissionAction } from "@prisma/client";
-import { auth } from "@/auth";
 import { headers } from "next/headers";
 import { decode } from "next-auth/jwt";
 import { log } from "@/lib/platform/observability";
 import { prisma } from "@/lib/platform/prisma";
 import {
   getAuthUser,
+  getSessionUser,
   getOrgMembership,
   isOrgOwner,
   memberHasPermission,
@@ -35,14 +35,12 @@ const permissionDenied = () =>
 
 /** Requires the caller to be signed in (any authenticated user). */
 export async function requireUser() {
-  const session = await auth();
-  const sessionUserId = session?.user?.id as string | undefined;
-  const sessionUserEmail = (session?.user?.email as string | undefined) ?? null;
-  if (sessionUserId) {
+  const sessionUser = await getSessionUser();
+  if (sessionUser) {
     return {
       ok: true as const,
-      userId: sessionUserId,
-      userEmail: sessionUserEmail,
+      userId: sessionUser.id,
+      userEmail: sessionUser.email,
       authMethod: "session" as const,
     };
   }

@@ -51,6 +51,10 @@ export async function GET(request: Request) {
   if (!Number.isFinite(expiresAt)) {
     return NextResponse.json({ error: "Invalid session expiry" }, { status: 500 });
   }
+  const maxAge = Math.floor((expiresAt - Date.now()) / 1000);
+  if (maxAge <= 0) {
+    return NextResponse.json({ error: "Invalid session expiry" }, { status: 500 });
+  }
 
   const secret = process.env.AUTH_SECRET;
   if (!secret) {
@@ -66,7 +70,7 @@ export async function GET(request: Request) {
     },
     secret,
     salt: MOBILE_TOKEN_COOKIE_NAME,
-    maxAge: 60 * 60 * 24 * 30,
+    maxAge,
   });
 
   const redirectUrl = new URL(callbackUrl, request.url);

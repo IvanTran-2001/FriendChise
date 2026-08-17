@@ -203,7 +203,7 @@ Paginated list of menu items with signed image URLs.
 The scan-to-task workflow is now available through mobile-facing REST endpoints:
 
 - `POST /api/orgs/[orgId]/tools/scan-to-task/upload-url` — `MANAGE_TASKS`, accepts `{ fileName, mimeType }`, returns `{ signedUrl, path }`, and reports `400`, `403`, or `500` when signing fails.
-- `POST /api/orgs/[orgId]/tools/scan-to-task` — `MANAGE_TASKS`, accepts `{ sources, instruction? }`, returns `{ results }`, and reports `400`, `401`, `403`, `429`, or `500` on scan failure. Demo-limit responses return `{ "error": "Sign up to continue using this feature." }`.
+- `POST /api/orgs/[orgId]/tools/scan-to-task` — `MANAGE_TASKS`, accepts `{ sources, instruction? }`, returns `{ results }`, and reports `400`, `401`, `403`, `415`, `429`, or `500` on scan failure. Demo-limit responses return `{ "error": "Sign up to continue using this feature." }`.
 - `POST /api/orgs/[orgId]/tools/scan-to-task/confirm` — `MANAGE_TASKS`, accepts `{ resultId, fileName, title, description, summary, durationMin, peopleRequired, minWaitDays, maxWaitDays }` with optional `color` and `sourceText`, returns `200 { taskId, resultId }`, and can return `400`, `403`, `409`, or `500`.
 - `POST /api/orgs/[orgId]/tools/scan-to-task/clear` — `MANAGE_TASKS`, accepts `{ resultId }`, returns `200 { ok: true }` when the scan result is cleared, and can return `400`, `403`, `404`, or `500` if the payload is invalid, the caller lacks access, the result is missing, or the server errors.
 

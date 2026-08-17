@@ -1,10 +1,10 @@
 ---
 title: API Route Reference
-description: Complete inventory of all app/api/* routes, methods, and auth requirements
+description: Complete public inventory of app/api routes, methods, and auth requirements
 order: 18.5
 ---
 
-Complete list of every HTTP route in `app/api`. For full request/response documentation, see the linked endpoint pages.
+Complete public inventory of HTTP routes in `app/api`. Internal admin routes are excluded. For full request/response documentation, see the linked endpoint pages.
 
 ## Mobile authentication
 

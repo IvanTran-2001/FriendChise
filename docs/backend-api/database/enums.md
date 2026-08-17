@@ -46,7 +46,7 @@ order: 12
 
 ## SectionScope
 
-`ORG` (org-local section) and `GLOBAL` (shared across orgs)
+`ORG` (stored per organization; copied when a task is inherited) and `GLOBAL` (stored per organization; copied when a task is inherited)
 
 ## ListDisplayType
 
