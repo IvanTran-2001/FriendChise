@@ -15,6 +15,8 @@ The admin area is split into an overview page plus dedicated growth, feedback, a
 
 Outside development, access is controlled by the `AdminUser` table. In `NODE_ENV=development`, any signed-in user can reach the admin area without an `AdminUser` row.
 
+Warning: `NODE_ENV=development` bypasses the `AdminUser` gate for any signed-in user, so deployed environments must use a non-development `NODE_ENV` value.
+
 To grant admin access in non-development environments, insert a row:
 
 ```sql
