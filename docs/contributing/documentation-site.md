@@ -20,7 +20,7 @@ The docs section (`/doc/*`) is its own small system: a markdown content tree, a 
 
 ## Components
 
-- `DocNavbar` — server component; fetches the nav tree once and renders the docs header, the mobile nav drawer trigger, and the search trigger.
+- `DocLayout` fetches the navTree and passes it to `DocNavbar`, and `DocNavbar` renders the docs header, the mobile nav drawer trigger, and the search trigger.
 - `DocSidebarTree` — the left navigation tree (desktop sidebar and inside the mobile drawer). Expands/collapses folders, auto-opens the path to the active page, and includes an inline search box.
 - `DocSearchDialog` — a `⌘K`/`Ctrl+K` (or `/`) command-palette style dialog for searching from anywhere on the docs site, built on the shared `Dialog` primitive.
 - `DocRightToc` — the "on this page" heading list, driven by `extractDocHeadings`.
