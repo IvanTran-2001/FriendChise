@@ -1,7 +1,7 @@
 ---
 title: Roadmap
 description: Product phases and release notes
-order: 37
+order: 11
 ---
 
 Milestone hub for FriendChise. Keep each release on its own page.

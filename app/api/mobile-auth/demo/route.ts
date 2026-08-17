@@ -1,7 +1,7 @@
 import { encode } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/platform/prisma";
-import { DemoProvisionError, prepareDemoSession } from "@/lib/demo";
+import { DEMO_JWT_TTL_MS, DemoProvisionError, prepareDemoSession } from "@/lib/demo";
 
 const MOBILE_TOKEN_COOKIE_NAME = "friendchise.mobile-session-token";
 
@@ -76,12 +76,18 @@ export async function GET(request: Request) {
     },
     secret,
     salt: MOBILE_TOKEN_COOKIE_NAME,
-    maxAge: 60 * 60 * 24,
+    // Replaces the normal session's 24-hour TTL so the mobile app tracks the
+    // shorter demo session expiry instead.
+    maxAge: DEMO_JWT_TTL_MS / 1000,
   });
 
   const redirectUrl = new URL(callbackUrl, request.url);
   redirectUrl.searchParams.set("token", token);
   redirectUrl.searchParams.set("orgId", session.orgId);
+  // The mobile token is an encrypted next-auth JWE, so the client can't read
+  // its exp/email claims itself — pass demo state explicitly instead.
+  redirectUrl.searchParams.set("isDemo", "1");
+  redirectUrl.searchParams.set("expiresAt", String(Date.now() + DEMO_JWT_TTL_MS));
 
   return NextResponse.redirect(redirectUrl);
 }

@@ -211,21 +211,61 @@ export async function readStorageFile(
 }
 
 /**
- * Deletes a file from storage. Silently ignores errors so callers
- * don't need to guard against stale paths.
+ * Deletes a file from storage.
  */
-export async function deleteStorageFile(storagePath: string): Promise<void> {
+export async function deleteStorageFile(
+	storagePath: string,
+): Promise<{ ok: true; deletedObjects: Array<{ name?: string }> } | { ok: false; error: string }> {
 	const { url, key } = getConfig();
-	await fetch(`${url}/storage/v1/object/${BUCKET}`, {
-		method: "DELETE",
-		headers: {
-			Authorization: `Bearer ${key}`,
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({ prefixes: [storagePath] }),
-	}).catch(() => {
-		/* silently ignore */
-	});
+	const timeout = createFetchTimeoutSignal(15_000);
+	try {
+		const res = await fetch(`${url}/storage/v1/object/${BUCKET}`, {
+			method: "DELETE",
+			headers: {
+				Authorization: `Bearer ${key}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ prefixes: [storagePath] }),
+			signal: timeout.signal,
+		});
+		if (!res.ok) {
+			const body = await res.text().catch(() => res.statusText);
+			return { ok: false, error: `Storage delete error: ${body}` };
+		}
+
+		const deletedObjects: unknown = await res.json().catch(() => null);
+		if (!Array.isArray(deletedObjects)) {
+			return { ok: false, error: "Storage delete error: missing deleted object record." };
+		}
+
+		if (deletedObjects.length === 0) {
+			return { ok: true, deletedObjects: [] };
+		}
+
+		const firstRecord = deletedObjects[0] as { name?: unknown } | null;
+		if (!firstRecord || typeof firstRecord.name !== "string" || !firstRecord.name.trim()) {
+			return { ok: false, error: "Storage delete error: missing deleted object name." };
+		}
+
+		return { ok: true, deletedObjects: deletedObjects as Array<{ name?: string }> };
+	} catch (error) {
+		return { ok: false, error: error instanceof Error ? error.message : "Storage delete error" };
+	} finally {
+		timeout.cleanup?.();
+	}
+}
+
+function createFetchTimeoutSignal(timeoutMs: number): { signal: AbortSignal; cleanup?: () => void } {
+	if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+		return { signal: AbortSignal.timeout(timeoutMs) };
+	}
+
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+	return {
+		signal: controller.signal,
+		cleanup: () => clearTimeout(timeoutId),
+	};
 }
 
 /**
@@ -238,18 +278,17 @@ export async function moveStorageFile(
 	const copyResult = await copyStorageFile(sourcePath, destinationPath);
 	if (!copyResult.ok) return copyResult;
 
-	const { url, key } = getConfig();
-	const deleteRes = await fetch(`${url}/storage/v1/object/${BUCKET}`, {
-		method: "DELETE",
-		headers: {
-			Authorization: `Bearer ${key}`,
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({ prefixes: [sourcePath] }),
-	});
-	if (!deleteRes.ok) {
-		const body = await deleteRes.text().catch(() => deleteRes.statusText);
-		return { ok: false, error: `Storage move error: ${body}` };
+	const deleteResult = await deleteStorageFile(sourcePath);
+	if (!deleteResult.ok) {
+		return { ok: false, error: `Storage move error: ${deleteResult.error}` };
+	}
+	if (deleteResult.deletedObjects.length === 0) {
+		return { ok: true };
+	}
+
+	const firstDeletedName = deleteResult.deletedObjects[0]?.name;
+	if (typeof firstDeletedName !== "string" || !firstDeletedName.trim() || firstDeletedName !== sourcePath) {
+		return { ok: false, error: "Storage move error: unexpected deleted object name." };
 	}
 
 	return { ok: true };

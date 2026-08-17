@@ -47,6 +47,15 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/signin?hint=account_required", request.url));
   }
 
+  const expiresAt = Date.parse(session.expires);
+  if (!Number.isFinite(expiresAt)) {
+    return NextResponse.json({ error: "Invalid session expiry" }, { status: 500 });
+  }
+  const maxAge = Math.floor((expiresAt - Date.now()) / 1000);
+  if (maxAge <= 0) {
+    return NextResponse.json({ error: "Invalid session expiry" }, { status: 500 });
+  }
+
   const secret = process.env.AUTH_SECRET;
   if (!secret) {
     return NextResponse.json({ error: "AUTH_SECRET not set" }, { status: 500 });
@@ -61,11 +70,12 @@ export async function GET(request: Request) {
     },
     secret,
     salt: MOBILE_TOKEN_COOKIE_NAME,
-    maxAge: 60 * 60 * 24 * 30,
+    maxAge,
   });
 
   const redirectUrl = new URL(callbackUrl, request.url);
   redirectUrl.searchParams.set("token", token);
+  redirectUrl.searchParams.set("expiresAt", String(expiresAt));
 
   return NextResponse.redirect(redirectUrl);
 }

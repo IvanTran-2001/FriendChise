@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import { PermissionAction } from "@prisma/client";
+import { headers } from "next/headers";
+import { decode } from "next-auth/jwt";
 import { log } from "@/lib/platform/observability";
+import { prisma } from "@/lib/platform/prisma";
 import {
   getAuthUser,
+  getSessionUser,
   getOrgMembership,
   isOrgOwner,
   memberHasPermission,
 } from "./_shared";
+
+const MOBILE_TOKEN_COOKIE_NAME = "friendchise.mobile-session-token";
 
 /**
  * Auth guard helpers for API route handlers.
@@ -29,9 +35,48 @@ const permissionDenied = () =>
 
 /** Requires the caller to be signed in (any authenticated user). */
 export async function requireUser() {
-  const user = await getAuthUser();
+  const sessionUser = await getSessionUser();
+  if (sessionUser) {
+    return {
+      ok: true as const,
+      userId: sessionUser.id,
+      userEmail: sessionUser.email,
+      authMethod: "session" as const,
+    };
+  }
+
+  const authorization = (await headers()).get("authorization");
+  if (!authorization?.startsWith("Bearer ")) return { ok: false as const, response: unauthorized() };
+
+  const rawToken = authorization.slice(7);
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) return { ok: false as const, response: unauthorized() };
+
+  let decoded;
+  try {
+    decoded = await decode({
+      token: rawToken,
+      secret,
+      salt: MOBILE_TOKEN_COOKIE_NAME,
+    });
+  } catch {
+    return { ok: false as const, response: unauthorized() };
+  }
+
+  if (!decoded?.sub) return { ok: false as const, response: unauthorized() };
+
+  const user = await prisma.user.findUnique({
+    where: { id: decoded.sub },
+    select: { id: true },
+  });
   if (!user) return { ok: false as const, response: unauthorized() };
-  return { ok: true as const, userId: user.id, userEmail: user.email };
+
+  return {
+    ok: true as const,
+    userId: user.id,
+    userEmail: (decoded.email as string | undefined) ?? null,
+    authMethod: "bearer" as const,
+  };
 }
 
 /** Requires the caller to be the owner of the given org. */

@@ -10,6 +10,13 @@ export async function DELETE(request: Request) {
   const authz = await requireUser();
   if (!authz.ok) return authz.response;
 
+  if (authz.authMethod !== "bearer") {
+    const origin = request.headers.get("origin");
+    if (!origin || origin !== new URL(request.url).origin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   let body: DeleteAccountBody = {};
   try {
     const parsed: unknown = await request.json();

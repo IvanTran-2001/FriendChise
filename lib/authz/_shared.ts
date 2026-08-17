@@ -7,15 +7,30 @@ import { PermissionAction } from "@prisma/client";
 const MOBILE_TOKEN_COOKIE_NAME = "friendchise.mobile-session-token";
 
 /** Returns the authenticated user's id and email, or null if not signed in. */
-export async function getAuthUser(): Promise<{
+export async function getSessionUser(): Promise<{
   id: string;
   email: string | null;
 } | null> {
   const session = await auth();
-  const id = session?.user?.id as string | undefined;
-  const email = (session?.user?.email as string | undefined) ?? null;
+  const sessionUserId = session?.user?.id as string | undefined;
+  if (!sessionUserId) return null;
 
-  if (id) return { id, email };
+  const user = await prisma.user.findUnique({
+    where: { id: sessionUserId },
+    select: { id: true, email: true },
+  });
+  if (!user) return null;
+
+  return { id: user.id, email: user.email };
+}
+
+/** Returns the authenticated user's id and email, or null if not signed in. */
+export async function getAuthUser(): Promise<{
+  id: string;
+  email: string | null;
+} | null> {
+  const sessionUser = await getSessionUser();
+  if (sessionUser) return sessionUser;
 
   const authorization = (await headers()).get("authorization");
   if (!authorization?.startsWith("Bearer ")) return null;

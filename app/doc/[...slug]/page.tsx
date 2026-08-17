@@ -3,17 +3,13 @@ import { notFound } from "next/navigation";
 import { isValidElement, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { DocNavbar } from "@/app/doc/_components/doc-navbar";
 import { DocCodeBlock } from "@/app/doc/_components/doc-code-block";
 import { DocRightToc } from "@/app/doc/_components/doc-right-toc";
-import { DocSidebarScrollFrame } from "@/app/doc/_components/doc-sidebar-scroll-frame";
-import { DocSidebarTree } from "@/app/doc/_components/doc-sidebar-tree";
 import {
   extractDocHeadings,
   getDocBySlug,
   getDocMarkdown,
   getDocNavItems,
-  getDocNavTree,
   slugifyHeading,
 } from "@/lib/docs";
 
@@ -67,31 +63,18 @@ export default async function DocDetailsPage({ params }: DocPageProps) {
 
   const { doc, markdown } = result;
   const headings = extractDocHeadings(markdown);
-  const navTree = await getDocNavTree();
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden">
-      <DocNavbar />
-      <main className="mx-auto flex w-full max-w-330 flex-1 min-h-0 px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid min-h-0 flex-1 gap-8 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)_220px]">
-          <aside className="min-h-0 min-w-0">
-            <DocSidebarScrollFrame>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                Documentation
-              </p>
-              <DocSidebarTree tree={navTree} activeSlug={slug} />
-            </DocSidebarScrollFrame>
-          </aside>
-
-          <article className="min-h-0 min-w-0 overflow-y-auto rounded-2xl border border-border/70 bg-card/90 p-5 shadow-sm wrap-break-word sm:p-8">
-            <header className="mb-6 border-b border-border/70 pb-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+    <>
+      <article className="min-h-0 min-w-0 overflow-y-auto rounded-2xl border border-border/70 bg-card/90 p-4 text-[14px] leading-6 shadow-sm wrap-break-word sm:p-6 sm:text-[15px] lg:p-8 lg:text-[16px]">
+            <header className="mb-5 border-b border-border/70 pb-4 sm:mb-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground sm:text-xs">
                 FriendChise Docs
               </p>
-              <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+              <h1 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl lg:text-3xl">
                 {doc.title}
               </h1>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-[15px]">
                 {doc.description}
               </p>
             </header>
@@ -100,7 +83,7 @@ export default async function DocDetailsPage({ params }: DocPageProps) {
               remarkPlugins={[remarkGfm]}
               components={{
                 h1: ({ children }) => (
-                  <h1 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                  <h1 className="mb-4 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                     {children}
                   </h1>
                 ),
@@ -109,7 +92,7 @@ export default async function DocDetailsPage({ params }: DocPageProps) {
                   return (
                     <h2
                       id={id}
-                      className="mt-10 mb-4 scroll-mt-20 border-b border-border/70 pb-2 text-2xl font-semibold tracking-tight text-foreground"
+                      className="mt-9 mb-3 scroll-mt-20 border-b border-border/70 pb-2 text-xl font-semibold tracking-tight text-foreground sm:mt-10 sm:mb-4 sm:text-2xl"
                     >
                       {children}
                     </h2>
@@ -120,29 +103,29 @@ export default async function DocDetailsPage({ params }: DocPageProps) {
                   return (
                     <h3
                       id={id}
-                      className="mt-8 mb-3 scroll-mt-20 text-xl font-semibold text-foreground"
+                      className="mt-7 mb-2 scroll-mt-20 text-lg font-semibold text-foreground sm:mt-8 sm:mb-3 sm:text-xl"
                     >
                       {children}
                     </h3>
                   );
                 },
                 p: ({ children }) => (
-                  <p className="mb-4 wrap-break-word leading-7 text-foreground/95">
+                  <p className="mb-3 wrap-break-word leading-6 text-foreground/95 sm:mb-4 sm:leading-7">
                     {children}
                   </p>
                 ),
                 ul: ({ children }) => (
-                  <ul className="mb-4 list-disc space-y-1 pl-5 text-foreground/95">
+                  <ul className="mb-3 list-disc space-y-1 pl-5 text-foreground/95 sm:mb-4">
                     {children}
                   </ul>
                 ),
                 ol: ({ children }) => (
-                  <ol className="mb-4 list-decimal space-y-1 pl-5 text-foreground/95">
+                  <ol className="mb-3 list-decimal space-y-1 pl-5 text-foreground/95 sm:mb-4">
                     {children}
                   </ol>
                 ),
                 li: ({ children }) => (
-                  <li className="wrap-break-word leading-7">{children}</li>
+                  <li className="wrap-break-word leading-6 sm:leading-7">{children}</li>
                 ),
                 a: ({ href = "", children }) => {
                   const isExternal = /^(https?:|mailto:)/i.test(href);
@@ -165,7 +148,7 @@ export default async function DocDetailsPage({ params }: DocPageProps) {
                   }
 
                   return (
-                    <code className="break-all rounded bg-muted px-1.5 py-0.5 text-sm">
+                    <code className="break-all rounded bg-muted px-1.5 py-0.5 text-[13px] sm:text-sm">
                       {children}
                     </code>
                   );
@@ -179,7 +162,7 @@ export default async function DocDetailsPage({ params }: DocPageProps) {
                 },
                 table: ({ children }) => (
                   <div className="mb-6 overflow-x-auto">
-                    <table className="w-full min-w-180 border-collapse border border-border/70 text-sm">
+                    <table className="w-full min-w-180 border-collapse border border-border/70 text-[13px] sm:text-sm">
                       {children}
                     </table>
                   </div>
@@ -195,7 +178,7 @@ export default async function DocDetailsPage({ params }: DocPageProps) {
                   </td>
                 ),
                 blockquote: ({ children }) => (
-                  <blockquote className="mb-4 border-l-4 border-primary/50 bg-muted/30 px-4 py-2 text-foreground/90">
+                  <blockquote className="mb-3 border-l-4 border-primary/50 bg-muted/30 px-4 py-2 text-foreground/90 sm:mb-4">
                     {children}
                   </blockquote>
                 ),
@@ -215,16 +198,14 @@ export default async function DocDetailsPage({ params }: DocPageProps) {
             </ReactMarkdown>
           </article>
 
-          <aside className="hidden min-h-0 min-w-0 xl:block">
-            <div className="h-full overflow-y-auto rounded-xl border border-border/70 bg-card/80 p-4 shadow-sm">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                On this page
-              </p>
-              <DocRightToc headings={headings} />
-            </div>
-          </aside>
+      <aside className="hidden min-h-0 min-w-0 xl:block">
+        <div className="h-full overflow-y-auto rounded-xl border border-border/70 bg-card/80 p-4 shadow-sm">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            On this page
+          </p>
+          <DocRightToc headings={headings} />
         </div>
-      </main>
-    </div>
+      </aside>
+    </>
   );
 }

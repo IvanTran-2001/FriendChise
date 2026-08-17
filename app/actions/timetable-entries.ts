@@ -28,7 +28,8 @@ import type { WeekTimetableInstance } from "@/lib/services/timetable-entries";
 /**
  * Creates a new live timetable entry from a task.
  * Snapshots name/color/description from the task at creation time.
- * `endTimeMin` is automatically set to `startTimeMin + task.durationMin`, capped at 1440 (midnight).
+ * `endTimeMin` is stored as the absolute UTC minute offset from the entry's
+ * UTC day start, so it can exceed 1440 when the entry crosses UTC midnight.
  */
 export async function createTimetableEntryAction(
   orgId: string,
@@ -71,23 +72,15 @@ export async function createTimetableEntryAction(
       | "DONE"
       | "SKIPPED";
     const durationMinutes = result.data.durationMin ?? 60;
-
-    // Compute actual ISO timestamps from date string and minute offsets
-    const startHours = Math.floor(resultStartTimeMin / 60);
-    const startMinutes = resultStartTimeMin % 60;
-    const startTimeStr = `${String(startHours).padStart(2, "0")}:${String(startMinutes).padStart(2, "0")}:00`;
+    const resultDate = result.data.date ?? new Date(`${resultDateStr}T00:00:00.000Z`);
 
     const endTimeMin =
       result.data.endTimeMin ?? resultStartTimeMin + durationMinutes;
-    const endHours = Math.floor(endTimeMin / 60);
-    const endMinutes = endTimeMin % 60;
-    const endTimeStr = `${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}:00`;
-
     const scheduledStartAt = new Date(
-      `${resultDateStr}T${startTimeStr}`,
+      resultDate.getTime() + resultStartTimeMin * 60_000,
     ).toISOString();
     const scheduledEndAt = new Date(
-      `${resultDateStr}T${endTimeStr}`,
+      resultDate.getTime() + endTimeMin * 60_000,
     ).toISOString();
 
     const fallback: WeekTimetableInstance = {

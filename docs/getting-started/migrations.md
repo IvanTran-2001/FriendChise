@@ -1,0 +1,35 @@
+---
+title: Migrations and Seeding
+description: Prisma migration and seed workflow for local and production environments
+order: 7
+---
+
+## Prisma workflow
+
+```bash
+# Create and apply a new migration to developer database
+pnpm prisma migrate dev --name my_migration_name
+
+# Regenerate the Prisma client after schema changes
+pnpm prisma generate
+
+# Apply pending migrations to the production database
+pnpm migrate:prod
+
+# Seed the database
+pnpm seed
+
+# Remove just your namespaced seed data from the shared dev database
+pnpm seed:clean
+```
+
+## Important safety notes
+
+- Before using `pnpm prisma migrate resolve --applied 20260816000000_add_task_name_ci_unique`, verify every missing migration change is already present in production, including columns, indexes, constraints, and data backfills. Then run `pnpm migrate:prod` so any later pending migrations still apply.
+
+## Adding a new model
+
+1. Add the model to `prisma/schema.prisma`.
+2. Create the migration with `pnpm prisma migrate dev --name my_migration_name`.
+3. CI validates the migration history and schema against a disposable database, and it does not deploy to production.
+4. If production already has the table, verify the missing schema and data changes first, resolve the migration as applied, and then run `pnpm migrate:prod` to deploy the production migration.

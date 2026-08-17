@@ -37,7 +37,7 @@ docs/
 	overview/
 		index.md
 		using-the-docs.md
-	architecture/
+	backend-api/
 		index.md
 		api.md
 		operations.md
@@ -53,10 +53,14 @@ docs/
 
 ## Where content goes
 
-- Overview pages are for reader-facing explanations.
-- Architecture pages are for implementation details.
-- Database pages are for schema information.
-- Contributing pages are for contributor workflow.
+Each top-level folder in `docs/` is one section in the left nav: [Overview](/doc/overview), [Getting Started](/doc/getting-started), [Mobile App](/doc/mobile-app), [Backend/API](/doc/backend-api), [Authentication](/doc/authentication), [Features](/doc/features), [Task System](/doc/task-system), [Deployment](/doc/deployment), [Environment Variables](/doc/environment-variables), [App Store Review Notes](/doc/app-store-review), [Roadmap](/doc/roadmap), [Contributing](/doc/contributing), and [Troubleshooting](/doc/troubleshooting).
+
+- Overview pages are for reader-facing explanations of what FriendChise is and who it's for.
+- Getting Started pages are for setting up locally and getting oriented in the codebase.
+- Backend/API and Authentication pages are for server-side implementation details, including the database schema.
+- Features and Task System pages are for product-facing capabilities and how they're built.
+- Contributing pages are for contributor workflow and internal architecture notes.
+- If a page doesn't clearly fit an existing section, mark unclear or missing details with a `## TODO` list at the bottom rather than guessing.
 
 ## Rule of thumb
 
