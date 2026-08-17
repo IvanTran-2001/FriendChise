@@ -217,6 +217,7 @@ export async function deleteStorageFile(
 	storagePath: string,
 ): Promise<{ ok: true; deletedObjects: Array<{ name?: string }> } | { ok: false; error: string }> {
 	const { url, key } = getConfig();
+	const timeout = createFetchTimeoutSignal(15_000);
 	try {
 		const res = await fetch(`${url}/storage/v1/object/${BUCKET}`, {
 			method: "DELETE",
@@ -225,6 +226,7 @@ export async function deleteStorageFile(
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify({ prefixes: [storagePath] }),
+			signal: timeout.signal,
 		});
 		if (!res.ok) {
 			const body = await res.text().catch(() => res.statusText);
@@ -248,7 +250,22 @@ export async function deleteStorageFile(
 		return { ok: true, deletedObjects: deletedObjects as Array<{ name?: string }> };
 	} catch (error) {
 		return { ok: false, error: error instanceof Error ? error.message : "Storage delete error" };
+	} finally {
+		timeout.cleanup?.();
 	}
+}
+
+function createFetchTimeoutSignal(timeoutMs: number): { signal: AbortSignal; cleanup?: () => void } {
+	if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+		return { signal: AbortSignal.timeout(timeoutMs) };
+	}
+
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+	return {
+		signal: controller.signal,
+		cleanup: () => clearTimeout(timeoutId),
+	};
 }
 
 /**

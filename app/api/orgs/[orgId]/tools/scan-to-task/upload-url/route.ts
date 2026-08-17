@@ -33,7 +33,17 @@ export async function POST(
   }
 
   const storagePath = buildTempUploadPath(orgId, parsed.data.fileName, parsed.data.mimeType);
-  const signed = await createSignedUploadUrl(storagePath, MAX_FILE_BYTES);
+  let signed;
+  try {
+    signed = await createSignedUploadUrl(storagePath, MAX_FILE_BYTES);
+  } catch (error) {
+    log.error("Failed to create scan-to-task upload URL", {
+      orgId,
+      storagePath,
+      error,
+    });
+    return NextResponse.json({ error: "Failed to prepare upload." }, { status: 500 });
+  }
   if (!signed.ok) {
     log.error("Failed to create scan-to-task upload URL", {
       orgId,
