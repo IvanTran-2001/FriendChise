@@ -1,17 +1,31 @@
 ---
-name: 📱 Mobile App Issue
-about: Use this only to route mobile-specific work to the mobile repo
+name: 🟢 Mobile Good Issue
+about: Contributor-friendly mobile task with setup notes, requirements, and submission checklist
+title: "🟢 [Mobile Good Issue]"
+labels: good first issue, enhancement, help wanted, Beginner Friendly, UI, mobile
+
+# 🟢 Mobile Good Issue
+**Difficulty:** Beginner
+
+**Skill Level:** Any contributor
+
+This repository tracks the web app. If you need to work on the mobile app, open the issue in [friendchise-mobile-app](https://github.com/IvanTran-2001/friendchise-mobile-app/issues/new/choose) and use the mobile quick start: https://friendchise.app/doc/getting-started/quick-start-mobile-app
+
+To claim this issue, include `I want to take this` anywhere in your comment. If you run into any issues, message here anytime you wish.
+
 ---
 
-## Mobile Repo
+## 📌 Description
+<!-- Briefly describe the mobile task here. -->
 
-This repository tracks the web app. If your issue belongs to the mobile app, please open it in [friendchise-mobile-app](https://github.com/IvanTran-2001/friendchise-mobile-app/issues/new/choose).
+## 🎯 Requirements
 
-## What to include in the mobile repo
+- Follow the task description below.
+- Keep the change small and focused.
+- Match the existing project style and patterns.
 
-- Summary
-- Steps to reproduce
-- Expected behavior
-- Actual behavior
-- Device / OS / app version
-- Screenshots, logs, or recordings
+## ✅ Expected Result
+<!-- What should be true when the issue is done? -->
+
+## 💡 Note
+<!-- Add likely files, links, or extra guidance here. -->
