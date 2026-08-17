@@ -20,7 +20,14 @@ export const authConfig: NextAuthConfig = {
   // (no email/password sign-up). If email+password is ever added, remove this
   // flag and verify emails before linking accounts.
   providers: [
-    Google({ allowDangerousEmailAccountLinking: true }),
+    Google({
+      allowDangerousEmailAccountLinking: true,
+      authorization: {
+        params: {
+          prompt: "select_account consent",
+        },
+      },
+    }),
     LinkedIn({ allowDangerousEmailAccountLinking: true }),
   ],
   pages: {
