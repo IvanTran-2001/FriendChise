@@ -25,6 +25,7 @@ import { PrismaClient, PermissionAction, EntryStatus } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { ROLE_KEYS } from "@/lib/auth/rbac";
 import { makeDateUtils, timeToMin } from "@/lib/demo/provision/helpers";
+import { seedEmail } from "@/lib/demo/seed-namespace";
 
 const dbUrl = process.env.DATABASE_URL!;
 if (!dbUrl) {
@@ -386,9 +387,9 @@ async function main() {
   console.log("→ Upserting users...");
   const [ivan, jordan, casey, riley, alex] = await Promise.all([
     prisma.user.upsert({
-      where: { email: "mystoganx2001@gmail.com" },
+      where: { email: seedEmail("ivan") },
       update: { name: "Ivan" },
-      create: { email: "mystoganx2001@gmail.com", name: "Ivan" },
+      create: { email: seedEmail("ivan"), name: "Ivan" },
     }),
     prisma.user.upsert({
       where: { email: "alt28918@gmail.com" },

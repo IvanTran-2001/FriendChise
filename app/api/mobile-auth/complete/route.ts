@@ -1,6 +1,7 @@
 import { encode } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { authLogPrefix, traceCookiePresence } from "@/lib/platform/auth-trace";
 
 const MOBILE_TOKEN_COOKIE_NAME = "friendchise.mobile-session-token";
 
@@ -33,6 +34,16 @@ function isValidCallbackUrl(callbackUrl: string, requestUrl: string): boolean {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const callbackUrl = searchParams.get("callbackUrl");
+  const attemptId = searchParams.get("attemptId");
+  const logPrefix = authLogPrefix(attemptId, "BACKEND");
+
+    if (process.env.NODE_ENV !== "production") {
+    console.info(`${logPrefix} MOBILE_CALLBACK route start`, {
+      callbackUrl,
+      requestUrl: request.url,
+      cookiesPresent: traceCookiePresence(request),
+    });
+  }
 
   if (!callbackUrl) {
     return NextResponse.json({ error: "callbackUrl required" }, { status: 400 });
@@ -43,7 +54,16 @@ export async function GET(request: Request) {
   }
 
   const session = await auth();
+  if (process.env.NODE_ENV !== "production") {
+    console.info(`${logPrefix} AUTHJS_SESSION`, { user: session?.user?.email ?? null, userId: session?.user?.id ?? null });
+  }
   if (!session?.user?.id) {
+      if (process.env.NODE_ENV !== "production") {
+      console.info(`${logPrefix} REDIRECT -> /signin (no session found)`, {
+        callbackUrl,
+        cookiesPresent: traceCookiePresence(request),
+      });
+    }
     return NextResponse.redirect(new URL("/signin?hint=account_required", request.url));
   }
 
@@ -73,9 +93,24 @@ export async function GET(request: Request) {
     maxAge,
   });
 
+    if (process.env.NODE_ENV !== "production") {
+    console.info(`${logPrefix} issuing mobile session token`, {
+      userId: session.user.id,
+      email: session.user.email ?? null,
+    });
+  }
+
   const redirectUrl = new URL(callbackUrl, request.url);
   redirectUrl.searchParams.set("token", token);
   redirectUrl.searchParams.set("expiresAt", String(expiresAt));
+
+    if (process.env.NODE_ENV !== "production") {
+    console.info(`${logPrefix} REDIRECT -> deep link`, {
+      userId: session.user.id,
+      email: session.user.email ?? null,
+      redirectUrl: redirectUrl.toString(),
+    });
+  }
 
   return NextResponse.redirect(redirectUrl);
 }

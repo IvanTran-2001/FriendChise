@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { signIn } from "@/auth";
+import { auth, signIn, signOut } from "@/auth";
+import { authLogPrefix, traceCookiePresence } from "@/lib/platform/auth-trace";
 
 const ALLOWED_PROVIDERS = new Set(["google", "linkedin"]);
 
@@ -49,10 +50,36 @@ export async function GET(
 
   const { searchParams } = new URL(request.url);
   const callbackUrl = searchParams.get("callbackUrl");
+  const attemptId = searchParams.get("attemptId");
+  const logPrefix = authLogPrefix(attemptId, "BACKEND");
+
+    if (process.env.NODE_ENV !== "production") {
+    console.info(`${logPrefix} OAUTH_START`, {
+      provider,
+      callbackUrl,
+      requestUrl: request.url,
+      cookiesPresent: traceCookiePresence(request),
+    });
+  }
 
   if (!callbackUrl || !isValidCallbackUrl(callbackUrl, request.url)) {
     return NextResponse.json({ error: "Invalid callbackUrl" }, { status: 400 });
   }
 
-  await signIn(provider, { redirectTo: callbackUrl });
+  // The system browser keeps its FriendChise session cookie across app-level
+  // logouts. Without clearing it here, Auth.js sees the old session and treats
+  // this as "already signed in as a different user", throwing
+  // OAuthAccountNotLinked instead of starting a fresh sign-in.
+  if (process.env.NODE_ENV !== "production") {
+    const existing = await auth();
+    console.info(`${logPrefix} WEB_SESSION (before signOut)`, { existingUser: existing?.user?.email ?? null });
+  }
+  await signOut({ redirect: false });
+
+  const authorizationParams = provider === "google" ? { prompt: "select_account" } : undefined;
+
+  if (process.env.NODE_ENV !== "production") {
+    console.info(`${logPrefix} REDIRECT -> google authorize`, { destination: callbackUrl });
+  }
+  await signIn(provider, { redirectTo: callbackUrl }, authorizationParams);
 }

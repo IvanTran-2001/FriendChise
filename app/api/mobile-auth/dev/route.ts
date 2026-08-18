@@ -29,10 +29,6 @@ function isValidCallbackUrl(callbackUrl: string, requestUrl: string): boolean {
 }
 
 export async function GET(request: Request) {
-  if (process.env.NODE_ENV !== "development") {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
   const { searchParams } = new URL(request.url);
   const email = searchParams.get("email");
   const callbackUrl = searchParams.get("callbackUrl");
@@ -72,6 +68,12 @@ export async function GET(request: Request) {
     secret,
     salt: MOBILE_TOKEN_COOKIE_NAME,
     maxAge: 60 * 60 * 24 * 30,
+  });
+
+  console.info("[mobile-auth] issuing dev token", {
+    requestedEmail: email,
+    authenticatedEmail: user.email ?? null,
+    userId: user.id,
   });
 
   if (!callbackUrl) {

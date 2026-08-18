@@ -56,7 +56,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" }, // ← change this
   callbacks: {
     ...authConfig.callbacks,
+    async signIn({ user, account, profile }) {
+      if (process.env.NODE_ENV !== "production" && account?.provider) {
+        log.info("[GOOGLE_CALLBACK][AUTHJS] OAuth sign-in payload", {
+          provider: account.provider,
+          providerAccountId: account.providerAccountId,
+          userId: user.id,
+          userEmail: user.email ?? null,
+          profileEmail: profile && typeof profile === "object" && "email" in profile ? (profile as { email?: string | null }).email ?? null : null,
+          profileName: profile && typeof profile === "object" && "name" in profile ? (profile as { name?: string | null }).name ?? null : null,
+        });
+      }
+
+      return authConfig.callbacks?.signIn?.({ user, account, profile }) ?? true;
+    },
     jwt({ token, account }) {
+      if (process.env.NODE_ENV !== "production") {
+        log.info("[AUTH unknown][BACKEND] JWT_CALLBACK", {
+          sub: token.sub ?? null,
+          email: typeof token.email === "string" ? token.email : null,
+          triggeredByAccount: !!account,
+          provider: account?.provider ?? null,
+        });
+      }
       // On initial demo sign-in, record the issued time so we can enforce a
       // fixed 2-hour expiry (not a rolling one) for demo sessions.
       if (account && typeof token.email === "string" && isDemoEmail(token.email)) {
@@ -79,6 +101,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const demoIssuedAt = (token as Record<string, unknown>).demoIssuedAt;
       if (typeof demoIssuedAt === "number" && typeof token.exp === "number") {
         session.expires = new Date(token.exp * 1000).toISOString() as string & Date;
+      }
+      if (process.env.NODE_ENV !== "production") {
+        log.info("[AUTH unknown][BACKEND] SESSION_CALLBACK", {
+          userId: session.user?.id ?? null,
+          email: session.user?.email ?? null,
+          expires: session.expires,
+        });
       }
       return session;
     },
