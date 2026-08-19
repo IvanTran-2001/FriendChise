@@ -91,9 +91,10 @@ async function migrateDuplicateIvanUser(prisma: SeedPrismaLike, canonicalUserId:
   ] as const;
 
   await Promise.all(
-    directUserIdDelegates.map(({ delegate, fieldName }) =>
-      delegate.updateMany({ where: { [fieldName]: duplicateUserId }, data: { [fieldName]: canonicalUserId } }),
-    ),
+    directUserIdDelegates.map(({ delegate, fieldName }) => {
+      const updateMany = delegate.updateMany as (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => Promise<unknown>;
+      return updateMany({ where: { [fieldName]: duplicateUserId }, data: { [fieldName]: canonicalUserId } });
+    }),
   );
 
   await prisma.invite.updateMany({ where: { invitedById: duplicateUserId }, data: { invitedById: canonicalUserId } });
@@ -146,6 +147,10 @@ export async function reconcileIvanSeedIdentity(
       where: { id: canonicalUser.id },
       data: { email: canonicalEmail, name: "Ivan" },
     });
+  }
+
+  if (!canonicalUser || !legacyUser) {
+    return null;
   }
 
   if (canonicalUser.id !== legacyUser.id) {
