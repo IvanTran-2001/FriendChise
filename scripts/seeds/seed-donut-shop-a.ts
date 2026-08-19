@@ -26,7 +26,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { ROLE_KEYS } from "@/lib/auth/rbac";
 import { makeDateUtils, timeToMin } from "@/lib/demo/provision/helpers";
 import { seedEmail } from "@/lib/demo/seed-namespace";
-import { reconcileIvanSeedIdentity } from "./seed-donut-shop-a-identity";
+import { reconcileIvanSeedIdentityAtomic } from "./seed-donut-shop-a-identity";
 
 const dbUrl = process.env.DATABASE_URL!;
 if (!dbUrl) {
@@ -388,7 +388,7 @@ async function main() {
   console.log("→ Upserting users...");
   const ivanEmail = seedEmail("ivan");
   const ivanLegacyEmail = process.env.SEED_LEGACY_IVAN_EMAIL;
-  const reconciledIvan = ivanLegacyEmail ? await reconcileIvanSeedIdentity(prisma, ivanEmail, ivanLegacyEmail) : null;
+  const reconciledIvan = ivanLegacyEmail ? await reconcileIvanSeedIdentityAtomic(prisma, ivanEmail, ivanLegacyEmail) : null;
   const [ivan, jordan, casey, riley, alex] = await Promise.all([
     reconciledIvan ??
       prisma.user.upsert({

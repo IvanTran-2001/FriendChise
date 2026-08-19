@@ -9,6 +9,7 @@ type ReassignableModel = {
 };
 
 export type SeedPrismaLike = {
+  $transaction<T>(fn: (tx: SeedPrismaLike) => Promise<T>): Promise<T>;
   user: {
     findUnique(args: { where: { email: string } }): Promise<SeedUserRecord | null>;
     update(args: { where: { id: string }; data: { email?: string; name?: string } }): Promise<SeedUserRecord>;
@@ -237,4 +238,12 @@ export async function reconcileIvanSeedIdentity(
     where: { id: canonicalUser.id },
     data: { email: canonicalEmail, name: "Ivan" },
   });
+}
+
+export async function reconcileIvanSeedIdentityAtomic(
+  prisma: SeedPrismaLike,
+  canonicalEmail: string,
+  legacyEmail: string,
+) {
+  return prisma.$transaction((tx) => reconcileIvanSeedIdentity(tx, canonicalEmail, legacyEmail));
 }

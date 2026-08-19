@@ -13,11 +13,7 @@ function isValidCallbackUrl(callbackUrl: string, requestUrl: string): boolean {
     }
 
     const protocol = new URL(callbackUrl).protocol;
-    if (
-      protocol === "friendchise:" ||
-      protocol === "exp:" ||
-      protocol === "exps:"
-    ) {
+    if (protocol === "friendchise:") {
       return true;
     }
 

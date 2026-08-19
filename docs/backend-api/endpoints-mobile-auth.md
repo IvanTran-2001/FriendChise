@@ -40,7 +40,7 @@ Initiates the OAuth flow by calling Auth.js internally. The mobile app opens thi
 
 | Param | Required | Description |
 | --- | --- | --- |
-| `callbackUrl` | Yes | Where to redirect after sign-in. Must be a deep-link (`friendchise://`, `exp://`, `exps://`) or the same origin. |
+| `callbackUrl` | Yes | Where to redirect after sign-in. Must be a `friendchise://` deep-link or the same origin. |
 
 ### Example
 
