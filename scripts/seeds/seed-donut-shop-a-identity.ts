@@ -200,7 +200,7 @@ async function migrateDuplicateIvanUser(prisma: SeedPrismaLike, canonicalUserId:
 }
 
 export async function reconcileIvanSeedIdentity(
-  prisma: any,
+  prisma: SeedPrismaLike,
   canonicalEmail: string,
   legacyEmail: string,
 ) {
