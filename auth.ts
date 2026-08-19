@@ -60,11 +60,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (process.env.NODE_ENV !== "production" && account?.provider) {
         log.info("[GOOGLE_CALLBACK][AUTHJS] OAuth sign-in payload", {
           provider: account.provider,
-          providerAccountId: account.providerAccountId,
-          userId: user.id,
-          userEmail: user.email ?? null,
-          profileEmail: profile && typeof profile === "object" && "email" in profile ? (profile as { email?: string | null }).email ?? null : null,
-          profileName: profile && typeof profile === "object" && "name" in profile ? (profile as { name?: string | null }).name ?? null : null,
+          hasProviderAccountId: !!account.providerAccountId,
+          hasUserId: !!user.id,
+          hasProfileEmail:
+            profile && typeof profile === "object" && "email" in profile
+              ? (profile as { email?: string | null }).email != null
+              : false,
+          hasProfileName:
+            profile && typeof profile === "object" && "name" in profile
+              ? (profile as { name?: string | null }).name != null
+              : false,
         });
       }
 
@@ -73,8 +78,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     jwt({ token, account }) {
       if (process.env.NODE_ENV !== "production") {
         log.info("[AUTH unknown][BACKEND] JWT_CALLBACK", {
-          sub: token.sub ?? null,
-          email: typeof token.email === "string" ? token.email : null,
+          hasSub: token.sub != null,
+          hasEmail: typeof token.email === "string",
           triggeredByAccount: !!account,
           provider: account?.provider ?? null,
         });
@@ -104,8 +109,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       if (process.env.NODE_ENV !== "production") {
         log.info("[AUTH unknown][BACKEND] SESSION_CALLBACK", {
-          userId: session.user?.id ?? null,
-          email: session.user?.email ?? null,
+          hasUser: !!session.user,
+          hasUserId: !!session.user?.id,
+          hasEmail: !!session.user?.email,
           expires: session.expires,
         });
       }
@@ -114,11 +120,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   events: {
     signIn({ user }) {
-      log.info("User signed in", { userId: user.id });
+      log.info("User signed in", { hasUserId: !!user.id, hasUserEmail: !!user.email });
     },
     signOut(payload) {
       if ("token" in payload && payload.token) {
-        log.info("User signed out", { userId: payload.token.sub });
+        log.info("User signed out", { hasToken: true, hasTokenSub: !!payload.token.sub });
       }
     },
   },

@@ -37,10 +37,9 @@ export async function GET(request: Request) {
   const attemptId = searchParams.get("attemptId");
   const logPrefix = authLogPrefix(attemptId, "BACKEND");
 
-    if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV !== "production") {
     console.info(`${logPrefix} MOBILE_CALLBACK route start`, {
-      callbackUrl,
-      requestUrl: request.url,
+      hasCallbackUrl: !!callbackUrl,
       cookiesPresent: traceCookiePresence(request),
     });
   }
@@ -55,12 +54,18 @@ export async function GET(request: Request) {
 
   const session = await auth();
   if (process.env.NODE_ENV !== "production") {
-    console.info(`${logPrefix} AUTHJS_SESSION`, { user: session?.user?.email ?? null, userId: session?.user?.id ?? null });
+    console.info(`${logPrefix} AUTHJS_SESSION`, {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      hasUserId: !!session?.user?.id,
+      hasEmail: !!session?.user?.email,
+      hasExpires: !!session?.expires,
+    });
   }
   if (!session?.user?.id) {
-      if (process.env.NODE_ENV !== "production") {
+    if (process.env.NODE_ENV !== "production") {
       console.info(`${logPrefix} REDIRECT -> /signin (no session found)`, {
-        callbackUrl,
+        hasCallbackUrl: !!callbackUrl,
         cookiesPresent: traceCookiePresence(request),
       });
     }
@@ -93,10 +98,10 @@ export async function GET(request: Request) {
     maxAge,
   });
 
-    if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV !== "production") {
     console.info(`${logPrefix} issuing mobile session token`, {
-      userId: session.user.id,
-      email: session.user.email ?? null,
+      hasUser: !!session.user,
+      hasIssuedToken: !!token,
     });
   }
 
@@ -104,11 +109,10 @@ export async function GET(request: Request) {
   redirectUrl.searchParams.set("token", token);
   redirectUrl.searchParams.set("expiresAt", String(expiresAt));
 
-    if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV !== "production") {
     console.info(`${logPrefix} REDIRECT -> deep link`, {
-      userId: session.user.id,
-      email: session.user.email ?? null,
-      redirectUrl: redirectUrl.toString(),
+      hasUser: !!session.user,
+      hasRedirectUrl: true,
     });
   }
 

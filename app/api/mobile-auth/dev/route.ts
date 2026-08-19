@@ -29,6 +29,11 @@ function isValidCallbackUrl(callbackUrl: string, requestUrl: string): boolean {
 }
 
 export async function GET(request: Request) {
+  const nodeEnv = process.env["NODE_ENV"] ?? "";
+  if (nodeEnv !== "development") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const { searchParams } = new URL(request.url);
   const email = searchParams.get("email");
   const callbackUrl = searchParams.get("callbackUrl");
@@ -71,9 +76,9 @@ export async function GET(request: Request) {
   });
 
   console.info("[mobile-auth] issuing dev token", {
-    requestedEmail: email,
-    authenticatedEmail: user.email ?? null,
-    userId: user.id,
+    requestedEmailPresent: !!email,
+    authenticatedUserPresent: !!user,
+    matchedDevUserPresent: !!devUser,
   });
 
   if (!callbackUrl) {

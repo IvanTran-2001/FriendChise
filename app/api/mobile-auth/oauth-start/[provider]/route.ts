@@ -53,11 +53,10 @@ export async function GET(
   const attemptId = searchParams.get("attemptId");
   const logPrefix = authLogPrefix(attemptId, "BACKEND");
 
-    if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV !== "production") {
     console.info(`${logPrefix} OAUTH_START`, {
       provider,
-      callbackUrl,
-      requestUrl: request.url,
+      hasCallbackUrl: !!callbackUrl,
       cookiesPresent: traceCookiePresence(request),
     });
   }
@@ -72,14 +71,14 @@ export async function GET(
   // OAuthAccountNotLinked instead of starting a fresh sign-in.
   if (process.env.NODE_ENV !== "production") {
     const existing = await auth();
-    console.info(`${logPrefix} WEB_SESSION (before signOut)`, { existingUser: existing?.user?.email ?? null });
+    console.info(`${logPrefix} WEB_SESSION (before signOut)`, { hasExistingSession: !!existing?.user });
   }
   await signOut({ redirect: false });
 
   const authorizationParams = provider === "google" ? { prompt: "select_account" } : undefined;
 
   if (process.env.NODE_ENV !== "production") {
-    console.info(`${logPrefix} REDIRECT -> google authorize`, { destination: callbackUrl });
+    console.info(`${logPrefix} REDIRECT -> google authorize`, { hasCallbackUrl: !!callbackUrl });
   }
   await signIn(provider, { redirectTo: callbackUrl }, authorizationParams);
 }

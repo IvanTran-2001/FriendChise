@@ -17,9 +17,13 @@ const TRACE_COOKIE_NAMES = [
 
 export function traceCookiePresence(request: Request) {
   const header = request.headers.get("cookie") ?? "";
+  const cookiePairs = header
+    .split(";")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
   const present: Record<string, boolean> = {};
   for (const name of TRACE_COOKIE_NAMES) {
-    present[name] = header.includes(`${name}=`);
+    present[name] = cookiePairs.some((entry) => entry === name || entry.startsWith(`${name}=`));
   }
   return present;
 }

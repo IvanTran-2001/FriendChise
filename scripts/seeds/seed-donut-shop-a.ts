@@ -385,11 +385,20 @@ async function main() {
 
   // ── Users ──────────────────────────────────────────────────────────────────
   console.log("→ Upserting users...");
+  const ivanEmail = seedEmail("ivan");
+  const ivanLegacyEmail = "mystoganx2001@gmail.com";
+  const legacyIvan = await prisma.user.findUnique({ where: { email: ivanLegacyEmail } });
+  if (legacyIvan) {
+    await prisma.user.update({
+      where: { id: legacyIvan.id },
+      data: { email: ivanEmail, name: "Ivan" },
+    });
+  }
   const [ivan, jordan, casey, riley, alex] = await Promise.all([
     prisma.user.upsert({
-      where: { email: seedEmail("ivan") },
+      where: { email: ivanEmail },
       update: { name: "Ivan" },
-      create: { email: seedEmail("ivan"), name: "Ivan" },
+      create: { email: ivanEmail, name: "Ivan" },
     }),
     prisma.user.upsert({
       where: { email: "alt28918@gmail.com" },
