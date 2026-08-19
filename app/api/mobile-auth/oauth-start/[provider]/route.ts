@@ -98,8 +98,18 @@ export async function GET(
     // jar with Safari, so a session from a previous mobile login can still be
     // valid here. Clear it up front so every mobile OAuth attempt starts from
     // a clean slate instead of possibly completing as the stale account.
+    // cookies.delete() omits Secure, so the __Secure- prefixed cookie (used in
+    // production over HTTPS) gets silently ignored by the browser per the
+    // cookie-prefix spec — set an expired cookie with matching attributes instead.
     for (const name of SESSION_COOKIE_NAMES) {
-      bootstrapResponse.cookies.delete(name);
+      bootstrapResponse.cookies.set({
+        name,
+        value: "",
+        maxAge: 0,
+        path: "/",
+        secure: name.startsWith("__Secure-"),
+        sameSite: "lax",
+      });
     }
 
     if (shouldLogAuthTrace()) {
