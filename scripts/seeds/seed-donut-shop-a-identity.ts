@@ -14,12 +14,12 @@ export type SeedPrismaLike = {
   demoSession: Pick<PrismaClient["demoSession"], "updateMany">;
   invite: Pick<PrismaClient["invite"], "updateMany">;
   notification: Pick<PrismaClient["notification"], "updateMany">;
-  announcementRead: Pick<PrismaClient["announcementRead"], "updateMany">;
+  announcementRead: Pick<PrismaClient["announcementRead"], "findMany" | "updateMany" | "deleteMany">;
   auditLog: Pick<PrismaClient["auditLog"], "updateMany">;
   feedback: Pick<PrismaClient["feedback"], "updateMany">;
   task: Pick<PrismaClient["task"], "updateMany">;
   taskComment: Pick<PrismaClient["taskComment"], "updateMany">;
-  taskCommentVote: Pick<PrismaClient["taskCommentVote"], "updateMany">;
+  taskCommentVote: Pick<PrismaClient["taskCommentVote"], "findMany" | "updateMany" | "deleteMany">;
   scanTaskResult: Pick<PrismaClient["scanTaskResult"], "updateMany">;
   membership: Pick<PrismaClient["membership"], "findMany" | "findFirst" | "updateMany" | "delete">;
   memberRole: Pick<PrismaClient["memberRole"], "findMany" | "updateMany" | "deleteMany">;
@@ -70,43 +70,6 @@ async function migrateRelationRows<T extends { id: string }>(
   }
 }
 
-async function migrateUniqueUserRows<T extends { id: string }>(
-  delegate: {
-    findMany(args: { where: { userId: string } }): Promise<T[]>;
-    updateMany(args: { where: { id: { in: string[] } }; data: { userId: string } }): Promise<unknown>;
-    deleteMany(args: { where: { id: { in: string[] } } }): Promise<unknown>;
-  },
-  sourceUserId: string,
-  targetUserId: string,
-  naturalKey: (row: T) => string,
-) {
-  const [sourceRows, targetRows] = await Promise.all([
-    delegate.findMany({ where: { userId: sourceUserId } }),
-    delegate.findMany({ where: { userId: targetUserId } }),
-  ]);
-
-  const targetKeys = new Set(targetRows.map(naturalKey));
-  const duplicateIds: string[] = [];
-  const updateIds: string[] = [];
-
-  for (const row of sourceRows) {
-    if (targetKeys.has(naturalKey(row))) {
-      duplicateIds.push(row.id);
-      continue;
-    }
-
-    updateIds.push(row.id);
-  }
-
-  if (updateIds.length > 0) {
-    await delegate.updateMany({ where: { id: { in: updateIds } }, data: { userId: targetUserId } });
-  }
-
-  if (duplicateIds.length > 0) {
-    await delegate.deleteMany({ where: { id: { in: duplicateIds } } });
-  }
-}
-
 async function migrateMembershipRows(prisma: SeedPrismaLike, sourceMembershipId: string, targetMembershipId: string) {
   await migrateRelationRows(prisma.memberRole, sourceMembershipId, targetMembershipId, (row) => row.roleId);
   await migrateRelationRows(prisma.timetableEntryAssignee, sourceMembershipId, targetMembershipId, (row) => row.timetableEntryId);
@@ -116,29 +79,69 @@ async function migrateMembershipRows(prisma: SeedPrismaLike, sourceMembershipId:
 }
 
 async function migrateAnnouncementReadRows(prisma: SeedPrismaLike, sourceUserId: string, targetUserId: string) {
-  await migrateUniqueUserRows(
-    {
-      findMany: (args) => prisma.announcementRead.findMany(args),
-      updateMany: (args) => prisma.announcementRead.updateMany(args),
-      deleteMany: (args) => prisma.announcementRead.deleteMany(args),
-    },
-    sourceUserId,
-    targetUserId,
-    (row) => row.announcementId,
-  );
+  const [sourceRows, targetRows] = await Promise.all([
+    prisma.announcementRead.findMany({ where: { userId: sourceUserId } }),
+    prisma.announcementRead.findMany({ where: { userId: targetUserId } }),
+  ]);
+
+  const targetAnnouncementIds = new Set(targetRows.map((row) => row.announcementId));
+  const duplicateAnnouncementIds: string[] = [];
+  const updateAnnouncementIds: string[] = [];
+
+  for (const row of sourceRows) {
+    if (targetAnnouncementIds.has(row.announcementId)) {
+      duplicateAnnouncementIds.push(row.announcementId);
+      continue;
+    }
+
+    updateAnnouncementIds.push(row.announcementId);
+  }
+
+  if (updateAnnouncementIds.length > 0) {
+    await prisma.announcementRead.updateMany({
+      where: { userId: sourceUserId, announcementId: { in: updateAnnouncementIds } },
+      data: { userId: targetUserId },
+    });
+  }
+
+  if (duplicateAnnouncementIds.length > 0) {
+    await prisma.announcementRead.deleteMany({
+      where: { userId: sourceUserId, announcementId: { in: duplicateAnnouncementIds } },
+    });
+  }
 }
 
 async function migrateTaskCommentVoteRows(prisma: SeedPrismaLike, sourceUserId: string, targetUserId: string) {
-  await migrateUniqueUserRows(
-    {
-      findMany: (args) => prisma.taskCommentVote.findMany(args),
-      updateMany: (args) => prisma.taskCommentVote.updateMany(args),
-      deleteMany: (args) => prisma.taskCommentVote.deleteMany(args),
-    },
-    sourceUserId,
-    targetUserId,
-    (row) => row.commentId,
-  );
+  const [sourceRows, targetRows] = await Promise.all([
+    prisma.taskCommentVote.findMany({ where: { userId: sourceUserId } }),
+    prisma.taskCommentVote.findMany({ where: { userId: targetUserId } }),
+  ]);
+
+  const targetCommentIds = new Set(targetRows.map((row) => row.commentId));
+  const duplicateCommentIds: string[] = [];
+  const updateCommentIds: string[] = [];
+
+  for (const row of sourceRows) {
+    if (targetCommentIds.has(row.commentId)) {
+      duplicateCommentIds.push(row.commentId);
+      continue;
+    }
+
+    updateCommentIds.push(row.commentId);
+  }
+
+  if (updateCommentIds.length > 0) {
+    await prisma.taskCommentVote.updateMany({
+      where: { userId: sourceUserId, commentId: { in: updateCommentIds } },
+      data: { userId: targetUserId },
+    });
+  }
+
+  if (duplicateCommentIds.length > 0) {
+    await prisma.taskCommentVote.deleteMany({
+      where: { userId: sourceUserId, commentId: { in: duplicateCommentIds } },
+    });
+  }
 }
 
 async function migrateDuplicateIvanUser(prisma: SeedPrismaLike, canonicalUserId: string, duplicateUserId: string) {
