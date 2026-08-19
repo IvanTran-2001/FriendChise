@@ -389,6 +389,11 @@ async function main() {
   const ivanEmail = seedEmail("ivan");
   const ivanLegacyEmail = process.env.SEED_LEGACY_IVAN_EMAIL;
   const reconciledIvan = ivanLegacyEmail ? await reconcileIvanSeedIdentityAtomic(prisma, ivanEmail, ivanLegacyEmail) : null;
+  console.log("→ Ivan identity reconciliation", {
+    ran: !!ivanLegacyEmail,
+    mergedFrom: ivanLegacyEmail ?? null,
+    mergedTo: ivanEmail,
+  });
   const [ivan, jordan, casey, riley, alex] = await Promise.all([
     reconciledIvan ??
       prisma.user.upsert({
