@@ -3,6 +3,7 @@ import { auth, signIn, signOut } from "@/auth";
 import { authLogPrefix, traceCookiePresence } from "@/lib/platform/auth-trace";
 
 const ALLOWED_PROVIDERS = new Set(["google", "linkedin"]);
+const OAUTH_START_STATE_COOKIE = "friendchise.oauth-start-state";
 
 function isValidCallbackUrl(callbackUrl: string, requestUrl: string): boolean {
   try {
@@ -30,6 +31,21 @@ function isValidCallbackUrl(callbackUrl: string, requestUrl: string): boolean {
   }
 }
 
+function readCookieValue(request: Request, name: string) {
+  const cookieHeader = request.headers.get("cookie") ?? "";
+  for (const segment of cookieHeader.split(";")) {
+    const trimmed = segment.trim();
+    if (trimmed.startsWith(`${name}=`)) {
+      try {
+        return decodeURIComponent(trimmed.slice(name.length + 1));
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
 /**
  * Mobile-only OAuth entry point.
  *
@@ -51,6 +67,7 @@ export async function GET(
   const { searchParams } = new URL(request.url);
   const callbackUrl = searchParams.get("callbackUrl");
   const attemptId = searchParams.get("attemptId");
+  const state = searchParams.get("state");
   const logPrefix = authLogPrefix(attemptId, "BACKEND");
 
   if (process.env.NODE_ENV !== "production") {
@@ -63,6 +80,37 @@ export async function GET(
 
   if (!callbackUrl || !isValidCallbackUrl(callbackUrl, request.url)) {
     return NextResponse.json({ error: "Invalid callbackUrl" }, { status: 400 });
+  }
+
+  if (!state) {
+    const bootstrapState = crypto.randomUUID();
+    const bootstrapUrl = new URL(request.url);
+    bootstrapUrl.searchParams.set("state", bootstrapState);
+
+    const bootstrapResponse = NextResponse.redirect(bootstrapUrl);
+    bootstrapResponse.cookies.set({
+      name: OAUTH_START_STATE_COOKIE,
+      value: bootstrapState,
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/api/mobile-auth/oauth-start",
+      maxAge: 60,
+    });
+
+    if (process.env.NODE_ENV !== "production") {
+      console.info(`${logPrefix} STATE_BOOTSTRAP`, {
+        provider,
+        hasCallbackUrl: !!callbackUrl,
+      });
+    }
+
+    return bootstrapResponse;
+  }
+
+  const expectedState = readCookieValue(request, OAUTH_START_STATE_COOKIE);
+  if (!expectedState || expectedState !== state) {
+    return NextResponse.json({ error: "Invalid OAuth state" }, { status: 403 });
   }
 
   // The system browser keeps its FriendChise session cookie across app-level
@@ -78,7 +126,7 @@ export async function GET(
   const authorizationParams = provider === "google" ? { prompt: "select_account" } : undefined;
 
   if (process.env.NODE_ENV !== "production") {
-    console.info(`${logPrefix} REDIRECT -> google authorize`, { hasCallbackUrl: !!callbackUrl });
+    console.info(`${logPrefix} REDIRECT -> ${provider} authorize`, { hasCallbackUrl: !!callbackUrl });
   }
   await signIn(provider, { redirectTo: callbackUrl }, authorizationParams);
 }

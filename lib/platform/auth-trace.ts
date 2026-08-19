@@ -15,6 +15,14 @@ const TRACE_COOKIE_NAMES = [
   "__Secure-authjs.state",
 ] as const;
 
+const SAFE_ATTEMPT_ID = /^[a-z0-9-]{1,32}$/;
+
+function normalizeAttemptId(attemptId: string | null) {
+  if (attemptId === null) return "unknown";
+  if (!SAFE_ATTEMPT_ID.test(attemptId)) return "invalid";
+  return attemptId;
+}
+
 export function traceCookiePresence(request: Request) {
   const header = request.headers.get("cookie") ?? "";
   const cookiePairs = header
@@ -29,5 +37,5 @@ export function traceCookiePresence(request: Request) {
 }
 
 export function authLogPrefix(attemptId: string | null, stage: string) {
-  return `[AUTH ${attemptId ?? "unknown"}][${stage}]`;
+  return `[AUTH ${normalizeAttemptId(attemptId)}][${stage}]`;
 }

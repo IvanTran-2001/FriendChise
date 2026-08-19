@@ -26,6 +26,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { ROLE_KEYS } from "@/lib/auth/rbac";
 import { makeDateUtils, timeToMin } from "@/lib/demo/provision/helpers";
 import { seedEmail } from "@/lib/demo/seed-namespace";
+import { reconcileIvanSeedIdentity, type SeedPrismaLike } from "./seed-donut-shop-a-identity";
 
 const dbUrl = process.env.DATABASE_URL!;
 if (!dbUrl) {
@@ -387,19 +388,14 @@ async function main() {
   console.log("→ Upserting users...");
   const ivanEmail = seedEmail("ivan");
   const ivanLegacyEmail = "mystoganx2001@gmail.com";
-  const legacyIvan = await prisma.user.findUnique({ where: { email: ivanLegacyEmail } });
-  if (legacyIvan) {
-    await prisma.user.update({
-      where: { id: legacyIvan.id },
-      data: { email: ivanEmail, name: "Ivan" },
-    });
-  }
+  const reconciledIvan = await reconcileIvanSeedIdentity(prisma as unknown as SeedPrismaLike, ivanEmail, ivanLegacyEmail);
   const [ivan, jordan, casey, riley, alex] = await Promise.all([
-    prisma.user.upsert({
-      where: { email: ivanEmail },
-      update: { name: "Ivan" },
-      create: { email: ivanEmail, name: "Ivan" },
-    }),
+    reconciledIvan ??
+      prisma.user.upsert({
+        where: { email: ivanEmail },
+        update: { name: "Ivan" },
+        create: { email: ivanEmail, name: "Ivan" },
+      }),
     prisma.user.upsert({
       where: { email: "alt28918@gmail.com" },
       update: { name: "Jordan" },

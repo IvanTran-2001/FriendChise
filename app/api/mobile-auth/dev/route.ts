@@ -38,11 +38,17 @@ export async function GET(request: Request) {
   const email = searchParams.get("email");
   const callbackUrl = searchParams.get("callbackUrl");
 
+  function logOutcome(branch: string, details: Record<string, unknown> = {}) {
+    console.info("[mobile-auth] dev route", { branch, ...details });
+  }
+
   if (!email) {
+    logOutcome("missing_email", { hasCallbackUrl: !!callbackUrl });
     return NextResponse.json({ error: "email required" }, { status: 400 });
   }
 
   if (callbackUrl && !isValidCallbackUrl(callbackUrl, request.url)) {
+    logOutcome("invalid_callback_url", { hasEmail: true });
     return NextResponse.json({ error: "Invalid callbackUrl" }, { status: 400 });
   }
 
@@ -50,11 +56,13 @@ export async function GET(request: Request) {
   const devUser = devUsers.find((user) => user.email === email);
 
   if (!devUser) {
+    logOutcome("unmatched_dev_user", { hasEmail: true, hasCallbackUrl: !!callbackUrl });
     return NextResponse.json({ error: "Unknown dev user" }, { status: 404 });
   }
 
   const user = await prisma.user.findUnique({ where: { email: devUser.email } });
   if (!user) {
+    logOutcome("missing_authenticated_user", { hasDevUser: true, hasCallbackUrl: !!callbackUrl });
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
@@ -75,11 +83,7 @@ export async function GET(request: Request) {
     maxAge: 60 * 60 * 24 * 30,
   });
 
-  console.info("[mobile-auth] issuing dev token", {
-    requestedEmailPresent: !!email,
-    authenticatedUserPresent: !!user,
-    matchedDevUserPresent: !!devUser,
-  });
+  logOutcome("token_issued", { hasCallbackUrl: !!callbackUrl });
 
   if (!callbackUrl) {
     return NextResponse.json({

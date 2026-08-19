@@ -58,7 +58,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authConfig.callbacks,
     async signIn({ user, account, profile }) {
       if (process.env.NODE_ENV !== "production" && account?.provider) {
-        log.info("[GOOGLE_CALLBACK][AUTHJS] OAuth sign-in payload", {
+        log.info("[OAUTH_CALLBACK][AUTHJS] OAuth sign-in payload", {
           provider: account.provider,
           hasProviderAccountId: !!account.providerAccountId,
           hasUserId: !!user.id,
