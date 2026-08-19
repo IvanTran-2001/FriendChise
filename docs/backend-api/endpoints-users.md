@@ -21,10 +21,13 @@ Bearer token required.
   "user": {
     "id": "usr_01abc",
     "name": "Alex Chen",
+    "email": null,
     "image": "https://lh3.googleusercontent.com/..."
   }
 }
 ```
+
+`email` is included in the response and may be `null` when the account has no stored email address.
 
 ### Errors
 

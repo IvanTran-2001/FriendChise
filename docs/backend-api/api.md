@@ -24,7 +24,7 @@ These routes use bearer token authentication (`Authorization: Bearer <token>`).
 
 | Method | Route | Auth | Description |
 | --- | --- | --- | --- |
-| `GET` | `/api/mobile/me` | Bearer | Current user profile (`id`, `name`, `image`). |
+| `GET` | `/api/mobile/me` | Bearer | Current user profile (`id`, `name`, `email`, `image`). |
 | `GET` | `/api/mobile/me/organizations` | Bearer | All orgs the user is a member of. |
 | `GET` | `/api/mobile/me/organization` | Bearer | First org by name (default org for new sessions). |
 

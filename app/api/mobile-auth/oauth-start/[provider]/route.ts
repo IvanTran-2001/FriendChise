@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth, signIn, signOut } from "@/auth";
+import { signIn } from "@/auth";
 import { authLogPrefix, shouldLogAuthTrace, traceCookiePresence } from "@/lib/platform/auth-trace";
 
 const ALLOWED_PROVIDERS = new Set(["google", "linkedin"]);
@@ -112,16 +112,6 @@ export async function GET(
   if (!expectedState || expectedState !== state) {
     return NextResponse.json({ error: "Invalid OAuth state" }, { status: 403 });
   }
-
-  // The system browser keeps its FriendChise session cookie across app-level
-  // logouts. Without clearing it here, Auth.js sees the old session and treats
-  // this as "already signed in as a different user", throwing
-  // OAuthAccountNotLinked instead of starting a fresh sign-in.
-  if (shouldLogAuthTrace()) {
-    const existing = await auth();
-    console.info(`${logPrefix} WEB_SESSION (before signOut)`, { hasExistingSession: !!existing?.user });
-  }
-  await signOut({ redirect: false });
 
   const authorizationParams = provider === "google" ? { prompt: "select_account" } : undefined;
 

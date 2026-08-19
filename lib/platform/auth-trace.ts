@@ -7,6 +7,7 @@ const TRACE_COOKIE_NAMES = [
   "authjs.session-token",
   "__Secure-authjs.session-token",
   "authjs.callback-url",
+  "__Secure-authjs.callback-url",
   "authjs.csrf-token",
   "__Host-authjs.csrf-token",
   "authjs.pkce.code_verifier",

@@ -9,7 +9,6 @@ type ReassignableModel = {
 };
 
 export type SeedPrismaLike = {
-  $transaction<T>(fn: (tx: SeedPrismaLike) => Promise<T>): Promise<T>;
   user: {
     findUnique(args: { where: { email: string } }): Promise<SeedUserRecord | null>;
     update(args: { where: { id: string }; data: { email?: string; name?: string } }): Promise<SeedUserRecord>;
@@ -27,7 +26,9 @@ export type SeedPrismaLike = {
   task: ReassignableModel;
   taskComment: ReassignableModel;
   taskCommentVote: ReassignableModel;
-  scanTaskResult: ReassignableModel;
+  scanTaskResult: {
+    updateMany(args: { where: Record<string, unknown>; data: { createdById?: string } }): Promise<unknown>;
+  };
   membership: {
     findMany(args: { where: { userId: string } }): Promise<Array<{ id: string; orgId: string }>>;
     findFirst(args: { where: { userId: string; orgId: string } }): Promise<{ id: string; orgId: string } | null>;
@@ -72,7 +73,7 @@ const DIRECT_USER_ID_MODELS = [
   ["task", "createdById"],
   ["taskComment", "authorId"],
   ["taskCommentVote", "userId"],
-  ["scanTaskResult", "userId"],
+  ["scanTaskResult", "createdById"],
 ] as const;
 
 async function migrateMembershipRows(prisma: SeedPrismaLike, sourceMembershipId: string, targetMembershipId: string) {
@@ -229,9 +230,7 @@ export async function reconcileIvanSeedIdentity(
   }
 
   if (canonicalUser.id !== legacyUser.id) {
-    await prisma.$transaction(async (tx: SeedPrismaLike) => {
-      await migrateDuplicateIvanUser(tx, canonicalUser.id, legacyUser.id);
-    });
+    await migrateDuplicateIvanUser(prisma, canonicalUser.id, legacyUser.id);
   }
 
   return prisma.user.update({
