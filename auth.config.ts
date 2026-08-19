@@ -17,8 +17,14 @@ export const authConfig: NextAuthConfig = {
   // on every signin/callback request (Google, LinkedIn, and Credentials alike).
   trustHost: true,
   providers: [
-    Google({ checks: ["pkce", "state"] }),
-    LinkedIn({ checks: ["pkce", "state"] }),
+    // Both providers verify email ownership, so linking a new OAuth account
+    // to an existing user with the same email is safe here. Without this,
+    // any account whose email already exists (e.g. seeded/demo/dev users, or
+    // a user who previously signed in with the other provider) hits
+    // OAuthAccountNotLinked and lands on Auth.js's generic error page —
+    // this was the intermittent "sometimes shows an error page" sign-in bug.
+    Google({ checks: ["pkce", "state"], allowDangerousEmailAccountLinking: true }),
+    LinkedIn({ checks: ["pkce", "state"], allowDangerousEmailAccountLinking: true }),
   ],
   pages: {
     signIn: "/signin",

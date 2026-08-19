@@ -4,6 +4,7 @@ import { authLogPrefix, shouldLogAuthTrace, traceCookiePresence } from "@/lib/pl
 
 const ALLOWED_PROVIDERS = new Set(["google", "linkedin"]);
 const OAUTH_START_STATE_COOKIE = "friendchise.oauth-start-state";
+const SESSION_COOKIE_NAMES = ["authjs.session-token", "__Secure-authjs.session-token"] as const;
 
 function isValidCallbackUrl(callbackUrl: string, requestUrl: string): boolean {
   try {
@@ -93,6 +94,13 @@ export async function GET(
       path: "/api/mobile-auth/oauth-start",
       maxAge: 60,
     });
+    // The mobile browser session (ASWebAuthenticationSession) shares its cookie
+    // jar with Safari, so a session from a previous mobile login can still be
+    // valid here. Clear it up front so every mobile OAuth attempt starts from
+    // a clean slate instead of possibly completing as the stale account.
+    for (const name of SESSION_COOKIE_NAMES) {
+      bootstrapResponse.cookies.delete(name);
+    }
 
     if (shouldLogAuthTrace()) {
       console.info(`${logPrefix} STATE_BOOTSTRAP`, {

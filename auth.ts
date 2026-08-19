@@ -55,6 +55,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" }, // ← change this
+  debug: shouldLogAuthTrace(),
+  logger: shouldLogAuthTrace()
+    ? {
+        error(error: Error) {
+          log.info("[AUTHJS_ERROR]", { name: error.name, message: error.message });
+        },
+        warn(code: string) {
+          log.info("[AUTHJS_WARN]", { code });
+        },
+        debug(message: string) {
+          log.info("[AUTHJS_DEBUG]", { message });
+        },
+      }
+    : undefined,
   callbacks: {
     ...authConfig.callbacks,
     async signIn({ user, account, profile }) {
