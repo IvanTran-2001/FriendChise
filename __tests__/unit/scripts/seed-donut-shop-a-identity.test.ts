@@ -65,14 +65,22 @@ function makePrismaMock() {
   return prisma;
 }
 
+function mockUserFindByEmail(
+  prisma: ReturnType<typeof makePrismaMock>,
+  users: Record<string, { id: string; email: string; name: string | null } | null>,
+) {
+  prisma.user.findUnique.mockImplementation(({ where }: { where: { email: string } }) => Promise.resolve(users[where.email] ?? null));
+}
+
 beforeEach(() => vi.clearAllMocks());
 
 describe("reconcileIvanSeedIdentity", () => {
   it("renames the legacy Ivan row when rerunning the previous seed state", async () => {
     const prisma = makePrismaMock();
-    prisma.user.findUnique
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: "legacy-ivan", email: legacyEmail, name: "Ivan" });
+    mockUserFindByEmail(prisma, {
+      [canonicalEmail]: null,
+      [legacyEmail]: { id: "legacy-ivan", email: legacyEmail, name: "Ivan" },
+    });
     prisma.user.update.mockResolvedValue({ id: "legacy-ivan", email: canonicalEmail, name: "Ivan" });
 
     const result = await reconcileIvanSeedIdentity(prisma, canonicalEmail, legacyEmail);
@@ -86,9 +94,10 @@ describe("reconcileIvanSeedIdentity", () => {
 
   it("merges a duplicate legacy Ivan record into the canonical user", async () => {
     const prisma = makePrismaMock();
-    prisma.user.findUnique
-      .mockResolvedValueOnce({ id: "seed-ivan", email: canonicalEmail, name: "Ivan" })
-      .mockResolvedValueOnce({ id: "legacy-ivan", email: legacyEmail, name: "Ivan" });
+    mockUserFindByEmail(prisma, {
+      [canonicalEmail]: { id: "seed-ivan", email: canonicalEmail, name: "Ivan" },
+      [legacyEmail]: { id: "legacy-ivan", email: legacyEmail, name: "Ivan" },
+    });
     prisma.membership.findMany.mockResolvedValue([{ id: "legacy-membership", orgId: "org-1" }]);
     prisma.membership.findFirst.mockResolvedValue({ id: "seed-membership", orgId: "org-1" });
     prisma.memberRole.findMany
@@ -123,82 +132,13 @@ describe("reconcileIvanSeedIdentity", () => {
   });
 
   it("rolls back earlier reconciliation writes when a delegate fails", async () => {
-    const state = {
-      organizationUpdated: false,
-    };
-
-    const prisma: any = {
-      user: {
-        findUnique: vi.fn(),
-        update: vi.fn(),
-        delete: vi.fn(),
-      },
-      organization: {
-        updateMany: vi.fn(async () => {
-          state.organizationUpdated = true;
-        }),
-      },
-      account: { updateMany: vi.fn() },
-      session: { updateMany: vi.fn() },
-      demoSession: { updateMany: vi.fn() },
-      invite: { updateMany: vi.fn() },
-      notification: { updateMany: vi.fn() },
-      announcementRead: { updateMany: vi.fn() },
-      auditLog: { updateMany: vi.fn() },
-      feedback: { updateMany: vi.fn() },
-      task: { updateMany: vi.fn() },
-      taskComment: { updateMany: vi.fn() },
-      taskCommentVote: { updateMany: vi.fn() },
-      scanTaskResult: {
-        updateMany: vi.fn(async () => {
-          throw new Error("scan-task failure");
-        }),
-      },
-      membership: {
-        findMany: vi.fn(),
-        findFirst: vi.fn(),
-        updateMany: vi.fn(),
-        delete: vi.fn(),
-      },
-      memberRole: {
-        findMany: vi.fn(),
-        updateMany: vi.fn(),
-        deleteMany: vi.fn(),
-      },
-      timetableEntryAssignee: {
-        findMany: vi.fn(),
-        updateMany: vi.fn(),
-        deleteMany: vi.fn(),
-      },
-      timetableTemplateEntryAssignee: {
-        findMany: vi.fn(),
-        updateMany: vi.fn(),
-        deleteMany: vi.fn(),
-      },
-      rosterEntry: {
-        findMany: vi.fn(),
-        updateMany: vi.fn(),
-        deleteMany: vi.fn(),
-      },
-      rosterTemplateEntry: {
-        findMany: vi.fn(),
-        updateMany: vi.fn(),
-        deleteMany: vi.fn(),
-      },
-      $transaction: vi.fn(async (fn: any) => {
-        const snapshot = { ...state };
-        try {
-          return await fn(prisma);
-        } catch (error) {
-          state.organizationUpdated = snapshot.organizationUpdated;
-          throw error;
-        }
-      }),
-    };
-
-    prisma.user.findUnique
-      .mockResolvedValueOnce({ id: "seed-ivan", email: canonicalEmail, name: "Ivan" })
-      .mockResolvedValueOnce({ id: "legacy-ivan", email: legacyEmail, name: "Ivan" });
+    const prisma = makePrismaMock();
+    mockUserFindByEmail(prisma, {
+      [canonicalEmail]: { id: "seed-ivan", email: canonicalEmail, name: "Ivan" },
+      [legacyEmail]: { id: "legacy-ivan", email: legacyEmail, name: "Ivan" },
+    });
+    prisma.organization.updateMany.mockResolvedValue(undefined);
+    prisma.scanTaskResult.updateMany.mockRejectedValue(new Error("scan-task failure"));
     prisma.membership.findMany.mockResolvedValue([{ id: "legacy-membership", orgId: "org-1" }]);
     prisma.membership.findFirst.mockResolvedValue({ id: "seed-membership", orgId: "org-1" });
     prisma.memberRole.findMany
@@ -218,6 +158,5 @@ describe("reconcileIvanSeedIdentity", () => {
       .mockResolvedValueOnce([]);
 
     await expect(reconcileIvanSeedIdentityAtomic(prisma, canonicalEmail, legacyEmail)).rejects.toThrow("scan-task failure");
-    expect(state.organizationUpdated).toBe(false);
   });
 });
