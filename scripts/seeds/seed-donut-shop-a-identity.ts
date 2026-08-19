@@ -229,7 +229,7 @@ export async function reconcileIvanSeedIdentity(
   }
 
   if (canonicalUser.id !== legacyUser.id) {
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: SeedPrismaLike) => {
       await migrateDuplicateIvanUser(tx, canonicalUser.id, legacyUser.id);
     });
   }
