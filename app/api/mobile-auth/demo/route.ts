@@ -35,6 +35,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const callbackUrl = searchParams.get("callbackUrl");
+  const attemptId = searchParams.get("attemptId");
 
   if (!callbackUrl) {
     return NextResponse.json({ error: "callbackUrl required" }, { status: 400 });
@@ -82,6 +83,9 @@ export async function GET(request: Request) {
   });
 
   const redirectUrl = new URL(callbackUrl, request.url);
+  if (attemptId) {
+    redirectUrl.searchParams.set("attemptId", attemptId);
+  }
   redirectUrl.searchParams.set("token", token);
   redirectUrl.searchParams.set("orgId", session.orgId);
   // The mobile token is an encrypted next-auth JWE, so the client can't read

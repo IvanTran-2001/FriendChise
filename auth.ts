@@ -4,6 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/platform/prisma";
 import { authConfig } from "@/auth.config";
 import { log } from "@/lib/platform/observability";
+import { shouldLogAuthTrace } from "@/lib/platform/auth-trace";
 import { isDemoEmail, DEMO_JWT_TTL_MS } from "@/lib/demo";
 
 /**
@@ -56,7 +57,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" }, // ← change this
   callbacks: {
     ...authConfig.callbacks,
+    async signIn({ user, account, profile }) {
+      if (shouldLogAuthTrace() && account?.provider) {
+        log.info("[OAUTH_CALLBACK][AUTHJS] OAuth sign-in payload", {
+          provider: account.provider,
+          hasProviderAccountId: !!account.providerAccountId,
+          hasUserId: !!user.id,
+          hasProfileEmail:
+            profile && typeof profile === "object" && "email" in profile
+              ? (profile as { email?: string | null }).email != null
+              : false,
+          hasProfileName:
+            profile && typeof profile === "object" && "name" in profile
+              ? (profile as { name?: string | null }).name != null
+              : false,
+        });
+      }
+
+      return authConfig.callbacks?.signIn?.({ user, account, profile }) ?? true;
+    },
     jwt({ token, account }) {
+      if (shouldLogAuthTrace()) {
+        log.info("[AUTH unknown][BACKEND] JWT_CALLBACK", {
+          hasSub: token.sub != null,
+          hasEmail: typeof token.email === "string",
+          triggeredByAccount: !!account,
+          provider: account?.provider ?? null,
+        });
+      }
       // On initial demo sign-in, record the issued time so we can enforce a
       // fixed 2-hour expiry (not a rolling one) for demo sessions.
       if (account && typeof token.email === "string" && isDemoEmail(token.email)) {
@@ -80,16 +108,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (typeof demoIssuedAt === "number" && typeof token.exp === "number") {
         session.expires = new Date(token.exp * 1000).toISOString() as string & Date;
       }
+      if (shouldLogAuthTrace()) {
+        log.info("[AUTH unknown][BACKEND] SESSION_CALLBACK", {
+          hasUser: !!session.user,
+          hasUserId: !!session.user?.id,
+          hasEmail: !!session.user?.email,
+          expires: session.expires,
+        });
+      }
       return session;
     },
   },
   events: {
     signIn({ user }) {
-      log.info("User signed in", { userId: user.id });
+      log.info("User signed in", { hasUserId: !!user.id, hasUserEmail: !!user.email });
     },
     signOut(payload) {
       if ("token" in payload && payload.token) {
-        log.info("User signed out", { userId: payload.token.sub });
+        log.info("User signed out", { hasToken: true, hasTokenSub: !!payload.token.sub });
       }
     },
   },

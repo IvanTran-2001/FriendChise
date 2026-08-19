@@ -1,6 +1,7 @@
 import { encode } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { authLogPrefix, shouldLogAuthTrace, traceCookiePresence } from "@/lib/platform/auth-trace";
 
 const MOBILE_TOKEN_COOKIE_NAME = "friendchise.mobile-session-token";
 
@@ -11,13 +12,9 @@ function isValidCallbackUrl(callbackUrl: string, requestUrl: string): boolean {
       return true;
     }
 
-    // Allow the mobile app's deep-link schemes.
+    // Allow the app's explicitly configured deep-link scheme.
     const protocol = new URL(callbackUrl).protocol;
-    if (
-      protocol === "friendchise:" ||
-      protocol === "exp:" ||
-      protocol === "exps:"
-    ) {
+    if (protocol === "friendchise:") {
       return true;
     }
 
@@ -33,6 +30,15 @@ function isValidCallbackUrl(callbackUrl: string, requestUrl: string): boolean {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const callbackUrl = searchParams.get("callbackUrl");
+  const attemptId = searchParams.get("attemptId");
+  const logPrefix = authLogPrefix(attemptId, "BACKEND");
+
+  if (shouldLogAuthTrace()) {
+    console.info(`${logPrefix} MOBILE_CALLBACK route start`, {
+      hasCallbackUrl: !!callbackUrl,
+      cookiesPresent: traceCookiePresence(request),
+    });
+  }
 
   if (!callbackUrl) {
     return NextResponse.json({ error: "callbackUrl required" }, { status: 400 });
@@ -43,7 +49,22 @@ export async function GET(request: Request) {
   }
 
   const session = await auth();
+  if (shouldLogAuthTrace()) {
+    console.info(`${logPrefix} AUTHJS_SESSION`, {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      hasUserId: !!session?.user?.id,
+      hasEmail: !!session?.user?.email,
+      hasExpires: !!session?.expires,
+    });
+  }
   if (!session?.user?.id) {
+    if (shouldLogAuthTrace()) {
+      console.info(`${logPrefix} REDIRECT -> /signin (no session found)`, {
+        hasCallbackUrl: !!callbackUrl,
+        cookiesPresent: traceCookiePresence(request),
+      });
+    }
     return NextResponse.redirect(new URL("/signin?hint=account_required", request.url));
   }
 
@@ -73,9 +94,23 @@ export async function GET(request: Request) {
     maxAge,
   });
 
+  if (shouldLogAuthTrace()) {
+    console.info(`${logPrefix} issuing mobile session token`, {
+      hasUser: !!session.user,
+      hasIssuedToken: !!token,
+    });
+  }
+
   const redirectUrl = new URL(callbackUrl, request.url);
   redirectUrl.searchParams.set("token", token);
   redirectUrl.searchParams.set("expiresAt", String(expiresAt));
+
+  if (shouldLogAuthTrace()) {
+    console.info(`${logPrefix} REDIRECT -> deep link`, {
+      hasUser: !!session.user,
+      hasRedirectUrl: true,
+    });
+  }
 
   return NextResponse.redirect(redirectUrl);
 }

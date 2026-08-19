@@ -25,6 +25,8 @@ import { PrismaClient, PermissionAction, EntryStatus } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { ROLE_KEYS } from "@/lib/auth/rbac";
 import { makeDateUtils, timeToMin } from "@/lib/demo/provision/helpers";
+import { seedEmail } from "@/lib/demo/seed-namespace";
+import { reconcileIvanSeedIdentityAtomic } from "./seed-donut-shop-a-identity";
 
 const dbUrl = process.env.DATABASE_URL!;
 if (!dbUrl) {
@@ -384,12 +386,21 @@ async function main() {
 
   // ── Users ──────────────────────────────────────────────────────────────────
   console.log("→ Upserting users...");
+  const ivanEmail = seedEmail("ivan");
+  const ivanLegacyEmail = process.env.SEED_LEGACY_IVAN_EMAIL;
+  const reconciledIvan = ivanLegacyEmail ? await reconcileIvanSeedIdentityAtomic(prisma, ivanEmail, ivanLegacyEmail) : null;
+  console.log("→ Ivan identity reconciliation", {
+    ran: !!ivanLegacyEmail,
+    mergedFrom: ivanLegacyEmail ? "redacted" : null,
+    mergedTo: ivanEmail,
+  });
   const [ivan, jordan, casey, riley, alex] = await Promise.all([
-    prisma.user.upsert({
-      where: { email: "mystoganx2001@gmail.com" },
-      update: { name: "Ivan" },
-      create: { email: "mystoganx2001@gmail.com", name: "Ivan" },
-    }),
+    reconciledIvan ??
+      prisma.user.upsert({
+        where: { email: ivanEmail },
+        update: { name: "Ivan" },
+        create: { email: ivanEmail, name: "Ivan" },
+      }),
     prisma.user.upsert({
       where: { email: "alt28918@gmail.com" },
       update: { name: "Jordan" },

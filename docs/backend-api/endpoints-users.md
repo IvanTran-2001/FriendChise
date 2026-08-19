@@ -21,6 +21,7 @@ Bearer token required.
   "user": {
     "id": "usr_01abc",
     "name": "Alex Chen",
+    "email": "alex.chen@example.com",
     "image": "https://lh3.googleusercontent.com/..."
   }
 }

@@ -16,12 +16,9 @@ export const authConfig: NextAuthConfig = {
   // incoming Host header as untrusted, which surfaces as error=Configuration
   // on every signin/callback request (Google, LinkedIn, and Credentials alike).
   trustHost: true,
-  // allowDangerousEmailAccountLinking is safe here because we are OAuth-only
-  // (no email/password sign-up). If email+password is ever added, remove this
-  // flag and verify emails before linking accounts.
   providers: [
-    Google({ allowDangerousEmailAccountLinking: true }),
-    LinkedIn({ allowDangerousEmailAccountLinking: true }),
+    Google({ checks: ["pkce", "state"] }),
+    LinkedIn({ checks: ["pkce", "state"] }),
   ],
   pages: {
     signIn: "/signin",

@@ -32,15 +32,16 @@ Initiates the OAuth flow by calling Auth.js internally. The mobile app opens thi
 
 ### Path parameters
 
-| Param | Values | Description |
-| --- | --- | --- |
+| Param      | Values               | Description           |
+| ---------- | -------------------- | --------------------- |
 | `provider` | `google`, `linkedin` | OAuth provider to use |
 
 ### Query parameters
 
-| Param | Required | Description |
-| --- | --- | --- |
-| `callbackUrl` | Yes | Where to redirect after sign-in. Must be a deep-link (`friendchise://`, `exp://`, `exps://`) or the same origin. |
+| Param         | Required | Description                                                                                                                                                                                          |
+| ------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `callbackUrl` | Yes      | Where to redirect after sign-in. Must be a `friendchise://` deep-link or the same origin.                                                                                                            |
+| `attemptId`   | No       | Trace identifier passed through the OAuth start and completion routes for auth-log correlation. Must match `^[a-z0-9-]{1,32}$`; values outside that format are normalized as invalid in auth traces. |
 
 ### Example
 
@@ -50,10 +51,10 @@ GET /api/mobile-auth/oauth-start/google?callbackUrl=friendchise://auth/callback
 
 ### Errors
 
-| Status | Reason |
-| --- | --- |
-| `400` | `provider` is not `google` or `linkedin` |
-| `400` | `callbackUrl` is missing or not a valid deep-link or same-origin URL |
+| Status | Reason                                                               |
+| ------ | -------------------------------------------------------------------- |
+| `400`  | `provider` is not `google` or `linkedin`                             |
+| `400`  | `callbackUrl` is missing or not a valid deep-link or same-origin URL |
 
 ---
 
@@ -65,31 +66,32 @@ Called automatically by Auth.js after the OAuth sign-in succeeds. The server rea
 
 ### Query parameters
 
-| Param | Required | Description |
-| --- | --- | --- |
-| `callbackUrl` | Yes | Must match the `callbackUrl` from step 1. The token is appended as `?token=<jwt>`. |
+| Param         | Required | Description                                                                                                                                                                               |
+| ------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `callbackUrl` | Yes      | Must match the `callbackUrl` from step 1. The token is appended as `?token=<jwt>`.                                                                                                        |
+| `attemptId`   | No       | Trace identifier passed through from the OAuth start route for auth-log correlation. Must match `^[a-z0-9-]{1,32}$`; values outside that format are normalized as invalid in auth traces. |
 
 ### Token format
 
 The JWT is a signed HS256 token (encoded via `next-auth/jwt`). It carries:
 
-| Claim | Description |
-| --- | --- |
-| `sub` | User ID |
-| `email` | User email |
-| `name` | User display name |
-| `picture` | User avatar URL |
-| `exp` | Expiry timestamp (30 days from issue) |
+| Claim     | Description                           |
+| --------- | ------------------------------------- |
+| `sub`     | User ID                               |
+| `email`   | User email                            |
+| `name`    | User display name                     |
+| `picture` | User avatar URL                       |
+| `exp`     | Expiry timestamp (30 days from issue) |
 
 The token is signed with `AUTH_SECRET` using the salt `friendchise.mobile-session-token`.
 
 ### Errors
 
-| Status | Reason |
-| --- | --- |
-| `302` → `/signin?hint=account_required` | No active session after OAuth |
-| `400` | `callbackUrl` is missing or invalid |
-| `500` | `AUTH_SECRET` not set on the server |
+| Status                                  | Reason                              |
+| --------------------------------------- | ----------------------------------- |
+| `302` → `/signin?hint=account_required` | No active session after OAuth       |
+| `400`                                   | `callbackUrl` is missing or invalid |
+| `500`                                   | `AUTH_SECRET` not set on the server |
 
 ---
 
