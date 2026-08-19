@@ -2,6 +2,7 @@ import { encode } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/platform/prisma";
 import { getDevUsers } from "@/app/(auth)/signin/get-dev-users";
+import { shouldLogAuthTrace } from "@/lib/platform/auth-trace";
 
 const MOBILE_TOKEN_COOKIE_NAME = "friendchise.mobile-session-token";
 
@@ -39,7 +40,9 @@ export async function GET(request: Request) {
   const callbackUrl = searchParams.get("callbackUrl");
 
   function logOutcome(branch: string, details: Record<string, unknown> = {}) {
-    console.info("[mobile-auth] dev route", { branch, ...details });
+    if (shouldLogAuthTrace()) {
+      console.info("[mobile-auth] dev route", { branch, ...details });
+    }
   }
 
   if (!email) {

@@ -36,6 +36,10 @@ export function traceCookiePresence(request: Request) {
   return present;
 }
 
+export function shouldLogAuthTrace() {
+  return process.env.AUTH_TRACE_DEBUG === "1";
+}
+
 export function authLogPrefix(attemptId: string | null, stage: string) {
   return `[AUTH ${normalizeAttemptId(attemptId)}][${stage}]`;
 }

@@ -4,6 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/platform/prisma";
 import { authConfig } from "@/auth.config";
 import { log } from "@/lib/platform/observability";
+import { shouldLogAuthTrace } from "@/lib/platform/auth-trace";
 import { isDemoEmail, DEMO_JWT_TTL_MS } from "@/lib/demo";
 
 /**
@@ -57,7 +58,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
     async signIn({ user, account, profile }) {
-      if (process.env.NODE_ENV !== "production" && account?.provider) {
+      if (shouldLogAuthTrace() && account?.provider) {
         log.info("[OAUTH_CALLBACK][AUTHJS] OAuth sign-in payload", {
           provider: account.provider,
           hasProviderAccountId: !!account.providerAccountId,
@@ -76,7 +77,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return authConfig.callbacks?.signIn?.({ user, account, profile }) ?? true;
     },
     jwt({ token, account }) {
-      if (process.env.NODE_ENV !== "production") {
+      if (shouldLogAuthTrace()) {
         log.info("[AUTH unknown][BACKEND] JWT_CALLBACK", {
           hasSub: token.sub != null,
           hasEmail: typeof token.email === "string",
@@ -107,7 +108,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (typeof demoIssuedAt === "number" && typeof token.exp === "number") {
         session.expires = new Date(token.exp * 1000).toISOString() as string & Date;
       }
-      if (process.env.NODE_ENV !== "production") {
+      if (shouldLogAuthTrace()) {
         log.info("[AUTH unknown][BACKEND] SESSION_CALLBACK", {
           hasUser: !!session.user,
           hasUserId: !!session.user?.id,

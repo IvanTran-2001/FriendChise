@@ -1,7 +1,7 @@
 import { encode } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { authLogPrefix, traceCookiePresence } from "@/lib/platform/auth-trace";
+import { authLogPrefix, shouldLogAuthTrace, traceCookiePresence } from "@/lib/platform/auth-trace";
 
 const MOBILE_TOKEN_COOKIE_NAME = "friendchise.mobile-session-token";
 
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
   const attemptId = searchParams.get("attemptId");
   const logPrefix = authLogPrefix(attemptId, "BACKEND");
 
-  if (process.env.NODE_ENV !== "production") {
+  if (shouldLogAuthTrace()) {
     console.info(`${logPrefix} MOBILE_CALLBACK route start`, {
       hasCallbackUrl: !!callbackUrl,
       cookiesPresent: traceCookiePresence(request),
@@ -53,7 +53,7 @@ export async function GET(request: Request) {
   }
 
   const session = await auth();
-  if (process.env.NODE_ENV !== "production") {
+  if (shouldLogAuthTrace()) {
     console.info(`${logPrefix} AUTHJS_SESSION`, {
       hasSession: !!session,
       hasUser: !!session?.user,
@@ -63,7 +63,7 @@ export async function GET(request: Request) {
     });
   }
   if (!session?.user?.id) {
-    if (process.env.NODE_ENV !== "production") {
+    if (shouldLogAuthTrace()) {
       console.info(`${logPrefix} REDIRECT -> /signin (no session found)`, {
         hasCallbackUrl: !!callbackUrl,
         cookiesPresent: traceCookiePresence(request),
@@ -98,7 +98,7 @@ export async function GET(request: Request) {
     maxAge,
   });
 
-  if (process.env.NODE_ENV !== "production") {
+  if (shouldLogAuthTrace()) {
     console.info(`${logPrefix} issuing mobile session token`, {
       hasUser: !!session.user,
       hasIssuedToken: !!token,
@@ -109,7 +109,7 @@ export async function GET(request: Request) {
   redirectUrl.searchParams.set("token", token);
   redirectUrl.searchParams.set("expiresAt", String(expiresAt));
 
-  if (process.env.NODE_ENV !== "production") {
+  if (shouldLogAuthTrace()) {
     console.info(`${logPrefix} REDIRECT -> deep link`, {
       hasUser: !!session.user,
       hasRedirectUrl: true,

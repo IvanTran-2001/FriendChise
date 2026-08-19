@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth, signIn, signOut } from "@/auth";
-import { authLogPrefix, traceCookiePresence } from "@/lib/platform/auth-trace";
+import { authLogPrefix, shouldLogAuthTrace, traceCookiePresence } from "@/lib/platform/auth-trace";
 
 const ALLOWED_PROVIDERS = new Set(["google", "linkedin"]);
 const OAUTH_START_STATE_COOKIE = "friendchise.oauth-start-state";
@@ -70,7 +70,7 @@ export async function GET(
   const state = searchParams.get("state");
   const logPrefix = authLogPrefix(attemptId, "BACKEND");
 
-  if (process.env.NODE_ENV !== "production") {
+  if (shouldLogAuthTrace()) {
     console.info(`${logPrefix} OAUTH_START`, {
       provider,
       hasCallbackUrl: !!callbackUrl,
@@ -98,7 +98,7 @@ export async function GET(
       maxAge: 60,
     });
 
-    if (process.env.NODE_ENV !== "production") {
+    if (shouldLogAuthTrace()) {
       console.info(`${logPrefix} STATE_BOOTSTRAP`, {
         provider,
         hasCallbackUrl: !!callbackUrl,
@@ -117,7 +117,7 @@ export async function GET(
   // logouts. Without clearing it here, Auth.js sees the old session and treats
   // this as "already signed in as a different user", throwing
   // OAuthAccountNotLinked instead of starting a fresh sign-in.
-  if (process.env.NODE_ENV !== "production") {
+  if (shouldLogAuthTrace()) {
     const existing = await auth();
     console.info(`${logPrefix} WEB_SESSION (before signOut)`, { hasExistingSession: !!existing?.user });
   }
@@ -125,7 +125,7 @@ export async function GET(
 
   const authorizationParams = provider === "google" ? { prompt: "select_account" } : undefined;
 
-  if (process.env.NODE_ENV !== "production") {
+  if (shouldLogAuthTrace()) {
     console.info(`${logPrefix} REDIRECT -> ${provider} authorize`, { hasCallbackUrl: !!callbackUrl });
   }
   await signIn(provider, { redirectTo: callbackUrl }, authorizationParams);
