@@ -33,24 +33,6 @@ type SeedTransactionalPrisma = SeedPrismaLike & {
   $transaction: PrismaClient["$transaction"];
 };
 
-type UpdateManyDelegate = {
-  updateMany(args: { where: Record<string, unknown>; data: Record<string, unknown> }): Promise<unknown>;
-};
-
-const DIRECT_USER_ID_MODELS = [
-  ["account", "userId"],
-  ["session", "userId"],
-  ["demoSession", "userId"],
-  ["notification", "userId"],
-  ["announcementRead", "userId"],
-  ["auditLog", "actorId"],
-  ["feedback", "userId"],
-  ["task", "createdById"],
-  ["taskComment", "authorId"],
-  ["taskCommentVote", "userId"],
-  ["scanTaskResult", "createdById"],
-] as const;
-
 async function migrateRelationRows<T extends { id: string }>(
   delegate: {
     findMany(args: { where: { membershipId: string } }): Promise<T[]>;
@@ -94,11 +76,24 @@ async function migrateMembershipRows(prisma: SeedPrismaLike, sourceMembershipId:
 async function migrateDuplicateIvanUser(prisma: SeedPrismaLike, canonicalUserId: string, duplicateUserId: string) {
   await prisma.organization.updateMany({ where: { ownerId: duplicateUserId }, data: { ownerId: canonicalUserId } });
 
+  const directUserIdDelegates = [
+    { delegate: prisma.account, fieldName: "userId" },
+    { delegate: prisma.session, fieldName: "userId" },
+    { delegate: prisma.demoSession, fieldName: "userId" },
+    { delegate: prisma.notification, fieldName: "userId" },
+    { delegate: prisma.announcementRead, fieldName: "userId" },
+    { delegate: prisma.auditLog, fieldName: "actorId" },
+    { delegate: prisma.feedback, fieldName: "userId" },
+    { delegate: prisma.task, fieldName: "createdById" },
+    { delegate: prisma.taskComment, fieldName: "authorId" },
+    { delegate: prisma.taskCommentVote, fieldName: "userId" },
+    { delegate: prisma.scanTaskResult, fieldName: "createdById" },
+  ] as const;
+
   await Promise.all(
-    DIRECT_USER_ID_MODELS.map(([modelName, fieldName]) => {
-      const delegate = prisma[modelName] as UpdateManyDelegate;
-      return delegate.updateMany({ where: { [fieldName]: duplicateUserId }, data: { [fieldName]: canonicalUserId } });
-    }),
+    directUserIdDelegates.map(({ delegate, fieldName }) =>
+      delegate.updateMany({ where: { [fieldName]: duplicateUserId }, data: { [fieldName]: canonicalUserId } }),
+    ),
   );
 
   await prisma.invite.updateMany({ where: { invitedById: duplicateUserId }, data: { invitedById: canonicalUserId } });
