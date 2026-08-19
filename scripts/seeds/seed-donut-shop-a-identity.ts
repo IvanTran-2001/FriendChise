@@ -11,11 +11,7 @@ type ReassignableModel = {
 };
 
 export type SeedPrismaLike = {
-  user: {
-    findUnique(args: { where: { email: string } }): Promise<SeedUserRecord | null>;
-    update(args: { where: { id: string }; data: { email?: string; name?: string } }): Promise<SeedUserRecord>;
-    delete(args: { where: { id: string } }): Promise<unknown>;
-  };
+  user: Pick<PrismaClient["user"], "findUnique" | "update" | "delete">;
   organization: ReassignableModel;
   account: ReassignableModel;
   session: ReassignableModel;
