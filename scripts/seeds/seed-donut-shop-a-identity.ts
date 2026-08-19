@@ -1,3 +1,5 @@
+import type { PrismaClient } from "@prisma/client";
+
 export type SeedUserRecord = {
   id: string;
   email: string;
@@ -9,7 +11,6 @@ type ReassignableModel = {
 };
 
 export type SeedPrismaLike = {
-  $transaction<T>(fn: (tx: SeedPrismaLike) => Promise<T>): Promise<T>;
   user: {
     findUnique(args: { where: { email: string } }): Promise<SeedUserRecord | null>;
     update(args: { where: { id: string }; data: { email?: string; name?: string } }): Promise<SeedUserRecord>;
@@ -61,6 +62,10 @@ export type SeedPrismaLike = {
     updateMany(args: { where: { id: string }; data: { membershipId?: string } }): Promise<unknown>;
     deleteMany(args: { where: { id: { in: string[] } } }): Promise<unknown>;
   };
+};
+
+type SeedTransactionalPrisma = SeedPrismaLike & {
+  $transaction: PrismaClient["$transaction"];
 };
 
 const DIRECT_USER_ID_MODELS = [
@@ -241,9 +246,9 @@ export async function reconcileIvanSeedIdentity(
 }
 
 export async function reconcileIvanSeedIdentityAtomic(
-  prisma: SeedPrismaLike,
+  prisma: SeedTransactionalPrisma,
   canonicalEmail: string,
   legacyEmail: string,
 ) {
-  return prisma.$transaction((tx) => reconcileIvanSeedIdentity(tx, canonicalEmail, legacyEmail));
+  return prisma.$transaction((tx) => reconcileIvanSeedIdentity(tx as SeedPrismaLike, canonicalEmail, legacyEmail));
 }
