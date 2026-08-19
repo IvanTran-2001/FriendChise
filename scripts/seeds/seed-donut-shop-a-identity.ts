@@ -6,58 +6,27 @@ export type SeedUserRecord = {
   name: string | null;
 };
 
-type ReassignableModel = {
-  updateMany(args: { where: Record<string, unknown>; data: Record<string, unknown> }): Promise<unknown>;
-};
-
 export type SeedPrismaLike = {
   user: Pick<PrismaClient["user"], "findUnique" | "update" | "delete">;
-  organization: ReassignableModel;
-  account: ReassignableModel;
-  session: ReassignableModel;
-  demoSession: ReassignableModel;
-  invite: ReassignableModel;
-  notification: ReassignableModel;
-  announcementRead: ReassignableModel;
-  auditLog: ReassignableModel;
-  feedback: ReassignableModel;
-  task: ReassignableModel;
-  taskComment: ReassignableModel;
-  taskCommentVote: ReassignableModel;
-  scanTaskResult: {
-    updateMany(args: { where: Record<string, unknown>; data: { createdById?: string } }): Promise<unknown>;
-  };
-  membership: {
-    findMany(args: { where: { userId: string } }): Promise<Array<{ id: string; orgId: string }>>;
-    findFirst(args: { where: { userId: string; orgId: string } }): Promise<{ id: string; orgId: string } | null>;
-    updateMany(args: { where: { id: string }; data: { userId?: string } }): Promise<unknown>;
-    delete(args: { where: { id: string } }): Promise<unknown>;
-  };
-  memberRole: {
-    findMany(args: { where: { membershipId: string } }): Promise<Array<{ id: string; membershipId: string; roleId: string }>>;
-    updateMany(args: { where: { id: string }; data: { membershipId?: string } }): Promise<unknown>;
-    deleteMany(args: { where: { id: { in: string[] } } }): Promise<unknown>;
-  };
-  timetableEntryAssignee: {
-    findMany(args: { where: { membershipId: string } }): Promise<Array<{ id: string; membershipId: string; timetableEntryId: string }>>;
-    updateMany(args: { where: { id: string }; data: { membershipId?: string } }): Promise<unknown>;
-    deleteMany(args: { where: { id: { in: string[] } } }): Promise<unknown>;
-  };
-  timetableTemplateEntryAssignee: {
-    findMany(args: { where: { membershipId: string } }): Promise<Array<{ id: string; membershipId: string; templateEntryId: string }>>;
-    updateMany(args: { where: { id: string }; data: { membershipId?: string } }): Promise<unknown>;
-    deleteMany(args: { where: { id: { in: string[] } } }): Promise<unknown>;
-  };
-  rosterEntry: {
-    findMany(args: { where: { membershipId: string } }): Promise<Array<{ id: string; membershipId: string; orgId: string; weekStart: Date; dayIndex: number }>>;
-    updateMany(args: { where: { id: string }; data: { membershipId?: string } }): Promise<unknown>;
-    deleteMany(args: { where: { id: { in: string[] } } }): Promise<unknown>;
-  };
-  rosterTemplateEntry: {
-    findMany(args: { where: { membershipId: string } }): Promise<Array<{ id: string; membershipId: string; templateId: string; weekIndex: number; dayIndex: number }>>;
-    updateMany(args: { where: { id: string }; data: { membershipId?: string } }): Promise<unknown>;
-    deleteMany(args: { where: { id: { in: string[] } } }): Promise<unknown>;
-  };
+  organization: Pick<PrismaClient["organization"], "updateMany">;
+  account: Pick<PrismaClient["account"], "updateMany">;
+  session: Pick<PrismaClient["session"], "updateMany">;
+  demoSession: Pick<PrismaClient["demoSession"], "updateMany">;
+  invite: Pick<PrismaClient["invite"], "updateMany">;
+  notification: Pick<PrismaClient["notification"], "updateMany">;
+  announcementRead: Pick<PrismaClient["announcementRead"], "updateMany">;
+  auditLog: Pick<PrismaClient["auditLog"], "updateMany">;
+  feedback: Pick<PrismaClient["feedback"], "updateMany">;
+  task: Pick<PrismaClient["task"], "updateMany">;
+  taskComment: Pick<PrismaClient["taskComment"], "updateMany">;
+  taskCommentVote: Pick<PrismaClient["taskCommentVote"], "updateMany">;
+  scanTaskResult: Pick<PrismaClient["scanTaskResult"], "updateMany">;
+  membership: Pick<PrismaClient["membership"], "findMany" | "findFirst" | "updateMany" | "delete">;
+  memberRole: Pick<PrismaClient["memberRole"], "findMany" | "updateMany" | "deleteMany">;
+  timetableEntryAssignee: Pick<PrismaClient["timetableEntryAssignee"], "findMany" | "updateMany" | "deleteMany">;
+  timetableTemplateEntryAssignee: Pick<PrismaClient["timetableTemplateEntryAssignee"], "findMany" | "updateMany" | "deleteMany">;
+  rosterEntry: Pick<PrismaClient["rosterEntry"], "findMany" | "updateMany" | "deleteMany">;
+  rosterTemplateEntry: Pick<PrismaClient["rosterTemplateEntry"], "findMany" | "updateMany" | "deleteMany">;
 };
 
 type SeedTransactionalPrisma = SeedPrismaLike & {
@@ -246,5 +215,5 @@ export async function reconcileIvanSeedIdentityAtomic(
   canonicalEmail: string,
   legacyEmail: string,
 ) {
-  return prisma.$transaction((tx) => reconcileIvanSeedIdentity(tx as SeedPrismaLike, canonicalEmail, legacyEmail));
+  return prisma.$transaction((tx) => reconcileIvanSeedIdentity(tx, canonicalEmail, legacyEmail));
 }
