@@ -114,5 +114,11 @@ export async function GET(
   if (shouldLogAuthTrace()) {
     console.info(`${logPrefix} REDIRECT -> ${provider} authorize`, { hasCallbackUrl: !!callbackUrl });
   }
-  await signIn(provider, { redirectTo: callbackUrl }, authorizationParams);
+  const completionUrl = new URL("/api/mobile-auth/complete", request.url);
+  completionUrl.searchParams.set("callbackUrl", callbackUrl);
+  if (attemptId) {
+    completionUrl.searchParams.set("attemptId", attemptId);
+  }
+
+  await signIn(provider, { redirectTo: completionUrl.toString() }, authorizationParams);
 }

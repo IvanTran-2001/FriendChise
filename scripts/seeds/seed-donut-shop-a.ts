@@ -391,7 +391,7 @@ async function main() {
   const reconciledIvan = ivanLegacyEmail ? await reconcileIvanSeedIdentityAtomic(prisma, ivanEmail, ivanLegacyEmail) : null;
   console.log("→ Ivan identity reconciliation", {
     ran: !!ivanLegacyEmail,
-    mergedFrom: ivanLegacyEmail ?? null,
+    mergedFrom: ivanLegacyEmail ? "redacted" : null,
     mergedTo: ivanEmail,
   });
   const [ivan, jordan, casey, riley, alex] = await Promise.all([
