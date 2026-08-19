@@ -76,26 +76,21 @@ async function migrateMembershipRows(prisma: SeedPrismaLike, sourceMembershipId:
 async function migrateDuplicateIvanUser(prisma: SeedPrismaLike, canonicalUserId: string, duplicateUserId: string) {
   await prisma.organization.updateMany({ where: { ownerId: duplicateUserId }, data: { ownerId: canonicalUserId } });
 
-  const directUserIdDelegates = [
-    { delegate: prisma.account, fieldName: "userId" },
-    { delegate: prisma.session, fieldName: "userId" },
-    { delegate: prisma.demoSession, fieldName: "userId" },
-    { delegate: prisma.notification, fieldName: "userId" },
-    { delegate: prisma.announcementRead, fieldName: "userId" },
-    { delegate: prisma.auditLog, fieldName: "actorId" },
-    { delegate: prisma.feedback, fieldName: "userId" },
-    { delegate: prisma.task, fieldName: "createdById" },
-    { delegate: prisma.taskComment, fieldName: "authorId" },
-    { delegate: prisma.taskCommentVote, fieldName: "userId" },
-    { delegate: prisma.scanTaskResult, fieldName: "createdById" },
+  const directUserIdUpdates = [
+    () => prisma.account.updateMany({ where: { userId: duplicateUserId }, data: { userId: canonicalUserId } }),
+    () => prisma.session.updateMany({ where: { userId: duplicateUserId }, data: { userId: canonicalUserId } }),
+    () => prisma.demoSession.updateMany({ where: { userId: duplicateUserId }, data: { userId: canonicalUserId } }),
+    () => prisma.notification.updateMany({ where: { userId: duplicateUserId }, data: { userId: canonicalUserId } }),
+    () => prisma.announcementRead.updateMany({ where: { userId: duplicateUserId }, data: { userId: canonicalUserId } }),
+    () => prisma.auditLog.updateMany({ where: { actorId: duplicateUserId }, data: { actorId: canonicalUserId } }),
+    () => prisma.feedback.updateMany({ where: { userId: duplicateUserId }, data: { userId: canonicalUserId } }),
+    () => prisma.task.updateMany({ where: { createdById: duplicateUserId }, data: { createdById: canonicalUserId } }),
+    () => prisma.taskComment.updateMany({ where: { authorId: duplicateUserId }, data: { authorId: canonicalUserId } }),
+    () => prisma.taskCommentVote.updateMany({ where: { userId: duplicateUserId }, data: { userId: canonicalUserId } }),
+    () => prisma.scanTaskResult.updateMany({ where: { createdById: duplicateUserId }, data: { createdById: canonicalUserId } }),
   ] as const;
 
-  await Promise.all(
-    directUserIdDelegates.map(({ delegate, fieldName }) => {
-      const updateMany = delegate.updateMany as (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => Promise<unknown>;
-      return updateMany({ where: { [fieldName]: duplicateUserId }, data: { [fieldName]: canonicalUserId } });
-    }),
-  );
+  await Promise.all(directUserIdUpdates.map((run) => run()));
 
   await prisma.invite.updateMany({ where: { invitedById: duplicateUserId }, data: { invitedById: canonicalUserId } });
   await prisma.invite.updateMany({ where: { recipientId: duplicateUserId }, data: { recipientId: canonicalUserId } });
