@@ -29,20 +29,21 @@ function isValidCallbackUrl(callbackUrl: string, requestUrl: string): boolean {
 }
 
 export async function GET(request: Request) {
-  if (process.env.NODE_ENV !== "development") {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
   const { searchParams } = new URL(request.url);
   const callbackUrl = searchParams.get("callbackUrl");
   const attemptId = searchParams.get("attemptId");
+  // Native app requests this directly (no browser hop) and reads the token
+  // from the JSON body instead of following a redirect back into the app.
+  const wantsJson = request.headers.get("accept")?.includes("application/json") ?? false;
 
-  if (!callbackUrl) {
-    return NextResponse.json({ error: "callbackUrl required" }, { status: 400 });
-  }
+  if (!wantsJson) {
+    if (!callbackUrl) {
+      return NextResponse.json({ error: "callbackUrl required" }, { status: 400 });
+    }
 
-  if (!isValidCallbackUrl(callbackUrl, request.url)) {
-    return NextResponse.json({ error: "Invalid callbackUrl" }, { status: 400 });
+    if (!isValidCallbackUrl(callbackUrl, request.url)) {
+      return NextResponse.json({ error: "Invalid callbackUrl" }, { status: 400 });
+    }
   }
 
   let session;
@@ -82,7 +83,19 @@ export async function GET(request: Request) {
     maxAge: DEMO_JWT_TTL_MS / 1000,
   });
 
-  const redirectUrl = new URL(callbackUrl, request.url);
+  const expiresAt = Date.now() + DEMO_JWT_TTL_MS;
+
+  if (wantsJson) {
+    return NextResponse.json({
+      token,
+      orgId: session.orgId,
+      isDemo: true,
+      expiresAt,
+      attemptId: attemptId ?? undefined,
+    });
+  }
+
+  const redirectUrl = new URL(callbackUrl!, request.url);
   if (attemptId) {
     redirectUrl.searchParams.set("attemptId", attemptId);
   }
@@ -91,7 +104,7 @@ export async function GET(request: Request) {
   // The mobile token is an encrypted next-auth JWE, so the client can't read
   // its exp/email claims itself — pass demo state explicitly instead.
   redirectUrl.searchParams.set("isDemo", "1");
-  redirectUrl.searchParams.set("expiresAt", String(Date.now() + DEMO_JWT_TTL_MS));
+  redirectUrl.searchParams.set("expiresAt", String(expiresAt));
 
   return NextResponse.redirect(redirectUrl);
 }
