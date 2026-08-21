@@ -138,7 +138,7 @@ describe("AppSidebar - Settings Filtering", () => {
     const renderedItems = findNavItems(element);
 
     // Only 'Roles' and 'User' should be rendered.
-    // 'Org', 'Tags', 'Timetable', 'Notification' are filtered out.
+    // 'Org', 'Tags', 'Timetable', 'Alerts' are filtered out.
     expect(renderedItems.map((item) => item.title)).toEqual(["Roles", "User"]);
   });
 
@@ -174,7 +174,7 @@ describe("AppSidebar - Settings Filtering", () => {
       "Tags",
       "User",
       "Timetable",
-      "Notification",
+      "Alerts",
     ]);
   });
 });

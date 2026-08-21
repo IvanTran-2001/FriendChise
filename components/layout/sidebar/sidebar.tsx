@@ -140,7 +140,7 @@ function getSettingsItems(orgId: string): NavItem[] {
       disabled: true,
     },
     {
-      title: "Notification",
+      title: "Alerts",
       url: `/orgs/${orgId}/settings/notification`,
       icon: Bell,
       disabled: true,
@@ -351,7 +351,7 @@ export function AppSidebar() {
 
                 <SidebarNavItem
                   variant="app"
-                  title="Notification"
+                  title="Alerts"
                   url="/notifications"
                   icon={Bell}
                   isActive={isActiveItem("/notifications")}
