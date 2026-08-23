@@ -25,7 +25,7 @@ import { SearchInput } from "@/components/ui/controls/search-input";
 import { cn } from "@/lib/core/utils";
 import { useToolFavorites } from "@/hooks/use-tool-favorites";
 import { useSupportsHover } from "@/hooks/use-hover-capability";
-import { TOOLS_CATALOG, type ToolCatalogItem } from "./tools-catalog";
+import {TOOLS_CATALOG, CATEGORY_ORDER, type ToolCatalogItem, type ToolCategory} from "./tools-catalog";
 
 function ToolRow({
   tool,
@@ -107,6 +107,17 @@ export function ToolsSidebarContent({ orgId }: { orgId: string }) {
   const favoriteTools = hydrated ? filtered.filter((tool) => favoriteIds.includes(tool.id)) : [];
   const remainingTools = hydrated ? filtered.filter((tool) => !favoriteIds.includes(tool.id)) : filtered;
 
+  const groupToolsByCategory = (tools: ToolCatalogItem[]) => {
+    const groups = new Map<ToolCategory, ToolCatalogItem[]>();
+    for (const category of CATEGORY_ORDER) {
+      groups.set(category, []);
+    }
+    for (const tool of tools) {
+      groups.get(tool.category)?.push(tool);
+    }
+    return groups;
+  };
+
   const renderRow = (tool: ToolCatalogItem) => {
     const href = `/orgs/${orgId}/tools/${tool.id}`;
     return (
@@ -120,6 +131,23 @@ export function ToolsSidebarContent({ orgId }: { orgId: string }) {
         supportsHover={supportsHover}
       />
     );
+  };
+
+  const renderCategorizedTools = (tools: ToolCatalogItem[]) => {
+    const groups = groupToolsByCategory(tools);
+
+    return CATEGORY_ORDER.map((category) => {
+      const categoryTools = groups.get(category) ?? [];
+      if (categoryTools.length === 0) {
+        return null;
+      }
+      return (
+        <div key={category}>
+          <GroupLabel>{category}</GroupLabel>
+          {categoryTools.map(renderRow)}
+        </div>
+      );
+    });
   };
 
   return (
@@ -144,8 +172,7 @@ export function ToolsSidebarContent({ orgId }: { orgId: string }) {
               </div>
             )}
             <div>
-              <GroupLabel>{favoriteTools.length > 0 && !isSearching ? "All tools" : "Tools"}</GroupLabel>
-              {(isSearching ? filtered : remainingTools).map(renderRow)}
+              {isSearching ? renderCategorizedTools(filtered) : renderCategorizedTools(remainingTools)}
             </div>
           </>
         )}
