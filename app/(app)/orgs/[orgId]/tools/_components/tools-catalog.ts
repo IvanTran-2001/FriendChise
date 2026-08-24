@@ -18,12 +18,28 @@
 import type { ComponentType } from "react";
 import { ArrowLeftRight, Calculator, ClipboardList, FileScan, List, StickyNote, Users } from "lucide-react";
 
+export type ToolCategory =
+  | "Products"
+  | "Accessories"
+  | "Teams"
+  | "AI"
+  | "Other";
+
+export const CATEGORY_ORDER: ToolCategory[] = [
+    "Products",
+    "Teams",
+    "AI",
+    "Accessories",
+    "Other",
+];
+
 export type ToolCatalogItem = {
   id: string;
   name: string;
   icon: ComponentType<{ className?: string }>;
   description: string;
   accent: string;
+  category: ToolCategory;
 };
 
 export const TOOLS_CATALOG: ToolCatalogItem[] = [
@@ -33,6 +49,7 @@ export const TOOLS_CATALOG: ToolCatalogItem[] = [
     icon: List,
     description: "Manage your ingredient and product catalog",
     accent: "bg-emerald-500/10 text-emerald-700 ring-emerald-500/15 dark:text-emerald-300",
+    category:"Products",
   },
   {
     id: "conversion",
@@ -40,6 +57,8 @@ export const TOOLS_CATALOG: ToolCatalogItem[] = [
     icon: ArrowLeftRight,
     description: "Convert quantities between items",
     accent: "bg-sky-500/10 text-sky-700 ring-sky-500/15 dark:text-sky-300",
+    category:"Products",
+
   },
   {
     id: "menu",
@@ -47,6 +66,8 @@ export const TOOLS_CATALOG: ToolCatalogItem[] = [
     icon: ClipboardList,
     description: "Build customer-facing menus",
     accent: "bg-rose-500/10 text-rose-700 ring-rose-500/15 dark:text-rose-300",
+    category:"Products",
+
   },
   {
     id: "roster",
@@ -54,6 +75,8 @@ export const TOOLS_CATALOG: ToolCatalogItem[] = [
     icon: Users,
     description: "Manage team rosters and schedules",
     accent: "bg-amber-500/10 text-amber-700 ring-amber-500/15 dark:text-amber-300",
+    category:"Teams",
+
   },
   {
     id: "calculator",
@@ -61,6 +84,7 @@ export const TOOLS_CATALOG: ToolCatalogItem[] = [
     icon: Calculator,
     description: "Quick arithmetic calculations",
     accent: "bg-indigo-500/10 text-indigo-700 ring-indigo-500/15 dark:text-indigo-300",
+    category:"Accessories",
   },
   {
     id: "scan-to-task",
@@ -68,6 +92,7 @@ export const TOOLS_CATALOG: ToolCatalogItem[] = [
     icon: FileScan,
     description: "Convert files into task items",
     accent: "bg-cyan-500/10 text-cyan-700 ring-cyan-500/15 dark:text-cyan-300",
+    category:"AI",
   },
   {
     id: "notes",
@@ -75,5 +100,6 @@ export const TOOLS_CATALOG: ToolCatalogItem[] = [
     icon: StickyNote,
     description: "Shared notebook for quick team reminders",
     accent: "bg-violet-500/10 text-violet-700 ring-violet-500/15 dark:text-violet-300",
+    category:"Accessories",
   },
 ];
