@@ -87,31 +87,40 @@ describe("listTimetableEntries", () => {
   });
 
   it("filters by exact status when the status option is provided", async () => {
-    const org = await getSeedOrg();
-    const task = await prisma.task.findFirstOrThrow({
-      where: { orgId: org.id },
-    });
-    const created = await createTimetableEntry(
-      org.id,
-      task.id,
-      "2026-08-03",
-      480,
-    );
-    expect(created.ok).toBe(true);
-    if (!created.ok) return;
+    const { org, task } = await createTempOrgWithTask();
+    try {
+      const todoEntry = await createTimetableEntry(
+        org.id,
+        task.id,
+        "2026-08-03",
+        480,
+      );
+      const doneEntry = await createTimetableEntry(
+        org.id,
+        task.id,
+        "2026-08-04",
+        540,
+      );
+      expect(todoEntry.ok).toBe(true);
+      expect(doneEntry.ok).toBe(true);
+      if (!todoEntry.ok || !doneEntry.ok) return;
 
-    // Mark it DONE
-    await updateTimetableEntryStatus(org.id, created.data.id, EntryStatus.DONE);
+      await updateTimetableEntryStatus(org.id, doneEntry.data.id, EntryStatus.DONE);
 
-    const todos = await listTimetableEntries(org.id, {
-      status: EntryStatus.TODO,
-    });
-    expect(todos.every((e) => e.status === EntryStatus.TODO)).toBe(true);
+      const todos = await listTimetableEntries(org.id, {
+        status: EntryStatus.TODO,
+      });
+      expect(todos.every((e) => e.status === EntryStatus.TODO)).toBe(true);
+      expect(todos.some((e) => e.id === todoEntry.data.id)).toBe(true);
 
-    const dones = await listTimetableEntries(org.id, {
-      status: EntryStatus.DONE,
-    });
-    expect(dones.some((e) => e.id === created.data.id)).toBe(true);
+      const dones = await listTimetableEntries(org.id, {
+        status: EntryStatus.DONE,
+      });
+      expect(dones.every((e) => e.status === EntryStatus.DONE)).toBe(true);
+      expect(dones.some((e) => e.id === doneEntry.data.id)).toBe(true);
+    } finally {
+      await cleanupTempOrg(org.id);
+    }
   });
 
   it("normalizes and caps limit values against real rows", async () => {
