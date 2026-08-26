@@ -65,6 +65,7 @@ Full docs: [Tasks](/doc/backend-api/endpoints-tasks)
 | `GET` | `/api/orgs/[orgId]/memberships` | Member | Paginated member list with roles. |
 | `GET` | `/api/orgs/[orgId]/announcements` | Member | Paginated org announcements. |
 | `GET` | `/api/orgs/[orgId]/roster-entries` | Member | Roster entries for requested week-start dates. |
+| `POST` | `/api/orgs/[orgId]/roster-entries` | `MANAGE_MEMBERS` | Replace every member assigned to one roster cell. Body: `{ weekStart, dayIndex, members }`. |
 | `GET` | `/api/orgs/[orgId]/is-parent-owner` | Signed in | Check if current user is the franchisor owner. |
 
 Full docs: [Organizations](/doc/backend-api/endpoints-orgs)
