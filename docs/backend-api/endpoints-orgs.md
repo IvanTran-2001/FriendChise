@@ -143,6 +143,85 @@ Returns an empty array if `weeks` is missing or none of the provided dates are v
 
 ---
 
+## Update roster assignments
+
+`POST /api/orgs/[orgId]/roster-entries`
+
+Replaces every member assigned to a single roster cell — one `(weekStart, dayIndex)` pair. The `members` array is the complete new contents of that cell, so members left out of the request are unassigned from it, and an empty array clears the cell.
+
+### Authentication
+
+Requires the `MANAGE_MEMBERS` permission, the same permission used by the roster server actions.
+
+### Body
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `weekStart` | string | Yes | ISO 8601 date-time for the Monday the cell belongs to. Must match the stored week-start key exactly (`00:00` UTC). |
+| `dayIndex` | number | Yes | Day of the week, `0` (Monday) through `6` (Sunday). |
+| `members` | array | Yes | Full replacement set of members for the cell. Pass `[]` to clear it. |
+
+Each entry in `members`:
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `membershipId` | string | Yes | Membership to assign. Must belong to this org. |
+| `shiftStartMin` | number \| null | No | Shift start in minutes from midnight. `null` (the default) inherits the day config. |
+| `shiftEndMin` | number \| null | No | Shift end in minutes from midnight. `null` (the default) inherits the day config. |
+
+### Example request
+
+```http
+POST /api/orgs/org_01abc/roster-entries
+Content-Type: application/json
+
+{
+  "weekStart": "2026-08-10T00:00:00.000Z",
+  "dayIndex": 2,
+  "members": [
+    { "membershipId": "mem_01abc", "shiftStartMin": 540, "shiftEndMin": 1020 },
+    { "membershipId": "mem_02def", "shiftStartMin": null, "shiftEndMin": null }
+  ]
+}
+```
+
+### Response
+
+The roster entries that now occupy the cell, in the same shape returned by the `GET` above.
+
+```json
+{
+  "entries": [
+    {
+      "id": "entry_01",
+      "orgId": "org_01abc",
+      "membershipId": "mem_01abc",
+      "weekStart": "2026-08-10T00:00:00.000Z",
+      "dayIndex": 2,
+      "shiftStartMin": 540,
+      "shiftEndMin": 1020,
+      "membership": {
+        "id": "mem_01abc",
+        "botName": null,
+        "user": { "name": "Riley" }
+      }
+    }
+  ]
+}
+```
+
+### Errors
+
+| Status | Reason |
+| --- | --- |
+| `400` | `weekStart` is missing or not a valid date, `dayIndex` is not an integer in `0`–`6`, `members` is missing or malformed, or the JSON body could not be parsed |
+| `401` | Not authenticated |
+| `403` | Not a member of the org, or missing the `MANAGE_MEMBERS` permission |
+| `404` | One or more `membershipId` values do not belong to this org |
+| `415` | Request body was not JSON or form-encoded |
+
+---
+
 ## Check parent owner status
 
 `GET /api/orgs/[orgId]/is-parent-owner`
