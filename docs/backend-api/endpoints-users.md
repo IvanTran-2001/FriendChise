@@ -144,6 +144,60 @@ If no session is present, returns an empty result (`totalCount: 0`) rather than 
 
 ---
 
+## Create organization (web)
+
+`POST /api/me/organizations`
+
+Creates a new standalone organization owned by the authenticated user.
+
+### Authentication
+
+Session cookie (web only).
+
+### Request body
+
+```json
+{
+  "title": "Downtown Doughnuts",
+  "timezone": "Australia/Sydney",
+  "address": "123 Main St",
+  "operatingDays": ["mon", "tue", "wed", "thu", "fri"],
+  "openTimeMin": 480,
+  "closeTimeMin": 1020
+}
+```
+
+`title` is required (max 100 characters). All other fields are optional.
+
+### Response
+
+`201 Created`
+
+```json
+{
+  "organization": {
+    "id": "org_01abc",
+    "name": "Downtown Doughnuts",
+    "timezone": "Australia/Sydney",
+    "address": "123 Main St",
+    "operatingDays": ["mon", "tue", "wed", "thu", "fri"],
+    "openTimeMin": 480,
+    "closeTimeMin": 1020,
+    "image": null
+  }
+}
+```
+
+### Errors
+
+| Status | Reason |
+| --- | --- |
+| `401` | Session missing or invalid |
+| `400` | Malformed JSON body or validation failed |
+| `429` | Demo limit reached |
+
+---
+
 ## Delete account
 
 `DELETE /api/account/delete`
