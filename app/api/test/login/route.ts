@@ -1,5 +1,4 @@
 import { encode } from "next-auth/jwt";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/platform/prisma";
 
@@ -50,12 +49,17 @@ export async function GET(request: Request) {
     maxAge: 60 * 60 * 24, // 1 day — enough for a test run
   });
 
-  const cookieStore = await cookies();
-  cookieStore.set(cookieName, token, {
+  const sessionCookie = `${cookieName}=${token}`;
+
+  const response = NextResponse.json({
+    ok: true,
+    sessionCookie,
+  });
+  response.cookies.set(cookieName, token, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
   });
 
-  return NextResponse.json({ ok: true });
+  return response;
 }
