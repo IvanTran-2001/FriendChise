@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/platform/prisma";
 import { getPublicUrl } from "@/lib/platform/supabase-storage";
+import { parseRequestBody } from "@/lib/http/request-body";
+import { createOrgSchema } from "@/lib/validators/org";
+import { createOrg as createOrgService } from "@/lib/services/orgs";
+import { checkDemoLimit } from "@/lib/demo";
 
 type Org = { id: string; name: string; image: string | null };
 
@@ -85,4 +91,58 @@ export async function GET(req: Request) {
     pageSize,
     search,
   });
+}
+
+export async function POST(req: Request) {
+  const session = await auth();
+  const userId = session?.user?.id as string | undefined;
+  const userEmail = session?.user?.email as string | undefined;
+
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const demoCheck = await checkDemoLimit(userEmail ?? "", "org", undefined, userId);
+  if (!demoCheck.ok) {
+    return NextResponse.json({ error: demoCheck.error }, { status: 429 });
+  }
+
+  const body = await parseRequestBody(req);
+  if (body instanceof NextResponse) return body;
+
+  const parsed = createOrgSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        error: "Validation failed",
+        errors: z.flattenError(parsed.error).fieldErrors,
+      },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const { org } = await createOrgService(userId, parsed.data, userEmail);
+    revalidatePath("/", "layout");
+    return NextResponse.json(
+      {
+        organization: {
+          id: org.id,
+          name: org.name,
+          timezone: org.timezone,
+          address: org.address,
+          operatingDays: org.operatingDays,
+          openTimeMin: org.openTimeMin,
+          closeTimeMin: org.closeTimeMin,
+          image: org.image ? getPublicUrl(org.image) : null,
+        },
+      },
+      { status: 201 },
+    );
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Failed to create organization" },
+      { status: 500 },
+    );
+  }
 }

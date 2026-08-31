@@ -43,6 +43,7 @@ Full docs: [Users and Accounts](/doc/backend-api/endpoints-users)
 | Method | Route | Auth | Description |
 | --- | --- | --- | --- |
 | `GET` | `/api/me/organizations` | Session | Paginated org list for the current web session user. |
+| `POST` | `/api/me/organizations` | Session | Create a new standalone organization. |
 
 Full docs: [Users and Accounts](/doc/backend-api/endpoints-users)
 
