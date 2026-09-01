@@ -16,6 +16,8 @@ Changes that affect request/response shapes, authentication requirements, or rou
 
 **Added** — `/api/mobile/*` route group — dedicated endpoints for the mobile app using bearer-token authentication: `GET /api/mobile/me`, `GET /api/mobile/me/organizations`, `GET /api/mobile/me/organization`.
 
+**Added** — `POST /api/mobile/me/organizations` and `POST /api/mobile/me/organizations/join` — bearer-token org creation and franchise join flows for the mobile app.
+
 **Added** — `/api/mobile-auth/*` route group — custom OAuth handshake for the mobile app: `oauth-start/[provider]`, `complete`. Enables the mobile app to obtain a bearer token after signing in via the system browser without CSRF token issues.
 
 **Added** — `/api/orgs/[orgId]/tools/scan-to-task/*` route group — mobile scan-to-task workflow for upload URL creation, scan processing, result confirmation, and result clearing.
