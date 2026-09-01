@@ -29,10 +29,10 @@ Bearer token required.
 
 ### Errors
 
-| Status | Reason                                       |
-| ------ | -------------------------------------------- |
-| `401`  | Token missing or invalid                     |
-| `404`  | Authenticated user ID has no database record |
+| Status | Reason |
+| --- | --- |
+| `401` | Token missing or invalid |
+| `404` | Authenticated user ID has no database record |
 
 ---
 
@@ -64,81 +64,9 @@ Bearer token required.
 
 ### Errors
 
-| Status | Reason                   |
-| ------ | ------------------------ |
-| `401`  | Token missing or invalid |
-
----
-
-## Create organization (mobile)
-
-`POST /api/mobile/me/organizations`
-
-Creates a standalone organization for the authenticated mobile user.
-
-### Authentication
-
-Bearer token required.
-
-### Request body
-
-Same shape as the web create-org endpoint:
-
-```json
-{
-  "title": "Downtown Doughnuts",
-  "timezone": "Australia/Sydney",
-  "address": "42 Harbour Street",
-  "operatingDays": ["mon", "tue", "wed"],
-  "openTimeMin": 360,
-  "closeTimeMin": 1080
-}
-```
-
-### Response
-
-Returns the created organization payload, including a public image URL when present.
-
-### Errors
-
-| Status | Reason                          |
-| ------ | ------------------------------- |
-| `401`  | Token missing or invalid        |
-| `400`  | Validation failed               |
-| `429`  | Demo organization limit reached |
-
----
-
-## Join organization (mobile)
-
-`POST /api/mobile/me/organizations/join`
-
-Joins an existing franchise using a one-time invite token.
-
-### Authentication
-
-Bearer token required.
-
-### Request body
-
-```json
-{
-  "token": "franchise-invite-token"
-}
-```
-
-Schedule fields are optional and use the same validation as the web join flow.
-
-### Response
-
-Returns the newly created franchise org payload, including a public image URL when present.
-
-### Errors
-
-| Status | Reason                                             |
-| ------ | -------------------------------------------------- |
-| `401`  | Token missing or invalid                           |
-| `400`  | Validation failed or the invite token was rejected |
+| Status | Reason |
+| --- | --- |
+| `401` | Token missing or invalid |
 
 ---
 
@@ -166,10 +94,10 @@ Bearer token required.
 
 ### Errors
 
-| Status | Reason                      |
-| ------ | --------------------------- |
-| `401`  | Token missing or invalid    |
-| `404`  | User has no org memberships |
+| Status | Reason |
+| --- | --- |
+| `401` | Token missing or invalid |
+| `404` | User has no org memberships |
 
 ---
 
@@ -185,12 +113,12 @@ Session cookie (web only).
 
 ### Query parameters
 
-| Param         | Type    | Default | Max   | Description                                    |
-| ------------- | ------- | ------- | ----- | ---------------------------------------------- |
-| `page`        | integer | `1`     | —     | Page number                                    |
-| `limit`       | integer | `24`    | `100` | Items per page                                 |
-| `search`      | string  | —       | —     | Filter orgs by name                            |
-| `activeOrgId` | string  | —       | —     | Org ID to resolve alongside the paginated list |
+| Param | Type | Default | Max | Description |
+| --- | --- | --- | --- | --- |
+| `page` | integer | `1` | — | Page number |
+| `limit` | integer | `24` | `100` | Items per page |
+| `search` | string | — | — | Filter orgs by name |
+| `activeOrgId` | string | — | — | Org ID to resolve alongside the paginated list |
 
 ### Response
 
@@ -262,11 +190,11 @@ Session cookie (web only).
 
 ### Errors
 
-| Status | Reason                                   |
-| ------ | ---------------------------------------- |
-| `401`  | Session missing or invalid               |
-| `400`  | Malformed JSON body or validation failed |
-| `429`  | Demo limit reached                       |
+| Status | Reason |
+| --- | --- |
+| `401` | Session missing or invalid |
+| `400` | Malformed JSON body or validation failed |
+| `429` | Demo limit reached |
 
 ---
 
@@ -298,14 +226,14 @@ Bearer token or session cookie.
 
 ### Errors
 
-| Status | Reason                                                   |
-| ------ | -------------------------------------------------------- |
-| `400`  | `confirmText` is missing from the request body           |
-| `400`  | `confirmText` does not match the user's name or email    |
-| `403`  | Session-cookie request did not come from the same origin |
-| `401`  | Not authenticated                                        |
-| `404`  | User record not found                                    |
-| `500`  | Unexpected error during deletion                         |
+| Status | Reason |
+| --- | --- |
+| `400` | `confirmText` is missing from the request body |
+| `400` | `confirmText` does not match the user's name or email |
+| `403` | Session-cookie request did not come from the same origin |
+| `401` | Not authenticated |
+| `404` | User record not found |
+| `500` | Unexpected error during deletion |
 
 ### Important notes
 
