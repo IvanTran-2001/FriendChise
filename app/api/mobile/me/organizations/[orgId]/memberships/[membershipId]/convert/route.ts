@@ -8,7 +8,7 @@ import { parseRequestBody } from "@/lib/http/request-body";
 type RouteContext = { params: Promise<{ orgId: string; membershipId: string }> };
 
 const convertSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("bot") }),
+  z.object({ kind: z.literal("bot"), overrideName: z.string().trim().min(1).max(100) }),
   z.object({ kind: z.literal("member"), userId: z.string().trim().min(1) }),
 ]);
 
@@ -34,7 +34,7 @@ export async function POST(req: Request, { params }: RouteContext) {
 
   const result =
     parsed.data.kind === "bot"
-      ? await memberToBot(orgId, { membershipId, overrideName: "placeholder" }, authz.userId, authz.userEmail)
+      ? await memberToBot(orgId, { membershipId, overrideName: parsed.data.overrideName }, authz.userId, authz.userEmail)
       : await botToMember(orgId, { membershipId, userId: parsed.data.userId }, authz.userId);
 
   if (!result.ok) {

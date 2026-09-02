@@ -33,7 +33,7 @@ import { connectSeedUsersToOrg } from "../../helpers/connect-users";
 export async function seedDonutShopA(prisma: PrismaClient, users: Users) {
   const { owner, jordan, casey, riley, alex } = users;
   const { utcEntry } = makeDateUtils("Australia/Sydney");
-  const orgName = seedDisplayName("Donut Shop A");
+  const orgName = seedDisplayName("[MAIN] Donut Shop A");
 
   // ── Org ────────────────────────────────────────────────────────────────────
   console.log("→ Creating org...");

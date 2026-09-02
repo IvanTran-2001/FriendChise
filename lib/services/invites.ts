@@ -87,28 +87,46 @@ export async function getPaginatedInvitesForUser(
   userId: string,
   page: number,
   limit: number = 10,
-  options: { view?: "all" | "unseen" } = {},
+  options: { view?: "all" | "unseen"; search?: string } = {},
 ): Promise<{ items: InviteItem[]; total: number; totalPages: number }> {
   await syncExpiredInvitesForUser(userId);
-  const { view = "all" } = options;
+  const { view = "all", search } = options;
   const skip = (page - 1) * limit;
+  const normalizedSearch = search?.trim() ?? "";
   const where: Prisma.InviteWhereInput =
     view === "unseen"
-        ? {
-            recipientId: userId,
-            status: "PENDING",
-            seenAt: null,
-          }
-        : { recipientId: userId };
+      ? {
+          recipientId: userId,
+          status: "PENDING",
+          seenAt: null,
+        }
+      : { recipientId: userId };
+
+  const searchFilter: Prisma.InviteWhereInput | null = normalizedSearch
+    ? {
+        OR: [
+          { orgName: { contains: normalizedSearch, mode: "insensitive" } },
+          { inviterName: { contains: normalizedSearch, mode: "insensitive" } },
+          {
+            metadata: {
+              path: [],
+              string_contains: normalizedSearch,
+            },
+          },
+        ],
+      }
+    : null;
+
+  const finalWhere = searchFilter ? { AND: [where, searchFilter] } : where;
   const [items, total] = await Promise.all([
     prisma.invite.findMany({
-      where,
+      where: finalWhere,
       orderBy: { createdAt: "desc" },
       skip,
       take: limit,
       select: inviteHistorySelect,
     }),
-    prisma.invite.count({ where }),
+    prisma.invite.count({ where: finalWhere }),
   ]);
 
   return {
@@ -187,6 +205,20 @@ export async function getUnseenInviteCount(userId: string): Promise<number> {
   await syncExpiredInvitesForUser(userId);
   return prisma.invite.count({
     where: { recipientId: userId, status: "PENDING", seenAt: null },
+  });
+}
+
+/**
+ * Returns the count of pending join-related invites for a user.
+ */
+export async function getPendingJoinInviteCount(userId: string): Promise<number> {
+  await syncExpiredInvitesForUser(userId);
+  return prisma.invite.count({
+    where: {
+      recipientId: userId,
+      status: "PENDING",
+      type: { not: InviteType.FRANCHISE },
+    },
   });
 }
 

@@ -34,8 +34,9 @@ export async function GET(req: Request) {
     50,
   );
   const view = searchParams.get("view") === "unseen" ? "unseen" : "all";
+  const search = searchParams.get("search") ?? undefined;
 
-  const result = await getPaginatedInvitesForUser(user.id, page, pageSize, { view });
+  const result = await getPaginatedInvitesForUser(user.id, page, pageSize, { view, search });
 
   return NextResponse.json({
     invites: result.items.map(toInviteItem),

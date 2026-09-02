@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prisma } from "@/lib/platform/prisma";
 import {
   getRoles,
+  getRolesPage,
   deleteRole,
   getRoleById,
   createRole,
@@ -12,6 +13,7 @@ vi.mock("@/lib/platform/prisma", () => ({
   prisma: {
     role: {
       findMany: vi.fn(),
+      count: vi.fn(),
       findFirst: vi.fn(),
       findUniqueOrThrow: vi.fn(),
       create: vi.fn(),
@@ -78,6 +80,39 @@ describe("getRoles", () => {
     const result = await getRoles("org-1");
 
     expect(result).toEqual([]);
+  });
+});
+
+// ─── getRolesPage ───────────────────────────────────────────────────────────
+
+describe("getRolesPage", () => {
+  it("returns paged roles with search support", async () => {
+    vi.mocked(prisma.role.count).mockResolvedValue(2);
+    vi.mocked(prisma.role.findMany).mockResolvedValue([
+      { id: "role-1", name: "Manager", color: "#111111", isDefault: false },
+      { id: "role-2", name: "Trainer", color: "#222222", isDefault: true },
+    ] as any);
+
+    const result = await getRolesPage("org-1", { page: 1, pageSize: 10, search: "man" });
+
+    expect(result).toEqual({
+      roles: [
+        { id: "role-1", name: "Manager", color: "#111111", isDefault: false },
+        { id: "role-2", name: "Trainer", color: "#222222", isDefault: true },
+      ],
+      totalCount: 2,
+      totalPages: 1,
+      page: 1,
+      pageSize: 10,
+    });
+    expect(prisma.role.count).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          orgId: "org-1",
+          name: { contains: "man", mode: "insensitive" },
+        }),
+      }),
+    );
   });
 });
 

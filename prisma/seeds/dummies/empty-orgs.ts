@@ -6,6 +6,8 @@ import type { Users } from "../shared/users";
 import { seedDisplayName } from "@/lib/demo/seed-namespace";
 import { connectSeedUsersToOrg } from "../helpers/connect-users";
 
+export const EMPTY_ORG_BASE_NAMES = ["test1", "test2", "test3", "test4", "test5"] as const;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 5. EMPTY ORGS — multiple orgs with Riley as a member (not owner)
 //    Owner: Jordan  |  Member: Riley
@@ -15,11 +17,11 @@ export async function seedEmptyOrgs(prisma: PrismaClient, users: Users) {
   const { jordan, riley } = users;
 
   const orgDefs = [
-    { name: seedDisplayName("Coffee House B"),  address: "10 George Street, Sydney NSW 2000",       timezone: "Australia/Sydney"    },
-    { name: seedDisplayName("Bakery Co C"),     address: "55 Collins Street, Melbourne VIC 3000",    timezone: "Australia/Melbourne" },
-    { name: seedDisplayName("Pie Shop D"),      address: "78 Queen Street, Brisbane QLD 4000",       timezone: "Australia/Brisbane"  },
-    { name: seedDisplayName("Burger Joint E"),  address: "22 Rundle Mall, Adelaide SA 5000",         timezone: "Australia/Adelaide"  },
-    { name: seedDisplayName("Noodle Bar F"),    address: "99 Murray Street, Perth WA 6000",          timezone: "Australia/Perth"     },
+    { name: seedDisplayName(EMPTY_ORG_BASE_NAMES[0]), address: "10 George Street, Sydney NSW 2000",    timezone: "Australia/Sydney"    },
+    { name: seedDisplayName(EMPTY_ORG_BASE_NAMES[1]), address: "55 Collins Street, Melbourne VIC 3000", timezone: "Australia/Melbourne" },
+    { name: seedDisplayName(EMPTY_ORG_BASE_NAMES[2]), address: "78 Queen Street, Brisbane QLD 4000",   timezone: "Australia/Brisbane"  },
+    { name: seedDisplayName(EMPTY_ORG_BASE_NAMES[3]), address: "22 Rundle Mall, Adelaide SA 5000",     timezone: "Australia/Adelaide"  },
+    { name: seedDisplayName(EMPTY_ORG_BASE_NAMES[4]), address: "99 Murray Street, Perth WA 6000",       timezone: "Australia/Perth"     },
   ];
 
   console.log(`→ Creating ${orgDefs.length} empty orgs...`);

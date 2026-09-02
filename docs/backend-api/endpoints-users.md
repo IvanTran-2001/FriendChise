@@ -88,6 +88,7 @@ Bearer token required.
 | `pageSize` | integer | `20` | `50` | Items per page |
 | `limit` | integer | `20` | `50` | Alias for `pageSize` |
 | `view` | `all` \| `unseen` | `all` | — | Filter to unseen invites only |
+| `search` | string | — | — | Search by org name, inviter name, or invite metadata |
 
 ### Response
 

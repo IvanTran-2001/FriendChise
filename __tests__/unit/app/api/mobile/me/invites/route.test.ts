@@ -46,4 +46,22 @@ describe("GET /api/mobile/me/invites", () => {
     expect(data.hasMore).toBe(false);
     expect(data.invites[0].subtype).toBe("MEMBER");
   });
+
+  it("passes search through to the invite service", async () => {
+    vi.mocked(getAuthUser).mockResolvedValue({ id: "user-1", email: "user@example.com" } as any);
+    vi.mocked(getPaginatedInvitesForUser).mockResolvedValue({
+      items: [],
+      total: 0,
+      totalPages: 1,
+    } as any);
+
+    await GET(new Request("http://localhost:3000/api/mobile/me/invites?page=2&pageSize=5&search=alex"));
+
+    expect(getPaginatedInvitesForUser).toHaveBeenCalledWith(
+      "user-1",
+      2,
+      5,
+      expect.objectContaining({ view: "all", search: "alex" }),
+    );
+  });
 });

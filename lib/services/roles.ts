@@ -28,6 +28,13 @@ export type RoleWithPermissions = {
   eligibleFor: { task: { id: string; name: string; color: string } }[];
 };
 
+export type RoleListItem = {
+  id: string;
+  name: string;
+  color: string;
+  isDefault: boolean;
+};
+
 /**
  * Returns all roles for an org, ordered alphabetically by name.
  * Each role includes its granted permissions (PermissionAction values).
@@ -39,6 +46,46 @@ export async function getRoles(orgId: string): Promise<RoleWithPermissions[]> {
     orderBy: { name: "asc" },
     take: 100,
   });
+}
+
+export async function getRolesPage(
+  orgId: string,
+  options: { page?: number; pageSize?: number; search?: string } = {},
+): Promise<{ roles: RoleListItem[]; totalCount: number; totalPages: number; page: number; pageSize: number }> {
+  const pageSize = Math.max(1, Math.min(options.pageSize ?? 20, 50));
+  const page = Math.max(1, options.page ?? 1);
+  const search = options.search?.trim() ?? "";
+
+  const where = {
+    orgId,
+    ...(search
+      ? {
+          name: {
+            contains: search,
+            mode: "insensitive" as const,
+          },
+        }
+      : {}),
+  };
+
+  const totalCount = await prisma.role.count({ where });
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const pageNumber = Math.min(page, totalPages);
+
+  const roles = await prisma.role.findMany({
+    where,
+    orderBy: [{ isDefault: "desc" }, { name: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      color: true,
+      isDefault: true,
+    },
+    skip: (pageNumber - 1) * pageSize,
+    take: pageSize,
+  });
+
+  return { roles, totalCount, totalPages, page: pageNumber, pageSize };
 }
 
 /**

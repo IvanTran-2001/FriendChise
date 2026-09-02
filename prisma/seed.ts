@@ -102,7 +102,7 @@ async function main() {
   console.log("Seeded successfully:", {
     users: Object.fromEntries(Object.entries(users).map(([k, v]) => [k, v.id])),
     orgs: {
-      "Donut Shop A": org1.org.id,
+      "[MAIN] Donut Shop A": org1.org.id,
     },
   });
 }

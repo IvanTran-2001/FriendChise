@@ -63,6 +63,55 @@ Bearer token required.
 
 ---
 
+`GET /api/mobile/me/organizations/[orgId]/roles`
+
+Returns a paged list of roles for the organization, ordered with default roles first. Use this for role-pickers and infinite scroll UIs.
+
+### Authentication
+
+Bearer token required.
+
+### Query parameters
+
+| Param | Type | Default | Max | Description |
+| --- | --- | --- | --- | --- |
+| `page` | integer | `1` | — | Page number |
+| `pageSize` | integer | `20` | `50` | Items per page |
+| `limit` | integer | `20` | `50` | Alias for `pageSize` |
+| `search` | string | — | — | Filter by role name |
+
+### Response
+
+```json
+{
+  "roles": [
+    {
+      "id": "role_01",
+      "name": "Owner",
+      "color": "#ef4444",
+      "isDefault": false
+    }
+  ],
+  "totalCount": 6,
+  "totalPages": 1,
+  "page": 1,
+  "pageSize": 20,
+  "hasMore": false
+}
+```
+
+Use the membership update endpoint to assign roles to a person:
+
+`PATCH /api/mobile/me/organizations/[orgId]/memberships/[membershipId]`
+
+Body:
+
+```json
+{ "roleIds": ["role_01", "role_02"] }
+```
+
+---
+
 `POST /api/mobile/me/organizations/[orgId]/memberships`
 
 Invites a member by email.
