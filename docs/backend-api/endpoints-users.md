@@ -144,6 +144,31 @@ Returns the newly created franchise org payload, including a public image URL wh
 
 ---
 
+## Leave organization (mobile)
+
+`DELETE /api/mobile/me/organizations/[orgId]/leave`
+
+Leaves the current organization by converting the caller's membership to a bot placeholder.
+
+### Authentication
+
+Bearer token required.
+
+### Response
+
+Returns `{ "ok": true }` when the caller leaves the organization.
+
+### Errors
+
+| Status | Reason                                   |
+| ------ | ---------------------------------------- |
+| `401`  | Token missing or invalid                 |
+| `404`  | Membership not found                     |
+| `403`  | Organization owners can't leave. Transfer ownership first. |
+| `400`  | Membership is already a bot             |
+
+---
+
 ## Delete organization (mobile)
 
 `DELETE /api/mobile/me/organizations/[orgId]`
