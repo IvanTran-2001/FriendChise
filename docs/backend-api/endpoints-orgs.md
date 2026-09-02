@@ -6,6 +6,201 @@ order: 8
 
 All organization endpoints are scoped to `orgId`. The caller must be a member or have a relevant permission.
 
+## Mobile memberships
+
+`GET /api/mobile/me/organizations/[orgId]/memberships`
+
+Returns a paged list of organization members for the authenticated mobile user. The response includes `page`, `pageSize`, `totalCount`, `totalPages`, and `hasMore` so the client can use either classic pagination or infinite scroll.
+
+### Authentication
+
+Bearer token required.
+
+### Query parameters
+
+| Param | Type | Default | Max | Description |
+| --- | --- | --- | --- | --- |
+| `page` | integer | `1` | — | Page number |
+| `pageSize` | integer | `20` | `50` | Items per page |
+| `search` | string | — | — | Search by member name/email/bot name |
+| `roleId` | string | — | — | Filter to members with a specific role |
+| `excludeIds` | string[] | — | — | Member IDs to exclude |
+| `excludeBots` | boolean | `false` | — | Exclude bot memberships |
+
+### Response
+
+```json
+{
+  "memberships": [
+    {
+      "id": "mem_01abc",
+      "userId": "usr_01abc",
+      "botName": null,
+      "status": "ACTIVE",
+      "joinedAt": "2026-01-15T09:00:00.000Z",
+      "workingDays": ["mon", "tue"],
+      "user": {
+        "id": "usr_01abc",
+        "name": "Alex Chen",
+        "email": "alex@example.com",
+        "image": null
+      },
+      "memberRoles": [
+        { "role": { "id": "role_01", "name": "Baker", "color": "#f59e0b" } }
+      ],
+      "name": "Alex Chen",
+      "description": "alex@example.com",
+      "image": null
+    }
+  ],
+  "totalCount": 8,
+  "totalPages": 1,
+  "page": 1,
+  "pageSize": 20,
+  "hasMore": false
+}
+```
+
+---
+
+`GET /api/mobile/me/organizations/[orgId]/roles`
+
+Returns a paged list of roles for the organization, ordered with default roles first. Use this for role-pickers and infinite scroll UIs.
+
+### Authentication
+
+Bearer token required.
+
+### Query parameters
+
+| Param | Type | Default | Max | Description |
+| --- | --- | --- | --- | --- |
+| `page` | integer | `1` | — | Page number |
+| `pageSize` | integer | `20` | `50` | Items per page |
+| `limit` | integer | `20` | `50` | Alias for `pageSize` |
+| `search` | string | — | — | Filter by role name |
+
+### Response
+
+```json
+{
+  "roles": [
+    {
+      "id": "role_01",
+      "name": "Owner",
+      "color": "#ef4444",
+      "isDefault": false
+    }
+  ],
+  "totalCount": 6,
+  "totalPages": 1,
+  "page": 1,
+  "pageSize": 20,
+  "hasMore": false
+}
+```
+
+Use the membership update endpoint to assign roles to a person:
+
+`PATCH /api/mobile/me/organizations/[orgId]/memberships/[membershipId]`
+
+Body:
+
+```json
+{ "roleIds": ["role_01", "role_02"] }
+```
+
+---
+
+`POST /api/mobile/me/organizations/[orgId]/memberships`
+
+Invites a member by email.
+
+### Authentication
+
+Bearer token required and `MANAGE_MEMBERS` permission required.
+
+### Request body
+
+```json
+{
+  "email": "new.member@example.com",
+  "roleIds": ["role_01"],
+  "workingDays": ["mon", "tue"]
+}
+```
+
+### Response
+
+Returns `{ "ok": true }` when the invite is created.
+
+### Errors
+
+| Status | Reason |
+| --- | --- |
+| `400` | Validation failed or email/user/role data is invalid |
+| `401` | Token missing or invalid |
+| `403` | Missing `MANAGE_MEMBERS` permission |
+| `409` | The user is already a member or already has a pending invite |
+
+---
+
+`DELETE /api/mobile/me/organizations/[orgId]/memberships/[membershipId]`
+
+Removes a member from the organization.
+
+### Authentication
+
+Bearer token required and `MANAGE_MEMBERS` permission required.
+
+### Response
+
+Returns `{ "ok": true }` when the member is removed.
+
+### Errors
+
+| Status | Reason |
+| --- | --- |
+| `401` | Token missing or invalid |
+| `403` | Missing `MANAGE_MEMBERS` permission, or the member is the organization owner |
+| `404` | Membership not found |
+
+---
+
+`POST /api/mobile/me/organizations/[orgId]/memberships/[membershipId]/convert`
+
+Converts a member to a bot, or a bot to a member.
+
+### Authentication
+
+Bearer token required and `MANAGE_MEMBERS` permission required.
+
+### Request body
+
+```json
+{ "kind": "bot" }
+```
+
+or
+
+```json
+{ "kind": "member", "userId": "usr_01abc" }
+```
+
+### Response
+
+Returns `{ "ok": true }` when the conversion succeeds.
+
+### Errors
+
+| Status | Reason |
+| --- | --- |
+| `401` | Token missing or invalid |
+| `403` | Missing `MANAGE_MEMBERS` permission, or the owner cannot be converted to a bot |
+| `404` | Membership not found or the target user was not found |
+| `409` | The target user already has a membership in the org |
+| `400` | Validation failed or the membership is already in the requested state |
+
 ## List memberships
 
 `GET /api/orgs/[orgId]/memberships`
