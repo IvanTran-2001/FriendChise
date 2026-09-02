@@ -174,7 +174,9 @@ Returns `{ "ok": true }` when the organization is deleted.
 | ------ | -------------------------------------- |
 | `401`  | Token missing or invalid               |
 | `400`  | Validation failed                      |
+| `400`  | Confirmation name does not match       |
 | `400`  | Malformed JSON body.                   |
+| `415`  | Unsupported media type.                |
 | `403`  | Caller is not the owner or org is franchise-scoped |
 | `404`  | Organization not found                 |
 
