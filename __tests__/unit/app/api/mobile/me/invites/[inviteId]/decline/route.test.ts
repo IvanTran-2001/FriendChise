@@ -20,7 +20,6 @@ import { getAuthUser } from "@/lib/authz/_shared";
 import { prisma } from "@/lib/platform/prisma";
 import {
   declineMemberInvite,
-  declineBotSlotInvite,
   declineFranchiseInvite,
 } from "@/lib/services/invites";
 import { POST } from "@/app/api/mobile/me/invites/[inviteId]/decline/route";
