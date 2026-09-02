@@ -105,6 +105,7 @@ Returns the created organization payload, including a public image URL when pres
 | ------ | ------------------------------- |
 | `401`  | Token missing or invalid        |
 | `400`  | Validation failed               |
+| `400`  | Malformed JSON body.            |
 | `429`  | Demo organization limit reached |
 
 ---
@@ -139,6 +140,43 @@ Returns the newly created franchise org payload, including a public image URL wh
 | ------ | -------------------------------------------------- |
 | `401`  | Token missing or invalid                           |
 | `400`  | Validation failed or the invite token was rejected |
+| `400`  | Malformed JSON body.                               |
+
+---
+
+## Delete organization (mobile)
+
+`DELETE /api/mobile/me/organizations/[orgId]`
+
+Deletes a mobile organization when the caller provides the exact organization name as confirmation.
+
+### Authentication
+
+Bearer token required.
+
+### Request body
+
+```json
+{
+  "confirmName": "Downtown Doughnuts"
+}
+```
+
+`confirmName` must match the organization name exactly.
+
+### Response
+
+Returns `{ "ok": true }` when the organization is deleted.
+
+### Errors
+
+| Status | Reason                                 |
+| ------ | -------------------------------------- |
+| `401`  | Token missing or invalid               |
+| `400`  | Validation failed                      |
+| `400`  | Malformed JSON body.                   |
+| `403`  | Caller is not the owner or org is franchise-scoped |
+| `404`  | Organization not found                 |
 
 ---
 
