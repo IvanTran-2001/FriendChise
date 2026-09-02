@@ -26,6 +26,10 @@ These routes use bearer token authentication (`Authorization: Bearer <token>`).
 | ------ | ----------------------------------- | ------ | ------------------------------------------------------------------- |
 | `GET`  | `/api/mobile/me`                    | Bearer | Current user profile (`id`, `name`, `email`, `image`).              |
 | `GET`  | `/api/mobile/me/organizations`      | Bearer | All orgs the user is a member of.                                   |
+| `GET`  | `/api/mobile/me/organizations/[orgId]/memberships` | Bearer | Paged member list with `hasMore` for infinite scroll. |
+| `POST` | `/api/mobile/me/organizations/[orgId]/memberships` | Bearer | Invite a member to the organization. |
+| `DELETE` | `/api/mobile/me/organizations/[orgId]/memberships/[membershipId]` | Bearer | Remove a member from the organization. |
+| `POST` | `/api/mobile/me/organizations/[orgId]/memberships/[membershipId]/convert` | Bearer | Convert between bot and user memberships. |
 | `POST` | `/api/mobile/me/organizations`      | Bearer | Create a standalone organization for the authenticated mobile user. |
 | `POST` | `/api/mobile/me/organizations/join` | Bearer | Join an existing franchise using an invite token.                   |
 | `DELETE` | `/api/mobile/me/organizations/[orgId]/leave` | Bearer | Leave an organization by converting the caller's membership to a bot. |
