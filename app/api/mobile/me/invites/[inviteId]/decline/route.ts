@@ -19,6 +19,7 @@ function mapDeclineError(error: unknown) {
     case "Invite not found":
     case "Invite not found or already handled":
       return { status: 404, message: error.message };
+    case "This invite has already been handled":
     case "This invite is no longer pending":
       return { status: 409, message: error.message };
     default:

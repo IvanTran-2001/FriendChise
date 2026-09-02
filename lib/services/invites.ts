@@ -91,7 +91,9 @@ export async function getPaginatedInvitesForUser(
 ): Promise<{ items: InviteItem[]; total: number; totalPages: number }> {
   await syncExpiredInvitesForUser(userId);
   const { view = "all", search } = options;
-  const skip = (page - 1) * limit;
+  const normalizedPage = Number.isFinite(page) ? Math.max(1, Math.trunc(page)) : 1;
+  const normalizedLimit = Number.isFinite(limit) ? Math.max(1, Math.trunc(limit)) : 10;
+  const skip = (normalizedPage - 1) * normalizedLimit;
   const normalizedSearch = search?.trim() ?? "";
   const where: Prisma.InviteWhereInput =
     view === "unseen"
@@ -123,7 +125,7 @@ export async function getPaginatedInvitesForUser(
       where: finalWhere,
       orderBy: { createdAt: "desc" },
       skip,
-      take: limit,
+      take: normalizedLimit,
       select: inviteHistorySelect,
     }),
     prisma.invite.count({ where: finalWhere }),
@@ -132,7 +134,7 @@ export async function getPaginatedInvitesForUser(
   return {
     items: items as InviteItem[],
     total,
-    totalPages: Math.ceil(total / limit),
+    totalPages: Math.ceil(total / normalizedLimit),
   };
 }
 

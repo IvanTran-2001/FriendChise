@@ -139,7 +139,8 @@ Returns `{ "ok": true }` when the invite is accepted. Franchise invites return t
 | --- | --- |
 | `401` | Token missing or invalid |
 | `404` | Invite not found |
-| `400` | Invite expired, already handled, or invalid for this accept flow |
+
+| `400` | Invite expired or invalid for this accept flow |
 | `409` | Invite was already handled or a conflict occurred while accepting |
 
 ---

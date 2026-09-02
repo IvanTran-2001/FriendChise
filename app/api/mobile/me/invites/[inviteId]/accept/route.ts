@@ -75,7 +75,7 @@ export async function POST(_req: Request, { params }: RouteContext) {
         : await acceptMemberInvite(invite.id, user.id, user.email);
 
     if (!result.ok) {
-      const mapped = mapAcceptError(result.error as unknown);
+      const mapped = mapAcceptError(new Error(result.error));
       return NextResponse.json({ error: result.error }, { status: mapped.status });
     }
 

@@ -253,13 +253,13 @@ export async function getMembershipDetail(orgId: string, membershipId: string) {
 export async function updateMembership(
   orgId: string,
   membershipId: string,
-  data: { workingDays: string[]; roleIds: string[] },
+  data: { workingDays?: string[]; roleIds: string[] },
   actorId?: string | null,
   actorEmail?: string | null,
 ): Promise<ServiceResult<null>> {
   const membership = await prisma.membership.findUnique({
     where: { id: membershipId, orgId },
-    select: { id: true },
+    select: { id: true, workingDays: true },
   });
   if (!membership)
     return { ok: false, error: "Membership not found", code: "NOT_FOUND" };
@@ -285,10 +285,12 @@ export async function updateMembership(
       code: "INVALID",
     };
 
+  const workingDays = data.workingDays ?? membership.workingDays;
+
   await prisma.$transaction(async (tx) => {
     await tx.membership.update({
       where: { id: membership.id },
-      data: { workingDays: data.workingDays },
+      data: { workingDays },
     });
     await tx.memberRole.deleteMany({ where: { membershipId: membership.id } });
     await Promise.all(
@@ -306,7 +308,7 @@ export async function updateMembership(
     action: "membership.update",
     targetType: "Membership",
     targetId: membershipId,
-    after: { workingDays: data.workingDays, roleIds: data.roleIds },
+    after: { workingDays, roleIds: data.roleIds },
   });
   return { ok: true, data: null };
 }

@@ -96,4 +96,24 @@ describe("POST /api/mobile/me/invites/[inviteId]/accept", () => {
     expect(data.organization.id).toBe("org-new");
     expect(joinFranchise).toHaveBeenCalledWith("user-1", "user@example.com", { token: "franchise-token" });
   });
+
+  it("maps handled member invite failures to 409", async () => {
+    vi.mocked(getAuthUser).mockResolvedValue({ id: "user-1", email: "user@example.com" } as any);
+    vi.mocked(prisma.invite.findUnique).mockResolvedValue({
+      id: "inv-4",
+      recipientId: "user-1",
+      type: "MEMBER",
+      metadata: {},
+      orgId: "org-1",
+    } as any);
+    vi.mocked(acceptMemberInvite).mockResolvedValue({ ok: false, error: "This invite has already been handled", code: "CONFLICT" } as any);
+
+    const res = await POST(new Request("http://localhost:3000", { method: "POST" }), {
+      params: Promise.resolve({ inviteId: "inv-4" }),
+    });
+    const data = await res.json();
+
+    expect(res.status).toBe(409);
+    expect(data.error).toBe("This invite has already been handled");
+  });
 });

@@ -1,6 +1,7 @@
-import { PrismaClient, InviteType } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { ROLE_KEYS } from "@/lib/auth/rbac";
-import { seedDisplayName } from "@/lib/demo/seed-namespace";
+import { seedDisplayName, seedEmail } from "@/lib/demo/seed-namespace";
+import { createMemberInvite } from "@/lib/services/invites";
 import type { SeedPlan } from "../seed-plan";
 import type { Users } from "../shared/users";
 import { seedDonutShopA } from "../orgs/donut-shop-a/donut-shop-a";
@@ -12,6 +13,19 @@ export async function seedInvites(
   _donutShopA: Awaited<ReturnType<typeof seedDonutShopA>>,
 ) {
   const targetOrgNames = EMPTY_ORG_BASE_NAMES.map((baseName) => seedDisplayName(baseName));
+  const inviteeEmail = seedEmail("invitee");
+  const invitee = await prisma.user.upsert({
+    where: { email: inviteeEmail },
+    update: {
+      name: seedDisplayName("Invitee"),
+      image: "https://i.pravatar.cc/150?img=23",
+    },
+    create: {
+      email: inviteeEmail,
+      name: seedDisplayName("Invitee"),
+      image: "https://i.pravatar.cc/150?img=23",
+    },
+  });
 
   const seededOrgs = await prisma.organization.findMany({
     where: {
@@ -34,7 +48,7 @@ export async function seedInvites(
   });
   const roleIdByOrgId = new Map(defaultMemberRoles.map((role) => [role.orgId, role.id]));
 
-  const inviteRows = targetOrgNames.map((orgName, index) => {
+  for (const [index, orgName] of targetOrgNames.entries()) {
     const org = orgByName.get(orgName);
     if (!org) {
       throw new Error(`Test org not found: ${orgName}`);
@@ -45,21 +59,19 @@ export async function seedInvites(
       throw new Error(`Default role not found for test org ${org.name}.`);
     }
 
-    return {
-      orgId: org.id,
-      invitedById: users.jordan.id,
-      recipientId: users.owner.id,
-      type: InviteType.MEMBER,
-      orgName: org.name,
-      inviterName: users.jordan.name ?? "Jordan",
-      metadata: {
-        roleIds: [roleId],
-        workingDays: index % 2 === 0 ? ["mon", "wed", "fri"] : ["tue", "thu"],
-      },
-    };
-  });
+    const result = await createMemberInvite(
+      org.id,
+      users.jordan.id,
+      invitee.id,
+      [roleId],
+      index % 2 === 0 ? ["mon", "wed", "fri"] : ["tue", "thu"],
+      { actorEmail: users.jordan.email },
+    );
 
-  await prisma.invite.createMany({ data: inviteRows });
+    if (!result.ok) {
+      throw new Error(result.error);
+    }
+  }
 }
 
 export function registerInviteSeeds(plan: SeedPlan) {

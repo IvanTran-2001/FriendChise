@@ -36,7 +36,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   const result = await updateMembership(
     orgId,
     membershipId,
-    { workingDays: membership.workingDays, roleIds: parsed.data.roleIds },
+    { roleIds: parsed.data.roleIds },
     authz.userId,
     authz.userEmail,
   );
