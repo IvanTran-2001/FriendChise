@@ -89,16 +89,52 @@ describe("getRolesPage", () => {
   it("returns paged roles with search support", async () => {
     vi.mocked(prisma.role.count).mockResolvedValue(2);
     vi.mocked(prisma.role.findMany).mockResolvedValue([
-      { id: "role-1", name: "Manager", color: "#111111", isDefault: false },
-      { id: "role-2", name: "Trainer", color: "#222222", isDefault: true },
+      {
+        id: "role-1",
+        name: "Manager",
+        color: "#111111",
+        key: "manager",
+        isDeletable: true,
+        isDefault: false,
+        permissions: [{ action: "MANAGE_MEMBERS" }],
+        eligibleFor: [{ task: { id: "task-1", name: "Morning Shift", color: "#00aa00" } }],
+      },
+      {
+        id: "role-2",
+        name: "Trainer",
+        color: "#222222",
+        key: "trainer",
+        isDeletable: true,
+        isDefault: true,
+        permissions: [],
+        eligibleFor: [],
+      },
     ] as any);
 
     const result = await getRolesPage("org-1", { page: 1, pageSize: 10, search: "man" });
 
     expect(result).toEqual({
       roles: [
-        { id: "role-1", name: "Manager", color: "#111111", isDefault: false },
-        { id: "role-2", name: "Trainer", color: "#222222", isDefault: true },
+        {
+          id: "role-1",
+          name: "Manager",
+          color: "#111111",
+          key: "manager",
+          isDeletable: true,
+          isDefault: false,
+          permissions: [{ action: "MANAGE_MEMBERS" }],
+          eligibleFor: [{ task: { id: "task-1", name: "Morning Shift", color: "#00aa00" } }],
+        },
+        {
+          id: "role-2",
+          name: "Trainer",
+          color: "#222222",
+          key: "trainer",
+          isDeletable: true,
+          isDefault: true,
+          permissions: [],
+          eligibleFor: [],
+        },
       ],
       totalCount: 2,
       totalPages: 1,

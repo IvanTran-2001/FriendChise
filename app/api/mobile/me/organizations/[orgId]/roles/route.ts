@@ -1,37 +1,40 @@
 import { NextResponse } from "next/server";
-import { getAuthUserId, getOrgMembership } from "@/lib/authz/_shared";
-import { getRolesPage } from "@/lib/services/roles";
+import { requireOrgMember } from "@/lib/authz";
+import { getRoles } from "@/lib/services/roles";
 
 type RouteContext = { params: Promise<{ orgId: string }> };
 
-export async function GET(req: Request, { params }: RouteContext) {
-  const userId = await getAuthUserId();
-  if (!userId) {
-    return NextResponse.json({ roles: [] }, { status: 401 });
-  }
-
+export async function GET(_req: Request, { params }: RouteContext) {
   const { orgId } = await params;
-  const membership = await getOrgMembership(orgId, userId);
-  if (!membership) {
-    return NextResponse.json({ roles: [] }, { status: 403 });
+
+  const authz = await requireOrgMember(orgId);
+  if (!authz.ok) {
+    return authz.response;
   }
 
-  const { searchParams } = new URL(req.url);
-  const page = Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1);
-  const pageSize = Math.min(
-    Math.max(1, Number.parseInt(searchParams.get("pageSize") ?? searchParams.get("limit") ?? "20", 10) || 20),
-    50,
-  );
+  const searchParams = new URL(_req.url).searchParams;
+  const page = searchParams.get("page");
+  const pageSize = searchParams.get("pageSize") ?? searchParams.get("limit");
   const search = searchParams.get("search") ?? undefined;
 
-  const result = await getRolesPage(orgId, { page, pageSize, search });
+  if (page || pageSize || search) {
+    const result = await getRoles(orgId, {
+      page: Math.max(1, Number.parseInt(page ?? "1", 10) || 1),
+      pageSize: Math.min(Math.max(1, Number.parseInt(pageSize ?? "20", 10) || 20), 50),
+      search,
+    });
 
-  return NextResponse.json({
-    roles: result.roles,
-    totalCount: result.totalCount,
-    totalPages: result.totalPages,
-    page: result.page,
-    pageSize: result.pageSize,
-    hasMore: result.page < result.totalPages,
-  });
+    return NextResponse.json({
+      roles: result.roles,
+      totalCount: result.totalCount,
+      totalPages: result.totalPages,
+      page: result.page,
+      pageSize: result.pageSize,
+      hasMore: result.page < result.totalPages,
+    });
+  }
+
+  const roles = await getRoles(orgId);
+
+  return NextResponse.json({ roles });
 }
