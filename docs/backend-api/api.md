@@ -28,6 +28,7 @@ These routes use bearer token authentication (`Authorization: Bearer <token>`).
 | `GET`  | `/api/mobile/me/organizations`      | Bearer | All orgs the user is a member of.                                   |
 | `POST` | `/api/mobile/me/organizations`      | Bearer | Create a standalone organization for the authenticated mobile user. |
 | `POST` | `/api/mobile/me/organizations/join` | Bearer | Join an existing franchise using an invite token.                   |
+| `DELETE` | `/api/mobile/me/organizations/[orgId]` | Bearer | Delete an organization after confirming its exact name.             |
 | `GET`  | `/api/mobile/me/organization`       | Bearer | First org by name (default org for new sessions).                   |
 
 Full docs: [Users and Accounts](/doc/backend-api/endpoints-users)
