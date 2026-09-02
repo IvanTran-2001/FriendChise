@@ -70,6 +70,101 @@ Bearer token required.
 
 ---
 
+## Invite inbox (mobile)
+
+`GET /api/mobile/me/invites`
+
+Returns the authenticated user's invite inbox, paged for normal pagination or infinite scroll. Each invite includes a `subtype` field so the client can tell member, bot-slot, and franchise invites apart.
+
+### Authentication
+
+Bearer token required.
+
+### Query parameters
+
+| Param | Type | Default | Max | Description |
+| --- | --- | --- | --- | --- |
+| `page` | integer | `1` | — | Page number |
+| `pageSize` | integer | `20` | `50` | Items per page |
+| `limit` | integer | `20` | `50` | Alias for `pageSize` |
+| `view` | `all` \| `unseen` | `all` | — | Filter to unseen invites only |
+
+### Response
+
+```json
+{
+  "invites": [
+    {
+      "id": "inv_01abc",
+      "type": "MEMBER",
+      "subtype": "MEMBER",
+      "status": "PENDING",
+      "orgId": "org_01abc",
+      "orgName": "Downtown Doughnuts",
+      "inviterName": "Alex Chen",
+      "seenAt": null,
+      "expiresAt": null,
+      "createdAt": "2026-01-15T09:00:00.000Z",
+      "acceptedAt": null,
+      "declinedAt": null,
+      "metadata": {}
+    }
+  ],
+  "total": 1,
+  "totalPages": 1,
+  "page": 1,
+  "pageSize": 20,
+  "hasMore": false
+}
+```
+
+---
+
+`POST /api/mobile/me/invites/[inviteId]/accept`
+
+Accepts a pending member invite or bot-slot invite. Franchise invites are accepted through the franchise join flow using their token.
+
+### Authentication
+
+Bearer token required.
+
+### Response
+
+Returns `{ "ok": true }` when the invite is accepted. Franchise invites return the newly created organization payload as `organization`.
+
+### Errors
+
+| Status | Reason |
+| --- | --- |
+| `401` | Token missing or invalid |
+| `404` | Invite not found |
+| `400` | Invite expired, already handled, or invalid for this accept flow |
+| `409` | Invite was already handled or a conflict occurred while accepting |
+
+---
+
+`POST /api/mobile/me/invites/[inviteId]/decline`
+
+Declines a pending member, bot-slot, or franchise invite.
+
+### Authentication
+
+Bearer token required.
+
+### Response
+
+Returns `{ "ok": true }` when the invite is declined.
+
+### Errors
+
+| Status | Reason |
+| --- | --- |
+| `401` | Token missing or invalid |
+| `404` | Invite not found or already handled |
+| `409` | Invite is no longer pending |
+
+---
+
 ## Create organization (mobile)
 
 `POST /api/mobile/me/organizations`

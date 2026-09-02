@@ -26,6 +26,9 @@ These routes use bearer token authentication (`Authorization: Bearer <token>`).
 | ------ | ----------------------------------- | ------ | ------------------------------------------------------------------- |
 | `GET`  | `/api/mobile/me`                    | Bearer | Current user profile (`id`, `name`, `email`, `image`).              |
 | `GET`  | `/api/mobile/me/organizations`      | Bearer | All orgs the user is a member of.                                   |
+| `GET`  | `/api/mobile/me/invites`            | Bearer | Paged invite inbox for the current user, with subtype data.         |
+| `POST` | `/api/mobile/me/invites/[inviteId]/accept` | Bearer | Accept a member, bot-slot, or franchise invite.          |
+| `POST` | `/api/mobile/me/invites/[inviteId]/decline` | Bearer | Reject an invite.                                                   |
 | `GET`  | `/api/mobile/me/organizations/[orgId]/memberships` | Bearer | Paged member list with `hasMore` for infinite scroll. |
 | `POST` | `/api/mobile/me/organizations/[orgId]/memberships` | Bearer | Invite a member to the organization. |
 | `DELETE` | `/api/mobile/me/organizations/[orgId]/memberships/[membershipId]` | Bearer | Remove a member from the organization. |
