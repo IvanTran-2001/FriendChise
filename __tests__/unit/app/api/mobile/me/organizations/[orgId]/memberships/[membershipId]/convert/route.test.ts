@@ -23,13 +23,13 @@ beforeEach(() => {
 describe("POST /api/mobile/me/organizations/[orgId]/memberships/[membershipId]/convert", () => {
   it("converts a member to a bot", async () => {
     vi.mocked(requireOrgPermission).mockResolvedValue({ ok: true, userId: "user-1", userEmail: "owner@example.com", membership: {} as any } as any);
-    vi.mocked(parseRequestBody).mockResolvedValue({ kind: "bot" } as any);
+    vi.mocked(parseRequestBody).mockResolvedValue({ kind: "bot", overrideName: "placeholder" } as any);
     vi.mocked(memberToBot).mockResolvedValue({ ok: true, data: {} as any } as any);
 
     const res = await POST(new Request("http://localhost:3000", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind: "bot" }),
+      body: JSON.stringify({ kind: "bot", overrideName: "placeholder" }),
     }), { params: Promise.resolve({ orgId: "org-1", membershipId: "mem-1" }) });
     const data = await res.json();
 

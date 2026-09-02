@@ -8,7 +8,7 @@ import { parseRequestBody } from "@/lib/http/request-body";
 type RouteContext = { params: Promise<{ orgId: string; membershipId: string }> };
 
 const convertSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("bot"), overrideName: z.string().trim().min(1).max(100) }),
+  z.object({ kind: z.literal("bot"), overrideName: z.string().trim().min(1).max(100).optional() }),
   z.object({ kind: z.literal("member"), userId: z.string().trim().min(1) }),
 ]);
 
