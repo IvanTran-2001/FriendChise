@@ -4,6 +4,8 @@ import Google from "next-auth/providers/google";
 import LinkedIn from "next-auth/providers/linkedin";
 import { normalizeEmail } from "@/lib/core/utils";
 
+const useSecureCookies = process.env.NODE_ENV === "production";
+
 /**
  * Edge-compatible Auth.js config.
  *
@@ -30,6 +32,24 @@ export const authConfig: NextAuthConfig = {
   ],
   pages: {
     signIn: "/signin",
+  },
+  // Apple's callback arrives as a cross-site POST (response_mode=form_post),
+  // so the default SameSite=Lax state/PKCE cookies never reach the callback
+  // request and Auth.js fails with a generic "Server error" page. SameSite=None
+  // (Secure in production) lets those cookies survive the cross-site POST.
+  cookies: {
+    state: {
+      options: {
+        sameSite: useSecureCookies ? "none" : "lax",
+        secure: useSecureCookies,
+      },
+    },
+    pkceCodeVerifier: {
+      options: {
+        sameSite: useSecureCookies ? "none" : "lax",
+        secure: useSecureCookies,
+      },
+    },
   },
   callbacks: {
     authorized({ auth, request }) {
