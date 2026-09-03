@@ -21,7 +21,7 @@ Most local problems trace back to `.env.local`, the local database, or a stale P
 ## Auth / sign-in
 
 - **Session loops or immediately signs out**: usually a missing/incorrect `AUTH_SECRET` or `AUTH_URL`, or an `AUTH_SECRET` that doesn't match between environments (this also affects the mobile app — see [Mobile Authentication](/doc/mobile-app/authentication)).
-- **OAuth sign-in fails locally**: OAuth is optional in development — leave `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET` blank and use the seeded dev-user picker on the sign-in page instead.
+- **OAuth sign-in fails locally**: OAuth is optional in development — leave `AUTH_APPLE_ID`/`AUTH_APPLE_SECRET` and `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET` blank and use the seeded dev-user picker on the sign-in page instead.
 
 ## Demo sessions
 

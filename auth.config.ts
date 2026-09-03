@@ -1,4 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
+import Apple from "next-auth/providers/apple";
 import Google from "next-auth/providers/google";
 import LinkedIn from "next-auth/providers/linkedin";
 import { normalizeEmail } from "@/lib/core/utils";
@@ -23,6 +24,7 @@ export const authConfig: NextAuthConfig = {
     // a user who previously signed in with the other provider) hits
     // OAuthAccountNotLinked and lands on Auth.js's generic error page —
     // this was the intermittent "sometimes shows an error page" sign-in bug.
+    Apple({ checks: ["pkce", "state"], allowDangerousEmailAccountLinking: true }),
     Google({ checks: ["pkce", "state"], allowDangerousEmailAccountLinking: true }),
     LinkedIn({ checks: ["pkce", "state"], allowDangerousEmailAccountLinking: true }),
   ],

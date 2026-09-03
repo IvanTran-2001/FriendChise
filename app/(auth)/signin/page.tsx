@@ -53,7 +53,24 @@ function LinkedInLogo({ className }: { className?: string }) {
   );
 }
 
+function AppleLogo({ className }: { className?: string }) {
+  return (
+    <span
+      className={`inline-flex h-4 w-4 shrink-0 items-center justify-center text-[17px] leading-none font-semibold${className ? ` ${className}` : ""}`}
+      aria-hidden="true"
+    >
+      
+    </span>
+  );
+}
+
 const PROVIDERS = [
+  {
+    id: "apple",
+    label: "Continue with Apple",
+    helper: "Use your Apple account.",
+    Logo: AppleLogo,
+  },
   {
     id: "google",
     label: "Continue with Google",
