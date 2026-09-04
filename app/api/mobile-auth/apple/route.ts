@@ -156,7 +156,7 @@ export async function POST(request: Request) {
       name: user.name ?? undefined,
       picture: user.image ?? undefined,
     },
-    secret,
+    secret: AUTH_SECRET,
     salt: MOBILE_TOKEN_COOKIE_NAME,
     maxAge: MOBILE_SESSION_MAX_AGE_SECONDS,
   });
