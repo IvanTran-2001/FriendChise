@@ -46,10 +46,8 @@ export async function POST(request: Request) {
   try {
     claims = await verifyAppleIdentityToken(body.identityToken, APPLE_MOBILE_CLIENT_ID);
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Invalid Apple identity token" },
-      { status: 401 },
-    );
+    console.error("[mobile-auth/apple] Apple identity token verification failed", error);
+    return NextResponse.json({ error: "Invalid Apple identity token" }, { status: 401 });
   }
 
   const appleSubject = claims.sub;
