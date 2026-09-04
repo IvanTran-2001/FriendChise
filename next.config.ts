@@ -1,4 +1,5 @@
 import { withSentryConfig } from "@sentry/nextjs";
+import { fileURLToPath } from "url";
 /**
  * Next.js configuration.
  *
@@ -12,6 +13,13 @@ import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: fileURLToPath(new URL(".", import.meta.url)),
+  },
+  webpack(config) {
+    config.context = fileURLToPath(new URL(".", import.meta.url));
+    return config;
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: "1mb",
