@@ -52,6 +52,9 @@ E2E_TEST_USER_EMAIL=      # optional seeded Riley override (defaults to namespac
 SEED_DEV_IDENTIFIERS=     # comma-separated DB hostnames/usernames allowed for seed/cleanup safety checks
 ADMIN_EMAIL=              # (legacy) super-admin email override — superseded by the AdminUser DB table
 # OAuth (optional — in dev mode, sign in using seeded user emails instead)
+AUTH_APPLE_ID=         # leave blank to skip Apple OAuth in local development
+AUTH_APPLE_SECRET=     # leave blank to skip Apple OAuth in local development
+AUTH_APPLE_MOBILE_CLIENT_ID= # bundle ID used by native Apple Sign In on mobile
 AUTH_GOOGLE_ID=        # leave blank to skip Google OAuth in local development
 AUTH_GOOGLE_SECRET=    # leave blank to skip Google OAuth in local development
 ```
@@ -91,6 +94,9 @@ SEED_DEV_IDENTIFIERS=
 SEED_NAMESPACE=your-name
 
 # OAuth (leave blank to use dev sign-in with seeded users)
+AUTH_APPLE_ID=
+AUTH_APPLE_SECRET=
+AUTH_APPLE_MOBILE_CLIENT_ID=
 AUTH_GOOGLE_ID=
 AUTH_GOOGLE_SECRET=
 ```

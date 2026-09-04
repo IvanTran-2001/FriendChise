@@ -35,23 +35,48 @@ export type RoleListItem = {
   isDefault: boolean;
 };
 
+type RoleQueryOptions = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+};
+
+type RolePageResult = {
+  roles: RoleWithPermissions[];
+  totalCount: number;
+  totalPages: number;
+  page: number;
+  pageSize: number;
+};
+
 /**
- * Returns all roles for an org, ordered alphabetically by name.
- * Each role includes its granted permissions (PermissionAction values).
+ * Returns roles for an org.
+ * With no options, it preserves the current full-list behavior used by the web UI.
+ * With pagination options, it returns a page object for infinite scroll clients.
  */
-export async function getRoles(orgId: string): Promise<RoleWithPermissions[]> {
-  return prisma.role.findMany({
-    where: { orgId },
-    select: roleSelect,
-    orderBy: { name: "asc" },
-    take: 100,
-  });
+export async function getRoles(orgId: string): Promise<RoleWithPermissions[]>;
+export async function getRoles(orgId: string, options: RoleQueryOptions): Promise<RolePageResult>;
+export async function getRoles(orgId: string, options?: RoleQueryOptions): Promise<RoleWithPermissions[] | RolePageResult>;
+export async function getRoles(
+  orgId: string,
+  options?: RoleQueryOptions,
+): Promise<RoleWithPermissions[] | RolePageResult> {
+  if (!options) {
+    return prisma.role.findMany({
+      where: { orgId },
+      select: roleSelect,
+      orderBy: { name: "asc" },
+      take: 100,
+    });
+  }
+
+  return getRolesPage(orgId, options);
 }
 
 export async function getRolesPage(
   orgId: string,
-  options: { page?: number; pageSize?: number; search?: string } = {},
-): Promise<{ roles: RoleListItem[]; totalCount: number; totalPages: number; page: number; pageSize: number }> {
+  options: RoleQueryOptions = {},
+): Promise<RolePageResult> {
   const pageSize = Math.max(1, Math.min(options.pageSize ?? 20, 50));
   const page = Math.max(1, options.page ?? 1);
   const search = options.search?.trim() ?? "";
@@ -75,12 +100,7 @@ export async function getRolesPage(
   const roles = await prisma.role.findMany({
     where,
     orderBy: [{ isDefault: "desc" }, { name: "asc" }],
-    select: {
-      id: true,
-      name: true,
-      color: true,
-      isDefault: true,
-    },
+    select: roleSelect,
     skip: (pageNumber - 1) * pageSize,
     take: pageSize,
   });
