@@ -54,6 +54,7 @@ ADMIN_EMAIL=              # (legacy) super-admin email override — superseded b
 # OAuth (optional — in dev mode, sign in using seeded user emails instead)
 AUTH_APPLE_ID=         # leave blank to skip Apple OAuth in local development
 AUTH_APPLE_SECRET=     # leave blank to skip Apple OAuth in local development
+AUTH_APPLE_MOBILE_CLIENT_ID= # bundle ID used by native Apple Sign In on mobile
 AUTH_GOOGLE_ID=        # leave blank to skip Google OAuth in local development
 AUTH_GOOGLE_SECRET=    # leave blank to skip Google OAuth in local development
 ```
@@ -95,6 +96,7 @@ SEED_NAMESPACE=your-name
 # OAuth (leave blank to use dev sign-in with seeded users)
 AUTH_APPLE_ID=
 AUTH_APPLE_SECRET=
+AUTH_APPLE_MOBILE_CLIENT_ID=
 AUTH_GOOGLE_ID=
 AUTH_GOOGLE_SECRET=
 ```
