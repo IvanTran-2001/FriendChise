@@ -6,6 +6,7 @@ import { verifyAppleIdentityToken } from "@/lib/platform/apple-jwt";
 const MOBILE_TOKEN_COOKIE_NAME = "friendchise.mobile-session-token";
 const MOBILE_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 const APPLE_MOBILE_CLIENT_ID = process.env.AUTH_APPLE_MOBILE_CLIENT_ID?.trim();
+const AUTH_SECRET = process.env.AUTH_SECRET?.trim();
 
 type AppleLoginBody = {
   identityToken: string;
@@ -32,6 +33,9 @@ export async function POST(request: Request) {
   if (!APPLE_MOBILE_CLIENT_ID) {
     return NextResponse.json({ error: "AUTH_APPLE_MOBILE_CLIENT_ID not set" }, { status: 500 });
   }
+  if (!AUTH_SECRET) {
+    return NextResponse.json({ error: "AUTH_SECRET not set" }, { status: 500 });
+  }
 
   const body = await readRequestBody(request);
   if (!body?.identityToken) {
@@ -53,7 +57,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Apple identity token subject missing" }, { status: 401 });
   }
 
-  const appleEmail = (claims.email ?? body.email ?? "").trim().toLowerCase();
+  const appleEmail = claims.email?.trim().toLowerCase();
+  if (!appleEmail) {
+    return NextResponse.json({ error: "Apple identity token email missing" }, { status: 401 });
+  }
+
+  const appleEmailVerified = claims.email_verified === true || claims.email_verified === "true";
+  if (!appleEmailVerified) {
+    return NextResponse.json({ error: "Apple identity token email is not verified" }, { status: 401 });
+  }
+
   const displayName = normalizeDisplayName(body.displayName);
   const now = new Date();
 
@@ -75,7 +88,7 @@ export async function POST(request: Request) {
         })
       : null;
 
-    if (!existingUser && appleEmail) {
+      if (!existingUser) {
       existingUser = await tx.user.findUnique({
         where: { email: appleEmail },
         select: { id: true, email: true, name: true, image: true, emailVerified: true },
@@ -83,10 +96,6 @@ export async function POST(request: Request) {
     }
 
     if (!existingUser) {
-      if (!appleEmail) {
-        throw new Error("Apple login did not return an email address");
-      }
-
       existingUser = await tx.user.create({
         data: {
           email: appleEmail,
@@ -117,14 +126,14 @@ export async function POST(request: Request) {
       where: {
         provider_providerAccountId: {
           provider: "apple",
-            providerAccountId: appleSubject,
+          providerAccountId: appleSubject,
         },
       },
       create: {
         userId: existingUser.id,
         type: "oauth",
         provider: "apple",
-          providerAccountId: appleSubject,
+        providerAccountId: appleSubject,
         id_token: body.identityToken,
         token_type: "id_token",
       },
@@ -138,11 +147,6 @@ export async function POST(request: Request) {
 
     return existingUser;
   });
-
-  const secret = process.env.AUTH_SECRET;
-  if (!secret) {
-    return NextResponse.json({ error: "AUTH_SECRET not set" }, { status: 500 });
-  }
 
   const expiresAt = Date.now() + MOBILE_SESSION_MAX_AGE_SECONDS * 1000;
   const token = await encode({

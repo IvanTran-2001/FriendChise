@@ -1,6 +1,7 @@
 const APPLE_ISSUER = "https://appleid.apple.com";
 const APPLE_JWKS_URL = "https://appleid.apple.com/auth/keys";
 const APPLE_JWKS_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const APPLE_JWKS_FORCE_REFRESH_MIN_INTERVAL_MS = 60 * 1000;
 
 type AppleIdentityTokenHeader = {
   alg?: string;
@@ -25,6 +26,7 @@ export type AppleIdentityTokenClaims = {
 
 let cachedJwks: AppleJwk[] | null = null;
 let cachedJwksAt = 0;
+let lastForcedJwksRefreshAt = 0;
 
 function decodeBase64UrlJson<T>(segment: string): T {
   return JSON.parse(Buffer.from(segment, "base64url").toString("utf8")) as T;
@@ -35,11 +37,21 @@ function decodeBase64UrlBytes(segment: string) {
 }
 
 async function getAppleJwks(forceRefresh = false) {
-  if (!forceRefresh && cachedJwks && Date.now() - cachedJwksAt < APPLE_JWKS_CACHE_TTL_MS) {
+  const now = Date.now();
+
+  if (forceRefresh) {
+    if (cachedJwks && now - lastForcedJwksRefreshAt < APPLE_JWKS_FORCE_REFRESH_MIN_INTERVAL_MS) {
+      return cachedJwks;
+    }
+
+    lastForcedJwksRefreshAt = now;
+  } else if (cachedJwks && now - cachedJwksAt < APPLE_JWKS_CACHE_TTL_MS) {
     return cachedJwks;
   }
 
-  const response = await fetch(APPLE_JWKS_URL);
+  const response = await fetch(APPLE_JWKS_URL, {
+    signal: AbortSignal.timeout(5000),
+  });
   if (!response.ok) {
     throw new Error(`Failed to load Apple signing keys: ${response.status}`);
   }
