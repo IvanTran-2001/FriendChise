@@ -224,6 +224,21 @@ export async function getPendingJoinInviteCount(userId: string): Promise<number>
   });
 }
 
+/** Marks one notification for a user as seen. */
+export async function markNotificationSeen(
+  notificationId: string,
+  userId: string,
+): Promise<void> {
+  await prisma.notification.updateMany({
+    where: {
+      id: notificationId,
+      userId,
+      seenAt: null,
+    },
+    data: { seenAt: new Date() },
+  });
+}
+
 /** Marks all unseen notifications for a user as seen. */
 export async function markNotificationsSeen(userId: string): Promise<void> {
   await prisma.notification.updateMany({
