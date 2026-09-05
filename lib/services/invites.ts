@@ -263,7 +263,7 @@ export async function createMemberInvite(
   invitedById: string | null,
   recipientId: string,
   roleIds: string[],
-  workingDays: string[],
+  workingDays: readonly string[],
   options?: { botMembershipId?: string; actorEmail?: string | null },
 ): Promise<ServiceResult<null>> {
   const { botMembershipId, actorEmail } = options ?? {};
