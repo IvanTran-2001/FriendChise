@@ -87,10 +87,10 @@ export async function getPaginatedInvitesForUser(
   userId: string,
   page: number,
   limit: number = 10,
-  options: { view?: "all" | "unseen"; search?: string } = {},
+  options: { view?: "all" | "unseen"; search?: string; status?: "all" | "pending" } = {},
 ): Promise<{ items: InviteItem[]; total: number; totalPages: number }> {
   await syncExpiredInvitesForUser(userId);
-  const { view = "all", search } = options;
+  const { view = "all", search, status = "all" } = options;
   const normalizedPage = Number.isFinite(page) ? Math.max(1, Math.trunc(page)) : 1;
   const normalizedLimit = Number.isFinite(limit) ? Math.max(1, Math.trunc(limit)) : 10;
   const skip = (normalizedPage - 1) * normalizedLimit;
@@ -103,6 +103,13 @@ export async function getPaginatedInvitesForUser(
           seenAt: null,
         }
       : { recipientId: userId };
+
+  const statusFilter: Prisma.InviteWhereInput | null =
+    status === "pending"
+      ? {
+          status: "PENDING",
+        }
+      : null;
 
   const searchFilter: Prisma.InviteWhereInput | null = normalizedSearch
     ? {
@@ -119,16 +126,16 @@ export async function getPaginatedInvitesForUser(
       }
     : null;
 
-  const finalWhere = searchFilter ? { AND: [where, searchFilter] } : where;
+  const finalWhere = [where, statusFilter, searchFilter].filter(Boolean) as Prisma.InviteWhereInput[];
   const [items, total] = await Promise.all([
     prisma.invite.findMany({
-      where: finalWhere,
+      where: finalWhere.length > 1 ? { AND: finalWhere } : finalWhere[0] ?? where,
       orderBy: { createdAt: "desc" },
       skip,
       take: normalizedLimit,
       select: inviteHistorySelect,
     }),
-    prisma.invite.count({ where: finalWhere }),
+    prisma.invite.count({ where: finalWhere.length > 1 ? { AND: finalWhere } : finalWhere[0] ?? where }),
   ]);
 
   return {

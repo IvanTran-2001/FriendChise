@@ -4,68 +4,131 @@ import { seedDisplayName, seedEmail } from "@/lib/demo/seed-namespace";
 import { createMemberInvite } from "@/lib/services/invites";
 import type { SeedPlan } from "../seed-plan";
 import type { Users } from "../shared/users";
-import { seedDonutShopA } from "../orgs/donut-shop-a/donut-shop-a";
-import { EMPTY_ORG_BASE_NAMES } from "../dummies/empty-orgs";
+import { ALL_OWNER_PERMISSIONS } from "../helpers";
+
+const INVITE_FIXTURES = [
+  {
+    orgBaseName: "Invite Org Alpha",
+    ownerBaseName: "Invite Owner Alpha",
+    recipientBaseName: "Invite Recipient Alpha",
+    address: "12 Harbour Street, Sydney NSW 2000",
+    timezone: "Australia/Sydney",
+    workingDays: ["mon", "wed", "fri"],
+  },
+  {
+    orgBaseName: "Invite Org Beta",
+    ownerBaseName: "Invite Owner Beta",
+    recipientBaseName: "Invite Recipient Beta",
+    address: "88 Collins Street, Melbourne VIC 3000",
+    timezone: "Australia/Melbourne",
+    workingDays: ["tue", "thu"],
+  },
+  {
+    orgBaseName: "Invite Org Gamma",
+    ownerBaseName: "Invite Owner Gamma",
+    recipientBaseName: "Invite Recipient Gamma",
+    address: "44 Queen Street, Brisbane QLD 4000",
+    timezone: "Australia/Brisbane",
+    workingDays: ["mon", "tue", "wed", "thu", "fri"],
+  },
+  {
+    orgBaseName: "Invite Org Delta",
+    ownerBaseName: "Invite Owner Delta",
+    recipientBaseName: "Invite Recipient Delta",
+    address: "15 Rundle Mall, Adelaide SA 5000",
+    timezone: "Australia/Adelaide",
+    workingDays: ["sat", "sun"],
+  },
+  {
+    orgBaseName: "Invite Org Epsilon",
+    ownerBaseName: "Invite Owner Epsilon",
+    recipientBaseName: "Invite Recipient Epsilon",
+    address: "61 Murray Street, Perth WA 6000",
+    timezone: "Australia/Perth",
+    workingDays: ["mon", "wed", "fri"],
+  },
+] as const;
 
 export async function seedInvites(
   prisma: PrismaClient,
   users: Users,
-  _donutShopA: Awaited<ReturnType<typeof seedDonutShopA>>,
+  _donutShopA: unknown,
 ) {
-  const targetOrgNames = EMPTY_ORG_BASE_NAMES.map((baseName) => seedDisplayName(baseName));
-  const inviteeEmail = seedEmail("invitee");
-  const invitee = await prisma.user.upsert({
-    where: { email: inviteeEmail },
-    update: {
-      name: seedDisplayName("Invitee"),
-      image: "https://i.pravatar.cc/150?img=23",
-    },
-    create: {
-      email: inviteeEmail,
-      name: seedDisplayName("Invitee"),
-      image: "https://i.pravatar.cc/150?img=23",
-    },
-  });
+  void users;
 
-  const seededOrgs = await prisma.organization.findMany({
-    where: {
-      ownerId: users.jordan.id,
-      name: { in: targetOrgNames },
-    },
-    select: { id: true, name: true },
-  });
-  if (seededOrgs.length !== EMPTY_ORG_BASE_NAMES.length) {
-    throw new Error(`Expected ${EMPTY_ORG_BASE_NAMES.length} test orgs, found ${seededOrgs.length}.`);
-  }
-  const orgByName = new Map(seededOrgs.map((org) => [org.name, org]));
+  for (const [index, fixture] of INVITE_FIXTURES.entries()) {
+    const owner = await prisma.user.upsert({
+      where: { email: seedEmail(`invite-owner-${index + 1}`) },
+      update: {
+        name: seedDisplayName(fixture.ownerBaseName),
+        image: `https://i.pravatar.cc/150?img=${20 + index}`,
+      },
+      create: {
+        email: seedEmail(`invite-owner-${index + 1}`),
+        name: seedDisplayName(fixture.ownerBaseName),
+        image: `https://i.pravatar.cc/150?img=${20 + index}`,
+      },
+    });
 
-  const defaultMemberRoles = await prisma.role.findMany({
-    where: {
-      orgId: { in: seededOrgs.map((org) => org.id) },
-      key: ROLE_KEYS.DEFAULT_MEMBER,
-    },
-    select: { id: true, orgId: true },
-  });
-  const roleIdByOrgId = new Map(defaultMemberRoles.map((role) => [role.orgId, role.id]));
+    const recipient = await prisma.user.upsert({
+      where: { email: seedEmail(`invite-recipient-${index + 1}`) },
+      update: {
+        name: seedDisplayName(fixture.recipientBaseName),
+        image: `https://i.pravatar.cc/150?img=${30 + index}`,
+      },
+      create: {
+        email: seedEmail(`invite-recipient-${index + 1}`),
+        name: seedDisplayName(fixture.recipientBaseName),
+        image: `https://i.pravatar.cc/150?img=${30 + index}`,
+      },
+    });
 
-  for (const [index, orgName] of targetOrgNames.entries()) {
-    const org = orgByName.get(orgName);
-    if (!org) {
-      throw new Error(`Test org not found: ${orgName}`);
-    }
+    const orgName = seedDisplayName(fixture.orgBaseName);
+    await prisma.organization.deleteMany({
+      where: { name: orgName, ownerId: owner.id },
+    });
 
-    const roleId = roleIdByOrgId.get(org.id);
-    if (!roleId) {
-      throw new Error(`Default role not found for test org ${org.name}.`);
-    }
+    const org = await prisma.organization.create({
+      data: {
+        name: orgName,
+        ownerId: owner.id,
+        address: fixture.address,
+        timezone: fixture.timezone,
+        operatingDays: ["mon", "tue", "wed", "thu", "fri"],
+      },
+    });
+
+    const [roleOwner, roleWorker] = await prisma.role
+      .createManyAndReturn({
+        data: [
+          { orgId: org.id, name: "Owner", key: ROLE_KEYS.OWNER, color: "#ef4444", isDeletable: false, isDefault: false },
+          { orgId: org.id, name: "Default Member", key: ROLE_KEYS.DEFAULT_MEMBER, color: "#6b7280", isDeletable: false, isDefault: true },
+        ],
+      })
+      .then((rows) => [
+        rows.find((role) => role.key === ROLE_KEYS.OWNER)!,
+        rows.find((role) => role.key === ROLE_KEYS.DEFAULT_MEMBER)!,
+      ] as const);
+
+    await prisma.permission.createMany({
+      data: ALL_OWNER_PERMISSIONS.map((action) => ({ roleId: roleOwner.id, action })),
+      skipDuplicates: true,
+    });
+
+    const memberships = await prisma.membership.createManyAndReturn({
+      data: [{ orgId: org.id, userId: owner.id, workingDays: ["mon", "tue", "wed", "thu", "fri"] }],
+    });
+    await prisma.memberRole.createMany({
+      data: [{ membershipId: memberships[0].id, roleId: roleOwner.id }],
+    });
 
     const result = await createMemberInvite(
       org.id,
-      users.jordan.id,
-      invitee.id,
-      [roleId],
-      index % 2 === 0 ? ["mon", "wed", "fri"] : ["tue", "thu"],
-      { actorEmail: users.jordan.email },
+      owner.id,
+      recipient.id,
+      [roleWorker.id],
+      fixture.workingDays,
+      { actorEmail: owner.email },
     );
 
     if (!result.ok) {

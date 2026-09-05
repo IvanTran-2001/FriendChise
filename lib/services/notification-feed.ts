@@ -97,7 +97,7 @@ export async function getNotificationFeedForUser(
 
   const [invitePage, notificationPage, announcementPage] =
     await Promise.all([
-      getPaginatedInvitesForUser(userId, 1, limit, { view }),
+      getPaginatedInvitesForUser(userId, 1, limit, { view, status: "pending" }),
       getPaginatedNotificationsForUser(userId, 1, limit, { view }),
       getPaginatedAnnouncementHistoryForUser(userId, 1, limit, { view }),
     ]);
