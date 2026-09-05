@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { ROLE_KEYS } from "@/lib/auth/rbac";
 import { seedDisplayName, seedEmail } from "@/lib/demo/seed-namespace";
+import { createFranchiseToken } from "@/lib/services/franchise";
 import { createMemberInvite } from "@/lib/services/invites";
 import type { SeedPlan } from "../seed-plan";
 import type { Users } from "../shared/users";
@@ -54,7 +55,14 @@ export async function seedInvites(
   users: Users,
   _donutShopA: unknown,
 ) {
-  void users;
+  const recipient = users.owner;
+
+  await prisma.invite.deleteMany({
+    where: { recipientId: recipient.id },
+  });
+  await prisma.franchiseToken.deleteMany({
+    where: { invitedEmail: recipient.email },
+  });
 
   for (const [index, fixture] of INVITE_FIXTURES.entries()) {
     const owner = await prisma.user.upsert({
@@ -67,19 +75,6 @@ export async function seedInvites(
         email: seedEmail(`invite-owner-${index + 1}`),
         name: seedDisplayName(fixture.ownerBaseName),
         image: `https://i.pravatar.cc/150?img=${20 + index}`,
-      },
-    });
-
-    const recipient = await prisma.user.upsert({
-      where: { email: seedEmail(`invite-recipient-${index + 1}`) },
-      update: {
-        name: seedDisplayName(fixture.recipientBaseName),
-        image: `https://i.pravatar.cc/150?img=${30 + index}`,
-      },
-      create: {
-        email: seedEmail(`invite-recipient-${index + 1}`),
-        name: seedDisplayName(fixture.recipientBaseName),
-        image: `https://i.pravatar.cc/150?img=${30 + index}`,
       },
     });
 
@@ -133,6 +128,18 @@ export async function seedInvites(
 
     if (!result.ok) {
       throw new Error(result.error);
+    }
+
+    const franchiseInvite = await createFranchiseToken(
+      org.id,
+      recipient.email,
+      owner.id,
+      owner.id,
+      owner.email,
+    );
+
+    if (!franchiseInvite.ok) {
+      throw new Error(franchiseInvite.error);
     }
   }
 }
