@@ -1,8 +1,17 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, AnnouncementScope } from "@prisma/client";
 import { seedDisplayName, seedEmail } from "@/lib/demo/seed-namespace";
+import { createAnnouncement } from "@/lib/services/announcements";
 import type { SeedPlan } from "../seed-plan";
 import type { Users } from "../shared/users";
 import type { seedDonutShopA } from "../orgs/donut-shop-a/donut-shop-a";
+
+const ANNOUNCEMENT_FIXTURES = Array.from({ length: 5 }, (_, index) => {
+  const number = index + 1;
+  return {
+    title: `MainDev Announcement ${number}`,
+    description: `Announcement ${number} from [MAIN] Donut Shop A for MainDev.`,
+  };
+});
 
 const NOTIFICATION_MESSAGES = [
   "Donut Shop A invited you to join as a franchisee.",
@@ -14,21 +23,10 @@ const NOTIFICATION_MESSAGES = [
 
 export async function seedNotifications(
   prisma: PrismaClient,
-  _users: Users,
-  _donutShopA: Awaited<ReturnType<typeof seedDonutShopA>>,
+  users: Users,
+  donutShopA: Awaited<ReturnType<typeof seedDonutShopA>>,
 ) {
-  const recipient = await prisma.user.upsert({
-    where: { email: seedEmail("notification-recipient") },
-    update: {
-      name: seedDisplayName("Notification Recipient"),
-      image: "https://i.pravatar.cc/150?img=23",
-    },
-    create: {
-      email: seedEmail("notification-recipient"),
-      name: seedDisplayName("Notification Recipient"),
-      image: "https://i.pravatar.cc/150?img=23",
-    },
-  });
+  const recipient = users.owner;
 
   const orgOwner = await prisma.user.upsert({
     where: { email: seedEmail("notification-owner") },
@@ -58,9 +56,15 @@ export async function seedNotifications(
     },
   });
 
-  const recipientName = recipient.name ?? "Notification Recipient";
+  await prisma.notification.deleteMany({
+    where: {
+      userId: recipient.id,
+      message: { startsWith: `${orgName} invited ` },
+    },
+  });
+
+  const recipientName = recipient.name ?? "MainDev";
   const now = Date.now();
-  // Spread the notification timestamps out so the feed has a realistic ordering and seen/unseen mix.
   const notifications = Array.from({ length: 30 }, (_, index) => ({
     userId: recipient.id,
     message: `${orgName} invited ${recipientName} to join as a franchisee. ${NOTIFICATION_MESSAGES[index % NOTIFICATION_MESSAGES.length]}`,
@@ -71,6 +75,30 @@ export async function seedNotifications(
   await prisma.notification.createMany({
     data: notifications,
   });
+
+  await prisma.announcement.deleteMany({
+    where: {
+      orgId: donutShopA.org.id,
+      title: { startsWith: "MainDev Announcement " },
+    },
+  });
+
+  for (const fixture of ANNOUNCEMENT_FIXTURES) {
+    const result = await createAnnouncement(
+      donutShopA.org.id,
+      {
+        title: fixture.title,
+        description: fixture.description,
+        scope: AnnouncementScope.ORG,
+      },
+      donutShopA.org.ownerId,
+      recipient.email,
+    );
+
+    if (!result.ok) {
+      throw new Error(result.error);
+    }
+  }
 }
 
 export function registerNotificationSeeds(plan: SeedPlan) {
