@@ -92,7 +92,6 @@ export async function seedInvites(
         operatingDays: ["mon", "tue", "wed", "thu", "fri"],
       },
     });
-
     const [roleOwner, roleWorker] = await prisma.role
       .createManyAndReturn({
         data: [

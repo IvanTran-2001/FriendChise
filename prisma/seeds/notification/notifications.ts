@@ -1,5 +1,5 @@
-import { PrismaClient } from "@prisma/client";
-import { AnnouncementScope } from "@prisma/client";
+import { PrismaClient, AnnouncementScope } from "@prisma/client";
+import { seedDisplayName, seedEmail } from "@/lib/demo/seed-namespace";
 import { createAnnouncement } from "@/lib/services/announcements";
 import type { SeedPlan } from "../seed-plan";
 import type { Users } from "../shared/users";
@@ -13,12 +13,68 @@ const ANNOUNCEMENT_FIXTURES = Array.from({ length: 5 }, (_, index) => {
   };
 });
 
+const NOTIFICATION_MESSAGES = [
+  "Donut Shop A invited you to join as a franchisee.",
+  "Donut Shop A sent another franchise invite.",
+  "A new org invite from Donut Shop A is waiting for you.",
+  "Donut Shop A sent a reminder about the franchise invite.",
+  "Donut Shop A is still waiting on your franchise invite response.",
+];
+
 export async function seedNotifications(
   prisma: PrismaClient,
   users: Users,
   donutShopA: Awaited<ReturnType<typeof seedDonutShopA>>,
 ) {
   const recipient = users.owner;
+
+  const orgOwner = await prisma.user.upsert({
+    where: { email: seedEmail("notification-owner") },
+    update: {
+      name: seedDisplayName("Notification Owner"),
+      image: "https://i.pravatar.cc/150?img=24",
+    },
+    create: {
+      email: seedEmail("notification-owner"),
+      name: seedDisplayName("Notification Owner"),
+      image: "https://i.pravatar.cc/150?img=24",
+    },
+  });
+
+  const orgName = seedDisplayName("Notification Org");
+  await prisma.organization.deleteMany({
+    where: { name: orgName, ownerId: orgOwner.id },
+  });
+
+  await prisma.organization.create({
+    data: {
+      name: orgName,
+      ownerId: orgOwner.id,
+      address: "14 Notification Lane, Sydney NSW 2000",
+      timezone: "Australia/Sydney",
+      operatingDays: ["mon", "tue", "wed", "thu", "fri"],
+    },
+  });
+
+  await prisma.notification.deleteMany({
+    where: {
+      userId: recipient.id,
+      message: { startsWith: `${orgName} invited ` },
+    },
+  });
+
+  const recipientName = recipient.name ?? "MainDev";
+  const now = Date.now();
+  const notifications = Array.from({ length: 30 }, (_, index) => ({
+    userId: recipient.id,
+    message: `${orgName} invited ${recipientName} to join as a franchisee. ${NOTIFICATION_MESSAGES[index % NOTIFICATION_MESSAGES.length]}`,
+    seenAt: index < 10 ? null : new Date(now - index * 60 * 60 * 1000),
+    createdAt: new Date(now - index * 12 * 60 * 60 * 1000),
+  }));
+
+  await prisma.notification.createMany({
+    data: notifications,
+  });
 
   await prisma.announcement.deleteMany({
     where: {
