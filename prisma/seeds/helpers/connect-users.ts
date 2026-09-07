@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import type { Users } from "../shared/users";
 
 type ConnectSeedUsersOptions = {
@@ -14,7 +14,7 @@ type ConnectSeedUsersOptions = {
  * so rerunning seeds keeps memberships and roles aligned.
  */
 export async function connectSeedUsersToOrg(
-  prisma: PrismaClient,
+  prisma: Prisma.TransactionClient,
   orgId: string,
   users: Users,
   options: ConnectSeedUsersOptions = {},

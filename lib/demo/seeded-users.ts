@@ -1,18 +1,20 @@
 /**
  * Seeded user identifiers and emails for development and testing.
- * All emails are automatically namespaced via seedEmail() from seed-namespace.ts.
+ * All non-owner emails are automatically namespaced via seedEmail() from seed-namespace.ts.
+ * The MainDev owner account is a fixed test account so dev sign-in and seeding
+ * always point at the same login.
  *
  * Usage in tests:
  *   import { SEEDED_USERS } from "@/lib/seeded-users";
  *   const email = SEEDED_USERS.owner.email;
  */
 
-import { seedEmail, seedDisplayName } from "./seed-namespace";
+import { MAIN_DEV_EMAIL, seedEmail, seedDisplayName } from "./seed-namespace";
 
 export const SEEDED_USERS = {
 	owner: {
 		id: "owner",
-		email: seedEmail("owner"),
+		email: MAIN_DEV_EMAIL,
 		displayName: seedDisplayName("MainDev"),
 	},
 	jordan: {

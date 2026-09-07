@@ -9,45 +9,29 @@ import { ALL_OWNER_PERMISSIONS } from "../helpers";
 
 const INVITE_FIXTURES = [
   {
+    kind: "member" as const,
     orgBaseName: "Invite Org Alpha",
     ownerBaseName: "Invite Owner Alpha",
-    recipientBaseName: "Invite Recipient Alpha",
     address: "12 Harbour Street, Sydney NSW 2000",
     timezone: "Australia/Sydney",
     workingDays: ["mon", "wed", "fri"],
   },
   {
-    orgBaseName: "Invite Org Beta",
-    ownerBaseName: "Invite Owner Beta",
-    recipientBaseName: "Invite Recipient Beta",
+    kind: "franchise" as const,
+    orgBaseName: "Franchise Org Beta",
+    ownerBaseName: "Franchise Owner Beta",
     address: "88 Collins Street, Melbourne VIC 3000",
     timezone: "Australia/Melbourne",
     workingDays: ["tue", "thu"],
   },
-  {
-    orgBaseName: "Invite Org Gamma",
-    ownerBaseName: "Invite Owner Gamma",
-    recipientBaseName: "Invite Recipient Gamma",
-    address: "44 Queen Street, Brisbane QLD 4000",
-    timezone: "Australia/Brisbane",
-    workingDays: ["mon", "tue", "wed", "thu", "fri"],
-  },
-  {
-    orgBaseName: "Invite Org Delta",
-    ownerBaseName: "Invite Owner Delta",
-    recipientBaseName: "Invite Recipient Delta",
-    address: "15 Rundle Mall, Adelaide SA 5000",
-    timezone: "Australia/Adelaide",
-    workingDays: ["sat", "sun"],
-  },
-  {
-    orgBaseName: "Invite Org Epsilon",
-    ownerBaseName: "Invite Owner Epsilon",
-    recipientBaseName: "Invite Recipient Epsilon",
-    address: "61 Murray Street, Perth WA 6000",
-    timezone: "Australia/Perth",
-    workingDays: ["mon", "wed", "fri"],
-  },
+] as const;
+
+const INVITE_OWNER_EMAIL_KEYS = [
+  "invite-owner-1",
+  "invite-owner-2",
+  "invite-owner-3",
+  "invite-owner-4",
+  "invite-owner-5",
 ] as const;
 
 export async function seedInvites(
@@ -62,6 +46,15 @@ export async function seedInvites(
   });
   await prisma.franchiseToken.deleteMany({
     where: { invitedEmail: recipient.email },
+  });
+  await prisma.organization.deleteMany({
+    where: {
+      owner: {
+        email: {
+          in: INVITE_OWNER_EMAIL_KEYS.map((key) => seedEmail(key)),
+        },
+      },
+    },
   });
 
   for (const [index, fixture] of INVITE_FIXTURES.entries()) {
@@ -78,14 +71,14 @@ export async function seedInvites(
       },
     });
 
-    const orgName = seedDisplayName(fixture.orgBaseName);
+    const recipientOrgName = seedDisplayName(fixture.orgBaseName);
     await prisma.organization.deleteMany({
-      where: { name: orgName, ownerId: owner.id },
+      where: { name: recipientOrgName, ownerId: owner.id },
     });
 
     const org = await prisma.organization.create({
       data: {
-        name: orgName,
+        name: recipientOrgName,
         ownerId: owner.id,
         address: fixture.address,
         timezone: fixture.timezone,
@@ -116,17 +109,20 @@ export async function seedInvites(
       data: [{ membershipId: memberships[0].id, roleId: roleOwner.id }],
     });
 
-    const result = await createMemberInvite(
-      org.id,
-      owner.id,
-      recipient.id,
-      [roleWorker.id],
-      fixture.workingDays,
-      { actorEmail: owner.email },
-    );
+    if (fixture.kind === "member") {
+      const result = await createMemberInvite(
+        org.id,
+        owner.id,
+        recipient.id,
+        [roleWorker.id],
+        fixture.workingDays,
+        { actorEmail: owner.email },
+      );
 
-    if (!result.ok) {
-      throw new Error(result.error);
+      if (!result.ok) {
+        throw new Error(result.error);
+      }
+      continue;
     }
 
     const franchiseInvite = await createFranchiseToken(
