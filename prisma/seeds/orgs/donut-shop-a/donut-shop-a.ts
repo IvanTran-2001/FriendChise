@@ -1,6 +1,3 @@
-import fs from "fs";
-import path from "path";
-
 import {
   PrismaClient,
   PermissionAction,
@@ -16,7 +13,6 @@ import {
   makeDateUtils,
   timeToMin,
   toSlug,
-  uploadOrgLogo,
   uploadSeedTaskImage,
 } from "../../helpers";
 import { DONUT_TASKS } from "./data";
@@ -44,7 +40,7 @@ export async function seedDonutShopA(prisma: PrismaClient, users: Users) {
     data: {
       name: orgName,
       ownerId: owner.id,
-      image: null,
+      image: "donut_a_logo.jpg",
       address: "42 Harbour Street, Sydney NSW 2000",
       openTimeMin: timeToMin("06:00"),
       closeTimeMin: timeToMin("18:00"),
@@ -53,24 +49,6 @@ export async function seedDonutShopA(prisma: PrismaClient, users: Users) {
     },
   });
   console.log(`  ✓ Org created (id: ${org.id})`);
-
-  // Upload org logo
-  const org1LogoPath = path.resolve(
-    process.cwd(),
-    "public",
-    "donut_a_logo.jpg",
-  );
-  if (fs.existsSync(org1LogoPath)) {
-    const logoBuffer = fs.readFileSync(org1LogoPath);
-    const logoStoragePath = await uploadOrgLogo(toSlug(org.name), logoBuffer);
-    if (logoStoragePath) {
-      await prisma.organization.update({
-        where: { id: org.id },
-        data: { image: logoStoragePath },
-      });
-      console.log("  ✓ Org logo uploaded");
-    }
-  }
 
   // ── Roles ──────────────────────────────────────────────────────────────────
   console.log("→ Creating roles...");

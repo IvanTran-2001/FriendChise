@@ -1,5 +1,5 @@
 import type { SeedPlan } from "../seed-plan";
-import { seedDisplayName, seedEmail } from "@/lib/demo/seed-namespace";
+import { MAIN_DEV_EMAIL, seedDisplayName, seedEmail } from "@/lib/demo/seed-namespace";
 
 /**
  * Shared seed user fixture set used by the demo database and any seed modules
@@ -18,13 +18,13 @@ export async function seedUsers(prisma: import("@prisma/client").PrismaClient) {
   const [owner, jordan, casey, riley, morgan, alex, taylor, sam, quinn] =
     await Promise.all([
       prisma.user.upsert({
-        where: { email: seedEmail("owner") },
+        where: { email: MAIN_DEV_EMAIL },
         update: {
           name: seedDisplayName("MainDev"),
           image: "https://i.pravatar.cc/150?img=3",
         },
         create: {
-          email: seedEmail("owner"),
+          email: MAIN_DEV_EMAIL,
           name: seedDisplayName("MainDev"),
           image: "https://i.pravatar.cc/150?img=3",
         },

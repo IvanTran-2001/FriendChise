@@ -26,6 +26,14 @@ const INVITE_FIXTURES = [
   },
 ] as const;
 
+const INVITE_OWNER_EMAIL_KEYS = [
+  "invite-owner-1",
+  "invite-owner-2",
+  "invite-owner-3",
+  "invite-owner-4",
+  "invite-owner-5",
+] as const;
+
 export async function seedInvites(
   prisma: PrismaClient,
   users: Users,
@@ -38,6 +46,15 @@ export async function seedInvites(
   });
   await prisma.franchiseToken.deleteMany({
     where: { invitedEmail: recipient.email },
+  });
+  await prisma.organization.deleteMany({
+    where: {
+      owner: {
+        email: {
+          in: INVITE_OWNER_EMAIL_KEYS.map((key) => seedEmail(key)),
+        },
+      },
+    },
   });
 
   for (const [index, fixture] of INVITE_FIXTURES.entries()) {

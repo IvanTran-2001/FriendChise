@@ -4,6 +4,8 @@ import { execSync } from "child_process";
 
 let cachedSeedNamespace: string | null = null;
 
+export const MAIN_DEV_EMAIL = "testfriendchise@gmail.com";
+
 function normalizeNamespace(value: string): string {
 	return value
 		.trim()

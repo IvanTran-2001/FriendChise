@@ -268,12 +268,17 @@ export function OrgSwitcher() {
           variant="outline"
           size="sm"
           data-tour-target="org-selector"
-          className="group h-8.5 w-44 rounded-full border-border/60 bg-background/85 pl-1 pr-2 text-left transition-colors duration-150 hover:border-border hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2"
+          className={cn(
+            "group h-8.5 w-44 rounded-full border-border/60 bg-background/85 pr-2 text-left transition-colors duration-150 hover:border-border hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2",
+            currentOrg ? "pl-1" : "pl-3",
+          )}
           disabled={isPending}
         >
-          <span className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full bg-muted/70 ring-1 ring-border/70 transition-colors group-hover:bg-muted">
-            {currentOrg ? <OrgBadge org={currentOrg} /> : null}
-          </span>
+          {currentOrg ? (
+            <span className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full bg-muted/70 ring-1 ring-border/70 transition-colors group-hover:bg-muted">
+              <OrgBadge org={currentOrg} />
+            </span>
+          ) : null}
           <span className="flex min-w-0 flex-col items-start leading-none">
             <ScrollingText
               text={currentOrg?.name ?? "Select Org"}

@@ -291,6 +291,40 @@ export async function seedDemoOrg(ownerId: string, tx: Prisma.TransactionClient)
     })),
   });
 
+  await tx.notification.deleteMany({
+    where: { userId: ownerId, message: { startsWith: "[DEMO]" } },
+  });
+
+  await tx.notification.createMany({
+    data: [
+      {
+        userId: ownerId,
+        message: "[DEMO] Donut Shop A posted a new announcement.",
+        seenAt: null,
+      },
+      {
+        userId: ownerId,
+        message: "[DEMO] Your team updated a shift task.",
+        seenAt: null,
+      },
+      {
+        userId: ownerId,
+        message: "[DEMO] A checklist item was completed for today.",
+        seenAt: new Date(now.getTime() - 2 * 60 * 60 * 1000),
+      },
+      {
+        userId: ownerId,
+        message: "[DEMO] A new comment was added to a task.",
+        seenAt: new Date(now.getTime() - 4 * 60 * 60 * 1000),
+      },
+      {
+        userId: ownerId,
+        message: "[DEMO] A reminder was sent for the afternoon shift.",
+        seenAt: new Date(now.getTime() - 6 * 60 * 60 * 1000),
+      },
+    ],
+  });
+
   const itemByName = Object.fromEntries(
     (await Promise.all(conversionItems.map((item) => tx.toolItem.create({ data: { orgId: org!.id, name: item.name, unit: item.unit } })))).map((item) => [item.name, item] as const),
   ) as Record<string, { id: string; name: string }>;
