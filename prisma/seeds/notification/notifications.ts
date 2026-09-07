@@ -13,28 +13,13 @@ const ANNOUNCEMENT_FIXTURES = Array.from({ length: 5 }, (_, index) => {
   };
 });
 
-const GENERAL_NOTIFICATION_FIXTURES = [
-  {
-    message: "Notification Org posted a new update for MainDev.",
-    seenAt: null,
-  },
-  {
-    message: "Notification Org assigned a fresh task to MainDev.",
-    seenAt: null,
-  },
-  {
-    message: "Notification Org shared a reminder with MainDev.",
-    seenAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-  },
-  {
-    message: "Notification Org added a note for MainDev.",
-    seenAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
-  },
-  {
-    message: "Notification Org marked a checklist item complete for MainDev.",
-    seenAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
-  },
-] as const;
+const NOTIFICATION_MESSAGES = [
+  "Donut Shop A invited you to join as a franchisee.",
+  "Donut Shop A sent another franchise invite.",
+  "A new org invite from Donut Shop A is waiting for you.",
+  "Donut Shop A sent a reminder about the franchise invite.",
+  "Donut Shop A is still waiting on your franchise invite response.",
+];
 
 export async function seedNotifications(
   prisma: PrismaClient,
@@ -74,18 +59,16 @@ export async function seedNotifications(
   await prisma.notification.deleteMany({
     where: {
       userId: recipient.id,
-      OR: [
-        { message: { startsWith: `${orgName} ` } },
-        { message: { startsWith: "[DEMO] Notification " } },
-      ],
+      message: { startsWith: `${orgName} invited ` },
     },
   });
 
+  const recipientName = recipient.name ?? "MainDev";
   const now = Date.now();
-  const notifications = GENERAL_NOTIFICATION_FIXTURES.map((fixture, index) => ({
+  const notifications = Array.from({ length: 30 }, (_, index) => ({
     userId: recipient.id,
-    message: `[DEMO] Notification ${index + 1}: ${fixture.message}`,
-    seenAt: fixture.seenAt,
+    message: `${orgName} invited ${recipientName} to join as a franchisee. ${NOTIFICATION_MESSAGES[index % NOTIFICATION_MESSAGES.length]}`,
+    seenAt: index < 10 ? null : new Date(now - index * 60 * 60 * 1000),
     createdAt: new Date(now - index * 12 * 60 * 60 * 1000),
   }));
 
