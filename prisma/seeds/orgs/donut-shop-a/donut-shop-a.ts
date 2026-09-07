@@ -1,5 +1,5 @@
 import {
-  PrismaClient,
+  Prisma,
   PermissionAction,
   EntryStatus,
   ViewType,
@@ -26,7 +26,7 @@ import { connectSeedUsersToOrg } from "../../helpers/connect-users";
 //    Owner: namespaced seed user | Members: Jordan, Casey, Riley, Alex + 5 bots
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function seedDonutShopA(prisma: PrismaClient, users: Users) {
+export async function seedDonutShopA(prisma: Prisma.TransactionClient, users: Users) {
   const { owner, jordan, casey, riley, alex } = users;
   const { utcEntry } = makeDateUtils("Australia/Sydney");
   const orgName = seedDisplayName("[MAIN] Donut Shop A");

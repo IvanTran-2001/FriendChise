@@ -13,33 +13,40 @@
 
 import dotenv from "dotenv";
 dotenv.config({ path: ".env", quiet: true });
-const isProductionConfirmed =
-  process.env.NODE_ENV === "production" ||
-  process.argv.includes("--confirm-production");
-
-if (!isProductionConfirmed && !process.env.SKIP_DOTENV_LOCAL) {
+if (!process.env.SKIP_DOTENV_LOCAL) {
   dotenv.config({ path: ".env.local", override: true, quiet: true });
 }
 
-if (process.env.NODE_ENV === "production" && !process.argv.includes("--confirm-production")) {
-  console.error(
-    "Set NODE_ENV != production or pass --confirm-production to run against prod.",
-  );
-  process.exit(1);
-}
-
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { ROLE_KEYS } from "@/lib/auth/rbac";
 import { MAIN_DEV_EMAIL, seedDisplayName } from "@/lib/demo/seed-namespace";
+import { resolveDatabaseTarget } from "./db-target";
 import { seedEmptyOrgs } from "../../prisma/seeds/dummies/empty-orgs";
 import { ALL_OWNER_PERMISSIONS } from "../../prisma/seeds/helpers";
 import { seedUsers, type Users } from "../../prisma/seeds/shared/users";
 import { seedDonutShopA } from "../../prisma/seeds/orgs/donut-shop-a/donut-shop-a";
 
+const dbUrl = process.env.DATABASE_URL!;
+if (!dbUrl) {
+  console.error("DATABASE_URL is not set.");
+  process.exit(1);
+}
+
+const databaseTarget = resolveDatabaseTarget(dbUrl);
+const isProductionConfirmed = process.argv.includes("--confirm-production");
+
+if (databaseTarget.isProductionTarget && !isProductionConfirmed) {
+  console.error(
+    `Set --confirm-production to run against the production-targeted database (${databaseTarget.hostname}).`,
+  );
+  process.exit(1);
+}
+
 type ParsedArgs = {
   email: string;
   namespace: string;
+  confirmTargetDeletes?: string;
 };
 
 const INVITE_FIXTURES = [
@@ -95,63 +102,77 @@ function parseArgs(): ParsedArgs {
   return {
     email: readArg("email") ?? MAIN_DEV_EMAIL,
     namespace: readArg("namespace") ?? "ivan-tran",
+    confirmTargetDeletes: readArg("confirm-target-deletes"),
   };
-}
-
-const dbUrl = process.env.DATABASE_URL!;
-if (!dbUrl) {
-  console.error("DATABASE_URL is not set.");
-  process.exit(1);
 }
 
 const adapter = new PrismaPg({ connectionString: dbUrl });
 const prisma = new PrismaClient({ adapter });
 
+function maskEmail(email: string): string {
+  const [localPart, domain] = email.split("@");
+  if (!localPart || !domain) return "[redacted]";
+  return `${localPart.slice(0, 2)}***@${domain}`;
+}
+
+function isMainDevTarget(email: string): boolean {
+  return email.trim().toLowerCase() === MAIN_DEV_EMAIL;
+}
+
+function shouldAllowDeletes(targetEmail: string, confirmTargetDeletes?: string): boolean {
+  if (isMainDevTarget(targetEmail)) return true;
+  return confirmTargetDeletes === targetEmail;
+}
+
 async function seedProductionAccount(targetEmail: string, namespace: string) {
   process.env.SEED_NAMESPACE = namespace;
 
-  const users = (await seedUsers(prisma)) as Users;
-  const seedOwner = users.owner;
-
-  const owner = await prisma.user.upsert({
-    where: { email: targetEmail },
-    update: {
-      name: seedDisplayName("MainDev"),
-      image: "https://i.pravatar.cc/150?img=3",
-    },
-    create: {
-      email: targetEmail,
-      name: seedDisplayName("MainDev"),
-      image: "https://i.pravatar.cc/150?img=3",
-    },
-  });
-
-  if (seedOwner.id !== owner.id) {
-    await prisma.user.delete({ where: { id: seedOwner.id } });
+  const { confirmTargetDeletes } = parseArgs();
+  const allowDeletes = shouldAllowDeletes(targetEmail, confirmTargetDeletes);
+  if (!allowDeletes) {
+    console.error(
+      `Refusing to run destructive cleanup for non-canonical target ${maskEmail(targetEmail)}. Pass --confirm-target-deletes=<exact target email> to proceed.`,
+    );
+    process.exit(1);
   }
 
-  users.owner = owner;
+  await prisma.$transaction(async (tx) => {
+    const users = (await seedUsers(tx)) as Users;
 
-  await prisma.notification.deleteMany({ where: { userId: owner.id } });
-  await prisma.invite.deleteMany({ where: { recipientId: owner.id } });
-  await prisma.franchiseToken.deleteMany({ where: { invitedEmail: owner.email } });
-  await prisma.organization.deleteMany({ where: { ownerId: owner.id } });
+    const owner = await tx.user.upsert({
+      where: { email: targetEmail },
+      update: {
+        name: seedDisplayName("MainDev"),
+        image: "https://i.pravatar.cc/150?img=3",
+      },
+      create: {
+        email: targetEmail,
+        name: seedDisplayName("MainDev"),
+        image: "https://i.pravatar.cc/150?img=3",
+      },
+    });
 
-  const donutShopA = await seedDonutShopA(prisma, users);
-  await seedEmptyOrgs(prisma, users);
-  await seedInviteFixtures(prisma, owner, donutShopA.org.id);
-  await seedProductionNotifications(prisma, owner.id, owner.email, donutShopA.org.id);
+    users.owner = owner;
 
-  console.log("Production demo account seeded:", {
-    email: owner.email,
-    name: owner.name,
-    namespace,
-    orgId: donutShopA.org.id,
-  });
+    await tx.notification.deleteMany({ where: { userId: owner.id } });
+    await tx.invite.deleteMany({ where: { recipientId: owner.id } });
+    await tx.franchiseToken.deleteMany({ where: { invitedEmail: owner.email } });
+    await tx.organization.deleteMany({ where: { ownerId: owner.id } });
+
+    const donutShopA = await seedDonutShopA(tx, users);
+    await seedEmptyOrgs(tx, users);
+    await seedInviteFixtures(tx, owner, donutShopA.org.id);
+      await seedProductionNotifications(tx, owner.id, donutShopA.org.id);
+
+    console.log("Production demo account seeded:", {
+      account: maskEmail(owner.email),
+      status: "seeded",
+    });
+  }, { maxWait: 30_000, timeout: 300_000 });
 }
 
 async function seedInviteFixtures(
-  prisma: PrismaClient,
+  prisma: Prisma.TransactionClient,
   recipient: { id: string; email: string; name: string | null },
   _donutShopAOrgId: string,
 ) {
@@ -254,11 +275,10 @@ async function seedInviteFixtures(
 }
 
 async function seedProductionNotifications(
-  prisma: PrismaClient,
+  prisma: Prisma.TransactionClient,
   recipientId: string,
-  recipientEmail: string,
-  donutShopAOrgId: string,
-) {
+     donutShopAOrgId: string,
+   ) {
   const now = Date.now();
   const notificationOwner = await prisma.user.upsert({
     where: { email: `${"notification-owner"}+${process.env.SEED_NAMESPACE ?? "ivan-tran"}@example.test` },

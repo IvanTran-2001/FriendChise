@@ -14,24 +14,14 @@
 
 import dotenv from "dotenv";
 dotenv.config({ path: ".env", quiet: true });
-const isProductionConfirmed =
-  process.env.NODE_ENV === "production" ||
-  process.argv.includes("--confirm-production");
-
-if (!isProductionConfirmed && !process.env.SKIP_DOTENV_LOCAL) {
+if (!process.env.SKIP_DOTENV_LOCAL) {
   dotenv.config({ path: ".env.local", override: true, quiet: true });
-}
-
-if (process.env.NODE_ENV === "production" && !process.argv.includes("--confirm-production")) {
-  console.error(
-    "Set NODE_ENV != production or pass --confirm-production to run against prod.",
-  );
-  process.exit(1);
 }
 
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { MAIN_DEV_EMAIL } from "@/lib/demo/seed-namespace";
+import { resolveDatabaseTarget } from "./db-target";
 
 type ParsedArgs = {
   email: string;
@@ -48,16 +38,30 @@ function readArg(name: string): string | undefined {
 
 function parseArgs(): ParsedArgs {
   const email = readArg("email") ?? MAIN_DEV_EMAIL;
-  const name = readArg("name") ?? "MainDev";
-  const image = readArg("image") ?? "https://i.pravatar.cc/150?img=3";
+  const name = readArg("name");
+  const image = readArg("image");
   const newEmail = readArg("new-email");
 
   return { email, name, image, newEmail };
 }
 
+function maskEmail(email: string): string {
+  const [localPart, domain] = email.split("@");
+  if (!localPart || !domain) return "[redacted]";
+  return `${localPart.slice(0, 2)}***@${domain}`;
+}
+
 const dbUrl = process.env.DATABASE_URL!;
 if (!dbUrl) {
   console.error("DATABASE_URL is not set.");
+  process.exit(1);
+}
+
+const databaseTarget = resolveDatabaseTarget(dbUrl);
+if (databaseTarget.isProductionTarget && !process.argv.includes("--confirm-production")) {
+  console.error(
+    `Set --confirm-production to run against the production-targeted database (${databaseTarget.hostname}).`,
+  );
   process.exit(1);
 }
 
@@ -73,22 +77,21 @@ async function main() {
   });
 
   if (!user) {
-    console.error(`User not found for email: ${args.email}`);
+    console.error(`User not found for account: ${maskEmail(args.email)}`);
     process.exit(1);
   }
 
   const data: { email?: string; name?: string; image?: string } = {};
   if (args.newEmail) data.email = args.newEmail;
-  if (args.name) data.name = args.name;
-  if (args.image) data.image = args.image;
+  if (args.name !== undefined) data.name = args.name;
+  if (args.image !== undefined) data.image = args.image;
 
-  console.log("Updating user:", {
-    id: user.id,
-    currentEmail: user.email,
-    currentName: user.name,
-    currentImage: user.image,
-    next: data,
-  });
+  if (Object.keys(data).length === 0) {
+    console.error("No update fields were provided.");
+    process.exit(1);
+  }
+
+  console.log("Updating user:", { account: maskEmail(user.email), status: "pending" });
 
   const updated = await prisma.user.update({
     where: { id: user.id },
@@ -96,7 +99,7 @@ async function main() {
     select: { id: true, email: true, name: true, image: true },
   });
 
-  console.log("Updated user:", updated);
+  console.log("Updated user:", { account: maskEmail(updated.email), status: "updated" });
 }
 
 main()

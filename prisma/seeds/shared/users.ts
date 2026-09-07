@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import type { SeedPlan } from "../seed-plan";
 import { MAIN_DEV_EMAIL, seedDisplayName, seedEmail } from "@/lib/demo/seed-namespace";
 
@@ -14,7 +15,7 @@ function resolveSeedEmail(): string {
 }
 
 // These are the canonical seed users for the demo database.
-export async function seedUsers(prisma: import("@prisma/client").PrismaClient) {
+export async function seedUsers(prisma: Prisma.TransactionClient) {
   const [owner, jordan, casey, riley, morgan, alex, taylor, sam, quinn] =
     await Promise.all([
       prisma.user.upsert({

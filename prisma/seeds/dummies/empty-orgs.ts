@@ -1,4 +1,4 @@
-import { PrismaClient, PermissionAction } from "@prisma/client";
+import { Prisma, PermissionAction } from "@prisma/client";
 import { ROLE_KEYS } from "@/lib/auth/rbac";
 import type { SeedPlan } from "../seed-plan";
 import { ALL_OWNER_PERMISSIONS } from "../helpers";
@@ -13,7 +13,7 @@ export const EMPTY_ORG_BASE_NAMES = ["test1", "test2", "test3", "test4", "test5"
 //    Owner: Jordan  |  Member: Riley
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function seedEmptyOrgs(prisma: PrismaClient, users: Users) {
+export async function seedEmptyOrgs(prisma: Prisma.TransactionClient, users: Users) {
   const { jordan, riley } = users;
 
   const orgDefs = [
